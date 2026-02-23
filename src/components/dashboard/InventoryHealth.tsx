@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { isValidDays } from "@/lib/validation";
 import {
   BarChart,
   Bar,
@@ -51,6 +52,7 @@ export function InventoryHealth({ days }: Props) {
 
   useEffect(() => {
     async function fetchData() {
+      if (!isValidDays(days)) return;
       setLoading(true);
       const { data: rows, error } = await supabase.rpc("reporte_salud_inventario", {
         dias_atras: days,
