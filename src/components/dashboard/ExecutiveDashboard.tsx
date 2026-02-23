@@ -375,7 +375,7 @@ export function ExecutiveDashboard({ days }: Props) {
       <TabsList className="w-full grid grid-cols-3 bg-muted/50 rounded-lg p-1 h-11">
         <TabsTrigger value="tiendas" className="flex items-center gap-2 text-sm font-medium data-[state=active]:bg-card data-[state=active]:shadow-sm rounded-md">
           <Store className="h-4 w-4" />
-          Tiendas (Full Price)
+          Tiendas de Línea
         </TabsTrigger>
         <TabsTrigger value="outlets" className="flex items-center gap-2 text-sm font-medium data-[state=active]:bg-card data-[state=active]:shadow-sm rounded-md">
           <Tag className="h-4 w-4" />
