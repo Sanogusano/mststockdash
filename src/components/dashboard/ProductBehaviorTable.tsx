@@ -144,7 +144,7 @@ export function ProductBehaviorTable({ days }: { days: number }) {
               <TableHeader>
                 <TableRow className="bg-muted/30">
                   <TableHead className="min-w-[260px]">Producto</TableHead>
-                  <TableHead>Categoría</TableHead>
+                  <TableHead>Clasificación</TableHead>
                   <TableHead className="text-right">Und. Vendidas</TableHead>
                   <TableHead>Stock Actual</TableHead>
                   <TableHead className="min-w-[180px]">Sell-Through</TableHead>
@@ -170,14 +170,13 @@ export function ProductBehaviorTable({ days }: { days: number }) {
                         )}
                         <div className="min-w-0">
                           <p className="text-sm font-medium text-foreground truncate">{row.producto}</p>
-                          <p className="text-xs text-muted-foreground font-mono">{row.sku}</p>
+                          <p className="text-xs text-muted-foreground">{row.categoria}</p>
                         </div>
                       </div>
                     </TableCell>
 
-                    {/* Categoría & Clasificación */}
+                    {/* Clasificación */}
                     <TableCell>
-                      <p className="text-sm text-foreground">{row.categoria}</p>
                       <StatusBadge label={row.clasificacion} />
                     </TableCell>
 

@@ -314,8 +314,8 @@ export type Database = {
           unidades_vendidas: number
         }[]
       }
-      reporte_detalle_sku_tiendas: {
-        Args: { dias_atras: number; p_sku: string }
+      reporte_detalle_producto_tiendas: {
+        Args: { dias_atras: number; p_producto: string }
         Returns: {
           estado_salud: string
           ingresos: number

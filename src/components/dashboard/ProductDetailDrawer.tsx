@@ -44,14 +44,14 @@ export function ProductDetailDrawer({
   const [filter, setFilter] = useState("");
 
   const { data, isLoading } = useQuery({
-    queryKey: ["detalle-sku-tiendas", product?.sku, days],
+    queryKey: ["detalle-producto-tiendas", product?.producto, days],
     queryFn: async () => {
       if (!product) return [];
-      const { data, error } = await supabase.rpc("reporte_detalle_sku_tiendas", {
+      const { data, error } = await supabase.rpc("reporte_detalle_producto_tiendas", {
         dias_atras: days,
-        p_sku: product.sku,
+        p_producto: product.producto,
       });
-      console.log("[ProductDetail] RPC response:", { data, error, sku: product.sku, days });
+      console.log("[ProductDetail] RPC response:", { data, error, producto: product.producto, days });
       if (error) throw new Error(error.message);
       return (data ?? []) as DetailRow[];
     },
