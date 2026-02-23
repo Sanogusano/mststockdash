@@ -8,6 +8,7 @@ import Index from "./pages/Index";
 import InventariosPage from "./pages/Inventarios";
 import LogisticaPage from "./pages/Logistica";
 import InsumosPage from "./pages/Insumos";
+import ComportamientoProductoPage from "./pages/ComportamientoProducto";
 import LoginPage from "./pages/Login";
 import ResetPasswordPage from "./pages/ResetPassword";
 import NotFound from "./pages/NotFound";
@@ -28,6 +29,7 @@ const App = () => (
           <Route path="/inventarios" element={<ProtectedRoute><InventariosPage /></ProtectedRoute>} />
           <Route path="/tienda/:id" element={<ProtectedRoute><TiendaDetailPage /></ProtectedRoute>} />
           <Route path="/logistica" element={<ProtectedRoute><LogisticaPage /></ProtectedRoute>} />
+          <Route path="/producto" element={<ProtectedRoute><ComportamientoProductoPage /></ProtectedRoute>} />
           <Route path="/insumos" element={<ProtectedRoute><InsumosPage /></ProtectedRoute>} />
           <Route path="*" element={<NotFound />} />
         </Routes>
