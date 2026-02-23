@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { resolveDays } from "./TimeFilter";
 import { LoadingState, EmptyState } from "./LoadingState";
 import { StatusBadge } from "./StatusBadge";
+import { ProductDetailDrawer } from "./ProductDetailDrawer";
 import { exportToCSV } from "@/lib/csv-export";
 import { exportToPDF } from "@/lib/pdf-export";
 import { Search, Download, FileText } from "lucide-react";
@@ -33,6 +34,7 @@ interface ProductRow {
 export function ProductBehaviorTable({ days }: { days: number }) {
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(0);
+  const [selectedProduct, setSelectedProduct] = useState<ProductRow | null>(null);
 
   const resolvedDays = resolveDays(days);
 
@@ -142,7 +144,7 @@ export function ProductBehaviorTable({ days }: { days: number }) {
               </TableHeader>
               <TableBody>
                 {paged.map((row) => (
-                  <TableRow key={row.sku}>
+                  <TableRow key={row.sku} className="cursor-pointer" onClick={() => setSelectedProduct(row)}>
                     {/* Producto */}
                     <TableCell>
                       <div className="flex items-center gap-3">
@@ -228,6 +230,11 @@ export function ProductBehaviorTable({ days }: { days: number }) {
           </>
         )}
       </div>
+      <ProductDetailDrawer
+        product={selectedProduct}
+        days={resolveDays(days)}
+        onClose={() => setSelectedProduct(null)}
+      />
     </div>
   );
 }

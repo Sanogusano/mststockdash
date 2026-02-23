@@ -314,6 +314,20 @@ export type Database = {
           unidades_vendidas: number
         }[]
       }
+      reporte_detalle_sku_tiendas: {
+        Args: { dias_atras: number; p_sku: string }
+        Returns: {
+          estado_salud: string
+          ingresos: number
+          pct_descuento: number
+          pct_full_price: number
+          sell_through_pct: number
+          stock_actual: number
+          tienda: string
+          und_vendidas: number
+          wos: number
+        }[]
+      }
       reporte_ejecutivo_kpis: {
         Args: {
           canal_filtro?: string
