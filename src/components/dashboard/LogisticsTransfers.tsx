@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { isValidDays } from "@/lib/validation";
 import { ArrowRight } from "lucide-react";
 import { LoadingState, EmptyState } from "./LoadingState";
 
@@ -24,6 +25,7 @@ export function LogisticsTransfers({ days }: Props) {
 
   useEffect(() => {
     async function fetchData() {
+      if (!isValidDays(days)) return;
       setLoading(true);
       const { data: rows, error } = await supabase.rpc("reporte_sugerencias_traslado", {
         dias_atras: days,

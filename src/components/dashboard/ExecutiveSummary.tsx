@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { LoadingState, EmptyState } from "./LoadingState";
+import { isValidDays } from "@/lib/validation";
 import { StatusBadge } from "./StatusBadge";
 
 interface ExecutiveRow {
@@ -23,6 +24,7 @@ export function ExecutiveSummary({ days }: Props) {
 
   useEffect(() => {
     async function fetchData() {
+      if (!isValidDays(days)) return;
       setLoading(true);
       const { data: rows, error } = await supabase.rpc(
         "reporte_desempeño_comercial",
