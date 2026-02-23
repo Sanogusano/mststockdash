@@ -8,13 +8,15 @@ import { exportToPDF } from "@/lib/pdf-export";
 import { LoadingState, EmptyState } from "./LoadingState";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Store, Globe, Download, FileText, DollarSign, ShoppingBag, Receipt, Star, Percent } from "lucide-react";
+import { Store, Globe, Download, FileText, DollarSign, ShoppingBag, Receipt, Star, Percent, Tag } from "lucide-react";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 import { StoreLeaderboard } from "./StoreLeaderboard";
 
 /* ── Constants ── */
 const CEDI_ID = "71474315479";
 const CEDI_DISPLAY = "Bodega Ecommerce";
+const OUTLET_KEYWORDS = ["SOPO", "UNICO BARRANQUILLA", "UNICO CALI"];
+const isOutlet = (name: string) => OUTLET_KEYWORDS.some(k => name.toUpperCase().includes(k));
 
 /* ── Pareto Types ── */
 interface ParetoRow {
@@ -246,8 +248,9 @@ function ParetoChart({ days, canal }: { days: number; canal: string }) {
 }
 
 /* ── Channel Panel ── */
-function ChannelPanel({ days, canal, showLocationFilter }: {
+function ChannelPanel({ days, canal, showLocationFilter, locationFilter }: {
   days: number; canal: string; showLocationFilter: boolean;
+  locationFilter?: "tiendas" | "outlets";
 }) {
   const [kpis, setKpis] = useState<KpiData | null>(null);
   const [topProducts, setTopProducts] = useState<ProductRow[]>([]);
@@ -261,14 +264,21 @@ function ChannelPanel({ days, canal, showLocationFilter }: {
     supabase.from("locations").select("location_id, name").eq("is_active", true)
       .then(({ data }) => {
         if (data) {
-          // Hide CEDI Guayabal from store selector
-          setLocations(data.filter(l => l.location_id !== CEDI_ID).map(l => ({
-            ...l,
-            name: l.location_id === CEDI_ID ? CEDI_DISPLAY : l.name,
-          })));
+          const filtered = data
+            .filter(l => l.location_id !== CEDI_ID)
+            .filter(l => {
+              if (locationFilter === "tiendas") return !isOutlet(l.name);
+              if (locationFilter === "outlets") return isOutlet(l.name);
+              return true;
+            })
+            .map(l => ({
+              ...l,
+              name: l.location_id === CEDI_ID ? CEDI_DISPLAY : l.name,
+            }));
+          setLocations(filtered);
         }
       });
-  }, [showLocationFilter]);
+  }, [showLocationFilter, locationFilter]);
 
   useEffect(() => {
     async function fetchAll() {
@@ -277,15 +287,16 @@ function ChannelPanel({ days, canal, showLocationFilter }: {
       const effectiveDays = resolveDays(days);
       const locParam = selectedLocation === "all" ? null : selectedLocation;
 
-      const rpcName = canal === "POS" ? "reporte_top_bottom_tiendas" : "reporte_top_bottom_digital";
-      const rpcParams = canal === "POS"
+      const isPhysical = canal === "tiendas" || canal === "outlets";
+      const rpcName = isPhysical ? "reporte_top_bottom_tiendas" : "reporte_top_bottom_digital";
+      const rpcParams = isPhysical
         ? { dias_atras: effectiveDays, ...(locParam ? { p_location_id: locParam } : {}) }
         : { dias_atras: effectiveDays };
 
       const [kpiRes, allProductsRes] = await Promise.all([
         supabase.rpc("reporte_kpis_comerciales", {
           dias_atras: effectiveDays,
-          p_canal: canal === "POS" ? "pos" : "digital",
+          p_canal: canal,
           p_location_id: locParam,
         }),
         supabase.rpc(rpcName, rpcParams as any),
@@ -338,9 +349,9 @@ function ChannelPanel({ days, canal, showLocationFilter }: {
         <KpiCard label="% Descuento" value={`${(kpis?.pct_pedidos_con_descuento ?? 0).toFixed(1)}%`} icon={Percent} className="text-orange-500" />
       </div>
 
-      {canal === "POS" && <StoreLeaderboard days={days} />}
+      {canal === "tiendas" && <StoreLeaderboard days={days} />}
 
-      <ParetoChart days={days} canal={canal} />
+      <ParetoChart days={days} canal={canal === "digital" ? "digital" : "pos"} />
 
       <ProductTable
         data={topProducts}
@@ -360,11 +371,15 @@ function ChannelPanel({ days, canal, showLocationFilter }: {
 /* ── Main Component ── */
 export function ExecutiveDashboard({ days }: Props) {
   return (
-    <Tabs defaultValue="pos" className="w-full">
-      <TabsList className="w-full grid grid-cols-2 bg-muted/50 rounded-lg p-1 h-11">
-        <TabsTrigger value="pos" className="flex items-center gap-2 text-sm font-medium data-[state=active]:bg-card data-[state=active]:shadow-sm rounded-md">
+    <Tabs defaultValue="tiendas" className="w-full">
+      <TabsList className="w-full grid grid-cols-3 bg-muted/50 rounded-lg p-1 h-11">
+        <TabsTrigger value="tiendas" className="flex items-center gap-2 text-sm font-medium data-[state=active]:bg-card data-[state=active]:shadow-sm rounded-md">
           <Store className="h-4 w-4" />
-          Tiendas
+          Tiendas (Full Price)
+        </TabsTrigger>
+        <TabsTrigger value="outlets" className="flex items-center gap-2 text-sm font-medium data-[state=active]:bg-card data-[state=active]:shadow-sm rounded-md">
+          <Tag className="h-4 w-4" />
+          Outlets
         </TabsTrigger>
         <TabsTrigger value="digital" className="flex items-center gap-2 text-sm font-medium data-[state=active]:bg-card data-[state=active]:shadow-sm rounded-md">
           <Globe className="h-4 w-4" />
@@ -372,11 +387,14 @@ export function ExecutiveDashboard({ days }: Props) {
         </TabsTrigger>
       </TabsList>
 
-      <TabsContent value="pos" className="mt-6">
-        <ChannelPanel days={days} canal="POS" showLocationFilter={true} />
+      <TabsContent value="tiendas" className="mt-6">
+        <ChannelPanel days={days} canal="tiendas" showLocationFilter={true} locationFilter="tiendas" />
+      </TabsContent>
+      <TabsContent value="outlets" className="mt-6">
+        <ChannelPanel days={days} canal="outlets" showLocationFilter={true} locationFilter="outlets" />
       </TabsContent>
       <TabsContent value="digital" className="mt-6">
-        <ChannelPanel days={days} canal="DIGITAL" showLocationFilter={false} />
+        <ChannelPanel days={days} canal="digital" showLocationFilter={false} />
       </TabsContent>
     </Tabs>
   );
