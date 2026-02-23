@@ -20,12 +20,22 @@ export default function ResetPasswordPage() {
     }
   }, [navigate]);
 
+  const validatePassword = (pwd: string): string | null => {
+    if (pwd.length < 8) return "Debe tener al menos 8 caracteres.";
+    if (!/[A-Z]/.test(pwd)) return "Debe incluir al menos una letra mayúscula.";
+    if (!/[a-z]/.test(pwd)) return "Debe incluir al menos una letra minúscula.";
+    if (!/[0-9]/.test(pwd)) return "Debe incluir al menos un número.";
+    if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(pwd)) return "Debe incluir al menos un carácter especial.";
+    return null;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
 
-    if (password.length < 8) {
-      setError("La contraseña debe tener al menos 8 caracteres.");
+    const validationError = validatePassword(password);
+    if (validationError) {
+      setError(validationError);
       return;
     }
     if (password !== confirm) {

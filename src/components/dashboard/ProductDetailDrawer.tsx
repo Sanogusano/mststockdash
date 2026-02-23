@@ -51,7 +51,7 @@ export function ProductDetailDrawer({
         dias_atras: days,
         p_producto: product.producto,
       });
-      console.log("[ProductDetail] RPC response:", { data, error, producto: product.producto, days });
+      if (import.meta.env.DEV) console.log("[ProductDetail] RPC response:", { data, error, producto: product.producto, days });
       if (error) throw new Error(error.message);
       return (data ?? []) as DetailRow[];
     },

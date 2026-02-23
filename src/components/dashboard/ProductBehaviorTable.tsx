@@ -44,7 +44,7 @@ export function ProductBehaviorTable({ days }: { days: number }) {
       const params: { dias_atras: number; p_sku_filter?: string } = { dias_atras: resolvedDays };
       if (search.trim()) params.p_sku_filter = search.trim();
       const { data, error } = await supabase.rpc("reporte_comportamiento_producto", params);
-      console.log("[ProductBehavior] RPC response:", { data, error, params });
+      if (import.meta.env.DEV) console.log("[ProductBehavior] RPC response:", { data, error, params });
       if (error) throw new Error(error.message);
       return (data ?? []) as ProductRow[];
     },
