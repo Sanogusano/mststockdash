@@ -38,17 +38,18 @@ export function ProductBehaviorTable({ days }: { days: number }) {
 
   const resolvedDays = resolveDays(days);
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, error } = useQuery({
     queryKey: ["producto-comportamiento", resolvedDays, search],
     queryFn: async () => {
       const params: { dias_atras: number; p_sku_filter?: string } = { dias_atras: resolvedDays };
       if (search.trim()) params.p_sku_filter = search.trim();
       const { data, error } = await supabase.rpc("reporte_comportamiento_producto", params);
-      if (error) throw error;
+      console.log("[ProductBehavior] RPC response:", { data, error, params });
+      if (error) throw new Error(error.message);
       return (data ?? []) as ProductRow[];
     },
     staleTime: 5 * 60 * 1000,
-    retry: 2,
+    retry: 1,
   });
 
   const rows = data ?? [];
@@ -129,6 +130,12 @@ export function ProductBehaviorTable({ days }: { days: number }) {
       <div className="glass-card overflow-hidden">
         {isLoading ? (
           <div className="p-6"><LoadingState rows={8} /></div>
+        ) : error ? (
+          <div className="flex flex-col items-center justify-center py-16 text-center">
+            <p className="text-4xl mb-3">⚠️</p>
+            <p className="text-destructive text-sm font-medium">Error al cargar datos</p>
+            <p className="text-muted-foreground text-xs mt-1 max-w-md">{(error as Error).message}</p>
+          </div>
         ) : !paged.length ? (
           <EmptyState message="No se encontraron productos para este filtro." />
         ) : (
