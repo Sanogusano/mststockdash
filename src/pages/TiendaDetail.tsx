@@ -8,6 +8,7 @@ import { LoadingState, EmptyState } from "@/components/dashboard/LoadingState";
 import { StatusBadge } from "@/components/dashboard/StatusBadge";
 import { ArrowLeft, DollarSign, Receipt, ShoppingBag, Star, Percent } from "lucide-react";
 import { isValidDays } from "@/lib/validation";
+import { resolveDays } from "@/components/dashboard/TimeFilter";
 import { cn } from "@/lib/utils";
 
 interface WosCategoryRow {
@@ -63,11 +64,12 @@ export default function TiendaDetailPage() {
     async function fetchData() {
       if (!id || !isValidDays(days)) return;
       setLoading(true);
+      const effectiveDays = resolveDays(days);
 
       const [locRes, wosRes, kpiRes] = await Promise.all([
         supabase.from("locations").select("name").eq("location_id", id).single(),
-        supabase.rpc("reporte_wos_categoria_tienda", { dias_atras: days, p_location_id: id }),
-        supabase.rpc("reporte_kpis_comerciales", { dias_atras: days, p_canal: "pos", p_location_id: id }),
+        supabase.rpc("reporte_wos_categoria_tienda", { dias_atras: effectiveDays, p_location_id: id }),
+        supabase.rpc("reporte_kpis_comerciales", { dias_atras: effectiveDays, p_canal: "pos", p_location_id: id }),
       ]);
 
       if (locRes.data) setStoreName(locRes.data.name);

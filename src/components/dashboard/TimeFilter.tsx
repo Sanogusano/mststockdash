@@ -1,9 +1,21 @@
+// Value -1 is a sentinel for "Este Mes" (dynamic days since 1st of current month)
+export const THIS_MONTH_SENTINEL = -1;
+
+/** Resolve the sentinel to the actual number of elapsed days this month */
+export function resolveDays(value: number): number {
+  if (value === THIS_MONTH_SENTINEL) {
+    return Math.max(new Date().getDate(), 1);
+  }
+  return value;
+}
+
 interface TimeFilterProps {
   value: number;
   onChange: (days: number) => void;
 }
 
 const options = [
+  { label: "Este Mes", value: THIS_MONTH_SENTINEL },
   { label: "7D", value: 7 },
   { label: "30D", value: 30 },
   { label: "90D", value: 90 },

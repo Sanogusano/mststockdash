@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { isValidDays } from "@/lib/validation";
+import { resolveDays } from "@/components/dashboard/TimeFilter";
 import { exportToCSV } from "@/lib/csv-export";
 import { cn } from "@/lib/utils";
 import { exportToPDF } from "@/lib/pdf-export";
@@ -186,8 +187,9 @@ function ParetoChart({ days, canal }: { days: number; canal: string }) {
     async function fetch() {
       if (!isValidDays(days)) return;
       setLoading(true);
+      const effectiveDays = resolveDays(days);
       const { data: rows } = await supabase.rpc("reporte_pareto_categorias", {
-        dias_atras: days,
+        dias_atras: effectiveDays,
         p_canal: canal === "POS" ? "pos" : "digital",
       });
       if (rows) setData(rows as unknown as ParetoRow[]);
@@ -271,16 +273,17 @@ function ChannelPanel({ days, canal, showLocationFilter }: {
     async function fetchAll() {
       if (!isValidDays(days)) return;
       setLoading(true);
+      const effectiveDays = resolveDays(days);
       const locParam = selectedLocation === "all" ? null : selectedLocation;
 
       const rpcName = canal === "POS" ? "reporte_top_bottom_tiendas" : "reporte_top_bottom_digital";
       const rpcParams = canal === "POS"
-        ? { dias_atras: days, ...(locParam ? { p_location_id: locParam } : {}) }
-        : { dias_atras: days };
+        ? { dias_atras: effectiveDays, ...(locParam ? { p_location_id: locParam } : {}) }
+        : { dias_atras: effectiveDays };
 
       const [kpiRes, allProductsRes] = await Promise.all([
         supabase.rpc("reporte_kpis_comerciales", {
-          dias_atras: days,
+          dias_atras: effectiveDays,
           p_canal: canal === "POS" ? "pos" : "digital",
           p_location_id: locParam,
         }),

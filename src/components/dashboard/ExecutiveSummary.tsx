@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { LoadingState, EmptyState } from "./LoadingState";
 import { isValidDays } from "@/lib/validation";
+import { resolveDays } from "@/components/dashboard/TimeFilter";
 import { StatusBadge } from "./StatusBadge";
 
 interface ExecutiveRow {
@@ -26,9 +27,10 @@ export function ExecutiveSummary({ days }: Props) {
     async function fetchData() {
       if (!isValidDays(days)) return;
       setLoading(true);
+      const effectiveDays = resolveDays(days);
       const { data: rows, error } = await supabase.rpc(
         "reporte_desempeño_comercial",
-        { dias_atras: days }
+        { dias_atras: effectiveDays }
       );
       if (!error && rows) setData(rows as ExecutiveRow[]);
       setLoading(false);
