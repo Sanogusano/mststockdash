@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { isValidDays } from "@/lib/validation";
 import { exportToCSV } from "@/lib/csv-export";
@@ -6,6 +6,21 @@ import { LoadingState, EmptyState } from "./LoadingState";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Store, Globe, Download, DollarSign, ShoppingBag, Receipt } from "lucide-react";
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
+
+/* ── Pareto Types ── */
+interface ParetoRow {
+  categoria: string | null;
+  unidades: number | null;
+  ingresos: number | null;
+  pct_participacion: number | null;
+}
+
+const PARETO_COLORS = [
+  "hsl(220,70%,55%)", "hsl(260,60%,55%)", "hsl(330,65%,55%)",
+  "hsl(160,55%,45%)", "hsl(38,85%,55%)", "hsl(0,65%,55%)",
+  "hsl(190,60%,45%)", "hsl(280,50%,55%)",
+];
 
 /* ── Types ── */
 interface KpiData {
@@ -129,6 +144,63 @@ function ProductTable({ data, title, onExport }: {
   );
 }
 
+/* ── Pareto Chart ── */
+function ParetoChart({ days, canal }: { days: number; canal: string }) {
+  const [data, setData] = useState<ParetoRow[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetch() {
+      if (!isValidDays(days)) return;
+      setLoading(true);
+      const { data: rows } = await supabase.rpc("reporte_pareto_categorias", {
+        dias_atras: days,
+        p_canal: canal === "POS" ? "pos" : "digital",
+      });
+      if (rows) setData(rows as unknown as ParetoRow[]);
+      setLoading(false);
+    }
+    fetch();
+  }, [days, canal]);
+
+  if (loading) return <LoadingState rows={3} />;
+  if (!data.length) return null;
+
+  const chartData = data.map((r) => ({
+    name: r.categoria ?? "—",
+    value: Number(r.pct_participacion ?? 0),
+  }));
+
+  return (
+    <div className="glass-card p-5">
+      <h3 className="text-sm font-semibold text-foreground mb-4">Participación por Línea</h3>
+      <div className="flex items-center gap-6">
+        <ResponsiveContainer width={180} height={180}>
+          <PieChart>
+            <Pie data={chartData} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={45} outerRadius={80} paddingAngle={2} strokeWidth={0}>
+              {chartData.map((_, i) => (
+                <Cell key={i} fill={PARETO_COLORS[i % PARETO_COLORS.length]} />
+              ))}
+            </Pie>
+            <Tooltip formatter={(v: number) => `${v.toFixed(1)}%`} />
+          </PieChart>
+        </ResponsiveContainer>
+        <div className="flex-1 space-y-1.5">
+          {data.map((r, i) => (
+            <div key={i} className="flex items-center justify-between text-xs">
+              <div className="flex items-center gap-2">
+                <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: PARETO_COLORS[i % PARETO_COLORS.length] }} />
+                <span className="text-foreground font-medium truncate max-w-[140px]">{r.categoria ?? "—"}</span>
+              </div>
+              <span className="text-muted-foreground font-mono">{(r.pct_participacion ?? 0).toFixed(1)}%</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* ── Channel Panel ── */
 function ChannelPanel({ days, canal, showLocationFilter }: {
   days: number; canal: string; showLocationFilter: boolean;
@@ -140,43 +212,30 @@ function ChannelPanel({ days, canal, showLocationFilter }: {
   const [selectedLocation, setSelectedLocation] = useState<string>("all");
   const [loading, setLoading] = useState(true);
 
-  // Fetch locations once
   useEffect(() => {
     if (!showLocationFilter) return;
     supabase.from("locations").select("location_id, name").eq("is_active", true)
-      .then(({ data }) => {
-        if (data) setLocations(data);
-      });
+      .then(({ data }) => { if (data) setLocations(data); });
   }, [showLocationFilter]);
 
-  // Fetch data
   useEffect(() => {
     async function fetchAll() {
       if (!isValidDays(days)) return;
       setLoading(true);
-
       const locParam = selectedLocation === "all" ? null : selectedLocation;
 
-      const [kpiRes, topRes, bottomRes] = await Promise.all([
+      const rpcName = canal === "POS" ? "reporte_top_bottom_tiendas" : "reporte_top_bottom_digital";
+      const rpcParams = canal === "POS"
+        ? { dias_atras: days, ...(locParam ? { p_location_id: locParam } : {}) }
+        : { dias_atras: days };
+
+      const [kpiRes, allProductsRes] = await Promise.all([
         supabase.rpc("reporte_ejecutivo_kpis", {
           dias_atras: days,
           canal_filtro: canal,
           location_filtro: locParam,
         }),
-        supabase.rpc("reporte_ejecutivo_productos", {
-          dias_atras: days,
-          canal_filtro: canal,
-          location_filtro: locParam,
-          orden: "TOP",
-          limite: 20,
-        }),
-        supabase.rpc("reporte_ejecutivo_productos", {
-          dias_atras: days,
-          canal_filtro: canal,
-          location_filtro: locParam,
-          orden: "BOTTOM",
-          limite: 20,
-        }),
+        supabase.rpc(rpcName, rpcParams as any),
       ]);
 
       if (kpiRes.data && kpiRes.data.length > 0) {
@@ -184,8 +243,15 @@ function ChannelPanel({ days, canal, showLocationFilter }: {
       } else {
         setKpis({ ventas_totales: 0, unidades_totales: 0, ticket_promedio: 0 });
       }
-      if (topRes.data) setTopProducts(topRes.data as unknown as ProductRow[]);
-      if (bottomRes.data) setBottomProducts(bottomRes.data as unknown as ProductRow[]);
+
+      if (allProductsRes.data) {
+        const all = allProductsRes.data as unknown as ProductRow[];
+        // Top 20 = first 20 (already sorted DESC by unidades)
+        setTopProducts(all.slice(0, 20));
+        // Bottom 20 = reverse the full list, take first 20 with stock > 0
+        const bottom = [...all].reverse().filter(r => (r.stock_disponible ?? 0) > 0).slice(0, 20);
+        setBottomProducts(bottom);
+      }
 
       setLoading(false);
     }
@@ -196,7 +262,6 @@ function ChannelPanel({ days, canal, showLocationFilter }: {
 
   return (
     <div className="space-y-6">
-      {/* Location filter (POS only) */}
       {showLocationFilter && locations.length > 0 && (
         <div className="flex items-center gap-3">
           <span className="text-sm text-muted-foreground font-medium">Sucursal:</span>
@@ -207,47 +272,31 @@ function ChannelPanel({ days, canal, showLocationFilter }: {
             <SelectContent className="bg-popover border border-border shadow-lg z-50">
               <SelectItem value="all">Todas las tiendas</SelectItem>
               {locations.map((loc) => (
-                <SelectItem key={loc.location_id} value={loc.location_id}>
-                  {loc.name}
-                </SelectItem>
+                <SelectItem key={loc.location_id} value={loc.location_id}>{loc.name}</SelectItem>
               ))}
             </SelectContent>
           </Select>
         </div>
       )}
 
-      {/* KPIs */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <KpiCard
-          label="Ventas Totales"
-          value={(kpis?.ventas_totales ?? 0).toLocaleString()}
-          prefix="$"
-          icon={DollarSign}
-        />
-        <KpiCard
-          label="Unidades Vendidas"
-          value={(kpis?.unidades_totales ?? 0).toLocaleString()}
-          icon={ShoppingBag}
-        />
-        <KpiCard
-          label="Ticket Promedio"
-          value={(kpis?.ticket_promedio ?? 0).toLocaleString()}
-          prefix="$"
-          icon={Receipt}
-        />
+        <KpiCard label="Ventas Totales" value={(kpis?.ventas_totales ?? 0).toLocaleString()} prefix="$" icon={DollarSign} />
+        <KpiCard label="Unidades Vendidas" value={(kpis?.unidades_totales ?? 0).toLocaleString()} icon={ShoppingBag} />
+        <KpiCard label="Ticket Promedio" value={(kpis?.ticket_promedio ?? 0).toLocaleString()} prefix="$" icon={Receipt} />
       </div>
 
-      {/* Top 20 */}
+      {/* Pareto */}
+      <ParetoChart days={days} canal={canal} />
+
       <ProductTable
         data={topProducts}
         title="Top 20 — Más Vendidos"
         onExport={() => exportToCSV(topProducts as unknown as Record<string, unknown>[], `top20_${canal}_${days}d`)}
       />
 
-      {/* Bottom 20 */}
       <ProductTable
         data={bottomProducts}
-        title="Bottom 20 — Menor Rotación"
+        title="Bottom 20 — Menor Rotación (con stock)"
         onExport={() => exportToCSV(bottomProducts as unknown as Record<string, unknown>[], `bottom20_${canal}_${days}d`)}
       />
     </div>

@@ -329,6 +329,15 @@ export type Database = {
           unidades_vendidas: number
         }[]
       }
+      reporte_pareto_categorias: {
+        Args: { dias_atras: number; p_canal?: string }
+        Returns: {
+          categoria: string
+          ingresos: number
+          pct_participacion: number
+          unidades: number
+        }[]
+      }
       reporte_productos_trending: {
         Args: never
         Returns: {
@@ -374,6 +383,40 @@ export type Database = {
           stock_origen: number
           tienda_con_sobrestock: string
           tienda_necesita: string
+        }[]
+      }
+      reporte_top_bottom_digital: {
+        Args: { dias_atras: number }
+        Returns: {
+          categoria: string
+          clasificacion: string
+          foto: string
+          precio_promedio: number
+          sku: string
+          stock_disponible: number
+          unidades_vendidas: number
+        }[]
+      }
+      reporte_top_bottom_tiendas: {
+        Args: { dias_atras: number; p_location_id?: string }
+        Returns: {
+          categoria: string
+          clasificacion: string
+          foto: string
+          precio_promedio: number
+          sku: string
+          stock_disponible: number
+          unidades_vendidas: number
+        }[]
+      }
+      reporte_wos_categoria_tienda: {
+        Args: { dias_atras: number; p_location_id: string }
+        Returns: {
+          categoria: string
+          estado_salud: string
+          inventario_total: number
+          semanas_inventario: number
+          venta_promedio_semanal: number
         }[]
       }
     }
