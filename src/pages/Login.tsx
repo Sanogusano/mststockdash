@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useEffect } from "react";
-import monasteryLogo from "@/assets/Logo_Web_Monastery.svg";
+import monasteryLogo from "@/assets/monastery-logo-white.jpg";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
