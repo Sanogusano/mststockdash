@@ -47,6 +47,8 @@ export function ProductBehaviorTable({ days }: { days: number }) {
       if (error) throw error;
       return (data ?? []) as ProductRow[];
     },
+    staleTime: 5 * 60 * 1000,
+    retry: 2,
   });
 
   const rows = data ?? [];
@@ -175,15 +177,15 @@ export function ProductBehaviorTable({ days }: { days: number }) {
                     {/* Unidades Vendidas */}
                     <TableCell className="text-right">
                       <span className="text-base font-semibold text-foreground">
-                        {row.und_vendidas.toLocaleString()}
+                        {(row.und_vendidas ?? 0).toLocaleString()}
                       </span>
                     </TableCell>
 
                     {/* Stock Actual */}
                     <TableCell>
                       <div className="space-y-0.5 text-sm">
-                        <p>🏪 Tiendas: <span className="font-medium">{row.stock_tiendas.toLocaleString()}</span></p>
-                        <p>📦 Digital: <span className="font-medium">{row.stock_digital.toLocaleString()}</span></p>
+                        <p>🏪 Tiendas: <span className="font-medium">{(row.stock_tiendas ?? 0).toLocaleString()}</span></p>
+                        <p>📦 Digital: <span className="font-medium">{(row.stock_digital ?? 0).toLocaleString()}</span></p>
                       </div>
                     </TableCell>
 
@@ -191,19 +193,19 @@ export function ProductBehaviorTable({ days }: { days: number }) {
                     <TableCell>
                       <div className="flex items-center gap-2">
                         <Progress
-                          value={Math.min(row.sell_through_pct, 100)}
+                          value={Math.min(row.sell_through_pct ?? 0, 100)}
                           className="h-2.5 flex-1 bg-muted"
-                          indicatorClassName={getSellThroughColor(row.sell_through_pct)}
+                          indicatorClassName={getSellThroughColor(row.sell_through_pct ?? 0)}
                         />
                         <span className="text-sm font-medium text-foreground w-12 text-right">
-                          {row.sell_through_pct}%
+                          {row.sell_through_pct ?? 0}%
                         </span>
                       </div>
                     </TableCell>
 
                     {/* WOS & Salud */}
                     <TableCell>
-                      <p className="text-sm font-semibold text-foreground">{row.wos} sem.</p>
+                      <p className="text-sm font-semibold text-foreground">{row.wos ?? 0} sem.</p>
                       <StatusBadge label={row.estado_salud} />
                     </TableCell>
                   </TableRow>
