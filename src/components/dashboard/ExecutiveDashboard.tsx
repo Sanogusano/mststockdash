@@ -47,7 +47,7 @@ interface ProductRow {
   categoria: string | null;
   clasificacion: string | null;
   unidades_vendidas: number | null;
-  precio_prom_venta: number | null;
+  precio_promedio: number | null;
   stock_disponible: number | null;
 }
 
@@ -113,7 +113,7 @@ function ProductTable({ data, title, exportFilename }: {
     Categoría: r.categoria ?? "",
     Clasificación: r.clasificacion ?? "",
     Unidades: r.unidades_vendidas ?? 0,
-    "Precio Prom": r.precio_prom_venta ?? 0,
+    "Precio Prom": r.precio_promedio ?? 0,
     Stock: r.stock_disponible ?? 0,
   }));
 
@@ -166,7 +166,7 @@ function ProductTable({ data, title, exportFilename }: {
                   </span>
                 </td>
                 <td className="px-4 py-3 text-right font-medium">{(row.unidades_vendidas ?? 0).toLocaleString()}</td>
-                <td className="px-4 py-3 text-right">${(row.precio_prom_venta ?? 0).toLocaleString()}</td>
+                <td className="px-4 py-3 text-right">{new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(row.precio_promedio ?? 0)}</td>
                 <td className="px-4 py-3 text-right font-medium">{(row.stock_disponible ?? 0).toLocaleString()}</td>
               </tr>
             ))}
