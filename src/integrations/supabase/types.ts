@@ -298,6 +298,37 @@ export type Database = {
           unidades_vendidas: number
         }[]
       }
+      reporte_ejecutivo_kpis: {
+        Args: {
+          canal_filtro?: string
+          dias_atras: number
+          location_filtro?: string
+        }
+        Returns: {
+          ticket_promedio: number
+          unidades_totales: number
+          ventas_totales: number
+        }[]
+      }
+      reporte_ejecutivo_productos: {
+        Args: {
+          canal_filtro?: string
+          dias_atras: number
+          limite?: number
+          location_filtro?: string
+          orden?: string
+        }
+        Returns: {
+          categoria: string
+          clasificacion: string
+          foto: string
+          precio_prom_venta: number
+          producto: string
+          sku: string
+          stock_disponible: number
+          unidades_vendidas: number
+        }[]
+      }
       reporte_productos_trending: {
         Args: never
         Returns: {
