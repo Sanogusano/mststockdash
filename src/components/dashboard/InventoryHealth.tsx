@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { isValidDays } from "@/lib/validation";
+import { resolveDays } from "@/components/dashboard/TimeFilter";
 import {
   BarChart,
   Bar,
@@ -57,9 +58,10 @@ export function InventoryHealth({ days }: Props) {
     async function fetchData() {
       if (!isValidDays(days)) return;
       setLoading(true);
+      const effectiveDays = resolveDays(days);
 
       const [healthRes, locsRes] = await Promise.all([
-        supabase.rpc("reporte_salud_inventario", { dias_atras: days }),
+        supabase.rpc("reporte_salud_inventario", { dias_atras: effectiveDays }),
         supabase.from("locations").select("location_id, name").eq("is_active", true),
       ]);
 

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { isValidDays } from "@/lib/validation";
+import { resolveDays } from "@/components/dashboard/TimeFilter";
 import { exportToCSV } from "@/lib/csv-export";
 import { exportToPDF } from "@/lib/pdf-export";
 import { ArrowRight, Download, FileText } from "lucide-react";
@@ -29,8 +30,9 @@ export function LogisticsTransfers({ days }: Props) {
     async function fetchData() {
       if (!isValidDays(days)) return;
       setLoading(true);
+      const effectiveDays = resolveDays(days);
       const { data: rows, error } = await supabase.rpc("reporte_sugerencias_traslado", {
-        dias_atras: days,
+        dias_atras: effectiveDays,
       });
       if (!error && rows) setData(rows as unknown as TransferRow[]);
       setLoading(false);
