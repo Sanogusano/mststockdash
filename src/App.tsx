@@ -11,6 +11,7 @@ import InsumosPage from "./pages/Insumos";
 import LoginPage from "./pages/Login";
 import ResetPasswordPage from "./pages/ResetPassword";
 import NotFound from "./pages/NotFound";
+import TiendaDetailPage from "./pages/TiendaDetail";
 
 const queryClient = new QueryClient();
 
@@ -25,6 +26,7 @@ const App = () => (
           <Route path="/reset-password" element={<ResetPasswordPage />} />
           <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
           <Route path="/inventarios" element={<ProtectedRoute><InventariosPage /></ProtectedRoute>} />
+          <Route path="/tienda/:id" element={<ProtectedRoute><TiendaDetailPage /></ProtectedRoute>} />
           <Route path="/logistica" element={<ProtectedRoute><LogisticaPage /></ProtectedRoute>} />
           <Route path="/insumos" element={<ProtectedRoute><InsumosPage /></ProtectedRoute>} />
           <Route path="*" element={<NotFound />} />

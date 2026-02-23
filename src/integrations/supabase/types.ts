@@ -381,8 +381,8 @@ export type Database = {
           ritmo_venta_destino: number
           sku: string
           stock_origen: number
-          tienda_con_sobrestock: string
-          tienda_necesita: string
+          tienda_destino: string
+          tienda_origen: string
         }[]
       }
       reporte_top_bottom_digital: {
