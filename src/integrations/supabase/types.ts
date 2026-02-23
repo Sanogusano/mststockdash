@@ -329,6 +329,18 @@ export type Database = {
           unidades_vendidas: number
         }[]
       }
+      reporte_kpis_comerciales: {
+        Args: { dias_atras: number; p_canal?: string; p_location_id?: string }
+        Returns: {
+          ingresos_netos: number
+          pct_pedidos_con_descuento: number
+          pct_pedidos_full_price: number
+          ticket_promedio: number
+          total_pedidos: number
+          unidades_vendidas: number
+          upt: number
+        }[]
+      }
       reporte_pareto_categorias: {
         Args: { dias_atras: number; p_canal?: string }
         Returns: {

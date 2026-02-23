@@ -2,11 +2,12 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { isValidDays } from "@/lib/validation";
 import { exportToCSV } from "@/lib/csv-export";
+import { cn } from "@/lib/utils";
 import { exportToPDF } from "@/lib/pdf-export";
 import { LoadingState, EmptyState } from "./LoadingState";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Store, Globe, Download, FileText, DollarSign, ShoppingBag, Receipt } from "lucide-react";
+import { Store, Globe, Download, FileText, DollarSign, ShoppingBag, Receipt, Star, Percent } from "lucide-react";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 
 /* ── Constants ── */
@@ -30,9 +31,13 @@ const PARETO_COLORS = [
 
 /* ── Types ── */
 interface KpiData {
-  ventas_totales: number;
-  unidades_totales: number;
+  total_pedidos: number;
+  unidades_vendidas: number;
+  ingresos_netos: number;
   ticket_promedio: number;
+  upt: number;
+  pct_pedidos_full_price: number;
+  pct_pedidos_con_descuento: number;
 }
 
 interface ProductRow {
@@ -80,17 +85,17 @@ function ExportButtons({ data, filename, title }: {
 }
 
 /* ── KPI Card ── */
-function KpiCard({ label, value, prefix = "", icon: Icon }: {
-  label: string; value: string; prefix?: string; icon: React.ElementType;
+function KpiCard({ label, value, prefix = "", icon: Icon, className }: {
+  label: string; value: string; prefix?: string; icon: React.ElementType; className?: string;
 }) {
   return (
     <div className="glass-card p-5 flex items-start gap-4">
       <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-        <Icon className="h-5 w-5 text-primary" />
+        <Icon className={cn("h-5 w-5 text-primary", className)} />
       </div>
       <div>
         <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">{label}</p>
-        <p className="text-2xl font-semibold text-foreground mt-0.5">{prefix}{value}</p>
+        <p className={cn("text-2xl font-semibold text-foreground mt-0.5", className)}>{prefix}{value}</p>
       </div>
     </div>
   );
@@ -274,10 +279,10 @@ function ChannelPanel({ days, canal, showLocationFilter }: {
         : { dias_atras: days };
 
       const [kpiRes, allProductsRes] = await Promise.all([
-        supabase.rpc("reporte_ejecutivo_kpis", {
+        supabase.rpc("reporte_kpis_comerciales", {
           dias_atras: days,
-          canal_filtro: canal,
-          location_filtro: locParam,
+          p_canal: canal === "POS" ? "pos" : "digital",
+          p_location_id: locParam,
         }),
         supabase.rpc(rpcName, rpcParams as any),
       ]);
@@ -285,7 +290,7 @@ function ChannelPanel({ days, canal, showLocationFilter }: {
       if (kpiRes.data && kpiRes.data.length > 0) {
         setKpis(kpiRes.data[0] as unknown as KpiData);
       } else {
-        setKpis({ ventas_totales: 0, unidades_totales: 0, ticket_promedio: 0 });
+        setKpis({ total_pedidos: 0, unidades_vendidas: 0, ingresos_netos: 0, ticket_promedio: 0, upt: 0, pct_pedidos_full_price: 0, pct_pedidos_con_descuento: 0 });
       }
 
       if (allProductsRes.data) {
@@ -321,10 +326,12 @@ function ChannelPanel({ days, canal, showLocationFilter }: {
         </div>
       )}
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <KpiCard label="Ventas Totales" value={(kpis?.ventas_totales ?? 0).toLocaleString()} prefix="$" icon={DollarSign} />
-        <KpiCard label="Unidades Vendidas" value={(kpis?.unidades_totales ?? 0).toLocaleString()} icon={ShoppingBag} />
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+        <KpiCard label="Ventas Totales" value={(kpis?.ingresos_netos ?? 0).toLocaleString()} prefix="$" icon={DollarSign} />
         <KpiCard label="Ticket Promedio" value={(kpis?.ticket_promedio ?? 0).toLocaleString()} prefix="$" icon={Receipt} />
+        <KpiCard label="UPT" value={(kpis?.upt ?? 0).toFixed(2)} icon={ShoppingBag} />
+        <KpiCard label="% Full Price" value={`${(kpis?.pct_pedidos_full_price ?? 0).toFixed(1)}%`} icon={Star} className="text-emerald-600" />
+        <KpiCard label="% Descuento" value={`${(kpis?.pct_pedidos_con_descuento ?? 0).toFixed(1)}%`} icon={Percent} className="text-orange-500" />
       </div>
 
       <ParetoChart days={days} canal={canal} />
