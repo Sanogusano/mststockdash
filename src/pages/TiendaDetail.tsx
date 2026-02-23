@@ -159,7 +159,7 @@ export default function TiendaDetailPage() {
                                 <td className="px-4 py-3 text-right">{(row.inventario_total ?? 0).toLocaleString()}</td>
                                 <td className="px-4 py-3 text-right">{(row.venta_promedio_semanal ?? 0).toLocaleString()}</td>
                                 <td className="px-4 py-3 text-right font-medium" style={{ color: getBarColor(row.semanas_inventario) }}>
-                                  {row.semanas_inventario?.toFixed(1) ?? "—"}w
+                                  {row.semanas_inventario == null ? "∞" : row.semanas_inventario > 99 ? "+99w" : `${row.semanas_inventario.toFixed(1)}w`}
                                 </td>
                                 <td className="px-4 py-3 text-center">
                                   <StatusBadge label={row.estado_salud ?? ""} />
