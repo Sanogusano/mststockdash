@@ -27,16 +27,16 @@ const navItems = [
     description: "WOS por tienda",
   },
   {
-    title: "Logística & Traslados",
-    url: "/logistica",
-    icon: ArrowLeftRight,
-    description: "Allocation & movimientos",
-  },
-  {
     title: "Comportamiento de Producto",
     url: "/producto",
     icon: Tag,
     description: "Sell-through & WOS",
+  },
+  {
+    title: "Logística & Traslados",
+    url: "/logistica",
+    icon: ArrowLeftRight,
+    description: "Allocation & movimientos",
   },
   {
     title: "Gestión de Insumos",
