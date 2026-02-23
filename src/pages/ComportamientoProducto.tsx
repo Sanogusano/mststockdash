@@ -16,8 +16,8 @@ export default function ComportamientoProductoPage() {
             <div className="flex items-center gap-3">
               <SidebarTrigger className="text-muted-foreground hover:text-foreground" />
               <div>
-                <h1 className="text-lg font-semibold text-foreground">Comportamiento de Producto</h1>
-                <p className="text-xs text-muted-foreground">Análisis de sell-through, WOS y salud por SKU</p>
+                <h1 className="text-lg font-semibold text-foreground">Salud de Producto</h1>
+                <p className="text-xs text-muted-foreground">Análisis de sell-through, WOS y salud por producto</p>
               </div>
             </div>
             <TimeFilter value={days} onChange={setDays} />

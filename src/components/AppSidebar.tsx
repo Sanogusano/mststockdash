@@ -27,7 +27,7 @@ const navItems = [
     description: "WOS por tienda",
   },
   {
-    title: "Comportamiento de Producto",
+    title: "Salud de Producto",
     url: "/producto",
     icon: Tag,
     description: "Sell-through & WOS",
