@@ -47,11 +47,12 @@ export function ProductDetailDrawer({
     queryKey: ["detalle-sku-tiendas", product?.sku, days],
     queryFn: async () => {
       if (!product) return [];
-      const { data, error } = await supabase.rpc("reporte_detalle_sku_tiendas" as any, {
+      const { data, error } = await supabase.rpc("reporte_detalle_sku_tiendas", {
         dias_atras: days,
         p_sku: product.sku,
       });
-      if (error) throw error;
+      console.log("[ProductDetail] RPC response:", { data, error, sku: product.sku, days });
+      if (error) throw new Error(error.message);
       return (data ?? []) as DetailRow[];
     },
     enabled: !!product,
