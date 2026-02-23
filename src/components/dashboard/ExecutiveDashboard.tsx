@@ -2,11 +2,16 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { isValidDays } from "@/lib/validation";
 import { exportToCSV } from "@/lib/csv-export";
+import { exportToPDF } from "@/lib/pdf-export";
 import { LoadingState, EmptyState } from "./LoadingState";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Store, Globe, Download, DollarSign, ShoppingBag, Receipt } from "lucide-react";
+import { Store, Globe, Download, FileText, DollarSign, ShoppingBag, Receipt } from "lucide-react";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
+
+/* ── Constants ── */
+const CEDI_ID = "71474315479";
+const CEDI_DISPLAY = "Bodega Ecommerce";
 
 /* ── Pareto Types ── */
 interface ParetoRow {
@@ -19,7 +24,8 @@ interface ParetoRow {
 const PARETO_COLORS = [
   "hsl(220,70%,55%)", "hsl(260,60%,55%)", "hsl(330,65%,55%)",
   "hsl(160,55%,45%)", "hsl(38,85%,55%)", "hsl(0,65%,55%)",
-  "hsl(190,60%,45%)", "hsl(280,50%,55%)",
+  "hsl(190,60%,45%)", "hsl(280,50%,55%)", "hsl(45,80%,50%)", "hsl(300,40%,60%)",
+  "hsl(220,10%,65%)",
 ];
 
 /* ── Types ── */
@@ -49,6 +55,30 @@ interface Props {
   days: number;
 }
 
+/* ── Export Buttons ── */
+function ExportButtons({ data, filename, title }: {
+  data: Record<string, unknown>[]; filename: string; title: string;
+}) {
+  return (
+    <div className="flex items-center gap-1">
+      <button
+        onClick={() => exportToCSV(data, filename)}
+        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+      >
+        <Download className="h-3.5 w-3.5" />
+        CSV
+      </button>
+      <button
+        onClick={() => exportToPDF(data, filename, title)}
+        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+      >
+        <FileText className="h-3.5 w-3.5" />
+        PDF
+      </button>
+    </div>
+  );
+}
+
 /* ── KPI Card ── */
 function KpiCard({ label, value, prefix = "", icon: Icon }: {
   label: string; value: string; prefix?: string; icon: React.ElementType;
@@ -60,31 +90,33 @@ function KpiCard({ label, value, prefix = "", icon: Icon }: {
       </div>
       <div>
         <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">{label}</p>
-        <p className="text-2xl font-semibold text-foreground mt-0.5">
-          {prefix}{value}
-        </p>
+        <p className="text-2xl font-semibold text-foreground mt-0.5">{prefix}{value}</p>
       </div>
     </div>
   );
 }
 
 /* ── Product Table ── */
-function ProductTable({ data, title, onExport }: {
-  data: ProductRow[]; title: string; onExport: () => void;
+function ProductTable({ data, title, exportFilename }: {
+  data: ProductRow[]; title: string; exportFilename: string;
 }) {
   if (!data.length) return <EmptyState message="Sin datos para mostrar." />;
+
+  const exportData = data.map(r => ({
+    Producto: r.producto ?? "",
+    SKU: r.sku ?? "",
+    Categoría: r.categoria ?? "",
+    Clasificación: r.clasificacion ?? "",
+    Unidades: r.unidades_vendidas ?? 0,
+    "Precio Prom": r.precio_prom_venta ?? 0,
+    Stock: r.stock_disponible ?? 0,
+  }));
 
   return (
     <div className="glass-card overflow-hidden">
       <div className="flex items-center justify-between px-5 py-4 border-b border-border">
         <h3 className="text-sm font-semibold text-foreground">{title}</h3>
-        <button
-          onClick={onExport}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-        >
-          <Download className="h-3.5 w-3.5" />
-          Exportar
-        </button>
+        <ExportButtons data={exportData as unknown as Record<string, unknown>[]} filename={exportFilename} title={title} />
       </div>
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
@@ -108,24 +140,20 @@ function ProductTable({ data, title, onExport }: {
                       <img
                         src={row.foto}
                         alt={row.producto ?? ""}
-                        className="w-9 h-9 rounded-lg object-cover bg-muted"
+                        className="w-16 h-16 rounded-lg object-cover bg-muted"
                         onError={(e) => { e.currentTarget.style.display = "none"; }}
                       />
                     ) : (
-                      <div className="w-9 h-9 rounded-lg bg-muted/50 flex items-center justify-center text-sm">
-                        👗
-                      </div>
+                      <div className="w-16 h-16 rounded-lg bg-muted/50 flex items-center justify-center text-xl">👗</div>
                     )}
-                    <span className="font-medium text-foreground line-clamp-1 max-w-[200px]">
-                      {row.producto ?? "—"}
-                    </span>
+                    <span className="font-medium text-foreground line-clamp-2 max-w-[200px]">{row.producto ?? "—"}</span>
                   </div>
                 </td>
                 <td className="px-4 py-3 font-mono text-xs text-muted-foreground">{row.sku ?? "—"}</td>
                 <td className="px-4 py-3 text-muted-foreground">{row.categoria ?? "—"}</td>
                 <td className="px-4 py-3">
                   <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
-                    row.clasificacion?.includes("Full Price")
+                    row.clasificacion?.includes("Full Price") || row.clasificacion?.includes("Ganador Full")
                       ? "bg-primary/10 text-primary"
                       : "bg-warning/10 text-warning"
                   }`}>
@@ -144,7 +172,7 @@ function ProductTable({ data, title, onExport }: {
   );
 }
 
-/* ── Pareto Chart ── */
+/* ── Pareto Chart (Top 10 + Otros) ── */
 function ParetoChart({ days, canal }: { days: number; canal: string }) {
   const [data, setData] = useState<ParetoRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -166,10 +194,18 @@ function ParetoChart({ days, canal }: { days: number; canal: string }) {
   if (loading) return <LoadingState rows={3} />;
   if (!data.length) return null;
 
-  const chartData = data.map((r) => ({
+  // Top 10 + group remainder as "Otros"
+  const top10 = data.slice(0, 10);
+  const rest = data.slice(10);
+  const othersPct = rest.reduce((s, r) => s + (r.pct_participacion ?? 0), 0);
+
+  const chartItems = top10.map((r) => ({
     name: r.categoria ?? "—",
     value: Number(r.pct_participacion ?? 0),
   }));
+  if (othersPct > 0) {
+    chartItems.push({ name: "Otros", value: Number(othersPct.toFixed(1)) });
+  }
 
   return (
     <div className="glass-card p-5">
@@ -177,22 +213,22 @@ function ParetoChart({ days, canal }: { days: number; canal: string }) {
       <div className="flex items-center gap-6">
         <ResponsiveContainer width={180} height={180}>
           <PieChart>
-            <Pie data={chartData} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={45} outerRadius={80} paddingAngle={2} strokeWidth={0}>
-              {chartData.map((_, i) => (
+            <Pie data={chartItems} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={45} outerRadius={80} paddingAngle={2} strokeWidth={0}>
+              {chartItems.map((_, i) => (
                 <Cell key={i} fill={PARETO_COLORS[i % PARETO_COLORS.length]} />
               ))}
             </Pie>
             <Tooltip formatter={(v: number) => `${v.toFixed(1)}%`} />
           </PieChart>
         </ResponsiveContainer>
-        <div className="flex-1 space-y-1.5">
-          {data.map((r, i) => (
+        <div className="flex-1 space-y-1.5 max-h-[180px] overflow-y-auto">
+          {chartItems.map((r, i) => (
             <div key={i} className="flex items-center justify-between text-xs">
               <div className="flex items-center gap-2">
                 <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: PARETO_COLORS[i % PARETO_COLORS.length] }} />
-                <span className="text-foreground font-medium truncate max-w-[140px]">{r.categoria ?? "—"}</span>
+                <span className="text-foreground font-medium truncate max-w-[140px]">{r.name}</span>
               </div>
-              <span className="text-muted-foreground font-mono">{(r.pct_participacion ?? 0).toFixed(1)}%</span>
+              <span className="text-muted-foreground font-mono">{r.value.toFixed(1)}%</span>
             </div>
           ))}
         </div>
@@ -215,7 +251,15 @@ function ChannelPanel({ days, canal, showLocationFilter }: {
   useEffect(() => {
     if (!showLocationFilter) return;
     supabase.from("locations").select("location_id, name").eq("is_active", true)
-      .then(({ data }) => { if (data) setLocations(data); });
+      .then(({ data }) => {
+        if (data) {
+          // Hide CEDI Guayabal from store selector
+          setLocations(data.filter(l => l.location_id !== CEDI_ID).map(l => ({
+            ...l,
+            name: l.location_id === CEDI_ID ? CEDI_DISPLAY : l.name,
+          })));
+        }
+      });
   }, [showLocationFilter]);
 
   useEffect(() => {
@@ -246,9 +290,7 @@ function ChannelPanel({ days, canal, showLocationFilter }: {
 
       if (allProductsRes.data) {
         const all = allProductsRes.data as unknown as ProductRow[];
-        // Top 20 = first 20 (already sorted DESC by unidades)
         setTopProducts(all.slice(0, 20));
-        // Bottom 20 = reverse the full list, take first 20 with stock > 0
         const bottom = [...all].reverse().filter(r => (r.stock_disponible ?? 0) > 0).slice(0, 20);
         setBottomProducts(bottom);
       }
@@ -285,19 +327,18 @@ function ChannelPanel({ days, canal, showLocationFilter }: {
         <KpiCard label="Ticket Promedio" value={(kpis?.ticket_promedio ?? 0).toLocaleString()} prefix="$" icon={Receipt} />
       </div>
 
-      {/* Pareto */}
       <ParetoChart days={days} canal={canal} />
 
       <ProductTable
         data={topProducts}
         title="Top 20 — Más Vendidos"
-        onExport={() => exportToCSV(topProducts as unknown as Record<string, unknown>[], `top20_${canal}_${days}d`)}
+        exportFilename={`top20_${canal}_${days}d`}
       />
 
       <ProductTable
         data={bottomProducts}
         title="Bottom 20 — Menor Rotación (con stock)"
-        onExport={() => exportToCSV(bottomProducts as unknown as Record<string, unknown>[], `bottom20_${canal}_${days}d`)}
+        exportFilename={`bottom20_${canal}_${days}d`}
       />
     </div>
   );
@@ -308,17 +349,11 @@ export function ExecutiveDashboard({ days }: Props) {
   return (
     <Tabs defaultValue="pos" className="w-full">
       <TabsList className="w-full grid grid-cols-2 bg-muted/50 rounded-lg p-1 h-11">
-        <TabsTrigger
-          value="pos"
-          className="flex items-center gap-2 text-sm font-medium data-[state=active]:bg-card data-[state=active]:shadow-sm rounded-md"
-        >
+        <TabsTrigger value="pos" className="flex items-center gap-2 text-sm font-medium data-[state=active]:bg-card data-[state=active]:shadow-sm rounded-md">
           <Store className="h-4 w-4" />
           Tiendas
         </TabsTrigger>
-        <TabsTrigger
-          value="digital"
-          className="flex items-center gap-2 text-sm font-medium data-[state=active]:bg-card data-[state=active]:shadow-sm rounded-md"
-        >
+        <TabsTrigger value="digital" className="flex items-center gap-2 text-sm font-medium data-[state=active]:bg-card data-[state=active]:shadow-sm rounded-md">
           <Globe className="h-4 w-4" />
           Digital
         </TabsTrigger>
