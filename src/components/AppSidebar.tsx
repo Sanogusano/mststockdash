@@ -1,6 +1,6 @@
 import { BarChart3, TrendingUp, ArrowLeftRight, Package } from "lucide-react";
 import { useLocation, Link } from "react-router-dom";
-import monasteryLogoWhite from "@/assets/monastery-logo-white.png";
+import monasteryLogoWhite from "@/assets/monastery-logo-white.jpg";
 import {
   Sidebar,
   SidebarContent,
