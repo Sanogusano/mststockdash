@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useEffect } from "react";
+import monasteryLogo from "@/assets/monastery-logo.png";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -71,7 +72,8 @@ export default function LoginPage() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="w-full max-w-sm space-y-6">
-        <div className="text-center space-y-2">
+        <div className="text-center space-y-4">
+          <img src={monasteryLogo} alt="Monastery logo" className="h-20 w-20 mx-auto rounded-xl" />
           <h1 className="font-display text-2xl font-bold text-foreground">Monastery</h1>
           <p className="text-sm text-muted-foreground">
             {mode === "login" ? "Ingresa a tu dashboard" : "Recuperar contraseña"}
