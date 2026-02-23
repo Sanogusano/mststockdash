@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { isValidDays } from "@/lib/validation";
-import { ArrowRight } from "lucide-react";
+import { exportToCSV } from "@/lib/csv-export";
+import { ArrowRight, Download } from "lucide-react";
 import { LoadingState, EmptyState } from "./LoadingState";
 
 interface TransferRow {
@@ -43,77 +44,72 @@ export function LogisticsTransfers({ days }: Props) {
     );
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-4">
       <div className="flex items-center justify-between mb-2">
         <p className="text-sm text-muted-foreground">
           <span className="text-primary font-semibold">{data.length}</span> movimientos sugeridos
         </p>
-        <div className="px-2.5 py-1 rounded-full text-xs bg-warning/10 text-warning border border-warning/20">
-          🚚 Accionables pendientes
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => exportToCSV(data as unknown as Record<string, unknown>[], `allocation_${days}d`)}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+          >
+            <Download className="h-3.5 w-3.5" />
+            Exportar
+          </button>
+          <div className="px-2.5 py-1 rounded-full text-xs bg-warning/10 text-warning border border-warning/20">
+            🚚 Accionables pendientes
+          </div>
         </div>
       </div>
 
-      {data.map((row, i) => (
-        <div key={i} className="glass-card rounded-xl p-4 hover:border-primary/30 transition-colors border border-border">
-          <div className="flex items-start gap-4">
-            {/* Product image */}
-            <div className="shrink-0">
-              {row.foto ? (
-                <img
-                  src={row.foto}
-                  alt={row.producto ?? ""}
-                  className="w-14 h-14 rounded-lg object-cover bg-muted"
-                  onError={(e) => { e.currentTarget.style.display = "none"; }}
-                />
-              ) : (
-                <div className="w-14 h-14 rounded-lg bg-muted/50 flex items-center justify-center text-2xl">
-                  👗
-                </div>
-              )}
-            </div>
-
-            {/* Content */}
-            <div className="flex-1 min-w-0">
-              <div className="flex items-start justify-between gap-2 mb-3">
-                <div>
-                  <p className="text-sm font-medium text-foreground leading-tight line-clamp-1">
-                    {row.producto}
-                  </p>
-                  <p className="text-xs text-muted-foreground">{row.sku}</p>
-                </div>
-              </div>
-
-              {/* Transfer flow */}
-              <div className="flex items-center gap-2 flex-wrap">
-                <div className="flex flex-col items-center px-3 py-2 rounded-lg bg-danger/10 border border-danger/20">
-                  <p className="text-xs text-danger font-medium">ORIGEN</p>
-                  <p className="text-xs text-foreground mt-0.5 font-medium">
-                    {row.tienda_con_sobrestock?.replace("Monastery ", "")}
-                  </p>
-                  <p className="text-xs text-muted-foreground">{row.stock_origen} uds</p>
-                </div>
-
-                <ArrowRight className="h-4 w-4 text-primary shrink-0" />
-
-                <div className="flex flex-col items-center px-3 py-2 rounded-lg bg-success/10 border border-success/20">
-                  <p className="text-xs text-success font-medium">DESTINO</p>
-                  <p className="text-xs text-foreground mt-0.5 font-medium">
-                    {row.tienda_necesita?.replace("Monastery ", "")}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    {(row.ritmo_venta_destino ?? 0).toFixed(1)} uds/sem
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Action badge */}
-          <div className="mt-3 pt-3 border-t border-border/50">
-            <p className="text-xs text-primary">{row.accion}</p>
-          </div>
+      {/* Table view for allocation */}
+      <div className="glass-card overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-border bg-muted/30">
+                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">Producto</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">SKU</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">Origen (Sobrestock)</th>
+                <th className="px-4 py-3 text-right text-xs font-medium text-muted-foreground">Stock Origen</th>
+                <th className="px-4 py-3 text-center text-xs font-medium text-muted-foreground"></th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">Destino (Necesita)</th>
+                <th className="px-4 py-3 text-right text-xs font-medium text-muted-foreground">Ritmo Venta</th>
+              </tr>
+            </thead>
+            <tbody>
+              {data.map((row, i) => (
+                <tr key={i} className="border-b border-border/50 hover:bg-muted/20 transition-colors">
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-2">
+                      {row.foto ? (
+                        <img src={row.foto} alt="" className="w-8 h-8 rounded-md object-cover bg-muted"
+                          onError={(e) => { e.currentTarget.style.display = "none"; }} />
+                      ) : (
+                        <div className="w-8 h-8 rounded-md bg-muted/50 flex items-center justify-center text-sm">👗</div>
+                      )}
+                      <span className="font-medium text-foreground line-clamp-1 max-w-[150px]">{row.producto ?? "—"}</span>
+                    </div>
+                  </td>
+                  <td className="px-4 py-3 font-mono text-xs text-muted-foreground">{row.sku ?? "—"}</td>
+                  <td className="px-4 py-3">
+                    <span className="text-xs font-medium text-destructive">{row.tienda_con_sobrestock ?? "—"}</span>
+                  </td>
+                  <td className="px-4 py-3 text-right font-medium">{(row.stock_origen ?? 0).toLocaleString()}</td>
+                  <td className="px-4 py-3 text-center">
+                    <ArrowRight className="h-4 w-4 text-primary mx-auto" />
+                  </td>
+                  <td className="px-4 py-3">
+                    <span className="text-xs font-medium text-primary">{row.tienda_necesita ?? "—"}</span>
+                  </td>
+                  <td className="px-4 py-3 text-right text-muted-foreground">{(row.ritmo_venta_destino ?? 0).toFixed(1)} uds/sem</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
-      ))}
+      </div>
     </div>
   );
 }
