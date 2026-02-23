@@ -287,6 +287,17 @@ export type Database = {
           unidades_vendidas: number
         }[]
       }
+      reporte_desempeño_por_canal: {
+        Args: { dias_atras: number }
+        Returns: {
+          canal: string
+          ingresos_netos: number
+          sku_peor: string
+          sku_top: string
+          ticket_promedio: number
+          unidades_vendidas: number
+        }[]
+      }
       reporte_productos_trending: {
         Args: never
         Returns: {
