@@ -362,6 +362,17 @@ export type Database = {
           ventas_semana_actual: number
         }[]
       }
+      reporte_ranking_tiendas: {
+        Args: { dias_atras: number }
+        Returns: {
+          pct_venta_full_price: number
+          ticket_promedio: number
+          tienda: string
+          unidades_vendidas: number
+          upt: number
+          ventas_totales: number
+        }[]
+      }
       reporte_reorden_insumos: {
         Args: never
         Returns: {

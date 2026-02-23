@@ -10,6 +10,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Store, Globe, Download, FileText, DollarSign, ShoppingBag, Receipt, Star, Percent } from "lucide-react";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
+import { StoreLeaderboard } from "./StoreLeaderboard";
 
 /* ── Constants ── */
 const CEDI_ID = "71474315479";
@@ -336,6 +337,8 @@ function ChannelPanel({ days, canal, showLocationFilter }: {
         <KpiCard label="% Full Price" value={`${(kpis?.pct_pedidos_full_price ?? 0).toFixed(1)}%`} icon={Star} className="text-emerald-600" />
         <KpiCard label="% Descuento" value={`${(kpis?.pct_pedidos_con_descuento ?? 0).toFixed(1)}%`} icon={Percent} className="text-orange-500" />
       </div>
+
+      {canal === "POS" && <StoreLeaderboard days={days} />}
 
       <ParetoChart days={days} canal={canal} />
 
