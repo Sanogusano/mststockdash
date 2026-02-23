@@ -1,6 +1,6 @@
 import { BarChart3, TrendingUp, ArrowLeftRight, Package } from "lucide-react";
 import { useLocation, Link } from "react-router-dom";
-import monasteryLogo from "@/assets/Logo_Web_Monastery.svg";
+import monasteryLogoWhite from "@/assets/monastery-logo-white.png";
 import {
   Sidebar,
   SidebarContent,
@@ -46,17 +46,7 @@ export function AppSidebar() {
   return (
     <Sidebar className="border-r border-sidebar-border bg-sidebar">
       <SidebarHeader className="px-6 py-5">
-        <div className="flex items-center gap-3">
-          <img src={monasteryLogo} alt="Monastery" className="h-7" />
-          <div>
-            <h1 className="text-sm font-bold text-foreground tracking-wide uppercase">
-              Monastery
-            </h1>
-            <p className="text-[10px] text-muted-foreground font-medium tracking-widest uppercase">
-              Intelligence
-            </p>
-          </div>
-        </div>
+        <img src={monasteryLogoWhite} alt="Monastery Logo" className="w-40 h-auto" />
       </SidebarHeader>
 
       <SidebarContent className="px-3">
