@@ -45,7 +45,7 @@ export function StoreLeaderboard({ days }: { days: number }) {
   const exportData = data.map((r, i) => ({
     "#": i + 1,
     Tienda: r.tienda,
-    "Ventas Totales": r.ventas_totales,
+    "Ventas Netas": r.ventas_totales,
     "Unidades Vendidas": r.unidades_vendidas,
     "Ticket Promedio": r.ticket_promedio,
     UPT: r.upt,
@@ -83,7 +83,7 @@ export function StoreLeaderboard({ days }: { days: number }) {
             <tr className="border-b border-border bg-muted/30">
               <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground w-10">#</th>
               <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">Tienda</th>
-              <th className="px-4 py-3 text-right text-xs font-medium text-muted-foreground">Ventas Totales</th>
+              <th className="px-4 py-3 text-right text-xs font-medium text-muted-foreground">Ventas Netas</th>
               <th className="px-4 py-3 text-right text-xs font-medium text-muted-foreground">Uds</th>
               <th className="px-4 py-3 text-right text-xs font-medium text-muted-foreground">Ticket Prom</th>
               <th className="px-4 py-3 text-center text-xs font-medium text-muted-foreground">UPT</th>
