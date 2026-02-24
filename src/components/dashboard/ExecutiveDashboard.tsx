@@ -15,8 +15,8 @@ import { StoreLeaderboard } from "./StoreLeaderboard";
 /* ── Constants ── */
 const CEDI_ID = "71474315479";
 const CEDI_DISPLAY = "Bodega Ecommerce";
-const OUTLET_KEYWORDS = ["SOPO", "UNICO BARRANQUILLA", "UNICO CALI"];
-const isOutlet = (name: string) => OUTLET_KEYWORDS.some(k => name.toUpperCase().includes(k));
+const OUTLET_KEYWORDS = ["SOPO", "UNICO", "ÚNICO"];
+const isOutlet = (name: string) => OUTLET_KEYWORDS.some(k => name.toUpperCase().includes(k.toUpperCase()));
 
 /* ── Pareto Types ── */
 interface ParetoRow {
