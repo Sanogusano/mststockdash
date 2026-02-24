@@ -287,17 +287,30 @@ function ChannelPanel({ days, canal, showLocationFilter, locationFilter }: {
       const effectiveDays = resolveDays(days);
       const locParam = selectedLocation === "all" ? null : selectedLocation;
 
-      const isPhysical = canal === "tiendas" || canal === "outlets";
-      const rpcName = isPhysical ? "reporte_top_bottom_tiendas" : "reporte_top_bottom_digital";
+      // Map canal to the canal_filtro expected by reporte_ejecutivo_productos
+      const canalFiltro = canal === "digital" ? "DIGITAL" : "POS";
 
       try {
-        const [kpiRes, allProductsRes] = await Promise.all([
+        const [kpiRes, topRes, bottomRes] = await Promise.all([
           supabase.rpc("reporte_kpis_comerciales", {
             dias_atras: effectiveDays,
             p_canal: canal,
             p_location_id: locParam,
           }),
-          supabase.rpc(rpcName, { dias_atras: effectiveDays }),
+          supabase.rpc("reporte_ejecutivo_productos", {
+            dias_atras: effectiveDays,
+            canal_filtro: canalFiltro,
+            location_filtro: locParam,
+            orden: "TOP",
+            limite: 20,
+          }),
+          supabase.rpc("reporte_ejecutivo_productos", {
+            dias_atras: effectiveDays,
+            canal_filtro: canalFiltro,
+            location_filtro: locParam,
+            orden: "BOTTOM",
+            limite: 20,
+          }),
         ]);
 
         if (kpiRes.error) {
@@ -309,24 +322,36 @@ function ChannelPanel({ days, canal, showLocationFilter, locationFilter }: {
           setKpis({ total_pedidos: 0, unidades_vendidas: 0, ingresos_netos: 0, ticket_promedio: 0, upt: 0, pct_pedidos_full_price: 0, pct_pedidos_con_descuento: 0 });
         }
 
-        if (allProductsRes.error) {
-          console.error(`Error en ${rpcName}:`, allProductsRes.error);
+        if (topRes.error) {
+          console.error("Error en reporte_ejecutivo_productos (TOP):", topRes.error);
         }
-        if (allProductsRes.data) {
-          // Map columns: tienda/producto → producto, ventas_totales → precio_promedio, unidades → unidades_vendidas
-          const mapped = (allProductsRes.data as any[]).map((row: any) => ({
-            foto: null,
-            producto: row.tienda ?? row.producto ?? "—",
-            sku: null,
-            categoria: null,
-            clasificacion: null,
-            unidades_vendidas: row.unidades ?? 0,
-            precio_promedio: row.ventas_totales ?? 0,
-            stock_disponible: null,
-          } as ProductRow));
-          setTopProducts(mapped.slice(0, 20));
-          const bottom = [...mapped].reverse().slice(0, 20);
-          setBottomProducts(bottom);
+        if (topRes.data) {
+          setTopProducts((topRes.data as any[]).map((r: any) => ({
+            foto: r.foto ?? null,
+            producto: r.producto ?? "—",
+            sku: r.sku ?? null,
+            categoria: r.categoria ?? null,
+            clasificacion: r.clasificacion ?? null,
+            unidades_vendidas: r.unidades_vendidas ?? 0,
+            precio_promedio: r.precio_prom_venta ?? 0,
+            stock_disponible: r.stock_disponible ?? 0,
+          } as ProductRow)));
+        }
+
+        if (bottomRes.error) {
+          console.error("Error en reporte_ejecutivo_productos (BOTTOM):", bottomRes.error);
+        }
+        if (bottomRes.data) {
+          setBottomProducts((bottomRes.data as any[]).map((r: any) => ({
+            foto: r.foto ?? null,
+            producto: r.producto ?? "—",
+            sku: r.sku ?? null,
+            categoria: r.categoria ?? null,
+            clasificacion: r.clasificacion ?? null,
+            unidades_vendidas: r.unidades_vendidas ?? 0,
+            precio_promedio: r.precio_prom_venta ?? 0,
+            stock_disponible: r.stock_disponible ?? 0,
+          } as ProductRow)));
         }
       } catch (err) {
         console.error("Error inesperado en fetchAll:", err);
