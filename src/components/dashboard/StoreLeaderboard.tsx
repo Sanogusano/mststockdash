@@ -21,7 +21,7 @@ const MEDALS = ["🥇", "🥈", "🥉"];
 const fmt = (v: number) =>
   new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(v);
 
-export function StoreLeaderboard({ days }: { days: number }) {
+export function StoreLeaderboard({ days, canal }: { days: number; canal?: string }) {
   const [data, setData] = useState<RankingRow[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -32,12 +32,13 @@ export function StoreLeaderboard({ days }: { days: number }) {
       const effectiveDays = resolveDays(days);
       const { data: rows } = await supabase.rpc("reporte_ranking_tiendas", {
         dias_atras: effectiveDays,
+        p_canal: canal || null,
       });
       if (rows) setData(rows as unknown as RankingRow[]);
       setLoading(false);
     }
     fetch();
-  }, [days]);
+  }, [days, canal]);
 
   if (loading) return <LoadingState rows={4} />;
   if (!data.length) return <EmptyState message="Sin datos de ranking para este período." />;

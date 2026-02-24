@@ -390,7 +390,7 @@ export type Database = {
         }[]
       }
       reporte_ranking_tiendas: {
-        Args: { dias_atras: number }
+        Args: { dias_atras: number; p_canal?: string }
         Returns: {
           inventario_valorado: number
           pct_venta_full_price: number

@@ -391,7 +391,7 @@ function ChannelPanel({ days, canal, showLocationFilter, locationFilter }: {
         <KpiCard label="% Descuento" value={`${(kpis?.pct_pedidos_con_descuento ?? 0).toFixed(1)}%`} icon={Percent} className="text-orange-500" />
       </div>
 
-      {canal === "tiendas" && <StoreLeaderboard days={days} />}
+      <StoreLeaderboard days={days} canal={canal === "digital" ? "digital" : canal === "outlets" ? "outlets" : "tiendas"} />
 
       <ParetoChart days={days} canal={canal === "digital" ? "digital" : "pos"} />
 
