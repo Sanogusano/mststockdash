@@ -289,30 +289,47 @@ function ChannelPanel({ days, canal, showLocationFilter, locationFilter }: {
 
       const isPhysical = canal === "tiendas" || canal === "outlets";
       const rpcName = isPhysical ? "reporte_top_bottom_tiendas" : "reporte_top_bottom_digital";
-      const rpcParams = isPhysical
-        ? { dias_atras: effectiveDays, ...(locParam ? { p_location_id: locParam } : {}) }
-        : { dias_atras: effectiveDays };
 
-      const [kpiRes, allProductsRes] = await Promise.all([
-        supabase.rpc("reporte_kpis_comerciales", {
-          dias_atras: effectiveDays,
-          p_canal: canal,
-          p_location_id: locParam,
-        }),
-        supabase.rpc(rpcName, rpcParams as any),
-      ]);
+      try {
+        const [kpiRes, allProductsRes] = await Promise.all([
+          supabase.rpc("reporte_kpis_comerciales", {
+            dias_atras: effectiveDays,
+            p_canal: canal,
+            p_location_id: locParam,
+          }),
+          supabase.rpc(rpcName, { dias_atras: effectiveDays }),
+        ]);
 
-      if (kpiRes.data && kpiRes.data.length > 0) {
-        setKpis(kpiRes.data[0] as unknown as KpiData);
-      } else {
-        setKpis({ total_pedidos: 0, unidades_vendidas: 0, ingresos_netos: 0, ticket_promedio: 0, upt: 0, pct_pedidos_full_price: 0, pct_pedidos_con_descuento: 0 });
-      }
+        if (kpiRes.error) {
+          console.error(`Error en reporte_kpis_comerciales:`, kpiRes.error);
+        }
+        if (kpiRes.data && kpiRes.data.length > 0) {
+          setKpis(kpiRes.data[0] as unknown as KpiData);
+        } else {
+          setKpis({ total_pedidos: 0, unidades_vendidas: 0, ingresos_netos: 0, ticket_promedio: 0, upt: 0, pct_pedidos_full_price: 0, pct_pedidos_con_descuento: 0 });
+        }
 
-      if (allProductsRes.data) {
-        const all = allProductsRes.data as unknown as ProductRow[];
-        setTopProducts(all.slice(0, 20));
-        const bottom = [...all].reverse().filter(r => (r.stock_disponible ?? 0) > 0).slice(0, 20);
-        setBottomProducts(bottom);
+        if (allProductsRes.error) {
+          console.error(`Error en ${rpcName}:`, allProductsRes.error);
+        }
+        if (allProductsRes.data) {
+          // Map columns: tienda/producto → producto, ventas_totales → precio_promedio, unidades → unidades_vendidas
+          const mapped = (allProductsRes.data as any[]).map((row: any) => ({
+            foto: null,
+            producto: row.tienda ?? row.producto ?? "—",
+            sku: null,
+            categoria: null,
+            clasificacion: null,
+            unidades_vendidas: row.unidades ?? 0,
+            precio_promedio: row.ventas_totales ?? 0,
+            stock_disponible: null,
+          } as ProductRow));
+          setTopProducts(mapped.slice(0, 20));
+          const bottom = [...mapped].reverse().slice(0, 20);
+          setBottomProducts(bottom);
+        }
+      } catch (err) {
+        console.error("Error inesperado en fetchAll:", err);
       }
 
       setLoading(false);
