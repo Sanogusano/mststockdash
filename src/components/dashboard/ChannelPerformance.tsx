@@ -105,7 +105,7 @@ export function ChannelPerformance({ days }: Props) {
         "reporte_desempeño_por_canal",
         { dias_atras: effectiveDays }
       );
-      if (!error && rows) setData(rows as ChannelRow[]);
+      if (!error && rows) setData(rows as unknown as ChannelRow[]);
       setLoading(false);
     }
     fetchData();

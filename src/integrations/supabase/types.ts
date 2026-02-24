@@ -307,11 +307,8 @@ export type Database = {
         Args: { dias_atras: number }
         Returns: {
           canal: string
-          ingresos_netos: number
-          sku_peor: string
-          sku_top: string
-          ticket_promedio: number
-          unidades_vendidas: number
+          total_pedidos: number
+          ventas_totales: number
         }[]
       }
       reporte_detalle_producto_tiendas: {
@@ -442,25 +439,17 @@ export type Database = {
       reporte_top_bottom_digital: {
         Args: { dias_atras: number }
         Returns: {
-          categoria: string
-          clasificacion: string
-          foto: string
-          precio_promedio: number
-          sku: string
-          stock_disponible: number
-          unidades_vendidas: number
+          producto: string
+          unidades: number
+          ventas_totales: number
         }[]
       }
       reporte_top_bottom_tiendas: {
-        Args: { dias_atras: number; p_location_id?: string }
+        Args: { dias_atras: number }
         Returns: {
-          categoria: string
-          clasificacion: string
-          foto: string
-          precio_promedio: number
-          sku: string
-          stock_disponible: number
-          unidades_vendidas: number
+          tienda: string
+          unidades: number
+          ventas_totales: number
         }[]
       }
       reporte_wos_categoria_tienda: {
