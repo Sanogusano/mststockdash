@@ -275,43 +275,26 @@ export type Database = {
       }
     }
     Functions: {
-      reporte_comportamiento_producto:
-        | {
-            Args: { dias_atras: number; p_sku_filter?: string }
-            Returns: {
-              categoria: string
-              clasificacion: string
-              estado_salud: string
-              foto: string
-              producto: string
-              sell_through_pct: number
-              sku: string
-              stock_digital: number
-              stock_tiendas: number
-              und_vendidas: number
-              wos: number
-            }[]
-          }
-        | {
-            Args: {
-              dias_atras: number
-              p_location_id?: string
-              p_sku_filter?: string
-            }
-            Returns: {
-              categoria: string
-              clasificacion: string
-              estado_salud: string
-              foto: string
-              producto: string
-              sell_through_pct: number
-              sku: string
-              stock_digital: number
-              stock_tiendas: number
-              und_vendidas: number
-              wos: number
-            }[]
-          }
+      reporte_comportamiento_producto: {
+        Args: {
+          dias_atras: number
+          p_location_id?: string
+          p_sku_filter?: string
+        }
+        Returns: {
+          categoria: string
+          clasificacion: string
+          estado_salud: string
+          foto: string
+          producto: string
+          sell_through_pct: number
+          sku: string
+          stock_digital: number
+          stock_tiendas: number
+          und_vendidas: number
+          wos: number
+        }[]
+      }
       reporte_desempeño_comercial: {
         Args: { dias_atras: number }
         Returns: {
