@@ -94,6 +94,7 @@ export function LogisticsTransfers({ days }: Props) {
                 <th className="px-4 py-3 text-center text-xs font-medium text-muted-foreground"></th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">Destino</th>
                 <th className="px-4 py-3 text-right text-xs font-medium text-muted-foreground">Ritmo Venta</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">Acción</th>
               </tr>
             </thead>
             <tbody>
@@ -121,7 +122,8 @@ export function LogisticsTransfers({ days }: Props) {
                   <td className="px-4 py-3">
                     <span className="text-xs font-medium text-primary">{row.tienda_destino ?? "—"}</span>
                   </td>
-                  <td className="px-4 py-3 text-right text-muted-foreground">{(row.ritmo_venta_destino ?? 0).toFixed(1)} uds/sem</td>
+                   <td className="px-4 py-3 text-right text-muted-foreground">{(row.ritmo_venta_destino ?? 0).toFixed(1)} uds/sem</td>
+                  <td className="px-4 py-3 text-xs text-muted-foreground max-w-[200px]">{row.accion ?? "—"}</td>
                 </tr>
               ))}
             </tbody>
