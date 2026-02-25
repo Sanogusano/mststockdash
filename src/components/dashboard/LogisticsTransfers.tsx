@@ -6,6 +6,7 @@ import { exportToCSV } from "@/lib/csv-export";
 import { exportToPDF } from "@/lib/pdf-export";
 import { ArrowRight, Download, FileText } from "lucide-react";
 import { LoadingState, EmptyState } from "./LoadingState";
+import { ProductDetailDrawer } from "./ProductDetailDrawer";
 
 interface TransferRow {
   foto: string | null;
@@ -25,6 +26,7 @@ interface Props {
 export function LogisticsTransfers({ days }: Props) {
   const [data, setData] = useState<TransferRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedProduct, setSelectedProduct] = useState<{ foto: string; producto: string; sku: string; categoria: string } | null>(null);
 
   useEffect(() => {
     async function fetchData() {
@@ -108,7 +110,12 @@ export function LogisticsTransfers({ days }: Props) {
                       ) : (
                         <div className="w-16 h-16 rounded-lg bg-muted/50 flex items-center justify-center text-lg">👗</div>
                       )}
-                      <span className="font-medium text-foreground line-clamp-2 max-w-[180px]">{row.producto ?? "—"}</span>
+                      <span
+                        className="font-medium text-foreground line-clamp-2 max-w-[180px] cursor-pointer hover:text-primary transition-colors"
+                        onClick={() => setSelectedProduct({ foto: row.foto ?? "", producto: row.producto ?? "", sku: row.sku ?? "", categoria: "" })}
+                      >
+                        {row.producto ?? "—"}
+                      </span>
                     </div>
                   </td>
                   <td className="px-4 py-3 font-mono text-xs text-muted-foreground">{row.sku ?? "—"}</td>
@@ -130,6 +137,8 @@ export function LogisticsTransfers({ days }: Props) {
           </table>
         </div>
       </div>
+
+      <ProductDetailDrawer product={selectedProduct} days={days} onClose={() => setSelectedProduct(null)} />
     </div>
   );
 }
