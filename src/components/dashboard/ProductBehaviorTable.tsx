@@ -12,6 +12,9 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
+import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 
@@ -31,18 +34,43 @@ interface ProductRow {
   estado_salud: string;
 }
 
+const WOS_FILTERS = [
+  { value: "all", label: "Todos los WOS" },
+  { value: "risk", label: "🟡 Riesgo (<4 sem)" },
+  { value: "optimal", label: "🟢 Óptimo (4-12 sem)" },
+  { value: "overstock", label: "🔴 Sobrestock (>12 sem)" },
+  { value: "stagnant", label: "🔴 Estancado (0 ventas)" },
+];
+
+interface LocationOption {
+  location_id: string;
+  name: string;
+}
+
 export function ProductBehaviorTable({ days }: { days: number }) {
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(0);
   const [selectedProduct, setSelectedProduct] = useState<ProductRow | null>(null);
+  const [wosFilter, setWosFilter] = useState("all");
+  const [locationId, setLocationId] = useState("all");
 
   const resolvedDays = resolveDays(days);
 
-  const { data, isLoading, error } = useQuery({
-    queryKey: ["producto-comportamiento", resolvedDays, search],
+  const { data: locations } = useQuery({
+    queryKey: ["locations-active"],
     queryFn: async () => {
-      const params: { dias_atras: number; p_sku_filter?: string } = { dias_atras: resolvedDays };
+      const { data } = await supabase.from("locations").select("location_id, name").eq("is_active", true).order("name");
+      return (data ?? []) as LocationOption[];
+    },
+    staleTime: 10 * 60 * 1000,
+  });
+
+  const { data, isLoading, error } = useQuery({
+    queryKey: ["producto-comportamiento", resolvedDays, search, locationId],
+    queryFn: async () => {
+      const params: { dias_atras: number; p_sku_filter?: string; p_location_id?: string } = { dias_atras: resolvedDays };
       if (search.trim()) params.p_sku_filter = search.trim();
+      if (locationId !== "all") params.p_location_id = locationId;
       const { data, error } = await supabase.rpc("reporte_comportamiento_producto", params);
       if (import.meta.env.DEV) console.log("[ProductBehavior] RPC response:", { data, error, params });
       if (error) throw new Error(error.message);
@@ -51,13 +79,23 @@ export function ProductBehaviorTable({ days }: { days: number }) {
     staleTime: 5 * 60 * 1000,
     retry: 1,
   });
+  const rows = useMemo(() => {
+    const all = data ?? [];
+    if (wosFilter === "all") return all;
+    return all.filter((r) => {
+      if (wosFilter === "stagnant") return r.estado_salud.includes("ESTANCADO");
+      if (wosFilter === "risk") return r.wos > 0 && r.wos < 4;
+      if (wosFilter === "optimal") return r.wos >= 4 && r.wos <= 12;
+      if (wosFilter === "overstock") return r.wos > 12;
+      return true;
+    });
+  }, [data, wosFilter]);
 
-  const rows = data ?? [];
   const totalPages = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
   const paged = rows.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
 
-  // Reset page when search changes
-  useMemo(() => setPage(0), [search, days]);
+  // Reset page when filters change
+  useMemo(() => setPage(0), [search, days, wosFilter, locationId]);
 
   const handleExportCSV = () => {
     if (!rows.length) return;
@@ -105,17 +143,40 @@ export function ProductBehaviorTable({ days }: { days: number }) {
 
   return (
     <div className="space-y-4">
-      {/* Search + Export bar */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
-        <div className="relative flex-1 w-full sm:max-w-md">
+      {/* Filters bar */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 flex-wrap">
+        <div className="relative flex-1 w-full sm:max-w-xs">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Buscar por SKU..."
+            placeholder="Buscar por SKU o nombre..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="pl-10 h-10"
           />
         </div>
+        <Select value={locationId} onValueChange={setLocationId}>
+          <SelectTrigger className="w-full sm:w-[200px] h-10">
+            <SelectValue placeholder="Todas las tiendas" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todas las tiendas</SelectItem>
+            {(locations ?? []).map((loc) => (
+              <SelectItem key={loc.location_id} value={loc.location_id}>
+                {loc.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select value={wosFilter} onValueChange={setWosFilter}>
+          <SelectTrigger className="w-full sm:w-[200px] h-10">
+            <SelectValue placeholder="Filtrar por WOS" />
+          </SelectTrigger>
+          <SelectContent>
+            {WOS_FILTERS.map((f) => (
+              <SelectItem key={f.value} value={f.value}>{f.label}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
         <div className="flex items-center gap-2 ml-auto">
           <Button variant="outline" size="sm" onClick={handleExportCSV} disabled={!rows.length}>
             <Download className="h-4 w-4 mr-1" /> CSV
