@@ -381,6 +381,25 @@ export type Database = {
           unidades: number
         }[]
       }
+      reporte_pedidos_por_tipo_venta: {
+        Args: {
+          dias_atras: number
+          p_canal?: string
+          p_location_id?: string
+          p_tipo?: string
+        }
+        Returns: {
+          cantidad: number
+          descuento_otorgado: number
+          fecha: string
+          numero_pedido: string
+          precio: number
+          producto: string
+          sku: string
+          sucursal: string
+          tipo_venta: string
+        }[]
+      }
       reporte_productos_trending: {
         Args: never
         Returns: {
