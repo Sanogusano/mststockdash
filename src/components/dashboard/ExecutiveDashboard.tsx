@@ -287,6 +287,18 @@ const translateDay = (d: string) => DAY_MAP[d] ?? d;
 const fmtCurrency = (v: number) =>
   new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(v);
 
+/* ── Performance classification based on avg daily sales vs peers ── */
+function getPerformanceClass(storeSales: number, allSales: number[]) {
+  if (allSales.length === 0) return { label: "Sin datos", color: "text-muted-foreground" };
+  const avg = allSales.reduce((a, b) => a + b, 0) / allSales.length;
+  if (avg === 0) return { label: "Sin datos", color: "text-muted-foreground" };
+  const ratio = storeSales / avg;
+  if (ratio >= 1.3) return { label: "🏆 Excelente", color: "text-emerald-600" };
+  if (ratio >= 1.0) return { label: "✅ Bueno", color: "text-primary" };
+  if (ratio >= 0.7) return { label: "⚠️ Regular", color: "text-amber-500" };
+  return { label: "🔴 Malo", color: "text-destructive" };
+}
+
 /* ── Store Rank Card (when a specific location is selected) ── */
 function StoreRankCard({ days, canal, locationId, locationName }: {
   days: number; canal?: string; locationId: string; locationName: string;
@@ -295,6 +307,7 @@ function StoreRankCard({ days, canal, locationId, locationName }: {
   const [total, setTotal] = useState(0);
   const [extraMetrics, setExtraMetrics] = useState<ExtraMetrics | null>(null);
   const [ventasNetas, setVentasNetas] = useState(0);
+  const [perfClass, setPerfClass] = useState<{ label: string; color: string }>({ label: "", color: "" });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -315,6 +328,10 @@ function StoreRankCard({ days, canal, locationId, locationName }: {
         if (idx >= 0) {
           setRank(idx + 1);
           setVentasNetas(all[idx].ventas_totales);
+          // Classification based on avg daily sales comparison
+          const allDailySales = all.map(r => r.ventas_totales / effectiveDays);
+          const storeDailySales = all[idx].ventas_totales / effectiveDays;
+          setPerfClass(getPerformanceClass(storeDailySales, allDailySales));
         } else {
           setRank(null);
         }
@@ -337,43 +354,50 @@ function StoreRankCard({ days, canal, locationId, locationName }: {
 
   return (
     <div className="space-y-4">
+      {/* Card 1: Solo posición en ranking */}
       <div className="glass-card p-5">
         <div className="flex items-center gap-3 mb-4">
           <Trophy className="h-5 w-5 text-primary" />
           <h3 className="text-sm font-semibold text-foreground">Posición en Ranking</h3>
         </div>
-        <div className="flex flex-col sm:flex-row items-center gap-6">
-          <div className="flex flex-col items-center gap-1">
-            <div className="h-20 w-20 rounded-2xl bg-primary/10 flex items-center justify-center">
-              <span className="text-3xl font-bold text-primary">#{rank}</span>
-            </div>
-            <p className="text-xs text-muted-foreground">de {total} tiendas</p>
+        <div className="flex items-center gap-4">
+          <div className="h-20 w-20 rounded-2xl bg-primary/10 flex items-center justify-center">
+            <span className="text-3xl font-bold text-primary">#{rank}</span>
           </div>
-          <div className="flex-1 grid grid-cols-2 sm:grid-cols-4 gap-4">
-            <div>
-              <p className="text-xs text-muted-foreground uppercase tracking-wider">Mejor Día</p>
-              <p className="text-lg font-semibold text-foreground mt-0.5">{translateDay(extraMetrics?.mejor_dia_semana ?? "N/A")}</p>
-              <p className="text-xs text-muted-foreground">{fmtCurrency(extraMetrics?.venta_mejor_dia ?? 0)}</p>
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground uppercase tracking-wider">Peor Día</p>
-              <p className="text-lg font-semibold text-foreground mt-0.5">{translateDay(extraMetrics?.peor_dia_semana ?? "N/A")}</p>
-              <p className="text-xs text-muted-foreground">{fmtCurrency(extraMetrics?.venta_peor_dia ?? 0)}</p>
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground uppercase tracking-wider">Venta Prom/Día</p>
-              <p className="text-lg font-semibold text-foreground mt-0.5">{fmtCurrency(extraMetrics?.venta_promedio_diaria_actual ?? 0)}</p>
-              <ComparisonIndicator actual={extraMetrics?.venta_promedio_diaria_actual ?? 0} anterior={extraMetrics?.venta_promedio_diaria_anterior ?? 0} label="vs ant." />
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground uppercase tracking-wider">Pedidos Prom/Día</p>
-              <p className="text-lg font-semibold text-foreground mt-0.5">{(extraMetrics?.pedidos_promedio_diario_actual ?? 0).toFixed(1)}</p>
-              <ComparisonIndicator actual={extraMetrics?.pedidos_promedio_diario_actual ?? 0} anterior={extraMetrics?.pedidos_promedio_diario_anterior ?? 0} label="vs ant." />
-            </div>
+          <div>
+            <p className="text-sm text-muted-foreground">de {total} sucursales</p>
+            <span className={cn("text-sm font-semibold mt-1 inline-block", perfClass.color)}>{perfClass.label}</span>
           </div>
         </div>
-        {/* Uds Prom/Día row */}
-        <div className="mt-4 pt-4 border-t border-border grid grid-cols-2 sm:grid-cols-4 gap-4">
+      </div>
+
+      {/* Card 2: Desempeño Comercial */}
+      <div className="glass-card p-5">
+        <div className="flex items-center gap-3 mb-4">
+          <CalendarDays className="h-5 w-5 text-primary" />
+          <h3 className="text-sm font-semibold text-foreground">Desempeño Comercial</h3>
+        </div>
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+          <div>
+            <p className="text-xs text-muted-foreground uppercase tracking-wider">Mejor Día</p>
+            <p className="text-lg font-semibold text-foreground mt-0.5">{translateDay(extraMetrics?.mejor_dia_semana ?? "N/A")}</p>
+            <p className="text-xs text-muted-foreground">{fmtCurrency(extraMetrics?.venta_mejor_dia ?? 0)}</p>
+          </div>
+          <div>
+            <p className="text-xs text-muted-foreground uppercase tracking-wider">Peor Día</p>
+            <p className="text-lg font-semibold text-foreground mt-0.5">{translateDay(extraMetrics?.peor_dia_semana ?? "N/A")}</p>
+            <p className="text-xs text-muted-foreground">{fmtCurrency(extraMetrics?.venta_peor_dia ?? 0)}</p>
+          </div>
+          <div>
+            <p className="text-xs text-muted-foreground uppercase tracking-wider">Venta Prom/Día</p>
+            <p className="text-lg font-semibold text-foreground mt-0.5">{fmtCurrency(extraMetrics?.venta_promedio_diaria_actual ?? 0)}</p>
+            <ComparisonIndicator actual={extraMetrics?.venta_promedio_diaria_actual ?? 0} anterior={extraMetrics?.venta_promedio_diaria_anterior ?? 0} label="vs ant." />
+          </div>
+          <div>
+            <p className="text-xs text-muted-foreground uppercase tracking-wider">Pedidos Prom/Día</p>
+            <p className="text-lg font-semibold text-foreground mt-0.5">{(extraMetrics?.pedidos_promedio_diario_actual ?? 0).toFixed(1)}</p>
+            <ComparisonIndicator actual={extraMetrics?.pedidos_promedio_diario_actual ?? 0} anterior={extraMetrics?.pedidos_promedio_diario_anterior ?? 0} label="vs ant." />
+          </div>
           <div>
             <p className="text-xs text-muted-foreground uppercase tracking-wider">Uds Prom/Día</p>
             <p className="text-lg font-semibold text-foreground mt-0.5">{(extraMetrics?.unidades_promedio_diario_actual ?? 0).toFixed(1)}</p>
@@ -406,6 +430,7 @@ function DigitalChannelCard({ days }: { days: number }) {
   const [rank, setRank] = useState<number | null>(null);
   const [total, setTotal] = useState(0);
   const [extraMetrics, setExtraMetrics] = useState<ExtraMetrics | null>(null);
+  const [perfClass, setPerfClass] = useState<{ label: string; color: string }>({ label: "", color: "" });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -414,7 +439,6 @@ function DigitalChannelCard({ days }: { days: number }) {
       setLoading(true);
       const effectiveDays = resolveDays(days);
 
-      // Ranking general (all stores) to position digital as if it were a store
       const [rankRes, metricsRes] = await Promise.all([
         supabase.rpc("reporte_ranking_tiendas", { dias_atras: effectiveDays, p_canal: null }),
         supabase.rpc("reporte_metricas_tienda_individual" as any, { dias_atras: effectiveDays, p_location_id: CEDI_ID }),
@@ -423,9 +447,13 @@ function DigitalChannelCard({ days }: { days: number }) {
       if (rankRes.data) {
         const all = rankRes.data as unknown as RankingRow[];
         setTotal(all.length);
-        // Digital is usually "Bodega Ecommerce" or the CEDI location
         const idx = all.findIndex(r => r.tienda.toUpperCase().includes("ECOMMERCE") || r.tienda.toUpperCase().includes("BODEGA"));
-        if (idx >= 0) setRank(idx + 1);
+        if (idx >= 0) {
+          setRank(idx + 1);
+          const allDailySales = all.map(r => r.ventas_totales / effectiveDays);
+          const storeDailySales = all[idx].ventas_totales / effectiveDays;
+          setPerfClass(getPerformanceClass(storeDailySales, allDailySales));
+        }
       }
 
       if (metricsRes.data && (metricsRes.data as any[]).length > 0) {
@@ -439,39 +467,58 @@ function DigitalChannelCard({ days }: { days: number }) {
   if (loading) return <LoadingState rows={2} />;
 
   return (
-    <div className="glass-card p-5">
-      <div className="flex items-center gap-3 mb-4">
-        <Globe className="h-5 w-5 text-primary" />
-        <h3 className="text-sm font-semibold text-foreground">Digital — Métricas Clave</h3>
-      </div>
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
-        {rank !== null && (
-          <div className="flex flex-col items-center gap-1">
-            <div className="h-16 w-16 rounded-2xl bg-primary/10 flex items-center justify-center">
-              <span className="text-2xl font-bold text-primary">#{rank}</span>
-            </div>
-            <p className="text-xs text-muted-foreground">de {total} (general)</p>
+    <div className="space-y-4">
+      {/* Card 1: Solo posición en ranking */}
+      {rank !== null && (
+        <div className="glass-card p-5">
+          <div className="flex items-center gap-3 mb-4">
+            <Trophy className="h-5 w-5 text-primary" />
+            <h3 className="text-sm font-semibold text-foreground">Posición en Ranking General</h3>
           </div>
-        )}
-        <div>
-          <p className="text-xs text-muted-foreground uppercase tracking-wider">Venta Prom/Día</p>
-          <p className="text-lg font-semibold text-foreground mt-0.5">{fmtCurrency(extraMetrics?.venta_promedio_diaria_actual ?? 0)}</p>
-          <ComparisonIndicator actual={extraMetrics?.venta_promedio_diaria_actual ?? 0} anterior={extraMetrics?.venta_promedio_diaria_anterior ?? 0} label="vs ant." />
+          <div className="flex items-center gap-4">
+            <div className="h-20 w-20 rounded-2xl bg-primary/10 flex items-center justify-center">
+              <span className="text-3xl font-bold text-primary">#{rank}</span>
+            </div>
+            <div>
+              <p className="text-sm text-muted-foreground">de {total} sucursales</p>
+              <span className={cn("text-sm font-semibold mt-1 inline-block", perfClass.color)}>{perfClass.label}</span>
+            </div>
+          </div>
         </div>
-        <div>
-          <p className="text-xs text-muted-foreground uppercase tracking-wider">Peor Día</p>
-          <p className="text-lg font-semibold text-foreground mt-0.5">{translateDay(extraMetrics?.peor_dia_semana ?? "N/A")}</p>
-          <p className="text-xs text-muted-foreground">{fmtCurrency(extraMetrics?.venta_peor_dia ?? 0)}</p>
+      )}
+
+      {/* Card 2: Desempeño Comercial */}
+      <div className="glass-card p-5">
+        <div className="flex items-center gap-3 mb-4">
+          <CalendarDays className="h-5 w-5 text-primary" />
+          <h3 className="text-sm font-semibold text-foreground">Desempeño Comercial</h3>
         </div>
-        <div>
-          <p className="text-xs text-muted-foreground uppercase tracking-wider">Pedidos Prom/Día</p>
-          <p className="text-lg font-semibold text-foreground mt-0.5">{(extraMetrics?.pedidos_promedio_diario_actual ?? 0).toFixed(1)}</p>
-          <ComparisonIndicator actual={extraMetrics?.pedidos_promedio_diario_actual ?? 0} anterior={extraMetrics?.pedidos_promedio_diario_anterior ?? 0} label="vs ant." />
-        </div>
-        <div>
-          <p className="text-xs text-muted-foreground uppercase tracking-wider">Uds Prom/Día</p>
-          <p className="text-lg font-semibold text-foreground mt-0.5">{(extraMetrics?.unidades_promedio_diario_actual ?? 0).toFixed(1)}</p>
-          <ComparisonIndicator actual={extraMetrics?.unidades_promedio_diario_actual ?? 0} anterior={extraMetrics?.unidades_promedio_diario_anterior ?? 0} label="vs ant." />
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+          <div>
+            <p className="text-xs text-muted-foreground uppercase tracking-wider">Mejor Día</p>
+            <p className="text-lg font-semibold text-foreground mt-0.5">{translateDay(extraMetrics?.mejor_dia_semana ?? "N/A")}</p>
+            <p className="text-xs text-muted-foreground">{fmtCurrency(extraMetrics?.venta_mejor_dia ?? 0)}</p>
+          </div>
+          <div>
+            <p className="text-xs text-muted-foreground uppercase tracking-wider">Peor Día</p>
+            <p className="text-lg font-semibold text-foreground mt-0.5">{translateDay(extraMetrics?.peor_dia_semana ?? "N/A")}</p>
+            <p className="text-xs text-muted-foreground">{fmtCurrency(extraMetrics?.venta_peor_dia ?? 0)}</p>
+          </div>
+          <div>
+            <p className="text-xs text-muted-foreground uppercase tracking-wider">Venta Prom/Día</p>
+            <p className="text-lg font-semibold text-foreground mt-0.5">{fmtCurrency(extraMetrics?.venta_promedio_diaria_actual ?? 0)}</p>
+            <ComparisonIndicator actual={extraMetrics?.venta_promedio_diaria_actual ?? 0} anterior={extraMetrics?.venta_promedio_diaria_anterior ?? 0} label="vs ant." />
+          </div>
+          <div>
+            <p className="text-xs text-muted-foreground uppercase tracking-wider">Pedidos Prom/Día</p>
+            <p className="text-lg font-semibold text-foreground mt-0.5">{(extraMetrics?.pedidos_promedio_diario_actual ?? 0).toFixed(1)}</p>
+            <ComparisonIndicator actual={extraMetrics?.pedidos_promedio_diario_actual ?? 0} anterior={extraMetrics?.pedidos_promedio_diario_anterior ?? 0} label="vs ant." />
+          </div>
+          <div>
+            <p className="text-xs text-muted-foreground uppercase tracking-wider">Uds Prom/Día</p>
+            <p className="text-lg font-semibold text-foreground mt-0.5">{(extraMetrics?.unidades_promedio_diario_actual ?? 0).toFixed(1)}</p>
+            <ComparisonIndicator actual={extraMetrics?.unidades_promedio_diario_actual ?? 0} anterior={extraMetrics?.unidades_promedio_diario_anterior ?? 0} label="vs ant." />
+          </div>
         </div>
       </div>
     </div>
