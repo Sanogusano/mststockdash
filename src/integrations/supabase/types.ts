@@ -390,7 +390,7 @@ export type Database = {
         }[]
       }
       reporte_pareto_categorias: {
-        Args: { dias_atras: number; p_canal?: string }
+        Args: { dias_atras: number; p_canal?: string; p_location_id?: string }
         Returns: {
           categoria: string
           ingresos: number
