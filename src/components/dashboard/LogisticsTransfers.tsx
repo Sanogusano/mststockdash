@@ -16,6 +16,7 @@ interface TransferRow {
   stock_origen: number | null;
   tienda_destino: string | null;
   ritmo_venta_destino: number | null;
+  uds_sugeridas: number | null;
   accion: string | null;
 }
 
@@ -49,6 +50,7 @@ export function LogisticsTransfers({ days }: Props) {
     "Stock Origen": r.stock_origen ?? 0,
     Destino: r.tienda_destino ?? "",
     "Ritmo Venta": r.ritmo_venta_destino ?? 0,
+    "Uds. Sugeridas": r.uds_sugeridas ?? 0,
   }));
 
   if (loading) return <LoadingState rows={5} />;
@@ -96,6 +98,7 @@ export function LogisticsTransfers({ days }: Props) {
                 <th className="px-4 py-3 text-center text-xs font-medium text-muted-foreground"></th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">Destino</th>
                 <th className="px-4 py-3 text-right text-xs font-medium text-muted-foreground">Ritmo Venta</th>
+                <th className="px-4 py-3 text-right text-xs font-medium text-muted-foreground">Uds. Sugeridas</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">Acción</th>
               </tr>
             </thead>
@@ -130,6 +133,11 @@ export function LogisticsTransfers({ days }: Props) {
                     <span className="text-xs font-medium text-primary">{row.tienda_destino ?? "—"}</span>
                   </td>
                    <td className="px-4 py-3 text-right text-muted-foreground">{(row.ritmo_venta_destino ?? 0).toFixed(1)} uds/sem</td>
+                  <td className="px-4 py-3 text-right">
+                    <span className="inline-flex items-center justify-center px-2.5 py-1 rounded-full text-xs font-bold bg-primary/10 text-primary border border-primary/20">
+                      {(row.uds_sugeridas ?? 0).toLocaleString()}
+                    </span>
+                  </td>
                   <td className="px-4 py-3 text-xs text-muted-foreground max-w-[200px]">{row.accion ?? "—"}</td>
                 </tr>
               ))}

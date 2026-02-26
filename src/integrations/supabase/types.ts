@@ -438,6 +438,7 @@ export type Database = {
           stock_origen: number
           tienda_destino: string
           tienda_origen: string
+          uds_sugeridas: number
         }[]
       }
       reporte_top_bottom_digital: {
