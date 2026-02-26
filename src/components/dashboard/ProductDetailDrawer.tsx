@@ -76,7 +76,7 @@ export function ProductDetailDrawer({
 
   return (
     <Sheet open={!!product} onOpenChange={(open) => !open && onClose()}>
-      <SheetContent className="sm:max-w-2xl w-full overflow-y-auto p-0">
+      <SheetContent className="!max-w-full w-full overflow-y-auto p-0" side="right">
         {product && (
           <>
             {/* Header */}

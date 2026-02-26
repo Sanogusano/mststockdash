@@ -42,6 +42,13 @@ const WOS_FILTERS = [
   { value: "stagnant", label: "🔴 Estancado (0 ventas)" },
 ];
 
+const ST_FILTERS = [
+  { value: "all", label: "Todos los %ST" },
+  { value: "high", label: "🟢 Alto (≥70%)" },
+  { value: "medium", label: "🟡 Medio (30-69%)" },
+  { value: "low", label: "🔴 Bajo (<30%)" },
+];
+
 interface LocationOption {
   location_id: string;
   name: string;
@@ -52,6 +59,7 @@ export function ProductBehaviorTable({ days }: { days: number }) {
   const [page, setPage] = useState(0);
   const [selectedProduct, setSelectedProduct] = useState<ProductRow | null>(null);
   const [wosFilter, setWosFilter] = useState("all");
+  const [stFilter, setStFilter] = useState("all");
   const [locationId, setLocationId] = useState("all");
 
   const resolvedDays = resolveDays(days);
@@ -80,22 +88,32 @@ export function ProductBehaviorTable({ days }: { days: number }) {
     retry: 1,
   });
   const rows = useMemo(() => {
-    const all = data ?? [];
-    if (wosFilter === "all") return all;
-    return all.filter((r) => {
-      if (wosFilter === "stagnant") return r.estado_salud.includes("ESTANCADO");
-      if (wosFilter === "risk") return r.wos > 0 && r.wos < 4;
-      if (wosFilter === "optimal") return r.wos >= 4 && r.wos <= 12;
-      if (wosFilter === "overstock") return r.wos > 12;
-      return true;
-    });
-  }, [data, wosFilter]);
+    let all = data ?? [];
+    if (wosFilter !== "all") {
+      all = all.filter((r) => {
+        if (wosFilter === "stagnant") return r.estado_salud.includes("ESTANCADO");
+        if (wosFilter === "risk") return r.wos > 0 && r.wos < 4;
+        if (wosFilter === "optimal") return r.wos >= 4 && r.wos <= 12;
+        if (wosFilter === "overstock") return r.wos > 12;
+        return true;
+      });
+    }
+    if (stFilter !== "all") {
+      all = all.filter((r) => {
+        if (stFilter === "high") return r.sell_through_pct >= 70;
+        if (stFilter === "medium") return r.sell_through_pct >= 30 && r.sell_through_pct < 70;
+        if (stFilter === "low") return r.sell_through_pct < 30;
+        return true;
+      });
+    }
+    return all;
+  }, [data, wosFilter, stFilter]);
 
   const totalPages = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
   const paged = rows.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
 
   // Reset page when filters change
-  useMemo(() => setPage(0), [search, days, wosFilter, locationId]);
+  useMemo(() => setPage(0), [search, days, wosFilter, stFilter, locationId]);
 
   const handleExportCSV = () => {
     if (!rows.length) return;
@@ -173,6 +191,16 @@ export function ProductBehaviorTable({ days }: { days: number }) {
           </SelectTrigger>
           <SelectContent>
             {WOS_FILTERS.map((f) => (
+              <SelectItem key={f.value} value={f.value}>{f.label}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select value={stFilter} onValueChange={setStFilter}>
+          <SelectTrigger className="w-full sm:w-[200px] h-10">
+            <SelectValue placeholder="Filtrar por %ST" />
+          </SelectTrigger>
+          <SelectContent>
+            {ST_FILTERS.map((f) => (
               <SelectItem key={f.value} value={f.value}>{f.label}</SelectItem>
             ))}
           </SelectContent>
