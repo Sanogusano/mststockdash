@@ -87,20 +87,20 @@ export default function TiendaDetailPage() {
       <div className="flex min-h-screen w-full bg-background">
         <AppSidebar />
         <main className="flex-1 min-w-0 flex flex-col">
-          <header className="flex items-center justify-between px-6 py-4 border-b border-border sticky top-0 bg-background/95 backdrop-blur-sm z-10">
+          <header className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 px-4 sm:px-6 py-3 sm:py-4 border-b border-border sticky top-0 bg-background/95 backdrop-blur-sm z-10">
             <div className="flex items-center gap-3">
               <SidebarTrigger className="text-muted-foreground hover:text-foreground" />
               <Link to="/inventarios" className="text-muted-foreground hover:text-foreground transition-colors">
                 <ArrowLeft className="h-5 w-5" />
               </Link>
               <div>
-                <h2 className="text-lg font-semibold text-foreground">{storeName || "Tienda"}</h2>
-                <p className="text-xs text-muted-foreground">Salud de inventario por categoría</p>
+                <h2 className="text-base sm:text-lg font-semibold text-foreground">{storeName || "Tienda"}</h2>
+                <p className="text-[10px] sm:text-xs text-muted-foreground">Salud de inventario por categoría</p>
               </div>
             </div>
             <TimeFilter value={days} onChange={setDays} />
           </header>
-          <div className="flex-1 px-6 py-6">
+          <div className="flex-1 px-4 sm:px-6 py-4 sm:py-6">
             {loading ? (
               <LoadingState rows={6} />
             ) : (

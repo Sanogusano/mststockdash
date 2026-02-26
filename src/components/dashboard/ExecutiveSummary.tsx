@@ -46,7 +46,7 @@ export function ExecutiveSummary({ days }: Props) {
   return (
     <div className="space-y-4">
       {/* KPI Strip */}
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <div className="glass-card rounded-xl p-4">
           <p className="text-xs text-muted-foreground uppercase tracking-widest mb-1">Productos activos</p>
           <p className="text-2xl font-display font-bold text-primary">{data.length}</p>
@@ -65,7 +65,8 @@ export function ExecutiveSummary({ days }: Props) {
 
       {/* Product Table */}
       <div className="glass-card rounded-xl overflow-hidden">
-        <table className="w-full">
+        <div className="overflow-x-auto">
+        <table className="w-full min-w-[600px]">
           <thead>
             <tr className="border-b border-border text-left">
               <th className="px-4 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">Producto</th>
@@ -129,6 +130,7 @@ export function ExecutiveSummary({ days }: Props) {
             ))}
           </tbody>
         </table>
+        </div>
       </div>
     </div>
   );

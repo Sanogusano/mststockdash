@@ -55,7 +55,7 @@ export function StoreLeaderboard({ days, canal }: { days: number; canal?: string
 
   return (
     <div className="glass-card overflow-hidden">
-      <div className="flex items-center justify-between px-5 py-4 border-b border-border">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 px-4 sm:px-5 py-3 sm:py-4 border-b border-border">
         <div className="flex items-center gap-2">
           <Trophy className="h-4 w-4 text-primary" />
           <h3 className="text-sm font-semibold text-foreground">Top 10 Tiendas — Leaderboard</h3>
@@ -79,7 +79,7 @@ export function StoreLeaderboard({ days, canal }: { days: number; canal?: string
       </div>
 
       <div className="overflow-x-auto">
-        <table className="w-full text-sm">
+        <table className="w-full text-sm min-w-[700px]">
           <thead>
             <tr className="border-b border-border bg-muted/30">
               <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground w-10">#</th>

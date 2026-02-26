@@ -24,12 +24,12 @@ const options = [
 
 export function TimeFilter({ value, onChange }: TimeFilterProps) {
   return (
-    <div className="flex items-center gap-1 bg-muted/50 rounded-lg p-1 border border-border">
+    <div className="flex items-center gap-0.5 sm:gap-1 bg-muted/50 rounded-lg p-0.5 sm:p-1 border border-border overflow-x-auto">
       {options.map((opt) => (
         <button
           key={opt.value}
           onClick={() => onChange(opt.value)}
-          className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all duration-200 ${
+          className={`px-2 sm:px-4 py-1 sm:py-1.5 rounded-md text-xs sm:text-sm font-medium transition-all duration-200 whitespace-nowrap ${
             value === opt.value
               ? "bg-primary text-primary-foreground shadow-sm"
               : "text-muted-foreground hover:text-foreground hover:bg-muted"
