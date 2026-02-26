@@ -1,0 +1,269 @@
+import { useEffect, useState } from "react";
+import { useSearchParams, useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { AppSidebar } from "@/components/AppSidebar";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+import { format } from "date-fns";
+import { es } from "date-fns/locale";
+import { CalendarIcon, ArrowLeft, Download, FileText } from "lucide-react";
+import { exportToCSV } from "@/lib/csv-export";
+import { exportToPDF } from "@/lib/pdf-export";
+import { LoadingState } from "@/components/dashboard/LoadingState";
+
+interface OrderRow {
+  numero_pedido: string;
+  fecha: string;
+  sucursal: string;
+  producto: string;
+  sku: string;
+  cantidad: number;
+  precio: number;
+  descuento_otorgado: number;
+  tipo_venta: string;
+}
+
+interface Location {
+  location_id: string;
+  name: string;
+}
+
+const CEDI_ID = "71474315479";
+const CEDI_DISPLAY = "Bodega Ecommerce";
+
+export default function PedidosDetallePage() {
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+
+  const tipo = (searchParams.get("tipo") as "full_price" | "descuento") || "descuento";
+  const canal = searchParams.get("canal") || "tiendas";
+  const daysParam = parseInt(searchParams.get("days") || "30", 10);
+
+  const [data, setData] = useState<OrderRow[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [locations, setLocations] = useState<Location[]>([]);
+  const [selectedLocation, setSelectedLocation] = useState<string>("all");
+  const [dateFrom, setDateFrom] = useState<Date | undefined>(undefined);
+  const [dateTo, setDateTo] = useState<Date | undefined>(undefined);
+
+  const title = tipo === "full_price" ? "Pedidos a Full Price" : "Pedidos con Descuento";
+
+  // Load locations
+  useEffect(() => {
+    supabase.from("locations").select("location_id, name").eq("is_active", true)
+      .then(({ data }) => {
+        if (data) {
+          setLocations(data.filter(l => l.location_id !== CEDI_ID).map(l => ({
+            ...l,
+            name: l.location_id === CEDI_ID ? CEDI_DISPLAY : l.name,
+          })));
+        }
+      });
+  }, []);
+
+  // Load orders
+  useEffect(() => {
+    setLoading(true);
+    const locParam = selectedLocation === "all" ? null : selectedLocation;
+
+    supabase.rpc("reporte_pedidos_por_tipo_venta", {
+      dias_atras: daysParam,
+      p_canal: canal,
+      p_location_id: locParam,
+      p_tipo: tipo,
+    }).then(({ data: rows, error }) => {
+      if (error) {
+        console.error("Error fetching orders:", error);
+        setData([]);
+      } else if (rows) {
+        let filtered = rows as unknown as OrderRow[];
+        // Apply date filters client-side
+        if (dateFrom) {
+          filtered = filtered.filter(r => new Date(r.fecha) >= dateFrom);
+        }
+        if (dateTo) {
+          const endOfDay = new Date(dateTo);
+          endOfDay.setHours(23, 59, 59, 999);
+          filtered = filtered.filter(r => new Date(r.fecha) <= endOfDay);
+        }
+        setData(filtered);
+      }
+      setLoading(false);
+    });
+  }, [daysParam, canal, selectedLocation, tipo, dateFrom, dateTo]);
+
+  const exportData = data.map(r => ({
+    Pedido: r.numero_pedido,
+    Fecha: new Date(r.fecha).toLocaleDateString("es-CO"),
+    Sucursal: r.sucursal,
+    Producto: r.producto,
+    SKU: r.sku,
+    Cantidad: r.cantidad,
+    Precio: r.precio,
+    ...(tipo === "descuento" ? { Descuento: r.descuento_otorgado, "Tipo Descuento": r.tipo_venta } : {}),
+  }));
+
+  return (
+    <SidebarProvider>
+      <div className="flex min-h-screen w-full bg-background">
+        <AppSidebar />
+        <main className="flex-1 min-w-0 flex flex-col">
+          {/* Header */}
+          <header className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 px-4 sm:px-6 py-3 sm:py-4 border-b border-border sticky top-0 bg-background/95 backdrop-blur-sm z-10">
+            <div className="flex items-center gap-3">
+              <SidebarTrigger className="text-muted-foreground hover:text-foreground" />
+              <Button variant="ghost" size="icon" onClick={() => navigate("/")} className="text-muted-foreground hover:text-foreground">
+                <ArrowLeft className="h-5 w-5" />
+              </Button>
+              <div>
+                <h2 className="text-base sm:text-lg font-semibold text-foreground">{title}</h2>
+                <p className="text-[10px] sm:text-xs text-muted-foreground">
+                  Canal: {canal === "digital" ? "Digital" : canal === "outlets" ? "Outlets" : "Tiendas"} · Últimos {daysParam} días
+                </p>
+              </div>
+            </div>
+            {data.length > 0 && (
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => exportToCSV(exportData as any, `pedidos_${tipo}_${daysParam}d`)}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                >
+                  <Download className="h-3.5 w-3.5" /> CSV
+                </button>
+                <button
+                  onClick={() => exportToPDF(exportData as any, `pedidos_${tipo}_${daysParam}d`, title)}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                >
+                  <FileText className="h-3.5 w-3.5" /> PDF
+                </button>
+              </div>
+            )}
+          </header>
+
+          {/* Filters */}
+          <div className="px-4 sm:px-6 py-3 border-b border-border flex flex-wrap items-center gap-3">
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-muted-foreground font-medium">Sucursal:</span>
+              <Select value={selectedLocation} onValueChange={setSelectedLocation}>
+                <SelectTrigger className="w-[200px] h-8 text-xs bg-card">
+                  <SelectValue placeholder="Todas" />
+                </SelectTrigger>
+                <SelectContent className="bg-popover border border-border shadow-lg z-50">
+                  <SelectItem value="all">Todas las sucursales</SelectItem>
+                  {locations.map((loc) => (
+                    <SelectItem key={loc.location_id} value={loc.location_id}>{loc.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-muted-foreground font-medium">Desde:</span>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" size="sm" className={cn("h-8 text-xs gap-1.5 w-[140px] justify-start", !dateFrom && "text-muted-foreground")}>
+                    <CalendarIcon className="h-3.5 w-3.5" />
+                    {dateFrom ? format(dateFrom, "dd MMM yyyy", { locale: es }) : "Seleccionar"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar mode="single" selected={dateFrom} onSelect={setDateFrom} initialFocus className={cn("p-3 pointer-events-auto")} />
+                </PopoverContent>
+              </Popover>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-muted-foreground font-medium">Hasta:</span>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" size="sm" className={cn("h-8 text-xs gap-1.5 w-[140px] justify-start", !dateTo && "text-muted-foreground")}>
+                    <CalendarIcon className="h-3.5 w-3.5" />
+                    {dateTo ? format(dateTo, "dd MMM yyyy", { locale: es }) : "Seleccionar"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar mode="single" selected={dateTo} onSelect={setDateTo} initialFocus className={cn("p-3 pointer-events-auto")} />
+                </PopoverContent>
+              </Popover>
+            </div>
+
+            {(dateFrom || dateTo) && (
+              <Button variant="ghost" size="sm" className="h-8 text-xs text-muted-foreground" onClick={() => { setDateFrom(undefined); setDateTo(undefined); }}>
+                Limpiar fechas
+              </Button>
+            )}
+
+            <span className="ml-auto text-xs text-muted-foreground">{data.length} registros</span>
+          </div>
+
+          {/* Table */}
+          <div className="flex-1 px-4 sm:px-6 py-4 overflow-auto">
+            {loading ? (
+              <LoadingState rows={8} />
+            ) : data.length === 0 ? (
+              <div className="text-center py-16 text-muted-foreground text-sm">Sin pedidos para mostrar.</div>
+            ) : (
+              <div className="glass-card overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-border bg-muted/30 sticky top-0">
+                        <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">Pedido</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">Fecha</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">Sucursal</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">Producto</th>
+                        <th className="px-4 py-3 text-right text-xs font-medium text-muted-foreground">Cant</th>
+                        <th className="px-4 py-3 text-right text-xs font-medium text-muted-foreground">Precio</th>
+                        {tipo === "descuento" && (
+                          <>
+                            <th className="px-4 py-3 text-right text-xs font-medium text-muted-foreground">Descuento</th>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">Tipo de Descuento</th>
+                          </>
+                        )}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {data.map((row, i) => (
+                        <tr key={i} className="border-b border-border/50 hover:bg-muted/20 transition-colors">
+                          <td className="px-4 py-2.5 font-mono text-xs">{row.numero_pedido}</td>
+                          <td className="px-4 py-2.5 text-muted-foreground text-xs">{new Date(row.fecha).toLocaleDateString("es-CO")}</td>
+                          <td className="px-4 py-2.5">{row.sucursal}</td>
+                          <td className="px-4 py-2.5 max-w-[250px] truncate">{row.producto}</td>
+                          <td className="px-4 py-2.5 text-right">{row.cantidad}</td>
+                          <td className="px-4 py-2.5 text-right">
+                            {new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", minimumFractionDigits: 0 }).format(row.precio)}
+                          </td>
+                          {tipo === "descuento" && (
+                            <>
+                              <td className="px-4 py-2.5 text-right text-destructive font-medium">
+                                {new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", minimumFractionDigits: 0 }).format(row.descuento_otorgado)}
+                              </td>
+                              <td className="px-4 py-2.5">
+                                <span className={cn(
+                                  "inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium",
+                                  row.tipo_venta === "Descuento de Producto"
+                                    ? "bg-accent text-accent-foreground"
+                                    : "bg-destructive/10 text-destructive"
+                                )}>
+                                  {row.tipo_venta === "Descuento de Producto" ? "Producto Rebajado" : "Descuento Promocional"}
+                                </span>
+                              </td>
+                            </>
+                          )}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+          </div>
+        </main>
+      </div>
+    </SidebarProvider>
+  );
+}

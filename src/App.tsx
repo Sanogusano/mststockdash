@@ -12,6 +12,7 @@ import ComportamientoProductoPage from "./pages/ComportamientoProducto";
 import LoginPage from "./pages/Login";
 import ResetPasswordPage from "./pages/ResetPassword";
 import NotFound from "./pages/NotFound";
+import PedidosDetallePage from "./pages/PedidosDetalle";
 import TiendaDetailPage from "./pages/TiendaDetail";
 
 const queryClient = new QueryClient();
@@ -26,6 +27,7 @@ const App = () => (
           <Route path="/login" element={<LoginPage />} />
           <Route path="/reset-password" element={<ResetPasswordPage />} />
           <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
+          <Route path="/pedidos" element={<ProtectedRoute><PedidosDetallePage /></ProtectedRoute>} />
           <Route path="/inventarios" element={<ProtectedRoute><InventariosPage /></ProtectedRoute>} />
           <Route path="/tienda/:id" element={<ProtectedRoute><TiendaDetailPage /></ProtectedRoute>} />
           <Route path="/logistica" element={<ProtectedRoute><LogisticaPage /></ProtectedRoute>} />
