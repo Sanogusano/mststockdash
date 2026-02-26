@@ -9,7 +9,7 @@ import { exportToPDF } from "@/lib/pdf-export";
 import { LoadingState, EmptyState } from "./LoadingState";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Store, Globe, Download, FileText, DollarSign, ShoppingBag, Receipt, Star, Percent, Tag, Trophy } from "lucide-react";
+import { Store, Globe, Download, FileText, DollarSign, ShoppingBag, Receipt, Star, Percent, Tag, Trophy, TrendingDown, TrendingUp, CalendarDays, Package } from "lucide-react";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 import { StoreLeaderboard } from "./StoreLeaderboard";
 
@@ -251,13 +251,49 @@ function ParetoChart({ days, canal }: { days: number; canal: string }) {
   );
 }
 
+/* ── Comparison indicator ── */
+function ComparisonIndicator({ actual, anterior, label }: { actual: number; anterior: number; label?: string }) {
+  const pct = anterior > 0 ? ((actual - anterior) / anterior) * 100 : 0;
+  const isUp = pct >= 0;
+  return (
+    <div className="flex items-center gap-1 mt-0.5">
+      <span className={cn("text-xs font-medium", isUp ? "text-emerald-600" : "text-destructive")}>
+        {isUp ? "▲" : "▼"} {Math.abs(pct).toFixed(1)}%
+      </span>
+      {label && <span className="text-xs text-muted-foreground">{label}</span>}
+    </div>
+  );
+}
+
+interface ExtraMetrics {
+  mejor_dia_semana: string;
+  venta_mejor_dia: number;
+  peor_dia_semana: string;
+  venta_peor_dia: number;
+  venta_promedio_diaria_actual: number;
+  venta_promedio_diaria_anterior: number;
+  pedidos_promedio_diario_actual: number;
+  pedidos_promedio_diario_anterior: number;
+  unidades_promedio_diario_actual: number;
+  unidades_promedio_diario_anterior: number;
+}
+
+const DAY_MAP: Record<string, string> = {
+  Monday: "Lunes", Tuesday: "Martes", Wednesday: "Miércoles",
+  Thursday: "Jueves", Friday: "Viernes", Saturday: "Sábado", Sunday: "Domingo",
+};
+const translateDay = (d: string) => DAY_MAP[d] ?? d;
+
+const fmtCurrency = (v: number) =>
+  new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(v);
+
 /* ── Store Rank Card (when a specific location is selected) ── */
-function StoreRankCard({ days, locationId, locationName }: {
-  days: number; locationId: string; locationName: string;
+function StoreRankCard({ days, canal, locationId, locationName }: {
+  days: number; canal?: string; locationId: string; locationName: string;
 }) {
   const [rank, setRank] = useState<number | null>(null);
   const [total, setTotal] = useState(0);
-  const [extraMetrics, setExtraMetrics] = useState<{ mejor_dia_semana: string; venta_mejor_dia: number; venta_promedio_diaria_actual: number; venta_promedio_diaria_anterior: number } | null>(null);
+  const [extraMetrics, setExtraMetrics] = useState<ExtraMetrics | null>(null);
   const [ventasNetas, setVentasNetas] = useState(0);
   const [loading, setLoading] = useState(true);
 
@@ -267,9 +303,8 @@ function StoreRankCard({ days, locationId, locationName }: {
       setLoading(true);
       const effectiveDays = resolveDays(days);
 
-      // Ranking across ALL stores (no canal filter)
       const [rankRes, metricsRes] = await Promise.all([
-        supabase.rpc("reporte_ranking_tiendas", { dias_atras: effectiveDays, p_canal: null }),
+        supabase.rpc("reporte_ranking_tiendas", { dias_atras: effectiveDays, p_canal: canal || null }),
         supabase.rpc("reporte_metricas_tienda_individual" as any, { dias_atras: effectiveDays, p_location_id: locationId }),
       ]);
 
@@ -287,34 +322,15 @@ function StoreRankCard({ days, locationId, locationName }: {
 
       if (metricsRes.data && (metricsRes.data as any[]).length > 0) {
         const m = (metricsRes.data as any[])[0];
-        setExtraMetrics({
-          mejor_dia_semana: m.mejor_dia_semana ?? "N/A",
-          venta_mejor_dia: m.venta_mejor_dia ?? 0,
-          venta_promedio_diaria_actual: m.venta_promedio_diaria_actual ?? 0,
-          venta_promedio_diaria_anterior: m.venta_promedio_diaria_anterior ?? 0,
-        });
+        setExtraMetrics(m as ExtraMetrics);
       }
       setLoading(false);
     }
     fetch();
-  }, [days, locationId, locationName]);
+  }, [days, canal, locationId, locationName]);
 
   if (loading) return <LoadingState rows={2} />;
   if (rank === null) return <EmptyState message="Esta tienda no aparece en el ranking del período." />;
-
-  const fmtCurrency = (v: number) =>
-    new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(v);
-
-  const DAY_MAP: Record<string, string> = {
-    Monday: "Lunes", Tuesday: "Martes", Wednesday: "Miércoles",
-    Thursday: "Jueves", Friday: "Viernes", Saturday: "Sábado", Sunday: "Domingo",
-  };
-  const diaEs = extraMetrics ? (DAY_MAP[extraMetrics.mejor_dia_semana] ?? extraMetrics.mejor_dia_semana) : "—";
-
-  const avgActual = extraMetrics?.venta_promedio_diaria_actual ?? 0;
-  const avgAnterior = extraMetrics?.venta_promedio_diaria_anterior ?? 0;
-  const pctChange = avgAnterior > 0 ? ((avgActual - avgAnterior) / avgAnterior) * 100 : 0;
-  const isUp = pctChange >= 0;
 
   const ALERT_THRESHOLD = 60_000_000;
   const showAlert = ventasNetas < ALERT_THRESHOLD;
@@ -324,37 +340,44 @@ function StoreRankCard({ days, locationId, locationName }: {
       <div className="glass-card p-5">
         <div className="flex items-center gap-3 mb-4">
           <Trophy className="h-5 w-5 text-primary" />
-          <h3 className="text-sm font-semibold text-foreground">Posición en Ranking General</h3>
+          <h3 className="text-sm font-semibold text-foreground">Posición en Ranking</h3>
         </div>
         <div className="flex flex-col sm:flex-row items-center gap-6">
-          {/* Rank badge */}
           <div className="flex flex-col items-center gap-1">
             <div className="h-20 w-20 rounded-2xl bg-primary/10 flex items-center justify-center">
               <span className="text-3xl font-bold text-primary">#{rank}</span>
             </div>
             <p className="text-xs text-muted-foreground">de {total} tiendas</p>
           </div>
-          {/* Extra metrics */}
-          <div className="flex-1 grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="flex-1 grid grid-cols-2 sm:grid-cols-4 gap-4">
             <div>
               <p className="text-xs text-muted-foreground uppercase tracking-wider">Mejor Día</p>
-              <p className="text-lg font-semibold text-foreground mt-0.5">{diaEs}</p>
+              <p className="text-lg font-semibold text-foreground mt-0.5">{translateDay(extraMetrics?.mejor_dia_semana ?? "N/A")}</p>
               <p className="text-xs text-muted-foreground">{fmtCurrency(extraMetrics?.venta_mejor_dia ?? 0)}</p>
             </div>
             <div>
-              <p className="text-xs text-muted-foreground uppercase tracking-wider">Venta Prom/Día</p>
-              <p className="text-lg font-semibold text-foreground mt-0.5">{fmtCurrency(avgActual)}</p>
-              <div className="flex items-center gap-1 mt-0.5">
-                <span className={cn("text-xs font-medium", isUp ? "text-emerald-600" : "text-destructive")}>
-                  {isUp ? "▲" : "▼"} {Math.abs(pctChange).toFixed(1)}%
-                </span>
-                <span className="text-xs text-muted-foreground">vs período ant.</span>
-              </div>
+              <p className="text-xs text-muted-foreground uppercase tracking-wider">Peor Día</p>
+              <p className="text-lg font-semibold text-foreground mt-0.5">{translateDay(extraMetrics?.peor_dia_semana ?? "N/A")}</p>
+              <p className="text-xs text-muted-foreground">{fmtCurrency(extraMetrics?.venta_peor_dia ?? 0)}</p>
             </div>
             <div>
-              <p className="text-xs text-muted-foreground uppercase tracking-wider">Venta Prom/Día Ant.</p>
-              <p className="text-lg font-semibold text-foreground mt-0.5">{fmtCurrency(avgAnterior)}</p>
+              <p className="text-xs text-muted-foreground uppercase tracking-wider">Venta Prom/Día</p>
+              <p className="text-lg font-semibold text-foreground mt-0.5">{fmtCurrency(extraMetrics?.venta_promedio_diaria_actual ?? 0)}</p>
+              <ComparisonIndicator actual={extraMetrics?.venta_promedio_diaria_actual ?? 0} anterior={extraMetrics?.venta_promedio_diaria_anterior ?? 0} label="vs ant." />
             </div>
+            <div>
+              <p className="text-xs text-muted-foreground uppercase tracking-wider">Pedidos Prom/Día</p>
+              <p className="text-lg font-semibold text-foreground mt-0.5">{(extraMetrics?.pedidos_promedio_diario_actual ?? 0).toFixed(1)}</p>
+              <ComparisonIndicator actual={extraMetrics?.pedidos_promedio_diario_actual ?? 0} anterior={extraMetrics?.pedidos_promedio_diario_anterior ?? 0} label="vs ant." />
+            </div>
+          </div>
+        </div>
+        {/* Uds Prom/Día row */}
+        <div className="mt-4 pt-4 border-t border-border grid grid-cols-2 sm:grid-cols-4 gap-4">
+          <div>
+            <p className="text-xs text-muted-foreground uppercase tracking-wider">Uds Prom/Día</p>
+            <p className="text-lg font-semibold text-foreground mt-0.5">{(extraMetrics?.unidades_promedio_diario_actual ?? 0).toFixed(1)}</p>
+            <ComparisonIndicator actual={extraMetrics?.unidades_promedio_diario_actual ?? 0} anterior={extraMetrics?.unidades_promedio_diario_anterior ?? 0} label="vs ant." />
           </div>
         </div>
       </div>
@@ -368,12 +391,89 @@ function StoreRankCard({ days, locationId, locationName }: {
             <div>
               <p className="text-sm font-bold text-destructive">ACTIVAR ACCIONES COMERCIALES</p>
               <p className="text-xs text-muted-foreground mt-0.5">
-                Las ventas netas de esta tienda ({fmtCurrency(ventasNetas)}) están por debajo del umbral de {fmtCurrency(ALERT_THRESHOLD)}.
+                Las ventas netas ({fmtCurrency(ventasNetas)}) están por debajo del umbral de {fmtCurrency(ALERT_THRESHOLD)}.
               </p>
             </div>
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+/* ── Digital Channel Card ── */
+function DigitalChannelCard({ days }: { days: number }) {
+  const [rank, setRank] = useState<number | null>(null);
+  const [total, setTotal] = useState(0);
+  const [extraMetrics, setExtraMetrics] = useState<ExtraMetrics | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetch() {
+      if (!isValidDays(days)) return;
+      setLoading(true);
+      const effectiveDays = resolveDays(days);
+
+      // Ranking general (all stores) to position digital as if it were a store
+      const [rankRes, metricsRes] = await Promise.all([
+        supabase.rpc("reporte_ranking_tiendas", { dias_atras: effectiveDays, p_canal: null }),
+        supabase.rpc("reporte_metricas_tienda_individual" as any, { dias_atras: effectiveDays, p_location_id: CEDI_ID }),
+      ]);
+
+      if (rankRes.data) {
+        const all = rankRes.data as unknown as RankingRow[];
+        setTotal(all.length);
+        // Digital is usually "Bodega Ecommerce" or the CEDI location
+        const idx = all.findIndex(r => r.tienda.toUpperCase().includes("ECOMMERCE") || r.tienda.toUpperCase().includes("BODEGA"));
+        if (idx >= 0) setRank(idx + 1);
+      }
+
+      if (metricsRes.data && (metricsRes.data as any[]).length > 0) {
+        setExtraMetrics((metricsRes.data as any[])[0] as ExtraMetrics);
+      }
+      setLoading(false);
+    }
+    fetch();
+  }, [days]);
+
+  if (loading) return <LoadingState rows={2} />;
+
+  return (
+    <div className="glass-card p-5">
+      <div className="flex items-center gap-3 mb-4">
+        <Globe className="h-5 w-5 text-primary" />
+        <h3 className="text-sm font-semibold text-foreground">Digital — Métricas Clave</h3>
+      </div>
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+        {rank !== null && (
+          <div className="flex flex-col items-center gap-1">
+            <div className="h-16 w-16 rounded-2xl bg-primary/10 flex items-center justify-center">
+              <span className="text-2xl font-bold text-primary">#{rank}</span>
+            </div>
+            <p className="text-xs text-muted-foreground">de {total} (general)</p>
+          </div>
+        )}
+        <div>
+          <p className="text-xs text-muted-foreground uppercase tracking-wider">Venta Prom/Día</p>
+          <p className="text-lg font-semibold text-foreground mt-0.5">{fmtCurrency(extraMetrics?.venta_promedio_diaria_actual ?? 0)}</p>
+          <ComparisonIndicator actual={extraMetrics?.venta_promedio_diaria_actual ?? 0} anterior={extraMetrics?.venta_promedio_diaria_anterior ?? 0} label="vs ant." />
+        </div>
+        <div>
+          <p className="text-xs text-muted-foreground uppercase tracking-wider">Peor Día</p>
+          <p className="text-lg font-semibold text-foreground mt-0.5">{translateDay(extraMetrics?.peor_dia_semana ?? "N/A")}</p>
+          <p className="text-xs text-muted-foreground">{fmtCurrency(extraMetrics?.venta_peor_dia ?? 0)}</p>
+        </div>
+        <div>
+          <p className="text-xs text-muted-foreground uppercase tracking-wider">Pedidos Prom/Día</p>
+          <p className="text-lg font-semibold text-foreground mt-0.5">{(extraMetrics?.pedidos_promedio_diario_actual ?? 0).toFixed(1)}</p>
+          <ComparisonIndicator actual={extraMetrics?.pedidos_promedio_diario_actual ?? 0} anterior={extraMetrics?.pedidos_promedio_diario_anterior ?? 0} label="vs ant." />
+        </div>
+        <div>
+          <p className="text-xs text-muted-foreground uppercase tracking-wider">Uds Prom/Día</p>
+          <p className="text-lg font-semibold text-foreground mt-0.5">{(extraMetrics?.unidades_promedio_diario_actual ?? 0).toFixed(1)}</p>
+          <ComparisonIndicator actual={extraMetrics?.unidades_promedio_diario_actual ?? 0} anterior={extraMetrics?.unidades_promedio_diario_anterior ?? 0} label="vs ant." />
+        </div>
+      </div>
     </div>
   );
 }
@@ -532,11 +632,14 @@ function ChannelPanel({ days, canal, showLocationFilter, locationFilter }: {
         <KpiCard label="% Descuento" value={`${(kpis?.pct_pedidos_con_descuento ?? 0).toFixed(1)}%`} icon={Percent} className="text-orange-500" onClick={() => navigate(`/pedidos?tipo=descuento&canal=${canal}&days=${days}`)} />
       </div>
 
-      {selectedLocation === "all" ? (
-        <StoreLeaderboard days={days} canal={canal === "digital" ? "digital" : canal === "outlets" ? "outlets" : "tiendas"} />
+      {canal === "digital" ? (
+        <DigitalChannelCard days={days} />
+      ) : selectedLocation === "all" ? (
+        <StoreLeaderboard days={days} canal={canal === "outlets" ? "outlets" : "tiendas"} />
       ) : (
         <StoreRankCard
           days={days}
+          canal={canal === "outlets" ? "outlets" : "tiendas"}
           locationId={selectedLocation}
           locationName={locations.find(l => l.location_id === selectedLocation)?.name ?? selectedLocation}
         />

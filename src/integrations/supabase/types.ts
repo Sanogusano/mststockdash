@@ -376,7 +376,13 @@ export type Database = {
         Args: { dias_atras: number; p_location_id: string }
         Returns: {
           mejor_dia_semana: string
+          pedidos_promedio_diario_actual: number
+          pedidos_promedio_diario_anterior: number
+          peor_dia_semana: string
+          unidades_promedio_diario_actual: number
+          unidades_promedio_diario_anterior: number
           venta_mejor_dia: number
+          venta_peor_dia: number
           venta_promedio_diaria_actual: number
           venta_promedio_diaria_anterior: number
         }[]
