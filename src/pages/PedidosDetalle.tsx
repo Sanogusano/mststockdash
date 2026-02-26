@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
-import { CalendarIcon, ArrowLeft, Download, FileText } from "lucide-react";
+import { CalendarIcon, ArrowLeft, Download, FileText, AlertTriangle } from "lucide-react";
 import { exportToCSV } from "@/lib/csv-export";
 import { exportToPDF } from "@/lib/pdf-export";
 import { LoadingState } from "@/components/dashboard/LoadingState";
@@ -25,6 +25,8 @@ interface OrderRow {
   precio: number;
   descuento_otorgado: number;
   tipo_venta: string;
+  compare_at_price: number;
+  categoria: string;
 }
 
 interface Location {
@@ -34,6 +36,7 @@ interface Location {
 
 const CEDI_ID = "71474315479";
 const CEDI_DISPLAY = "Bodega Ecommerce";
+const ALERT_CATEGORIES = ["SUNGLASSES", "PARFUM"];
 
 export default function PedidosDetallePage() {
   const [searchParams] = useSearchParams();
@@ -47,10 +50,23 @@ export default function PedidosDetallePage() {
   const [loading, setLoading] = useState(true);
   const [locations, setLocations] = useState<Location[]>([]);
   const [selectedLocation, setSelectedLocation] = useState<string>("all");
+  const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [dateFrom, setDateFrom] = useState<Date | undefined>(undefined);
   const [dateTo, setDateTo] = useState<Date | undefined>(undefined);
 
   const title = tipo === "full_price" ? "Pedidos a Full Price" : "Pedidos con Descuento";
+
+  // Extract unique categories
+  const categories = useMemo(() => {
+    const cats = new Set(data.map(r => r.categoria));
+    return Array.from(cats).sort();
+  }, [data]);
+
+  // Filtered data
+  const filteredData = useMemo(() => {
+    if (selectedCategory === "all") return data;
+    return data.filter(r => r.categoria === selectedCategory);
+  }, [data, selectedCategory]);
 
   // Load locations
   useEffect(() => {
@@ -81,7 +97,6 @@ export default function PedidosDetallePage() {
         setData([]);
       } else if (rows) {
         let filtered = rows as unknown as OrderRow[];
-        // Apply date filters client-side
         if (dateFrom) {
           filtered = filtered.filter(r => new Date(r.fecha) >= dateFrom);
         }
@@ -96,15 +111,43 @@ export default function PedidosDetallePage() {
     });
   }, [daysParam, canal, selectedLocation, tipo, dateFrom, dateTo]);
 
-  const exportData = data.map(r => ({
+  const calcDiscountPct = (row: OrderRow) => {
+    if (row.tipo_venta === "Descuento de Producto" && row.compare_at_price > 0) {
+      return Math.round(((row.compare_at_price - row.precio) / row.compare_at_price) * 100);
+    }
+    if (row.tipo_venta === "Descuento Promocional" && row.descuento_otorgado > 0) {
+      const totalBeforeDiscount = row.precio * row.cantidad + row.descuento_otorgado;
+      return Math.round((row.descuento_otorgado / totalBeforeDiscount) * 100);
+    }
+    return 0;
+  };
+
+  const calcDiscountValue = (row: OrderRow) => {
+    if (row.tipo_venta === "Descuento de Producto" && row.compare_at_price > 0) {
+      return (row.compare_at_price - row.precio) * row.cantidad;
+    }
+    return row.descuento_otorgado;
+  };
+
+  const isAlertCategory = (cat: string) => ALERT_CATEGORIES.includes(cat);
+
+  const fmtCOP = (v: number) =>
+    new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", minimumFractionDigits: 0 }).format(v);
+
+  const exportData = filteredData.map(r => ({
     Pedido: r.numero_pedido,
     Fecha: new Date(r.fecha).toLocaleDateString("es-CO"),
     Sucursal: r.sucursal,
     Producto: r.producto,
+    Categoría: r.categoria,
     SKU: r.sku,
     Cantidad: r.cantidad,
     Precio: r.precio,
-    ...(tipo === "descuento" ? { Descuento: r.descuento_otorgado, "Tipo Descuento": r.tipo_venta } : {}),
+    ...(tipo === "descuento" ? {
+      "Descuento $": calcDiscountValue(r),
+      "Descuento %": calcDiscountPct(r) + "%",
+      "Tipo Descuento": r.tipo_venta === "Descuento de Producto" ? "Producto Rebajado" : "Descuento Promocional",
+    } : {}),
   }));
 
   return (
@@ -126,7 +169,7 @@ export default function PedidosDetallePage() {
                 </p>
               </div>
             </div>
-            {data.length > 0 && (
+            {filteredData.length > 0 && (
               <div className="flex items-center gap-1">
                 <button
                   onClick={() => exportToCSV(exportData as any, `pedidos_${tipo}_${daysParam}d`)}
@@ -156,6 +199,26 @@ export default function PedidosDetallePage() {
                   <SelectItem value="all">Todas las sucursales</SelectItem>
                   {locations.map((loc) => (
                     <SelectItem key={loc.location_id} value={loc.location_id}>{loc.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-muted-foreground font-medium">Categoría:</span>
+              <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+                <SelectTrigger className="w-[180px] h-8 text-xs bg-card">
+                  <SelectValue placeholder="Todas" />
+                </SelectTrigger>
+                <SelectContent className="bg-popover border border-border shadow-lg z-50">
+                  <SelectItem value="all">Todas las categorías</SelectItem>
+                  {categories.map((cat) => (
+                    <SelectItem key={cat} value={cat}>
+                      <span className="flex items-center gap-1.5">
+                        {isAlertCategory(cat) && <AlertTriangle className="h-3 w-3 text-destructive" />}
+                        {cat}
+                      </span>
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -197,14 +260,14 @@ export default function PedidosDetallePage() {
               </Button>
             )}
 
-            <span className="ml-auto text-xs text-muted-foreground">{data.length} registros</span>
+            <span className="ml-auto text-xs text-muted-foreground">{filteredData.length} registros</span>
           </div>
 
           {/* Table */}
           <div className="flex-1 px-4 sm:px-6 py-4 overflow-auto">
             {loading ? (
               <LoadingState rows={8} />
-            ) : data.length === 0 ? (
+            ) : filteredData.length === 0 ? (
               <div className="text-center py-16 text-muted-foreground text-sm">Sin pedidos para mostrar.</div>
             ) : (
               <div className="glass-card overflow-hidden">
@@ -216,46 +279,57 @@ export default function PedidosDetallePage() {
                         <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">Fecha</th>
                         <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">Sucursal</th>
                         <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">Producto</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">Categoría</th>
                         <th className="px-4 py-3 text-right text-xs font-medium text-muted-foreground">Cant</th>
                         <th className="px-4 py-3 text-right text-xs font-medium text-muted-foreground">Precio</th>
                         {tipo === "descuento" && (
                           <>
-                            <th className="px-4 py-3 text-right text-xs font-medium text-muted-foreground">Descuento</th>
+                            <th className="px-4 py-3 text-right text-xs font-medium text-muted-foreground">Dcto %</th>
+                            <th className="px-4 py-3 text-right text-xs font-medium text-muted-foreground">Dcto $</th>
                             <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">Tipo de Descuento</th>
                           </>
                         )}
                       </tr>
                     </thead>
                     <tbody>
-                      {data.map((row, i) => (
-                        <tr key={i} className="border-b border-border/50 hover:bg-muted/20 transition-colors">
-                          <td className="px-4 py-2.5 font-mono text-xs">{row.numero_pedido}</td>
-                          <td className="px-4 py-2.5 text-muted-foreground text-xs">{new Date(row.fecha).toLocaleDateString("es-CO")}</td>
-                          <td className="px-4 py-2.5">{row.sucursal}</td>
-                          <td className="px-4 py-2.5 max-w-[250px] truncate">{row.producto}</td>
-                          <td className="px-4 py-2.5 text-right">{row.cantidad}</td>
-                          <td className="px-4 py-2.5 text-right">
-                            {new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", minimumFractionDigits: 0 }).format(row.precio)}
-                          </td>
-                          {tipo === "descuento" && (
-                            <>
-                              <td className="px-4 py-2.5 text-right text-destructive font-medium">
-                                {new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", minimumFractionDigits: 0 }).format(row.descuento_otorgado)}
-                              </td>
-                              <td className="px-4 py-2.5">
-                                <span className={cn(
-                                  "inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium",
-                                  row.tipo_venta === "Descuento de Producto"
-                                    ? "bg-accent text-accent-foreground"
-                                    : "bg-destructive/10 text-destructive"
-                                )}>
-                                  {row.tipo_venta === "Descuento de Producto" ? "Producto Rebajado" : "Descuento Promocional"}
-                                </span>
-                              </td>
-                            </>
-                          )}
-                        </tr>
-                      ))}
+                      {filteredData.map((row, i) => {
+                        const alert = isAlertCategory(row.categoria);
+                        return (
+                          <tr key={i} className={cn(
+                            "border-b border-border/50 hover:bg-muted/20 transition-colors",
+                            alert && "bg-destructive/5"
+                          )}>
+                            <td className="px-4 py-2.5 font-mono text-xs">{row.numero_pedido}</td>
+                            <td className="px-4 py-2.5 text-muted-foreground text-xs">{new Date(row.fecha).toLocaleDateString("es-CO")}</td>
+                            <td className="px-4 py-2.5">{row.sucursal}</td>
+                            <td className="px-4 py-2.5 max-w-[220px] truncate">{row.producto}</td>
+                            <td className="px-4 py-2.5 text-xs">
+                              <span className={cn("inline-flex items-center gap-1", alert && "text-destructive font-semibold")}>
+                                {alert && <AlertTriangle className="h-3.5 w-3.5" />}
+                                {row.categoria}
+                              </span>
+                            </td>
+                            <td className="px-4 py-2.5 text-right">{row.cantidad}</td>
+                            <td className="px-4 py-2.5 text-right">{fmtCOP(row.precio)}</td>
+                            {tipo === "descuento" && (
+                              <>
+                                <td className="px-4 py-2.5 text-right text-destructive font-medium">{calcDiscountPct(row)}%</td>
+                                <td className="px-4 py-2.5 text-right text-destructive font-medium">{fmtCOP(calcDiscountValue(row))}</td>
+                                <td className="px-4 py-2.5">
+                                  <span className={cn(
+                                    "inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium",
+                                    row.tipo_venta === "Descuento de Producto"
+                                      ? "bg-accent text-accent-foreground"
+                                      : "bg-destructive/10 text-destructive"
+                                  )}>
+                                    {row.tipo_venta === "Descuento de Producto" ? "Producto Rebajado" : "Descuento Promocional"}
+                                  </span>
+                                </td>
+                              </>
+                            )}
+                          </tr>
+                        );
+                      })}
                     </tbody>
                   </table>
                 </div>
