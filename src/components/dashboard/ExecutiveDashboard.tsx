@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Store, Globe, Download, FileText, DollarSign, ShoppingBag, Receipt, Star, Percent, Tag } from "lucide-react";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 import { StoreLeaderboard } from "./StoreLeaderboard";
+import { OrderDetailDialog } from "./OrderDetailDialog";
 
 /* ── Constants ── */
 const CEDI_ID = "71474315479";
@@ -89,11 +90,14 @@ function ExportButtons({ data, filename, title }: {
 }
 
 /* ── KPI Card ── */
-function KpiCard({ label, value, prefix = "", icon: Icon, className }: {
-  label: string; value: string; prefix?: string; icon: React.ElementType; className?: string;
+function KpiCard({ label, value, prefix = "", icon: Icon, className, onClick }: {
+  label: string; value: string; prefix?: string; icon: React.ElementType; className?: string; onClick?: () => void;
 }) {
   return (
-    <div className="glass-card p-5 flex items-start gap-4">
+    <div
+      className={cn("glass-card p-5 flex items-start gap-4", onClick && "cursor-pointer hover:ring-2 hover:ring-primary/30 transition-all")}
+      onClick={onClick}
+    >
       <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
         <Icon className={cn("h-5 w-5 text-primary", className)} />
       </div>
@@ -257,6 +261,7 @@ function ChannelPanel({ days, canal, showLocationFilter, locationFilter }: {
   const [bottomProducts, setBottomProducts] = useState<ProductRow[]>([]);
   const [locations, setLocations] = useState<Location[]>([]);
   const [selectedLocation, setSelectedLocation] = useState<string>("all");
+  const [orderDialogType, setOrderDialogType] = useState<"full_price" | "descuento" | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -387,9 +392,18 @@ function ChannelPanel({ days, canal, showLocationFilter, locationFilter }: {
         <KpiCard label="Ventas Netas" value={(kpis?.ingresos_netos ?? 0).toLocaleString()} prefix="$" icon={DollarSign} />
         <KpiCard label="Ticket Promedio" value={(kpis?.ticket_promedio ?? 0).toLocaleString()} prefix="$" icon={Receipt} />
         <KpiCard label="UPT" value={(kpis?.upt ?? 0).toFixed(2)} icon={ShoppingBag} />
-        <KpiCard label="% Full Price" value={`${(kpis?.pct_pedidos_full_price ?? 0).toFixed(1)}%`} icon={Star} className="text-emerald-600" />
-        <KpiCard label="% Descuento" value={`${(kpis?.pct_pedidos_con_descuento ?? 0).toFixed(1)}%`} icon={Percent} className="text-orange-500" />
+        <KpiCard label="% Full Price" value={`${(kpis?.pct_pedidos_full_price ?? 0).toFixed(1)}%`} icon={Star} className="text-emerald-600" onClick={() => setOrderDialogType("full_price")} />
+        <KpiCard label="% Descuento" value={`${(kpis?.pct_pedidos_con_descuento ?? 0).toFixed(1)}%`} icon={Percent} className="text-orange-500" onClick={() => setOrderDialogType("descuento")} />
       </div>
+
+      <OrderDetailDialog
+        open={orderDialogType !== null}
+        onOpenChange={(open) => { if (!open) setOrderDialogType(null); }}
+        tipo={orderDialogType ?? "descuento"}
+        days={days}
+        canal={canal}
+        locationId={selectedLocation === "all" ? null : selectedLocation}
+      />
 
       <StoreLeaderboard days={days} canal={canal === "digital" ? "digital" : canal === "outlets" ? "outlets" : "tiendas"} />
 
