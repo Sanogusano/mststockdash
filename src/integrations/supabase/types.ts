@@ -390,6 +390,8 @@ export type Database = {
         }
         Returns: {
           cantidad: number
+          categoria: string
+          compare_at_price: number
           descuento_otorgado: number
           fecha: string
           numero_pedido: string
