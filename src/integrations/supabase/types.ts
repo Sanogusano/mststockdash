@@ -441,6 +441,14 @@ export type Database = {
           uds_sugeridas: number
         }[]
       }
+      reporte_tipos_venta: {
+        Args: { dias_atras: number; p_canal?: string; p_location_id?: string }
+        Returns: {
+          pct_unidades: number
+          tipo_venta: string
+          unidades: number
+        }[]
+      }
       reporte_top_bottom_digital: {
         Args: { dias_atras: number }
         Returns: {
