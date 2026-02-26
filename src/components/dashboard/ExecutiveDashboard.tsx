@@ -9,7 +9,7 @@ import { exportToPDF } from "@/lib/pdf-export";
 import { LoadingState, EmptyState } from "./LoadingState";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Store, Globe, Download, FileText, DollarSign, ShoppingBag, Receipt, Star, Percent, Tag } from "lucide-react";
+import { Store, Globe, Download, FileText, DollarSign, ShoppingBag, Receipt, Star, Percent, Tag, Trophy } from "lucide-react";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 import { StoreLeaderboard } from "./StoreLeaderboard";
 
@@ -251,6 +251,97 @@ function ParetoChart({ days, canal }: { days: number; canal: string }) {
   );
 }
 
+/* ── Store Rank Card (when a specific location is selected) ── */
+function StoreRankCard({ days, canal, locationId, locationName }: {
+  days: number; canal: string; locationId: string; locationName: string;
+}) {
+  const [rank, setRank] = useState<number | null>(null);
+  const [total, setTotal] = useState(0);
+  const [storeData, setStoreData] = useState<RankingRow | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetch() {
+      if (!isValidDays(days)) return;
+      setLoading(true);
+      const effectiveDays = resolveDays(days);
+      const { data: rows } = await supabase.rpc("reporte_ranking_tiendas", {
+        dias_atras: effectiveDays,
+        p_canal: canal || null,
+      });
+      if (rows) {
+        const all = rows as unknown as RankingRow[];
+        setTotal(all.length);
+        const idx = all.findIndex(r => {
+          // Match by location name since ranking returns tienda name
+          return r.tienda === locationName;
+        });
+        if (idx >= 0) {
+          setRank(idx + 1);
+          setStoreData(all[idx]);
+        } else {
+          setRank(null);
+          setStoreData(null);
+        }
+      }
+      setLoading(false);
+    }
+    fetch();
+  }, [days, canal, locationId, locationName]);
+
+  if (loading) return <LoadingState rows={2} />;
+  if (rank === null || !storeData) return <EmptyState message="Esta tienda no aparece en el ranking del período." />;
+
+  const fmtCurrency = (v: number) =>
+    new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(v);
+
+  return (
+    <div className="glass-card p-5">
+      <div className="flex items-center gap-3 mb-4">
+        <Trophy className="h-5 w-5 text-primary" />
+        <h3 className="text-sm font-semibold text-foreground">Posición en Ranking</h3>
+      </div>
+      <div className="flex flex-col sm:flex-row items-center gap-6">
+        {/* Rank badge */}
+        <div className="flex flex-col items-center gap-1">
+          <div className="h-20 w-20 rounded-2xl bg-primary/10 flex items-center justify-center">
+            <span className="text-3xl font-bold text-primary">#{rank}</span>
+          </div>
+          <p className="text-xs text-muted-foreground">de {total} tiendas</p>
+        </div>
+        {/* Store metrics */}
+        <div className="flex-1 grid grid-cols-2 sm:grid-cols-4 gap-4">
+          <div>
+            <p className="text-xs text-muted-foreground uppercase tracking-wider">Ventas Netas</p>
+            <p className="text-lg font-semibold text-foreground mt-0.5">{fmtCurrency(storeData.ventas_totales)}</p>
+          </div>
+          <div>
+            <p className="text-xs text-muted-foreground uppercase tracking-wider">Unidades</p>
+            <p className="text-lg font-semibold text-foreground mt-0.5">{storeData.unidades_vendidas.toLocaleString()}</p>
+          </div>
+          <div>
+            <p className="text-xs text-muted-foreground uppercase tracking-wider">Ticket Prom</p>
+            <p className="text-lg font-semibold text-foreground mt-0.5">{fmtCurrency(storeData.ticket_promedio)}</p>
+          </div>
+          <div>
+            <p className="text-xs text-muted-foreground uppercase tracking-wider">% Full Price</p>
+            <p className="text-lg font-semibold text-foreground mt-0.5">{storeData.pct_venta_full_price.toFixed(1)}%</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+interface RankingRow {
+  tienda: string;
+  ventas_totales: number;
+  unidades_vendidas: number;
+  ticket_promedio: number;
+  upt: number;
+  pct_venta_full_price: number;
+}
+
 /* ── Channel Panel ── */
 function ChannelPanel({ days, canal, showLocationFilter, locationFilter }: {
   days: number; canal: string; showLocationFilter: boolean;
@@ -396,7 +487,16 @@ function ChannelPanel({ days, canal, showLocationFilter, locationFilter }: {
         <KpiCard label="% Descuento" value={`${(kpis?.pct_pedidos_con_descuento ?? 0).toFixed(1)}%`} icon={Percent} className="text-orange-500" onClick={() => navigate(`/pedidos?tipo=descuento&canal=${canal}&days=${days}`)} />
       </div>
 
-      <StoreLeaderboard days={days} canal={canal === "digital" ? "digital" : canal === "outlets" ? "outlets" : "tiendas"} />
+      {selectedLocation === "all" ? (
+        <StoreLeaderboard days={days} canal={canal === "digital" ? "digital" : canal === "outlets" ? "outlets" : "tiendas"} />
+      ) : (
+        <StoreRankCard
+          days={days}
+          canal={canal === "digital" ? "digital" : canal === "outlets" ? "outlets" : "tiendas"}
+          locationId={selectedLocation}
+          locationName={locations.find(l => l.location_id === selectedLocation)?.name ?? selectedLocation}
+        />
+      )}
 
       <ParetoChart days={days} canal={canal === "digital" ? "digital" : "pos"} />
 
