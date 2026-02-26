@@ -5,7 +5,10 @@ import { LoadingState, EmptyState } from "./LoadingState";
 import { StatusBadge } from "./StatusBadge";
 import { Progress } from "@/components/ui/progress";
 import { Input } from "@/components/ui/input";
-import { Search, X } from "lucide-react";
+import { Search } from "lucide-react";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
 import {
   Sheet, SheetContent, SheetHeader, SheetTitle,
 } from "@/components/ui/sheet";
@@ -32,6 +35,21 @@ interface DetailRow {
   estado_salud: string;
 }
 
+const WOS_OPTIONS = [
+  { value: "all", label: "Todos los WOS" },
+  { value: "risk", label: "🟡 Riesgo (<4 sem)" },
+  { value: "optimal", label: "🟢 Óptimo (4-12 sem)" },
+  { value: "overstock", label: "🔴 Sobrestock (>12 sem)" },
+  { value: "stagnant", label: "🔴 Estancado (0 ventas)" },
+];
+
+const ST_OPTIONS = [
+  { value: "all", label: "Todos los %ST" },
+  { value: "high", label: "🟢 Alto (≥70%)" },
+  { value: "medium", label: "🟡 Medio (30-69%)" },
+  { value: "low", label: "🔴 Bajo (<30%)" },
+];
+
 export function ProductDetailDrawer({
   product,
   days,
@@ -41,7 +59,9 @@ export function ProductDetailDrawer({
   days: number;
   onClose: () => void;
 }) {
-  const [filter, setFilter] = useState("");
+  const [storeFilter, setStoreFilter] = useState("all");
+  const [wosFilter, setWosFilter] = useState("all");
+  const [stFilter, setStFilter] = useState("all");
 
   const { data, isLoading } = useQuery({
     queryKey: ["detalle-producto-tiendas", product?.producto, days],
@@ -59,11 +79,44 @@ export function ProductDetailDrawer({
   });
 
   const rows = data ?? [];
+
+  // Unique store names for the dropdown
+  const storeNames = useMemo(() => {
+    const names = [...new Set(rows.map((r) => r.tienda))].sort();
+    return names;
+  }, [rows]);
+
   const filtered = useMemo(() => {
-    if (!filter.trim()) return rows;
-    const q = filter.toLowerCase();
-    return rows.filter((r) => r.tienda.toLowerCase().includes(q));
-  }, [rows, filter]);
+    let result = rows;
+
+    // Store filter
+    if (storeFilter !== "all") {
+      result = result.filter((r) => r.tienda === storeFilter);
+    }
+
+    // WOS filter
+    if (wosFilter !== "all") {
+      result = result.filter((r) => {
+        if (wosFilter === "stagnant") return r.estado_salud.includes("ESTANCADO");
+        if (wosFilter === "risk") return r.wos > 0 && r.wos < 4;
+        if (wosFilter === "optimal") return r.wos >= 4 && r.wos <= 12;
+        if (wosFilter === "overstock") return r.wos > 12;
+        return true;
+      });
+    }
+
+    // ST% filter
+    if (stFilter !== "all") {
+      result = result.filter((r) => {
+        if (stFilter === "high") return r.sell_through_pct >= 70;
+        if (stFilter === "medium") return r.sell_through_pct >= 30 && r.sell_through_pct < 70;
+        if (stFilter === "low") return r.sell_through_pct < 30;
+        return true;
+      });
+    }
+
+    return result;
+  }, [rows, storeFilter, wosFilter, stFilter]);
 
   const getSellThroughColor = (pct: number) => {
     if (pct >= 70) return "bg-success";
@@ -75,7 +128,7 @@ export function ProductDetailDrawer({
     new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", minimumFractionDigits: 0 }).format(n);
 
   return (
-    <Sheet open={!!product} onOpenChange={(open) => !open && onClose()}>
+    <Sheet open={!!product} onOpenChange={(open) => { if (!open) { onClose(); setStoreFilter("all"); setWosFilter("all"); setStFilter("all"); } }}>
       <SheetContent className="!max-w-full w-full overflow-y-auto p-0" side="right">
         {product && (
           <>
@@ -103,17 +156,39 @@ export function ProductDetailDrawer({
               </div>
             </SheetHeader>
 
-            {/* Filter */}
-            <div className="px-6 pt-4 pb-2">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-                <Input
-                  placeholder="Filtrar por tienda..."
-                  value={filter}
-                  onChange={(e) => setFilter(e.target.value)}
-                  className="pl-9 h-9 text-sm"
-                />
-              </div>
+            {/* Filters */}
+            <div className="px-6 pt-4 pb-2 flex flex-col sm:flex-row items-start sm:items-center gap-3 flex-wrap">
+              <Select value={storeFilter} onValueChange={setStoreFilter}>
+                <SelectTrigger className="w-full sm:w-[200px] h-9 text-sm">
+                  <SelectValue placeholder="Todas las tiendas" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todas las tiendas</SelectItem>
+                  {storeNames.map((name) => (
+                    <SelectItem key={name} value={name}>{name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select value={wosFilter} onValueChange={setWosFilter}>
+                <SelectTrigger className="w-full sm:w-[200px] h-9 text-sm">
+                  <SelectValue placeholder="Filtrar por WOS" />
+                </SelectTrigger>
+                <SelectContent>
+                  {WOS_OPTIONS.map((f) => (
+                    <SelectItem key={f.value} value={f.value}>{f.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select value={stFilter} onValueChange={setStFilter}>
+                <SelectTrigger className="w-full sm:w-[200px] h-9 text-sm">
+                  <SelectValue placeholder="Filtrar por %ST" />
+                </SelectTrigger>
+                <SelectContent>
+                  {ST_OPTIONS.map((f) => (
+                    <SelectItem key={f.value} value={f.value}>{f.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             {/* Detail Table */}
@@ -121,7 +196,7 @@ export function ProductDetailDrawer({
               {isLoading ? (
                 <LoadingState rows={5} />
               ) : !filtered.length ? (
-                <EmptyState message="Sin datos para este SKU." />
+                <EmptyState message="Sin datos para este filtro." />
               ) : (
                 <div className="border border-border rounded-lg overflow-hidden mt-2">
                   <Table>
