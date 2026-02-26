@@ -220,8 +220,8 @@ function ParetoChart({ days, canal }: { days: number; canal: string }) {
   return (
     <div className="glass-card p-5">
       <h3 className="text-sm font-semibold text-foreground mb-4">Participación por Línea</h3>
-      <div className="flex items-center gap-6">
-        <ResponsiveContainer width={180} height={180}>
+      <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-6">
+        <ResponsiveContainer width={160} height={160} className="shrink-0">
           <PieChart>
             <Pie data={chartItems} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={45} outerRadius={80} paddingAngle={2} strokeWidth={0}>
               {chartItems.map((_, i) => (
@@ -414,17 +414,18 @@ function ChannelPanel({ days, canal, showLocationFilter, locationFilter }: {
 export function ExecutiveDashboard({ days }: Props) {
   return (
     <Tabs defaultValue="tiendas" className="w-full">
-      <TabsList className="w-full grid grid-cols-3 bg-muted/50 rounded-lg p-1 h-11">
-        <TabsTrigger value="tiendas" className="flex items-center gap-2 text-sm font-medium data-[state=active]:bg-card data-[state=active]:shadow-sm rounded-md">
-          <Store className="h-4 w-4" />
-          Tiendas de Línea
+      <TabsList className="w-full grid grid-cols-3 bg-muted/50 rounded-lg p-1 h-auto sm:h-11">
+        <TabsTrigger value="tiendas" className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm font-medium data-[state=active]:bg-card data-[state=active]:shadow-sm rounded-md px-2 py-1.5 sm:px-3 sm:py-2">
+          <Store className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+          <span className="hidden sm:inline">Tiendas de Línea</span>
+          <span className="sm:hidden">Tiendas</span>
         </TabsTrigger>
-        <TabsTrigger value="outlets" className="flex items-center gap-2 text-sm font-medium data-[state=active]:bg-card data-[state=active]:shadow-sm rounded-md">
-          <Tag className="h-4 w-4" />
+        <TabsTrigger value="outlets" className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm font-medium data-[state=active]:bg-card data-[state=active]:shadow-sm rounded-md px-2 py-1.5 sm:px-3 sm:py-2">
+          <Tag className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
           Outlets
         </TabsTrigger>
-        <TabsTrigger value="digital" className="flex items-center gap-2 text-sm font-medium data-[state=active]:bg-card data-[state=active]:shadow-sm rounded-md">
-          <Globe className="h-4 w-4" />
+        <TabsTrigger value="digital" className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm font-medium data-[state=active]:bg-card data-[state=active]:shadow-sm rounded-md px-2 py-1.5 sm:px-3 sm:py-2">
+          <Globe className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
           Digital
         </TabsTrigger>
       </TabsList>

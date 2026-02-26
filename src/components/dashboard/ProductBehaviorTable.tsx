@@ -201,7 +201,8 @@ export function ProductBehaviorTable({ days }: { days: number }) {
           <EmptyState message="No se encontraron productos para este filtro." />
         ) : (
           <>
-            <Table>
+            <div className="overflow-x-auto">
+            <Table className="min-w-[800px]">
               <TableHeader>
                 <TableRow className="bg-muted/30">
                   <TableHead className="min-w-[260px]">Producto</TableHead>
@@ -279,6 +280,7 @@ export function ProductBehaviorTable({ days }: { days: number }) {
                 ))}
               </TableBody>
             </Table>
+            </div>
 
             {/* Pagination */}
             {totalPages > 1 && (

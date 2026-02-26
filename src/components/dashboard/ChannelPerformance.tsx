@@ -54,7 +54,7 @@ function ChannelTab({ row }: { row: ChannelRow }) {
   return (
     <div className="space-y-5">
       {/* KPI Cards */}
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <KpiCard
           label="Ingresos Netos"
           value={(row.ingresos_netos ?? 0).toLocaleString()}
@@ -124,7 +124,7 @@ export function ChannelPerformance({ days }: Props) {
   return (
     <div className="space-y-5">
       {/* Global summary */}
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div className="glass-card rounded-xl p-4">
           <p className="text-xs text-muted-foreground uppercase tracking-widest mb-1">Ingresos Totales</p>
           <p className="text-2xl font-display font-bold text-primary">${totalRevenue.toLocaleString()}</p>

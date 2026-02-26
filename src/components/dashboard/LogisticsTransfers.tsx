@@ -61,11 +61,11 @@ export function LogisticsTransfers({ days }: Props) {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between mb-2">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 mb-2">
         <p className="text-sm text-muted-foreground">
           <span className="text-primary font-semibold">{data.length}</span> movimientos sugeridos
         </p>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <button
             onClick={() => exportToCSV(exportData as unknown as Record<string, unknown>[], `allocation_${days}d`)}
             className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
@@ -88,7 +88,7 @@ export function LogisticsTransfers({ days }: Props) {
 
       <div className="glass-card overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+          <table className="w-full text-sm min-w-[900px]">
             <thead>
               <tr className="border-b border-border bg-muted/30">
                 <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">Producto</th>
