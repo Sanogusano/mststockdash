@@ -9,7 +9,7 @@ import { exportToPDF } from "@/lib/pdf-export";
 import { LoadingState, EmptyState } from "./LoadingState";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Store, Globe, Download, FileText, DollarSign, ShoppingBag, Receipt, Star, Percent, Tag, Trophy, TrendingDown, TrendingUp, CalendarDays, Package } from "lucide-react";
+import { Store, Globe, Download, FileText, DollarSign, ShoppingBag, Receipt, Star, Percent, Tag, Trophy, TrendingDown, TrendingUp, CalendarDays, Package, AlertTriangle } from "lucide-react";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 import { StoreLeaderboard } from "./StoreLeaderboard";
 
@@ -186,7 +186,7 @@ function ProductTable({ data, title, exportFilename }: {
 }
 
 /* ── Pareto Chart (Top 10 + Otros) ── */
-function ParetoChart({ days, canal }: { days: number; canal: string }) {
+function ParetoChart({ days, canal, locationId }: { days: number; canal: string; locationId?: string | null }) {
   const [data, setData] = useState<ParetoRow[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -195,20 +195,20 @@ function ParetoChart({ days, canal }: { days: number; canal: string }) {
       if (!isValidDays(days)) return;
       setLoading(true);
       const effectiveDays = resolveDays(days);
-      const { data: rows } = await supabase.rpc("reporte_pareto_categorias", {
+      const { data: rows } = await supabase.rpc("reporte_pareto_categorias" as any, {
         dias_atras: effectiveDays,
         p_canal: canal === "POS" ? "pos" : "digital",
+        p_location_id: locationId || null,
       });
       if (rows) setData(rows as unknown as ParetoRow[]);
       setLoading(false);
     }
     fetch();
-  }, [days, canal]);
+  }, [days, canal, locationId]);
 
   if (loading) return <LoadingState rows={3} />;
   if (!data.length) return null;
 
-  // Top 10 + group remainder as "Otros"
   const top10 = data.slice(0, 10);
   const rest = data.slice(10);
   const othersPct = rest.reduce((s, r) => s + (r.pct_participacion ?? 0), 0);
@@ -276,6 +276,8 @@ interface ExtraMetrics {
   pedidos_promedio_diario_anterior: number;
   unidades_promedio_diario_actual: number;
   unidades_promedio_diario_anterior: number;
+  venta_promedio_semana: number;
+  venta_promedio_finde: number;
 }
 
 const DAY_MAP: Record<string, string> = {
@@ -297,6 +299,47 @@ function getPerformanceClass(storeSales: number, allSales: number[]) {
   if (ratio >= 1.0) return { label: "✅ Bueno", color: "text-primary" };
   if (ratio >= 0.7) return { label: "⚠️ Regular", color: "text-amber-500" };
   return { label: "🔴 Malo", color: "text-destructive" };
+}
+
+/* ── Worst 3 lines recommendation from bottom products ── */
+function WorstLinesRecommendation({ bottomProducts }: { bottomProducts: ProductRow[] }) {
+  if (!bottomProducts.length) return null;
+
+  // Group by category, sum stock
+  const catMap = new Map<string, number>();
+  for (const p of bottomProducts) {
+    const cat = p.categoria ?? "SIN CATEGORÍA";
+    catMap.set(cat, (catMap.get(cat) ?? 0) + (p.stock_disponible ?? 0));
+  }
+
+  const sorted = Array.from(catMap.entries())
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 3);
+
+  if (sorted.length === 0) return null;
+
+  return (
+    <div className="glass-card p-5 border border-amber-500/30 bg-amber-500/5">
+      <div className="flex items-center gap-3 mb-3">
+        <div className="h-8 w-8 rounded-lg bg-amber-500/10 flex items-center justify-center shrink-0">
+          <AlertTriangle className="h-4 w-4 text-amber-500" />
+        </div>
+        <h3 className="text-sm font-semibold text-foreground">📦 Recomendación: Promocionar o Mover Stock</h3>
+      </div>
+      <p className="text-xs text-muted-foreground mb-3">Las 3 líneas con menor rotación y mayor stock disponible:</p>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        {sorted.map(([cat, stock], i) => (
+          <div key={cat} className="flex items-center gap-3 p-3 rounded-lg bg-card border border-border">
+            <span className="text-lg font-bold text-amber-500">{i + 1}</span>
+            <div className="min-w-0">
+              <p className="text-sm font-medium text-foreground truncate">{cat}</p>
+              <p className="text-xs text-muted-foreground">{stock.toLocaleString()} uds en stock</p>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
 }
 
 /* ── Store Rank Card (when a specific location is selected) ── */
@@ -328,7 +371,6 @@ function StoreRankCard({ days, canal, locationId, locationName }: {
         if (idx >= 0) {
           setRank(idx + 1);
           setVentasNetas(all[idx].ventas_totales);
-          // Classification based on avg daily sales comparison
           const allDailySales = all.map(r => r.ventas_totales / effectiveDays);
           const storeDailySales = all[idx].ventas_totales / effectiveDays;
           setPerfClass(getPerformanceClass(storeDailySales, allDailySales));
@@ -354,54 +396,63 @@ function StoreRankCard({ days, canal, locationId, locationName }: {
 
   return (
     <div className="space-y-4">
-      {/* Card 1: Solo posición en ranking */}
-      <div className="glass-card p-5">
-        <div className="flex items-center gap-3 mb-4">
-          <Trophy className="h-5 w-5 text-primary" />
-          <h3 className="text-sm font-semibold text-foreground">Posición en Ranking</h3>
-        </div>
-        <div className="flex items-center gap-4">
-          <div className="h-20 w-20 rounded-2xl bg-primary/10 flex items-center justify-center">
-            <span className="text-3xl font-bold text-primary">#{rank}</span>
+      {/* Row: Ranking + Desempeño side by side */}
+      <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-4">
+        {/* Card 1: Solo posición en ranking */}
+        <div className="glass-card p-5">
+          <div className="flex items-center gap-3 mb-4">
+            <Trophy className="h-5 w-5 text-primary" />
+            <h3 className="text-sm font-semibold text-foreground">Posición en Ranking</h3>
           </div>
-          <div>
+          <div className="flex flex-col items-center gap-2">
+            <div className="h-20 w-20 rounded-2xl bg-primary/10 flex items-center justify-center">
+              <span className="text-3xl font-bold text-primary">#{rank}</span>
+            </div>
             <p className="text-sm text-muted-foreground">de {total} sucursales</p>
-            <span className={cn("text-sm font-semibold mt-1 inline-block", perfClass.color)}>{perfClass.label}</span>
+            <span className={cn("text-sm font-semibold", perfClass.color)}>{perfClass.label}</span>
           </div>
         </div>
-      </div>
 
-      {/* Card 2: Desempeño Comercial */}
-      <div className="glass-card p-5">
-        <div className="flex items-center gap-3 mb-4">
-          <CalendarDays className="h-5 w-5 text-primary" />
-          <h3 className="text-sm font-semibold text-foreground">Desempeño Comercial</h3>
-        </div>
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
-          <div>
-            <p className="text-xs text-muted-foreground uppercase tracking-wider">Mejor Día</p>
-            <p className="text-lg font-semibold text-foreground mt-0.5">{translateDay(extraMetrics?.mejor_dia_semana ?? "N/A")}</p>
-            <p className="text-xs text-muted-foreground">{fmtCurrency(extraMetrics?.venta_mejor_dia ?? 0)}</p>
+        {/* Card 2: Desempeño Comercial */}
+        <div className="glass-card p-5">
+          <div className="flex items-center gap-3 mb-4">
+            <CalendarDays className="h-5 w-5 text-primary" />
+            <h3 className="text-sm font-semibold text-foreground">Desempeño Comercial</h3>
           </div>
-          <div>
-            <p className="text-xs text-muted-foreground uppercase tracking-wider">Peor Día</p>
-            <p className="text-lg font-semibold text-foreground mt-0.5">{translateDay(extraMetrics?.peor_dia_semana ?? "N/A")}</p>
-            <p className="text-xs text-muted-foreground">{fmtCurrency(extraMetrics?.venta_peor_dia ?? 0)}</p>
-          </div>
-          <div>
-            <p className="text-xs text-muted-foreground uppercase tracking-wider">Venta Prom/Día</p>
-            <p className="text-lg font-semibold text-foreground mt-0.5">{fmtCurrency(extraMetrics?.venta_promedio_diaria_actual ?? 0)}</p>
-            <ComparisonIndicator actual={extraMetrics?.venta_promedio_diaria_actual ?? 0} anterior={extraMetrics?.venta_promedio_diaria_anterior ?? 0} label="vs ant." />
-          </div>
-          <div>
-            <p className="text-xs text-muted-foreground uppercase tracking-wider">Pedidos Prom/Día</p>
-            <p className="text-lg font-semibold text-foreground mt-0.5">{(extraMetrics?.pedidos_promedio_diario_actual ?? 0).toFixed(1)}</p>
-            <ComparisonIndicator actual={extraMetrics?.pedidos_promedio_diario_actual ?? 0} anterior={extraMetrics?.pedidos_promedio_diario_anterior ?? 0} label="vs ant." />
-          </div>
-          <div>
-            <p className="text-xs text-muted-foreground uppercase tracking-wider">Uds Prom/Día</p>
-            <p className="text-lg font-semibold text-foreground mt-0.5">{(extraMetrics?.unidades_promedio_diario_actual ?? 0).toFixed(1)}</p>
-            <ComparisonIndicator actual={extraMetrics?.unidades_promedio_diario_actual ?? 0} anterior={extraMetrics?.unidades_promedio_diario_anterior ?? 0} label="vs ant." />
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-4">
+            <div>
+              <p className="text-xs text-muted-foreground uppercase tracking-wider">Mejor Día</p>
+              <p className="text-lg font-semibold text-foreground mt-0.5">{translateDay(extraMetrics?.mejor_dia_semana ?? "N/A")}</p>
+              <p className="text-xs text-muted-foreground">{fmtCurrency(extraMetrics?.venta_mejor_dia ?? 0)}</p>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground uppercase tracking-wider">Peor Día</p>
+              <p className="text-lg font-semibold text-foreground mt-0.5">{translateDay(extraMetrics?.peor_dia_semana ?? "N/A")}</p>
+              <p className="text-xs text-muted-foreground">{fmtCurrency(extraMetrics?.venta_peor_dia ?? 0)}</p>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground uppercase tracking-wider">Prom. L-V</p>
+              <p className="text-lg font-semibold text-foreground mt-0.5">{fmtCurrency(extraMetrics?.venta_promedio_semana ?? 0)}</p>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground uppercase tracking-wider">Prom. S-D</p>
+              <p className="text-lg font-semibold text-foreground mt-0.5">{fmtCurrency(extraMetrics?.venta_promedio_finde ?? 0)}</p>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground uppercase tracking-wider">Venta Prom/Día</p>
+              <p className="text-lg font-semibold text-foreground mt-0.5">{fmtCurrency(extraMetrics?.venta_promedio_diaria_actual ?? 0)}</p>
+              <ComparisonIndicator actual={extraMetrics?.venta_promedio_diaria_actual ?? 0} anterior={extraMetrics?.venta_promedio_diaria_anterior ?? 0} label="vs ant." />
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground uppercase tracking-wider">Pedidos Prom/Día</p>
+              <p className="text-lg font-semibold text-foreground mt-0.5">{(extraMetrics?.pedidos_promedio_diario_actual ?? 0).toFixed(1)}</p>
+              <ComparisonIndicator actual={extraMetrics?.pedidos_promedio_diario_actual ?? 0} anterior={extraMetrics?.pedidos_promedio_diario_anterior ?? 0} label="vs ant." />
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground uppercase tracking-wider">Uds Prom/Día</p>
+              <p className="text-lg font-semibold text-foreground mt-0.5">{(extraMetrics?.unidades_promedio_diario_actual ?? 0).toFixed(1)}</p>
+              <ComparisonIndicator actual={extraMetrics?.unidades_promedio_diario_actual ?? 0} anterior={extraMetrics?.unidades_promedio_diario_anterior ?? 0} label="vs ant." />
+            </div>
           </div>
         </div>
       </div>
@@ -468,56 +519,64 @@ function DigitalChannelCard({ days }: { days: number }) {
 
   return (
     <div className="space-y-4">
-      {/* Card 1: Solo posición en ranking */}
-      {rank !== null && (
+      <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-4">
+        {/* Card 1: Solo posición en ranking */}
+        {rank !== null && (
+          <div className="glass-card p-5">
+            <div className="flex items-center gap-3 mb-4">
+              <Trophy className="h-5 w-5 text-primary" />
+              <h3 className="text-sm font-semibold text-foreground">Posición en Ranking General</h3>
+            </div>
+            <div className="flex flex-col items-center gap-2">
+              <div className="h-20 w-20 rounded-2xl bg-primary/10 flex items-center justify-center">
+                <span className="text-3xl font-bold text-primary">#{rank}</span>
+              </div>
+              <p className="text-sm text-muted-foreground">de {total} sucursales</p>
+              <span className={cn("text-sm font-semibold", perfClass.color)}>{perfClass.label}</span>
+            </div>
+          </div>
+        )}
+
+        {/* Card 2: Desempeño Comercial */}
         <div className="glass-card p-5">
           <div className="flex items-center gap-3 mb-4">
-            <Trophy className="h-5 w-5 text-primary" />
-            <h3 className="text-sm font-semibold text-foreground">Posición en Ranking General</h3>
+            <CalendarDays className="h-5 w-5 text-primary" />
+            <h3 className="text-sm font-semibold text-foreground">Desempeño Comercial</h3>
           </div>
-          <div className="flex items-center gap-4">
-            <div className="h-20 w-20 rounded-2xl bg-primary/10 flex items-center justify-center">
-              <span className="text-3xl font-bold text-primary">#{rank}</span>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-4">
+            <div>
+              <p className="text-xs text-muted-foreground uppercase tracking-wider">Mejor Día</p>
+              <p className="text-lg font-semibold text-foreground mt-0.5">{translateDay(extraMetrics?.mejor_dia_semana ?? "N/A")}</p>
+              <p className="text-xs text-muted-foreground">{fmtCurrency(extraMetrics?.venta_mejor_dia ?? 0)}</p>
             </div>
             <div>
-              <p className="text-sm text-muted-foreground">de {total} sucursales</p>
-              <span className={cn("text-sm font-semibold mt-1 inline-block", perfClass.color)}>{perfClass.label}</span>
+              <p className="text-xs text-muted-foreground uppercase tracking-wider">Peor Día</p>
+              <p className="text-lg font-semibold text-foreground mt-0.5">{translateDay(extraMetrics?.peor_dia_semana ?? "N/A")}</p>
+              <p className="text-xs text-muted-foreground">{fmtCurrency(extraMetrics?.venta_peor_dia ?? 0)}</p>
             </div>
-          </div>
-        </div>
-      )}
-
-      {/* Card 2: Desempeño Comercial */}
-      <div className="glass-card p-5">
-        <div className="flex items-center gap-3 mb-4">
-          <CalendarDays className="h-5 w-5 text-primary" />
-          <h3 className="text-sm font-semibold text-foreground">Desempeño Comercial</h3>
-        </div>
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
-          <div>
-            <p className="text-xs text-muted-foreground uppercase tracking-wider">Mejor Día</p>
-            <p className="text-lg font-semibold text-foreground mt-0.5">{translateDay(extraMetrics?.mejor_dia_semana ?? "N/A")}</p>
-            <p className="text-xs text-muted-foreground">{fmtCurrency(extraMetrics?.venta_mejor_dia ?? 0)}</p>
-          </div>
-          <div>
-            <p className="text-xs text-muted-foreground uppercase tracking-wider">Peor Día</p>
-            <p className="text-lg font-semibold text-foreground mt-0.5">{translateDay(extraMetrics?.peor_dia_semana ?? "N/A")}</p>
-            <p className="text-xs text-muted-foreground">{fmtCurrency(extraMetrics?.venta_peor_dia ?? 0)}</p>
-          </div>
-          <div>
-            <p className="text-xs text-muted-foreground uppercase tracking-wider">Venta Prom/Día</p>
-            <p className="text-lg font-semibold text-foreground mt-0.5">{fmtCurrency(extraMetrics?.venta_promedio_diaria_actual ?? 0)}</p>
-            <ComparisonIndicator actual={extraMetrics?.venta_promedio_diaria_actual ?? 0} anterior={extraMetrics?.venta_promedio_diaria_anterior ?? 0} label="vs ant." />
-          </div>
-          <div>
-            <p className="text-xs text-muted-foreground uppercase tracking-wider">Pedidos Prom/Día</p>
-            <p className="text-lg font-semibold text-foreground mt-0.5">{(extraMetrics?.pedidos_promedio_diario_actual ?? 0).toFixed(1)}</p>
-            <ComparisonIndicator actual={extraMetrics?.pedidos_promedio_diario_actual ?? 0} anterior={extraMetrics?.pedidos_promedio_diario_anterior ?? 0} label="vs ant." />
-          </div>
-          <div>
-            <p className="text-xs text-muted-foreground uppercase tracking-wider">Uds Prom/Día</p>
-            <p className="text-lg font-semibold text-foreground mt-0.5">{(extraMetrics?.unidades_promedio_diario_actual ?? 0).toFixed(1)}</p>
-            <ComparisonIndicator actual={extraMetrics?.unidades_promedio_diario_actual ?? 0} anterior={extraMetrics?.unidades_promedio_diario_anterior ?? 0} label="vs ant." />
+            <div>
+              <p className="text-xs text-muted-foreground uppercase tracking-wider">Prom. L-V</p>
+              <p className="text-lg font-semibold text-foreground mt-0.5">{fmtCurrency(extraMetrics?.venta_promedio_semana ?? 0)}</p>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground uppercase tracking-wider">Prom. S-D</p>
+              <p className="text-lg font-semibold text-foreground mt-0.5">{fmtCurrency(extraMetrics?.venta_promedio_finde ?? 0)}</p>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground uppercase tracking-wider">Venta Prom/Día</p>
+              <p className="text-lg font-semibold text-foreground mt-0.5">{fmtCurrency(extraMetrics?.venta_promedio_diaria_actual ?? 0)}</p>
+              <ComparisonIndicator actual={extraMetrics?.venta_promedio_diaria_actual ?? 0} anterior={extraMetrics?.venta_promedio_diaria_anterior ?? 0} label="vs ant." />
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground uppercase tracking-wider">Pedidos Prom/Día</p>
+              <p className="text-lg font-semibold text-foreground mt-0.5">{(extraMetrics?.pedidos_promedio_diario_actual ?? 0).toFixed(1)}</p>
+              <ComparisonIndicator actual={extraMetrics?.pedidos_promedio_diario_actual ?? 0} anterior={extraMetrics?.pedidos_promedio_diario_anterior ?? 0} label="vs ant." />
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground uppercase tracking-wider">Uds Prom/Día</p>
+              <p className="text-lg font-semibold text-foreground mt-0.5">{(extraMetrics?.unidades_promedio_diario_actual ?? 0).toFixed(1)}</p>
+              <ComparisonIndicator actual={extraMetrics?.unidades_promedio_diario_actual ?? 0} anterior={extraMetrics?.unidades_promedio_diario_anterior ?? 0} label="vs ant." />
+            </div>
           </div>
         </div>
       </div>
@@ -574,8 +633,6 @@ function ChannelPanel({ days, canal, showLocationFilter, locationFilter }: {
       setLoading(true);
       const effectiveDays = resolveDays(days);
       const locParam = selectedLocation === "all" ? null : selectedLocation;
-
-      // Map canal to the canal_filtro expected by reporte_ejecutivo_productos
       const canalFiltro = canal === "digital" ? "DIGITAL" : "POS";
 
       try {
@@ -601,43 +658,29 @@ function ChannelPanel({ days, canal, showLocationFilter, locationFilter }: {
           }),
         ]);
 
-        if (kpiRes.error) {
-          console.error(`Error en reporte_kpis_comerciales:`, kpiRes.error);
-        }
+        if (kpiRes.error) console.error(`Error en reporte_kpis_comerciales:`, kpiRes.error);
         if (kpiRes.data && kpiRes.data.length > 0) {
           setKpis(kpiRes.data[0] as unknown as KpiData);
         } else {
           setKpis({ total_pedidos: 0, unidades_vendidas: 0, ingresos_netos: 0, ticket_promedio: 0, upt: 0, pct_pedidos_full_price: 0, pct_pedidos_con_descuento: 0 });
         }
 
-        if (topRes.error) {
-          console.error("Error en reporte_ejecutivo_productos (TOP):", topRes.error);
-        }
+        if (topRes.error) console.error("Error en reporte_ejecutivo_productos (TOP):", topRes.error);
         if (topRes.data) {
           setTopProducts((topRes.data as any[]).map((r: any) => ({
-            foto: r.foto ?? null,
-            producto: r.producto ?? "—",
-            sku: r.sku ?? null,
-            categoria: r.categoria ?? null,
-            clasificacion: r.clasificacion ?? null,
-            unidades_vendidas: r.unidades_vendidas ?? 0,
-            precio_promedio: r.precio_prom_venta ?? 0,
+            foto: r.foto ?? null, producto: r.producto ?? "—", sku: r.sku ?? null,
+            categoria: r.categoria ?? null, clasificacion: r.clasificacion ?? null,
+            unidades_vendidas: r.unidades_vendidas ?? 0, precio_promedio: r.precio_prom_venta ?? 0,
             stock_disponible: r.stock_disponible ?? 0,
           } as ProductRow)));
         }
 
-        if (bottomRes.error) {
-          console.error("Error en reporte_ejecutivo_productos (BOTTOM):", bottomRes.error);
-        }
+        if (bottomRes.error) console.error("Error en reporte_ejecutivo_productos (BOTTOM):", bottomRes.error);
         if (bottomRes.data) {
           setBottomProducts((bottomRes.data as any[]).map((r: any) => ({
-            foto: r.foto ?? null,
-            producto: r.producto ?? "—",
-            sku: r.sku ?? null,
-            categoria: r.categoria ?? null,
-            clasificacion: r.clasificacion ?? null,
-            unidades_vendidas: r.unidades_vendidas ?? 0,
-            precio_promedio: r.precio_prom_venta ?? 0,
+            foto: r.foto ?? null, producto: r.producto ?? "—", sku: r.sku ?? null,
+            categoria: r.categoria ?? null, clasificacion: r.clasificacion ?? null,
+            unidades_vendidas: r.unidades_vendidas ?? 0, precio_promedio: r.precio_prom_venta ?? 0,
             stock_disponible: r.stock_disponible ?? 0,
           } as ProductRow)));
         }
@@ -651,6 +694,8 @@ function ChannelPanel({ days, canal, showLocationFilter, locationFilter }: {
   }, [days, canal, selectedLocation]);
 
   if (loading) return <LoadingState rows={6} />;
+
+  const locParam = selectedLocation === "all" ? null : selectedLocation;
 
   return (
     <div className="space-y-6">
@@ -692,7 +737,9 @@ function ChannelPanel({ days, canal, showLocationFilter, locationFilter }: {
         />
       )}
 
-      <ParetoChart days={days} canal={canal === "digital" ? "digital" : "pos"} />
+      <ParetoChart days={days} canal={canal === "digital" ? "digital" : "pos"} locationId={locParam} />
+
+      <WorstLinesRecommendation bottomProducts={bottomProducts} />
 
       <ProductTable
         data={topProducts}

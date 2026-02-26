@@ -385,6 +385,8 @@ export type Database = {
           venta_peor_dia: number
           venta_promedio_diaria_actual: number
           venta_promedio_diaria_anterior: number
+          venta_promedio_finde: number
+          venta_promedio_semana: number
         }[]
       }
       reporte_pareto_categorias: {
