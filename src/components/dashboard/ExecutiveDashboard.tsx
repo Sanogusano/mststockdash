@@ -252,12 +252,13 @@ function ParetoChart({ days, canal }: { days: number; canal: string }) {
 }
 
 /* ── Store Rank Card (when a specific location is selected) ── */
-function StoreRankCard({ days, canal, locationId, locationName }: {
-  days: number; canal: string; locationId: string; locationName: string;
+function StoreRankCard({ days, locationId, locationName }: {
+  days: number; locationId: string; locationName: string;
 }) {
   const [rank, setRank] = useState<number | null>(null);
   const [total, setTotal] = useState(0);
-  const [storeData, setStoreData] = useState<RankingRow | null>(null);
+  const [extraMetrics, setExtraMetrics] = useState<{ mejor_dia_semana: string; venta_mejor_dia: number; venta_promedio_diaria_actual: number; venta_promedio_diaria_anterior: number } | null>(null);
+  const [ventasNetas, setVentasNetas] = useState(0);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -265,70 +266,114 @@ function StoreRankCard({ days, canal, locationId, locationName }: {
       if (!isValidDays(days)) return;
       setLoading(true);
       const effectiveDays = resolveDays(days);
-      const { data: rows } = await supabase.rpc("reporte_ranking_tiendas", {
-        dias_atras: effectiveDays,
-        p_canal: canal || null,
-      });
-      if (rows) {
-        const all = rows as unknown as RankingRow[];
+
+      // Ranking across ALL stores (no canal filter)
+      const [rankRes, metricsRes] = await Promise.all([
+        supabase.rpc("reporte_ranking_tiendas", { dias_atras: effectiveDays, p_canal: null }),
+        supabase.rpc("reporte_metricas_tienda_individual" as any, { dias_atras: effectiveDays, p_location_id: locationId }),
+      ]);
+
+      if (rankRes.data) {
+        const all = rankRes.data as unknown as RankingRow[];
         setTotal(all.length);
-        const idx = all.findIndex(r => {
-          // Match by location name since ranking returns tienda name
-          return r.tienda === locationName;
-        });
+        const idx = all.findIndex(r => r.tienda === locationName);
         if (idx >= 0) {
           setRank(idx + 1);
-          setStoreData(all[idx]);
+          setVentasNetas(all[idx].ventas_totales);
         } else {
           setRank(null);
-          setStoreData(null);
         }
+      }
+
+      if (metricsRes.data && (metricsRes.data as any[]).length > 0) {
+        const m = (metricsRes.data as any[])[0];
+        setExtraMetrics({
+          mejor_dia_semana: m.mejor_dia_semana ?? "N/A",
+          venta_mejor_dia: m.venta_mejor_dia ?? 0,
+          venta_promedio_diaria_actual: m.venta_promedio_diaria_actual ?? 0,
+          venta_promedio_diaria_anterior: m.venta_promedio_diaria_anterior ?? 0,
+        });
       }
       setLoading(false);
     }
     fetch();
-  }, [days, canal, locationId, locationName]);
+  }, [days, locationId, locationName]);
 
   if (loading) return <LoadingState rows={2} />;
-  if (rank === null || !storeData) return <EmptyState message="Esta tienda no aparece en el ranking del período." />;
+  if (rank === null) return <EmptyState message="Esta tienda no aparece en el ranking del período." />;
 
   const fmtCurrency = (v: number) =>
     new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(v);
 
+  const DAY_MAP: Record<string, string> = {
+    Monday: "Lunes", Tuesday: "Martes", Wednesday: "Miércoles",
+    Thursday: "Jueves", Friday: "Viernes", Saturday: "Sábado", Sunday: "Domingo",
+  };
+  const diaEs = extraMetrics ? (DAY_MAP[extraMetrics.mejor_dia_semana] ?? extraMetrics.mejor_dia_semana) : "—";
+
+  const avgActual = extraMetrics?.venta_promedio_diaria_actual ?? 0;
+  const avgAnterior = extraMetrics?.venta_promedio_diaria_anterior ?? 0;
+  const pctChange = avgAnterior > 0 ? ((avgActual - avgAnterior) / avgAnterior) * 100 : 0;
+  const isUp = pctChange >= 0;
+
+  const ALERT_THRESHOLD = 60_000_000;
+  const showAlert = ventasNetas < ALERT_THRESHOLD;
+
   return (
-    <div className="glass-card p-5">
-      <div className="flex items-center gap-3 mb-4">
-        <Trophy className="h-5 w-5 text-primary" />
-        <h3 className="text-sm font-semibold text-foreground">Posición en Ranking</h3>
-      </div>
-      <div className="flex flex-col sm:flex-row items-center gap-6">
-        {/* Rank badge */}
-        <div className="flex flex-col items-center gap-1">
-          <div className="h-20 w-20 rounded-2xl bg-primary/10 flex items-center justify-center">
-            <span className="text-3xl font-bold text-primary">#{rank}</span>
-          </div>
-          <p className="text-xs text-muted-foreground">de {total} tiendas</p>
+    <div className="space-y-4">
+      <div className="glass-card p-5">
+        <div className="flex items-center gap-3 mb-4">
+          <Trophy className="h-5 w-5 text-primary" />
+          <h3 className="text-sm font-semibold text-foreground">Posición en Ranking General</h3>
         </div>
-        {/* Store metrics */}
-        <div className="flex-1 grid grid-cols-2 sm:grid-cols-4 gap-4">
-          <div>
-            <p className="text-xs text-muted-foreground uppercase tracking-wider">Ventas Netas</p>
-            <p className="text-lg font-semibold text-foreground mt-0.5">{fmtCurrency(storeData.ventas_totales)}</p>
+        <div className="flex flex-col sm:flex-row items-center gap-6">
+          {/* Rank badge */}
+          <div className="flex flex-col items-center gap-1">
+            <div className="h-20 w-20 rounded-2xl bg-primary/10 flex items-center justify-center">
+              <span className="text-3xl font-bold text-primary">#{rank}</span>
+            </div>
+            <p className="text-xs text-muted-foreground">de {total} tiendas</p>
           </div>
-          <div>
-            <p className="text-xs text-muted-foreground uppercase tracking-wider">Unidades</p>
-            <p className="text-lg font-semibold text-foreground mt-0.5">{storeData.unidades_vendidas.toLocaleString()}</p>
-          </div>
-          <div>
-            <p className="text-xs text-muted-foreground uppercase tracking-wider">Ticket Prom</p>
-            <p className="text-lg font-semibold text-foreground mt-0.5">{fmtCurrency(storeData.ticket_promedio)}</p>
-          </div>
-          <div>
-            <p className="text-xs text-muted-foreground uppercase tracking-wider">% Full Price</p>
-            <p className="text-lg font-semibold text-foreground mt-0.5">{storeData.pct_venta_full_price.toFixed(1)}%</p>
+          {/* Extra metrics */}
+          <div className="flex-1 grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div>
+              <p className="text-xs text-muted-foreground uppercase tracking-wider">Mejor Día</p>
+              <p className="text-lg font-semibold text-foreground mt-0.5">{diaEs}</p>
+              <p className="text-xs text-muted-foreground">{fmtCurrency(extraMetrics?.venta_mejor_dia ?? 0)}</p>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground uppercase tracking-wider">Venta Prom/Día</p>
+              <p className="text-lg font-semibold text-foreground mt-0.5">{fmtCurrency(avgActual)}</p>
+              <div className="flex items-center gap-1 mt-0.5">
+                <span className={cn("text-xs font-medium", isUp ? "text-emerald-600" : "text-destructive")}>
+                  {isUp ? "▲" : "▼"} {Math.abs(pctChange).toFixed(1)}%
+                </span>
+                <span className="text-xs text-muted-foreground">vs período ant.</span>
+              </div>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground uppercase tracking-wider">Venta Prom/Día Ant.</p>
+              <p className="text-lg font-semibold text-foreground mt-0.5">{fmtCurrency(avgAnterior)}</p>
+            </div>
           </div>
         </div>
       </div>
+
+      {showAlert && (
+        <div className="glass-card p-5 border-2 border-destructive/50 bg-destructive/5">
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-10 rounded-lg bg-destructive/10 flex items-center justify-center shrink-0">
+              <span className="text-xl">🚨</span>
+            </div>
+            <div>
+              <p className="text-sm font-bold text-destructive">ACTIVAR ACCIONES COMERCIALES</p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Las ventas netas de esta tienda ({fmtCurrency(ventasNetas)}) están por debajo del umbral de {fmtCurrency(ALERT_THRESHOLD)}.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -492,7 +537,6 @@ function ChannelPanel({ days, canal, showLocationFilter, locationFilter }: {
       ) : (
         <StoreRankCard
           days={days}
-          canal={canal === "digital" ? "digital" : canal === "outlets" ? "outlets" : "tiendas"}
           locationId={selectedLocation}
           locationName={locations.find(l => l.location_id === selectedLocation)?.name ?? selectedLocation}
         />

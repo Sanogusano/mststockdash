@@ -372,6 +372,15 @@ export type Database = {
           upt: number
         }[]
       }
+      reporte_metricas_tienda_individual: {
+        Args: { dias_atras: number; p_location_id: string }
+        Returns: {
+          mejor_dia_semana: string
+          venta_mejor_dia: number
+          venta_promedio_diaria_actual: number
+          venta_promedio_diaria_anterior: number
+        }[]
+      }
       reporte_pareto_categorias: {
         Args: { dias_atras: number; p_canal?: string }
         Returns: {
