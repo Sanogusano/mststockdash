@@ -415,43 +415,49 @@ function StoreRankCard({ days, canal, locationId, locationName }: {
 
         {/* Card 2: Desempeño Comercial */}
         <div className="glass-card p-5">
-          <div className="flex items-center gap-3 mb-4">
+          <div className="flex items-center gap-3 mb-5">
             <CalendarDays className="h-5 w-5 text-primary" />
             <h3 className="text-sm font-semibold text-foreground">Desempeño Comercial</h3>
           </div>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-4">
-            <div>
-              <p className="text-xs text-muted-foreground uppercase tracking-wider">Mejor Día</p>
-              <p className="text-lg font-semibold text-foreground mt-0.5">{translateDay(extraMetrics?.mejor_dia_semana ?? "N/A")}</p>
-              <p className="text-xs text-muted-foreground">{fmtCurrency(extraMetrics?.venta_mejor_dia ?? 0)}</p>
+          <div className="space-y-5">
+            {/* Row 1: Días destacados + promedios por tipo de día */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              <div className="p-3 rounded-lg bg-emerald-500/5 border border-emerald-500/20">
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">🟢 Mejor Día</p>
+                <p className="text-sm font-semibold text-foreground">{translateDay(extraMetrics?.mejor_dia_semana ?? "N/A")}</p>
+                <p className="text-xs text-muted-foreground">{fmtCurrency(extraMetrics?.venta_mejor_dia ?? 0)}</p>
+              </div>
+              <div className="p-3 rounded-lg bg-destructive/5 border border-destructive/20">
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">🔴 Peor Día</p>
+                <p className="text-sm font-semibold text-foreground">{translateDay(extraMetrics?.peor_dia_semana ?? "N/A")}</p>
+                <p className="text-xs text-muted-foreground">{fmtCurrency(extraMetrics?.venta_peor_dia ?? 0)}</p>
+              </div>
+              <div className="p-3 rounded-lg bg-muted/40 border border-border">
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Prom. Lun-Vie</p>
+                <p className="text-sm font-semibold text-foreground">{fmtCurrency(extraMetrics?.venta_promedio_semana ?? 0)}</p>
+              </div>
+              <div className="p-3 rounded-lg bg-muted/40 border border-border">
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Prom. Sáb-Dom</p>
+                <p className="text-sm font-semibold text-foreground">{fmtCurrency(extraMetrics?.venta_promedio_finde ?? 0)}</p>
+              </div>
             </div>
-            <div>
-              <p className="text-xs text-muted-foreground uppercase tracking-wider">Peor Día</p>
-              <p className="text-lg font-semibold text-foreground mt-0.5">{translateDay(extraMetrics?.peor_dia_semana ?? "N/A")}</p>
-              <p className="text-xs text-muted-foreground">{fmtCurrency(extraMetrics?.venta_peor_dia ?? 0)}</p>
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground uppercase tracking-wider">Prom. L-V</p>
-              <p className="text-lg font-semibold text-foreground mt-0.5">{fmtCurrency(extraMetrics?.venta_promedio_semana ?? 0)}</p>
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground uppercase tracking-wider">Prom. S-D</p>
-              <p className="text-lg font-semibold text-foreground mt-0.5">{fmtCurrency(extraMetrics?.venta_promedio_finde ?? 0)}</p>
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground uppercase tracking-wider">Venta Prom/Día</p>
-              <p className="text-lg font-semibold text-foreground mt-0.5">{fmtCurrency(extraMetrics?.venta_promedio_diaria_actual ?? 0)}</p>
-              <ComparisonIndicator actual={extraMetrics?.venta_promedio_diaria_actual ?? 0} anterior={extraMetrics?.venta_promedio_diaria_anterior ?? 0} label="vs ant." />
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground uppercase tracking-wider">Pedidos Prom/Día</p>
-              <p className="text-lg font-semibold text-foreground mt-0.5">{(extraMetrics?.pedidos_promedio_diario_actual ?? 0).toFixed(1)}</p>
-              <ComparisonIndicator actual={extraMetrics?.pedidos_promedio_diario_actual ?? 0} anterior={extraMetrics?.pedidos_promedio_diario_anterior ?? 0} label="vs ant." />
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground uppercase tracking-wider">Uds Prom/Día</p>
-              <p className="text-lg font-semibold text-foreground mt-0.5">{(extraMetrics?.unidades_promedio_diario_actual ?? 0).toFixed(1)}</p>
-              <ComparisonIndicator actual={extraMetrics?.unidades_promedio_diario_actual ?? 0} anterior={extraMetrics?.unidades_promedio_diario_anterior ?? 0} label="vs ant." />
+            {/* Row 2: Promedios diarios con comparativa */}
+            <div className="grid grid-cols-3 gap-4">
+              <div className="p-3 rounded-lg bg-muted/30 border border-border">
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Venta Prom/Día</p>
+                <p className="text-base font-semibold text-foreground">{fmtCurrency(extraMetrics?.venta_promedio_diaria_actual ?? 0)}</p>
+                <ComparisonIndicator actual={extraMetrics?.venta_promedio_diaria_actual ?? 0} anterior={extraMetrics?.venta_promedio_diaria_anterior ?? 0} label="vs ant." />
+              </div>
+              <div className="p-3 rounded-lg bg-muted/30 border border-border">
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Pedidos Prom/Día</p>
+                <p className="text-base font-semibold text-foreground">{(extraMetrics?.pedidos_promedio_diario_actual ?? 0).toFixed(1)}</p>
+                <ComparisonIndicator actual={extraMetrics?.pedidos_promedio_diario_actual ?? 0} anterior={extraMetrics?.pedidos_promedio_diario_anterior ?? 0} label="vs ant." />
+              </div>
+              <div className="p-3 rounded-lg bg-muted/30 border border-border">
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Uds Prom/Día</p>
+                <p className="text-base font-semibold text-foreground">{(extraMetrics?.unidades_promedio_diario_actual ?? 0).toFixed(1)}</p>
+                <ComparisonIndicator actual={extraMetrics?.unidades_promedio_diario_actual ?? 0} anterior={extraMetrics?.unidades_promedio_diario_anterior ?? 0} label="vs ant." />
+              </div>
             </div>
           </div>
         </div>
@@ -539,43 +545,47 @@ function DigitalChannelCard({ days }: { days: number }) {
 
         {/* Card 2: Desempeño Comercial */}
         <div className="glass-card p-5">
-          <div className="flex items-center gap-3 mb-4">
+          <div className="flex items-center gap-3 mb-5">
             <CalendarDays className="h-5 w-5 text-primary" />
             <h3 className="text-sm font-semibold text-foreground">Desempeño Comercial</h3>
           </div>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-4">
-            <div>
-              <p className="text-xs text-muted-foreground uppercase tracking-wider">Mejor Día</p>
-              <p className="text-lg font-semibold text-foreground mt-0.5">{translateDay(extraMetrics?.mejor_dia_semana ?? "N/A")}</p>
-              <p className="text-xs text-muted-foreground">{fmtCurrency(extraMetrics?.venta_mejor_dia ?? 0)}</p>
+          <div className="space-y-5">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              <div className="p-3 rounded-lg bg-emerald-500/5 border border-emerald-500/20">
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">🟢 Mejor Día</p>
+                <p className="text-sm font-semibold text-foreground">{translateDay(extraMetrics?.mejor_dia_semana ?? "N/A")}</p>
+                <p className="text-xs text-muted-foreground">{fmtCurrency(extraMetrics?.venta_mejor_dia ?? 0)}</p>
+              </div>
+              <div className="p-3 rounded-lg bg-destructive/5 border border-destructive/20">
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">🔴 Peor Día</p>
+                <p className="text-sm font-semibold text-foreground">{translateDay(extraMetrics?.peor_dia_semana ?? "N/A")}</p>
+                <p className="text-xs text-muted-foreground">{fmtCurrency(extraMetrics?.venta_peor_dia ?? 0)}</p>
+              </div>
+              <div className="p-3 rounded-lg bg-muted/40 border border-border">
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Prom. Lun-Vie</p>
+                <p className="text-sm font-semibold text-foreground">{fmtCurrency(extraMetrics?.venta_promedio_semana ?? 0)}</p>
+              </div>
+              <div className="p-3 rounded-lg bg-muted/40 border border-border">
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Prom. Sáb-Dom</p>
+                <p className="text-sm font-semibold text-foreground">{fmtCurrency(extraMetrics?.venta_promedio_finde ?? 0)}</p>
+              </div>
             </div>
-            <div>
-              <p className="text-xs text-muted-foreground uppercase tracking-wider">Peor Día</p>
-              <p className="text-lg font-semibold text-foreground mt-0.5">{translateDay(extraMetrics?.peor_dia_semana ?? "N/A")}</p>
-              <p className="text-xs text-muted-foreground">{fmtCurrency(extraMetrics?.venta_peor_dia ?? 0)}</p>
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground uppercase tracking-wider">Prom. L-V</p>
-              <p className="text-lg font-semibold text-foreground mt-0.5">{fmtCurrency(extraMetrics?.venta_promedio_semana ?? 0)}</p>
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground uppercase tracking-wider">Prom. S-D</p>
-              <p className="text-lg font-semibold text-foreground mt-0.5">{fmtCurrency(extraMetrics?.venta_promedio_finde ?? 0)}</p>
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground uppercase tracking-wider">Venta Prom/Día</p>
-              <p className="text-lg font-semibold text-foreground mt-0.5">{fmtCurrency(extraMetrics?.venta_promedio_diaria_actual ?? 0)}</p>
-              <ComparisonIndicator actual={extraMetrics?.venta_promedio_diaria_actual ?? 0} anterior={extraMetrics?.venta_promedio_diaria_anterior ?? 0} label="vs ant." />
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground uppercase tracking-wider">Pedidos Prom/Día</p>
-              <p className="text-lg font-semibold text-foreground mt-0.5">{(extraMetrics?.pedidos_promedio_diario_actual ?? 0).toFixed(1)}</p>
-              <ComparisonIndicator actual={extraMetrics?.pedidos_promedio_diario_actual ?? 0} anterior={extraMetrics?.pedidos_promedio_diario_anterior ?? 0} label="vs ant." />
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground uppercase tracking-wider">Uds Prom/Día</p>
-              <p className="text-lg font-semibold text-foreground mt-0.5">{(extraMetrics?.unidades_promedio_diario_actual ?? 0).toFixed(1)}</p>
-              <ComparisonIndicator actual={extraMetrics?.unidades_promedio_diario_actual ?? 0} anterior={extraMetrics?.unidades_promedio_diario_anterior ?? 0} label="vs ant." />
+            <div className="grid grid-cols-3 gap-4">
+              <div className="p-3 rounded-lg bg-muted/30 border border-border">
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Venta Prom/Día</p>
+                <p className="text-base font-semibold text-foreground">{fmtCurrency(extraMetrics?.venta_promedio_diaria_actual ?? 0)}</p>
+                <ComparisonIndicator actual={extraMetrics?.venta_promedio_diaria_actual ?? 0} anterior={extraMetrics?.venta_promedio_diaria_anterior ?? 0} label="vs ant." />
+              </div>
+              <div className="p-3 rounded-lg bg-muted/30 border border-border">
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Pedidos Prom/Día</p>
+                <p className="text-base font-semibold text-foreground">{(extraMetrics?.pedidos_promedio_diario_actual ?? 0).toFixed(1)}</p>
+                <ComparisonIndicator actual={extraMetrics?.pedidos_promedio_diario_actual ?? 0} anterior={extraMetrics?.pedidos_promedio_diario_anterior ?? 0} label="vs ant." />
+              </div>
+              <div className="p-3 rounded-lg bg-muted/30 border border-border">
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Uds Prom/Día</p>
+                <p className="text-base font-semibold text-foreground">{(extraMetrics?.unidades_promedio_diario_actual ?? 0).toFixed(1)}</p>
+                <ComparisonIndicator actual={extraMetrics?.unidades_promedio_diario_actual ?? 0} anterior={extraMetrics?.unidades_promedio_diario_anterior ?? 0} label="vs ant." />
+              </div>
             </div>
           </div>
         </div>
