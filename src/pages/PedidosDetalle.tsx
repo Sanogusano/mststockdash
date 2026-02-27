@@ -8,7 +8,8 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
-import { ArrowLeft, Download, FileText, AlertTriangle, X, ChevronDown } from "lucide-react";
+import { ArrowLeft, Download, FileText, AlertTriangle, X, ChevronDown, Store, Globe } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
 import { exportToCSV } from "@/lib/csv-export";
 import { exportToPDF } from "@/lib/pdf-export";
 import { LoadingState } from "@/components/dashboard/LoadingState";
@@ -109,18 +110,43 @@ export default function PedidosDetallePage() {
     setShowAlertDetail(false);
   };
 
-  // Load locations
+  // Load all locations
   useEffect(() => {
     supabase.from("locations").select("location_id, name").eq("is_active", true)
       .then(({ data }) => {
         if (data) {
-          setLocations(data.filter(l => l.location_id !== CEDI_ID).map(l => ({
+          setLocations(data.map(l => ({
             ...l,
             name: l.location_id === CEDI_ID ? CEDI_DISPLAY : l.name,
           })));
         }
       });
   }, []);
+
+  // Filter locations based on selected canal
+  const filteredLocations = useMemo(() => {
+    if (selectedCanal === "digital") {
+      return locations.filter(l => l.location_id === CEDI_ID);
+    }
+    if (selectedCanal === "tiendas" || selectedCanal === "outlets") {
+      return locations.filter(l => l.location_id !== CEDI_ID);
+    }
+    return locations;
+  }, [locations, selectedCanal]);
+
+  // Reset location when canal changes and current selection is incompatible
+  useEffect(() => {
+    if (selectedLocation === "all") return;
+    const isValid = filteredLocations.some(l => l.location_id === selectedLocation);
+    if (!isValid) setSelectedLocation("all");
+  }, [selectedCanal, filteredLocations, selectedLocation]);
+
+  // Channel order stats
+  const channelStats = useMemo(() => {
+    const tiendasOrders = new Set(data.filter(r => r.sucursal !== CEDI_DISPLAY && r.sucursal !== "Shopify Online Store").map(r => r.numero_pedido));
+    const digitalOrders = new Set(data.filter(r => r.sucursal === CEDI_DISPLAY || r.sucursal === "Shopify Online Store").map(r => r.numero_pedido));
+    return { tiendas: tiendasOrders.size, digital: digitalOrders.size };
+  }, [data]);
 
   // Load orders
   useEffect(() => {
@@ -280,8 +306,25 @@ export default function PedidosDetallePage() {
             </div>
           )}
 
-          {/* Filters */}
+          {/* Filters: Canal → Sucursal → Categoría | TimeFilter */}
           <div className="px-4 sm:px-6 py-3 border-b border-border flex flex-wrap items-center gap-3">
+            {/* Canal filter */}
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-muted-foreground font-medium">Canal:</span>
+              <Select value={selectedCanal || "all"} onValueChange={(v) => setSelectedCanal(v === "all" ? "" : v)}>
+                <SelectTrigger className="w-[160px] h-8 text-xs bg-card">
+                  <SelectValue placeholder="Todos" />
+                </SelectTrigger>
+                <SelectContent className="bg-popover border border-border shadow-lg z-50">
+                  <SelectItem value="all">Todos los canales</SelectItem>
+                  <SelectItem value="tiendas">Tiendas</SelectItem>
+                  <SelectItem value="digital">Digital</SelectItem>
+                  <SelectItem value="outlets">Outlets</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Sucursal filter */}
             <div className="flex items-center gap-2">
               <span className="text-xs text-muted-foreground font-medium">Sucursal:</span>
               <Select value={selectedLocation} onValueChange={setSelectedLocation}>
@@ -290,7 +333,7 @@ export default function PedidosDetallePage() {
                 </SelectTrigger>
                 <SelectContent className="bg-popover border border-border shadow-lg z-50">
                   <SelectItem value="all">Todas las sucursales</SelectItem>
-                  {locations.map((loc) => (
+                  {filteredLocations.map((loc) => (
                     <SelectItem key={loc.location_id} value={loc.location_id}>{loc.name}</SelectItem>
                   ))}
                 </SelectContent>
@@ -339,27 +382,39 @@ export default function PedidosDetallePage() {
               </Popover>
             </div>
 
-            {/* Canal filter */}
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-muted-foreground font-medium">Canal:</span>
-              <Select value={selectedCanal || "all"} onValueChange={(v) => setSelectedCanal(v === "all" ? "" : v)}>
-                <SelectTrigger className="w-[160px] h-8 text-xs bg-card">
-                  <SelectValue placeholder="Todos" />
-                </SelectTrigger>
-                <SelectContent className="bg-popover border border-border shadow-lg z-50">
-                  <SelectItem value="all">Todos los canales</SelectItem>
-                  <SelectItem value="tiendas">Tiendas</SelectItem>
-                  <SelectItem value="digital">Digital</SelectItem>
-                  <SelectItem value="outlets">Outlets</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
             {/* Time filter */}
             <TimeFilter value={days} onChange={setDays} />
 
             <span className="ml-auto text-xs text-muted-foreground">{filteredData.length} registros</span>
           </div>
+
+          {/* Channel summary cards */}
+          {!selectedCanal && (
+            <div className="px-4 sm:px-6 py-3 border-b border-border flex flex-wrap gap-3">
+              <Card className="flex-1 min-w-[140px]">
+                <CardContent className="flex items-center gap-3 p-3">
+                  <div className="rounded-lg bg-primary/10 p-2">
+                    <Store className="h-4 w-4 text-primary" />
+                  </div>
+                  <div>
+                    <p className="text-[10px] text-muted-foreground font-medium">Pedidos Tiendas</p>
+                    <p className="text-lg font-bold text-foreground">{channelStats.tiendas.toLocaleString("es-CO")}</p>
+                  </div>
+                </CardContent>
+              </Card>
+              <Card className="flex-1 min-w-[140px]">
+                <CardContent className="flex items-center gap-3 p-3">
+                  <div className="rounded-lg bg-accent/50 p-2">
+                    <Globe className="h-4 w-4 text-accent-foreground" />
+                  </div>
+                  <div>
+                    <p className="text-[10px] text-muted-foreground font-medium">Pedidos Digital</p>
+                    <p className="text-lg font-bold text-foreground">{channelStats.digital.toLocaleString("es-CO")}</p>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          )}
 
           {/* Table */}
           <div className="flex-1 px-4 sm:px-6 py-4 overflow-auto">
