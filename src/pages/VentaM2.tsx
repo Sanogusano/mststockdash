@@ -58,9 +58,8 @@ export default function VentaM2Page() {
 
   useEffect(() => {
     async function fetchData() {
-      if (!isValidDays(days)) return;
       setLoading(true);
-      const effectiveDays = resolveDays(days);
+      const effectiveDays = isValidDays(days) ? resolveDays(days) : days;
 
       const [rankTiendasRes, rankOutletsRes, locRes] = await Promise.all([
         supabase.rpc("reporte_ranking_tiendas", { dias_atras: effectiveDays, p_canal: "tiendas" }),
