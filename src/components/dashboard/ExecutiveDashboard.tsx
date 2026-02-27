@@ -197,7 +197,7 @@ function ParetoChart({ days, canal, locationId }: { days: number; canal: string;
       const effectiveDays = resolveDays(days);
       const { data: rows } = await supabase.rpc("reporte_pareto_categorias" as any, {
         dias_atras: effectiveDays,
-        p_canal: canal === "POS" ? "pos" : "digital",
+        p_canal: canal,
         p_location_id: locationId || null,
       });
       if (rows) setData(rows as unknown as ParetoRow[]);
@@ -212,13 +212,15 @@ function ParetoChart({ days, canal, locationId }: { days: number; canal: string;
   const top10 = data.slice(0, 10);
   const rest = data.slice(10);
   const othersPct = rest.reduce((s, r) => s + (r.pct_participacion ?? 0), 0);
+  const othersUnits = rest.reduce((s, r) => s + (r.unidades ?? 0), 0);
 
   const chartItems = top10.map((r) => ({
     name: r.categoria ?? "—",
     value: Number(r.pct_participacion ?? 0),
+    units: Number(r.unidades ?? 0),
   }));
   if (othersPct > 0) {
-    chartItems.push({ name: "Otros", value: Number(othersPct.toFixed(1)) });
+    chartItems.push({ name: "Otros", value: Number(othersPct.toFixed(1)), units: othersUnits });
   }
 
   return (
@@ -232,17 +234,20 @@ function ParetoChart({ days, canal, locationId }: { days: number; canal: string;
                 <Cell key={i} fill={PARETO_COLORS[i % PARETO_COLORS.length]} />
               ))}
             </Pie>
-            <Tooltip formatter={(v: number) => `${v.toFixed(1)}%`} />
+            <Tooltip formatter={(v: number, name: string, entry: any) => [`${v.toFixed(1)}% · ${(entry.payload.units ?? 0).toLocaleString()} uds`, name]} />
           </PieChart>
         </ResponsiveContainer>
-        <div className="flex-1 space-y-1.5 max-h-[180px] overflow-y-auto">
+        <div className="flex-1 space-y-1.5 max-h-[220px] overflow-y-auto w-full">
           {chartItems.map((r, i) => (
-            <div key={i} className="flex items-center justify-between text-xs">
-              <div className="flex items-center gap-2">
+            <div key={i} className="flex items-center justify-between text-xs gap-2">
+              <div className="flex items-center gap-2 min-w-0">
                 <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: PARETO_COLORS[i % PARETO_COLORS.length] }} />
                 <span className="text-foreground font-medium truncate max-w-[140px]">{r.name}</span>
               </div>
-              <span className="text-muted-foreground font-mono">{r.value.toFixed(1)}%</span>
+              <div className="flex items-center gap-3 shrink-0">
+                <span className="text-muted-foreground">{r.units.toLocaleString()} uds</span>
+                <span className="text-foreground font-mono font-semibold">{r.value.toFixed(1)}%</span>
+              </div>
             </div>
           ))}
         </div>
@@ -792,7 +797,7 @@ function ChannelPanel({ days, canal, showLocationFilter, locationFilter }: {
         />
       )}
 
-      <ParetoChart days={days} canal={canal === "digital" ? "digital" : "pos"} locationId={locParam} />
+      <ParetoChart days={days} canal={canal} locationId={locParam} />
 
       <WorstLinesRecommendation days={days} canal={canal} locationId={locParam} />
 
