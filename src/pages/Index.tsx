@@ -1,11 +1,29 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
-import { TimeFilter } from "@/components/dashboard/TimeFilter";
+import { TimeFilter, THIS_MONTH_SENTINEL } from "@/components/dashboard/TimeFilter";
 import { ExecutiveDashboard } from "@/components/dashboard/ExecutiveDashboard";
 
+function ColombiaDateTime() {
+  const [now, setNow] = useState(() => new Date());
+  useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), 30_000);
+    return () => clearInterval(id);
+  }, []);
+  const formatted = now.toLocaleString("es-CO", {
+    timeZone: "America/Bogota",
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+  return <span className="text-xs text-muted-foreground">{formatted}</span>;
+}
+
 export default function ExecutivePage() {
-  const [days, setDays] = useState(30);
+  const [days, setDays] = useState(THIS_MONTH_SENTINEL);
 
   return (
     <SidebarProvider>
@@ -16,7 +34,10 @@ export default function ExecutivePage() {
             <div className="flex items-center gap-3">
               <SidebarTrigger className="text-muted-foreground hover:text-foreground" />
               <div>
-                <h2 className="text-base sm:text-lg font-semibold text-foreground">Resumen Ejecutivo</h2>
+                <div className="flex items-center gap-3">
+                  <h2 className="text-base sm:text-lg font-semibold text-foreground">Resumen Ejecutivo</h2>
+                  <ColombiaDateTime />
+                </div>
                 <p className="text-[10px] sm:text-xs text-muted-foreground">Desempeño comercial por canal</p>
               </div>
             </div>

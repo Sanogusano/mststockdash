@@ -900,11 +900,13 @@ function ChannelPanel({ days, canal, showLocationFilter, locationFilter }: {
         />
       )}
 
+      <div className="cursor-pointer hover:ring-2 hover:ring-primary/30 transition-all" onClick={() => navigate(`/lineas?canal=${canal}&days=${days}`)}>
+        <ParetoChart days={days} canal={canal} locationId={locParam} />
+      </div>
+
       <WorstLinesRecommendation days={days} canal={canal} locationId={locParam} />
 
       <StockOutAlerts days={days} locationId={locParam} />
-
-      <ParetoChart days={days} canal={canal} locationId={locParam} />
 
       <ProductTable
         data={topProducts}
