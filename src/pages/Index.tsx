@@ -3,6 +3,7 @@ import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { TimeFilter, THIS_MONTH_SENTINEL } from "@/components/dashboard/TimeFilter";
 import { ExecutiveDashboard } from "@/components/dashboard/ExecutiveDashboard";
+import { ReportGeneratorButton } from "@/components/dashboard/ReportGenerator";
 
 function ColombiaDateTime() {
   const [now, setNow] = useState(() => new Date());
@@ -41,7 +42,10 @@ export default function ExecutivePage() {
                 <p className="text-[10px] sm:text-xs text-muted-foreground">Desempeño comercial por canal</p>
               </div>
             </div>
-            <TimeFilter value={days} onChange={setDays} />
+            <div className="flex items-center gap-2">
+              <TimeFilter value={days} onChange={setDays} />
+              <ReportGeneratorButton days={days} />
+            </div>
           </header>
           <div className="flex-1 px-4 sm:px-6 py-4 sm:py-6">
             <ExecutiveDashboard days={days} />
