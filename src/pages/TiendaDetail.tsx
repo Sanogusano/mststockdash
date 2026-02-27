@@ -6,11 +6,11 @@ import { AppSidebar } from "@/components/AppSidebar";
 import { TimeFilter } from "@/components/dashboard/TimeFilter";
 import { LoadingState, EmptyState } from "@/components/dashboard/LoadingState";
 import { StatusBadge } from "@/components/dashboard/StatusBadge";
-import { ArrowLeft, DollarSign, Receipt, ShoppingBag, Star, Percent, Package, Filter } from "lucide-react";
+import { MultiSelectFilter } from "@/components/dashboard/MultiSelectFilter";
+import { ArrowLeft, DollarSign, Receipt, ShoppingBag, Star, Percent, Package, Filter, Tag } from "lucide-react";
 import { isValidDays } from "@/lib/validation";
 import { resolveDays } from "@/components/dashboard/TimeFilter";
 import { cn } from "@/lib/utils";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface WosCategoryRow {
   categoria: string | null;
@@ -18,6 +18,18 @@ interface WosCategoryRow {
   venta_promedio_semanal: number | null;
   semanas_inventario: number | null;
   estado_salud: string | null;
+}
+
+interface WosCatGlobalRow {
+  tienda: string;
+  location_id: string;
+  categoria: string;
+  inventario_total: number;
+  venta_promedio_semanal: number;
+  semanas_inventario: number | null;
+  pct_full_price: number;
+  pct_rebajado: number;
+  estado_salud: string;
 }
 
 interface KpiData {
@@ -28,6 +40,7 @@ interface KpiData {
   upt: number;
   pct_pedidos_full_price: number;
   pct_pedidos_con_descuento: number;
+  pct_pedidos_rebajas: number;
 }
 
 interface SupplyStockRow {
@@ -63,15 +76,15 @@ export default function TiendaDetailPage() {
   const { id } = useParams<{ id: string }>();
   const [days, setDays] = useState(30);
   const [data, setData] = useState<WosCategoryRow[]>([]);
+  const [wosCatData, setWosCatData] = useState<WosCatGlobalRow[]>([]);
   const [kpis, setKpis] = useState<KpiData | null>(null);
   const [storeName, setStoreName] = useState("");
   const [loading, setLoading] = useState(true);
   const [supplyStock, setSupplyStock] = useState<SupplyStockRow[]>([]);
 
-  // WOS table filters
-  const [filterCategoria, setFilterCategoria] = useState<string>("all");
-  const [filterEstado, setFilterEstado] = useState<string>("all");
-  const [filterStock, setFilterStock] = useState<string>("all");
+  // WOS global table filters
+  const [selEstados, setSelEstados] = useState<string[]>([]);
+  const [selStock, setSelStock] = useState<string[]>([]);
 
   useEffect(() => {
     async function fetchData() {
@@ -79,17 +92,16 @@ export default function TiendaDetailPage() {
       setLoading(true);
       const effectiveDays = resolveDays(days);
 
-      const [locRes, wosRes, kpiRes, supplyRes] = await Promise.all([
+      const [locRes, wosRes, kpiRes, supplyRes, wosCatRes] = await Promise.all([
         supabase.from("locations").select("name").eq("location_id", id).single(),
         supabase.rpc("reporte_wos_categoria_tienda", { dias_atras: effectiveDays, p_location_id: id }),
-        // Fix: pass null for p_canal so outlets/all stores show correct KPIs
         supabase.rpc("reporte_kpis_comerciales", { dias_atras: effectiveDays, p_location_id: id }),
-        // Fetch supply stock (Bolsas & Empaques) for this location
         supabase
           .from("inventory_snapshot")
           .select("sku, available, product_catalog!inner(title, category)")
           .eq("location_id", id)
           .or("category.ilike.%bolsa%,category.ilike.%insumo%", { referencedTable: "product_catalog" }),
+        supabase.rpc("reporte_wos_categoria_global", { dias_atras: effectiveDays, p_location_ids: [id] }),
       ]);
 
       if (locRes.data) setStoreName(locRes.data.name);
@@ -97,6 +109,7 @@ export default function TiendaDetailPage() {
       if (kpiRes.data && kpiRes.data.length > 0) {
         setKpis(kpiRes.data[0] as unknown as KpiData);
       }
+      if (wosCatRes.data) setWosCatData(wosCatRes.data as unknown as WosCatGlobalRow[]);
       
       if (supplyRes.data) {
         const mapped = (supplyRes.data as any[]).map((r) => ({
@@ -104,7 +117,6 @@ export default function TiendaDetailPage() {
           title: (r.product_catalog as any)?.title ?? r.sku,
           available: r.available ?? 0,
         }));
-        // Aggregate by SKU in case of duplicates
         const aggregated: Record<string, SupplyStockRow> = {};
         mapped.forEach((r) => {
           if (aggregated[r.sku]) {
@@ -120,21 +132,38 @@ export default function TiendaDetailPage() {
     fetchData();
   }, [id, days]);
 
-  // Filtered WOS data
-  const filteredData = useMemo(() => {
-    return data.filter((row) => {
-      if (filterCategoria !== "all" && row.categoria !== filterCategoria) return false;
-      if (filterEstado !== "all" && !row.estado_salud?.includes(filterEstado)) return false;
-      if (filterStock === "con_stock" && (row.inventario_total ?? 0) === 0) return false;
-      if (filterStock === "sin_stock" && (row.inventario_total ?? 0) > 0) return false;
-      if (filterStock === "alto" && (row.inventario_total ?? 0) < 100) return false;
-      if (filterStock === "bajo" && (row.inventario_total ?? 0) >= 100) return false;
+  // Compute stock-based % full price and % rebajado from WOS global data
+  const stockPcts = useMemo(() => {
+    if (wosCatData.length === 0) return { fullPrice: 0, rebajado: 0 };
+    const totalStock = wosCatData.reduce((s, r) => s + (r.inventario_total ?? 0), 0);
+    if (totalStock === 0) return { fullPrice: 0, rebajado: 0 };
+    // Weighted average by stock
+    const weightedFull = wosCatData.reduce((s, r) => s + (r.pct_full_price ?? 0) * (r.inventario_total ?? 0), 0) / totalStock;
+    const weightedReb = wosCatData.reduce((s, r) => s + (r.pct_rebajado ?? 0) * (r.inventario_total ?? 0), 0) / totalStock;
+    return { fullPrice: weightedFull, rebajado: weightedReb };
+  }, [wosCatData]);
+
+  // Filtered WOS global data
+  const stockOptions = ["Con stock", "Sin stock", "Stock alto (≥100)", "Stock bajo (<100)"];
+  const uniqueEstados = useMemo(() => [...new Set(wosCatData.map((r) => r.estado_salud))], [wosCatData]);
+
+  const filteredWosCat = useMemo(() => {
+    return wosCatData.filter((row) => {
+      if (selEstados.length > 0 && !selEstados.some((e) => row.estado_salud.includes(e))) return false;
+      if (selStock.length > 0) {
+        const stock = row.inventario_total ?? 0;
+        const pass = selStock.some((s) => {
+          if (s === "Con stock") return stock > 0;
+          if (s === "Sin stock") return stock === 0;
+          if (s === "Stock alto (≥100)") return stock >= 100;
+          if (s === "Stock bajo (<100)") return stock < 100;
+          return true;
+        });
+        if (!pass) return false;
+      }
       return true;
     });
-  }, [data, filterCategoria, filterEstado, filterStock]);
-
-  const uniqueCategories = useMemo(() => [...new Set(data.map((r) => r.categoria).filter(Boolean))], [data]);
-  const uniqueEstados = useMemo(() => [...new Set(data.map((r) => r.estado_salud).filter(Boolean))], [data]);
+  }, [wosCatData, selEstados, selStock]);
 
   const supplyTotal = supplyStock.reduce((s, r) => s + r.available, 0);
 
@@ -166,8 +195,8 @@ export default function TiendaDetailPage() {
                   <KpiCard label="Ventas Netas" value={(kpis?.ingresos_netos ?? 0).toLocaleString()} prefix="$" icon={DollarSign} />
                   <KpiCard label="Ticket Promedio" value={(kpis?.ticket_promedio ?? 0).toLocaleString()} prefix="$" icon={Receipt} />
                   <KpiCard label="UPT" value={(kpis?.upt ?? 0).toFixed(2)} icon={ShoppingBag} />
-                  <KpiCard label="% Full Price" value={`${(kpis?.pct_pedidos_full_price ?? 0).toFixed(1)}%`} icon={Star} className="text-green-600" />
-                  <KpiCard label="% Descuento" value={`${(kpis?.pct_pedidos_con_descuento ?? 0).toFixed(1)}%`} icon={Percent} className="text-orange-500" />
+                  <KpiCard label="% Full Price (Stock)" value={`${stockPcts.fullPrice.toFixed(1)}%`} icon={Star} className="text-emerald-600" />
+                  <KpiCard label="% Rebajado (Stock)" value={`${stockPcts.rebajado.toFixed(1)}%`} icon={Tag} className="text-rose-500" />
                 </div>
 
                 {/* Summary cards */}
@@ -228,85 +257,63 @@ export default function TiendaDetailPage() {
                       </div>
                     )}
 
-                    {/* Detail table with filters */}
-                    <div className="glass-card overflow-hidden">
-                      <div className="px-5 py-4 border-b border-border space-y-3">
-                        <h3 className="text-sm font-semibold text-foreground">WOS por Categoría</h3>
-                        <div className="flex flex-wrap items-center gap-2">
-                          <Filter className="h-3.5 w-3.5 text-muted-foreground" />
-                          <Select value={filterCategoria} onValueChange={setFilterCategoria}>
-                            <SelectTrigger className="h-8 w-[160px] text-xs">
-                              <SelectValue placeholder="Categoría" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="all">Todas las categorías</SelectItem>
-                              {uniqueCategories.map((c) => (
-                                <SelectItem key={c!} value={c!}>{c}</SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <Select value={filterStock} onValueChange={setFilterStock}>
-                            <SelectTrigger className="h-8 w-[140px] text-xs">
-                              <SelectValue placeholder="Stock" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="all">Todo el stock</SelectItem>
-                              <SelectItem value="con_stock">Con stock</SelectItem>
-                              <SelectItem value="sin_stock">Sin stock</SelectItem>
-                              <SelectItem value="alto">Stock alto (≥100)</SelectItem>
-                              <SelectItem value="bajo">Stock bajo (&lt;100)</SelectItem>
-                            </SelectContent>
-                          </Select>
-                          <Select value={filterEstado} onValueChange={setFilterEstado}>
-                            <SelectTrigger className="h-8 w-[180px] text-xs">
-                              <SelectValue placeholder="Estado" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="all">Todos los estados</SelectItem>
-                              {uniqueEstados.map((e) => (
-                                <SelectItem key={e!} value={e!}>{e}</SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
+                    {/* WOS by Category with multi-select filters */}
+                    {wosCatData.length > 0 && (
+                      <div className="glass-card overflow-hidden">
+                        <div className="px-5 py-4 border-b border-border space-y-3">
+                          <h3 className="text-sm font-semibold text-foreground">WOS por Categoría</h3>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <Filter className="h-3.5 w-3.5 text-muted-foreground" />
+                            <MultiSelectFilter label="Stock" options={stockOptions} selected={selStock} onChange={setSelStock} />
+                            <MultiSelectFilter label="Estado" options={uniqueEstados} selected={selEstados} onChange={setSelEstados} />
+                          </div>
                         </div>
-                      </div>
-                      <div className="overflow-x-auto">
-                        <table className="w-full text-sm">
-                          <thead>
-                            <tr className="border-b border-border bg-muted/30">
-                              <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">Categoría</th>
-                              <th className="px-4 py-3 text-right text-xs font-medium text-muted-foreground">Stock Total</th>
-                              <th className="px-4 py-3 text-right text-xs font-medium text-muted-foreground">Venta Prom/Sem</th>
-                              <th className="px-4 py-3 text-right text-xs font-medium text-muted-foreground">WOS</th>
-                              <th className="px-4 py-3 text-center text-xs font-medium text-muted-foreground">Estado</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {filteredData.length === 0 ? (
-                              <tr>
-                                <td colSpan={5} className="px-4 py-8 text-center text-sm text-muted-foreground">
-                                  No hay datos con los filtros seleccionados.
-                                </td>
+                        <div className="overflow-x-auto">
+                          <table className="w-full text-sm">
+                            <thead>
+                              <tr className="border-b border-border bg-muted/30">
+                                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">Categoría</th>
+                                <th className="px-4 py-3 text-right text-xs font-medium text-muted-foreground">Stock Total</th>
+                                <th className="px-4 py-3 text-right text-xs font-medium text-muted-foreground">Venta Prom/Sem</th>
+                                <th className="px-4 py-3 text-right text-xs font-medium text-muted-foreground">WOS</th>
+                                <th className="px-4 py-3 text-right text-xs font-medium text-muted-foreground">% Full Price</th>
+                                <th className="px-4 py-3 text-right text-xs font-medium text-muted-foreground">% Rebajado</th>
+                                <th className="px-4 py-3 text-center text-xs font-medium text-muted-foreground">Estado</th>
                               </tr>
-                            ) : (
-                              filteredData.map((row, i) => (
-                                <tr key={i} className="border-b border-border/50 hover:bg-muted/20 transition-colors">
-                                  <td className="px-4 py-3 font-medium text-foreground">{row.categoria ?? "—"}</td>
-                                  <td className="px-4 py-3 text-right">{(row.inventario_total ?? 0).toLocaleString()}</td>
-                                  <td className="px-4 py-3 text-right">{(row.venta_promedio_semanal ?? 0).toLocaleString()}</td>
-                                  <td className="px-4 py-3 text-right font-medium" style={{ color: getBarColor(row.semanas_inventario) }}>
-                                    {row.semanas_inventario == null ? "∞" : row.semanas_inventario > 99 ? "+99w" : `${row.semanas_inventario.toFixed(1)}w`}
-                                  </td>
-                                  <td className="px-4 py-3 text-center">
-                                    <StatusBadge label={row.estado_salud ?? ""} />
+                            </thead>
+                            <tbody>
+                              {filteredWosCat.length === 0 ? (
+                                <tr>
+                                  <td colSpan={7} className="px-4 py-8 text-center text-sm text-muted-foreground">
+                                    No hay datos con los filtros seleccionados.
                                   </td>
                                 </tr>
-                              ))
-                            )}
-                          </tbody>
-                        </table>
+                              ) : (
+                                filteredWosCat.map((row, i) => (
+                                  <tr key={i} className="border-b border-border/50 hover:bg-muted/20 transition-colors">
+                                    <td className="px-4 py-3 font-medium text-foreground">{row.categoria}</td>
+                                    <td className="px-4 py-3 text-right">{(row.inventario_total ?? 0).toLocaleString()}</td>
+                                    <td className="px-4 py-3 text-right">{(row.venta_promedio_semanal ?? 0).toLocaleString()}</td>
+                                    <td className="px-4 py-3 text-right font-medium" style={{ color: getBarColor(row.semanas_inventario) }}>
+                                      {row.semanas_inventario == null ? "∞" : row.semanas_inventario > 99 ? "+99w" : `${row.semanas_inventario.toFixed(1)}w`}
+                                    </td>
+                                    <td className="px-4 py-3 text-right">
+                                      <span className="text-emerald-600 font-medium">{row.pct_full_price.toFixed(1)}%</span>
+                                    </td>
+                                    <td className="px-4 py-3 text-right">
+                                      <span className="text-orange-500 font-medium">{row.pct_rebajado.toFixed(1)}%</span>
+                                    </td>
+                                    <td className="px-4 py-3 text-center">
+                                      <StatusBadge label={row.estado_salud} />
+                                    </td>
+                                  </tr>
+                                ))
+                              )}
+                            </tbody>
+                          </table>
+                        </div>
                       </div>
-                    </div>
+                    )}
                   </>
                 )}
               </div>
