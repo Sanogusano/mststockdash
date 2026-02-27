@@ -9,8 +9,16 @@ import { isValidDays } from "@/lib/validation";
 import { resolveDays } from "@/components/dashboard/TimeFilter";
 import { exportToCSV } from "@/lib/csv-export";
 import { exportToPDF } from "@/lib/pdf-export";
-import { ArrowLeft, Ruler, Download, FileText, TrendingUp, TrendingDown } from "lucide-react";
+import { ArrowLeft, Ruler, Download, FileText, TrendingUp, TrendingDown, Crown, AlertTriangle, ShieldAlert } from "lucide-react";
 import { cn } from "@/lib/utils";
+
+const VENTA_M2_MIN = 1_000_000;
+function getVentaM2Status(v: number) {
+  if (v >= VENTA_M2_MIN * 2) return { label: "Excelente", emoji: "👑", colorClass: "text-amber-500", bgClass: "bg-amber-500/10" };
+  if (v >= VENTA_M2_MIN * 1.5) return { label: "Bueno", emoji: "✅", colorClass: "text-emerald-600", bgClass: "bg-emerald-500/10" };
+  if (v >= VENTA_M2_MIN) return { label: "Regular", emoji: "⚠️", colorClass: "text-amber-500", bgClass: "bg-amber-500/10" };
+  return { label: "Malo", emoji: "🔴", colorClass: "text-destructive", bgClass: "bg-destructive/10" };
+}
 
 const CEDI_ID = "71474315479";
 const OUTLET_KEYWORDS = ["SOPO", "UNICO", "ÚNICO"];
@@ -147,6 +155,14 @@ export default function VentaM2Page() {
                   <div className="glass-card p-5">
                     <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Promedio Venta / m²</p>
                     <p className="text-2xl font-semibold text-foreground mt-0.5">{fmtCurrency(avgVentaM2)}</p>
+                    {(() => {
+                      const status = getVentaM2Status(avgVentaM2);
+                      return (
+                        <span className={cn("inline-flex items-center gap-1 mt-1 px-2 py-0.5 rounded-full text-xs font-bold", status.bgClass, status.colorClass)}>
+                          {status.emoji} {status.label}
+                        </span>
+                      );
+                    })()}
                   </div>
                   <div className="glass-card p-5">
                     <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Total Superficie</p>
@@ -192,6 +208,7 @@ export default function VentaM2Page() {
                           <th className="px-4 py-3 text-right text-xs font-medium text-muted-foreground">Ventas Netas</th>
                           <th className="px-4 py-3 text-right text-xs font-medium text-muted-foreground">m²</th>
                           <th className="px-4 py-3 text-right text-xs font-medium text-muted-foreground">Venta / m²</th>
+                          <th className="px-4 py-3 text-center text-xs font-medium text-muted-foreground">Estado</th>
                           <th className="px-4 py-3 text-center text-xs font-medium text-muted-foreground">vs Promedio</th>
                         </tr>
                       </thead>
@@ -199,6 +216,7 @@ export default function VentaM2Page() {
                         {data.map((row, i) => {
                           const vsAvg = avgVentaM2 > 0 ? ((row.venta_m2 - avgVentaM2) / avgVentaM2) * 100 : 0;
                           const isAbove = vsAvg >= 0;
+                          const rowStatus = getVentaM2Status(row.venta_m2);
                           return (
                             <tr key={row.tienda} className="border-b border-border/50 hover:bg-muted/20 transition-colors">
                               <td className="px-4 py-3 text-center text-base">
@@ -208,6 +226,11 @@ export default function VentaM2Page() {
                               <td className="px-4 py-3 text-right font-semibold text-foreground">{fmtCurrency(row.ventas_netas)}</td>
                               <td className="px-4 py-3 text-right text-muted-foreground">{row.m2} m²</td>
                               <td className="px-4 py-3 text-right font-bold text-foreground">{fmtCurrency(row.venta_m2)}</td>
+                              <td className="px-4 py-3 text-center">
+                                <span className={cn("inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold", rowStatus.bgClass, rowStatus.colorClass)}>
+                                  {rowStatus.emoji} {rowStatus.label}
+                                </span>
+                              </td>
                               <td className="px-4 py-3 text-center">
                                 <span className={cn(
                                   "inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold",
