@@ -428,6 +428,7 @@ function StockOutAlerts({ days, locationId }: { days: number; locationId?: strin
       if (rows) {
         const filtered = (rows as unknown as AlertRow[])
           .filter(r => r.estado_salud?.includes("RIESGO AGOTADOS"))
+          .filter(r => ((r.stock_tiendas ?? 0) + (r.stock_digital ?? 0)) >= 10)
           .sort((a, b) => (a.wos ?? 999) - (b.wos ?? 999))
           .slice(0, locationId ? 50 : 10);
         setAlerts(filtered);
