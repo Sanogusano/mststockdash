@@ -519,6 +519,28 @@ export type Database = {
           ventas_totales: number
         }[]
       }
+      reporte_top_productos_global: {
+        Args: {
+          dias_atras: number
+          p_canal?: string
+          p_categoria?: string
+          p_limite?: number
+          p_orden?: string
+        }
+        Returns: {
+          categoria: string
+          clasificacion: string
+          foto: string
+          pct_descuento: number
+          pct_full_price: number
+          producto: string
+          sku: string
+          und_digital: number
+          und_outlets: number
+          und_tiendas: number
+          und_total: number
+        }[]
+      }
       reporte_wos_categoria_tienda: {
         Args: { dias_atras: number; p_location_id: string }
         Returns: {

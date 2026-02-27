@@ -10,6 +10,7 @@ import LogisticaPage from "./pages/Logistica";
 import InsumosPage from "./pages/Insumos";
 import ComportamientoProductoPage from "./pages/ComportamientoProducto";
 import LineasProductoPage from "./pages/LineasProducto";
+import DesempenoProductosPage from "./pages/DesempenoProductos";
 import LoginPage from "./pages/Login";
 import ResetPasswordPage from "./pages/ResetPassword";
 import NotFound from "./pages/NotFound";
@@ -34,6 +35,7 @@ const App = () => (
           <Route path="/logistica" element={<ProtectedRoute><LogisticaPage /></ProtectedRoute>} />
           <Route path="/producto" element={<ProtectedRoute><ComportamientoProductoPage /></ProtectedRoute>} />
           <Route path="/lineas" element={<ProtectedRoute><LineasProductoPage /></ProtectedRoute>} />
+          <Route path="/desempeno-productos" element={<ProtectedRoute><DesempenoProductosPage /></ProtectedRoute>} />
           <Route path="/insumos" element={<ProtectedRoute><InsumosPage /></ProtectedRoute>} />
           <Route path="*" element={<NotFound />} />
         </Routes>
