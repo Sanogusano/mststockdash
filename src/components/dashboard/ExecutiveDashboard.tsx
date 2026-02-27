@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, Fragment } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { isValidDays } from "@/lib/validation";
@@ -55,6 +55,18 @@ interface ProductRow {
   unidades_vendidas: number | null;
   precio_promedio: number | null;
   stock_disponible: number | null;
+  sell_through_pct: number | null;
+  wos: number | null;
+}
+
+interface SkuDetailRow {
+  sku: string;
+  unidades_vendidas: number;
+  stock_disponible: number;
+  precio_prom_venta: number | null;
+  sell_through_pct: number;
+  wos: number;
+  clasificacion: string;
 }
 
 interface Location {
@@ -136,20 +148,67 @@ function KpiCard({ label, value, prefix = "", icon: Icon, className, onClick, ac
 }
 
 /* ── Product Table ── */
-function ProductTable({ data, title, exportFilename }: {
+/* Helper: extract product name and color from title like "PERSEFONE T-SHIRT MEN WHITE" */
+function extractNameColor(title: string | null): { name: string; color: string } {
+  if (!title) return { name: "—", color: "—" };
+  const words = title.trim().split(/\s+/);
+  if (words.length <= 1) return { name: title, color: "—" };
+  const color = words[words.length - 1];
+  const name = words.slice(0, -1).join(" ");
+  return { name, color };
+}
+
+function getWosStatusColor(wos: number) {
+  if (wos === 0) return "text-muted-foreground";
+  if (wos < 4) return "text-amber-500";
+  if (wos <= 12) return "text-emerald-600";
+  return "text-destructive";
+}
+
+function ProductTable({ data, title, exportFilename, days, canalFiltro, locationFiltro }: {
   data: ProductRow[]; title: string; exportFilename: string;
+  days: number; canalFiltro?: string; locationFiltro?: string | null;
 }) {
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [skuDetails, setSkuDetails] = useState<SkuDetailRow[]>([]);
+  const [skuLoading, setSkuLoading] = useState(false);
+
   if (!data.length) return <EmptyState message="Sin datos para mostrar." />;
 
-  const exportData = data.map(r => ({
-    Producto: r.producto ?? "",
-    SKU: r.sku ?? "",
-    Categoría: r.categoria ?? "",
-    Clasificación: r.clasificacion ?? "",
-    Unidades: r.unidades_vendidas ?? 0,
-    "Precio Prom": r.precio_promedio ?? 0,
-    Stock: r.stock_disponible ?? 0,
-  }));
+  const exportData = data.map((r, i) => {
+    const { name, color } = extractNameColor(r.producto);
+    return {
+      "#": i + 1,
+      Línea: r.categoria ?? "",
+      Nombre: name,
+      Color: color,
+      "Stock Total": r.stock_disponible ?? 0,
+      "Uds Vendidas": r.unidades_vendidas ?? 0,
+      Clasificación: r.clasificacion ?? "",
+      "ST%": r.sell_through_pct ?? 0,
+      WOS: r.wos ?? 0,
+      "Precio Prom": r.precio_promedio ?? 0,
+    };
+  });
+
+  const handleRowClick = async (productId: string | null) => {
+    if (!productId) return;
+    if (expandedId === productId) {
+      setExpandedId(null);
+      return;
+    }
+    setExpandedId(productId);
+    setSkuLoading(true);
+    const effectiveDays = resolveDays(days);
+    const { data: rows } = await supabase.rpc("reporte_detalle_skus_producto" as any, {
+      dias_atras: effectiveDays,
+      p_product_id: productId,
+      canal_filtro: canalFiltro || null,
+      location_filtro: locationFiltro || null,
+    });
+    setSkuDetails((rows ?? []) as unknown as SkuDetailRow[]);
+    setSkuLoading(false);
+  };
 
   return (
     <div className="glass-card overflow-hidden">
@@ -158,54 +217,109 @@ function ProductTable({ data, title, exportFilename }: {
         <ExportButtons data={exportData as unknown as Record<string, unknown>[]} filename={exportFilename} title={title} />
       </div>
       <div className="overflow-x-auto">
-        <table className="w-full text-sm">
+        <table className="w-full text-sm min-w-[900px]">
           <thead>
             <tr className="border-b border-border bg-muted/30">
-              <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">Producto</th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">SKU</th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">Categoría</th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">Clasificación</th>
-              <th className="px-4 py-3 text-right text-xs font-medium text-muted-foreground">Uds</th>
-              <th className="px-4 py-3 text-right text-xs font-medium text-muted-foreground">Precio Prom</th>
-              <th className="px-4 py-3 text-right text-xs font-medium text-muted-foreground">Stock</th>
+              <th className="px-3 py-3 text-center text-xs font-medium text-muted-foreground w-10">#</th>
+              <th className="px-3 py-3 text-left text-xs font-medium text-muted-foreground">Producto</th>
+              <th className="px-3 py-3 text-left text-xs font-medium text-muted-foreground">Línea</th>
+              <th className="px-3 py-3 text-left text-xs font-medium text-muted-foreground">Color</th>
+              <th className="px-3 py-3 text-right text-xs font-medium text-muted-foreground">Stock</th>
+              <th className="px-3 py-3 text-right text-xs font-medium text-muted-foreground">Uds</th>
+              <th className="px-3 py-3 text-left text-xs font-medium text-muted-foreground">Clasif.</th>
+              <th className="px-3 py-3 text-right text-xs font-medium text-muted-foreground">ST%</th>
+              <th className="px-3 py-3 text-right text-xs font-medium text-muted-foreground">WOS</th>
+              <th className="px-3 py-3 text-right text-xs font-medium text-muted-foreground">Precio Prom</th>
             </tr>
           </thead>
           <tbody>
-            {data.map((row, i) => (
-              <tr key={row.sku ?? i} className="border-b border-border/50 hover:bg-muted/20 transition-colors">
-                <td className="px-4 py-3">
-                  <div className="flex items-center gap-3">
-                    {row.foto ? (
-                      <img
-                        src={row.foto}
-                        alt={row.producto ?? ""}
-                        className="w-16 h-16 rounded-lg object-cover bg-muted"
-                        onError={(e) => { e.currentTarget.style.display = "none"; }}
-                      />
-                    ) : (
-                      <div className="w-16 h-16 rounded-lg bg-muted/50 flex items-center justify-center text-xl">👗</div>
-                    )}
-                    <span className="font-medium text-foreground line-clamp-2 max-w-[200px]">{row.producto ?? "—"}</span>
-                  </div>
-                </td>
-                <td className="px-4 py-3 font-mono text-xs text-muted-foreground">{row.sku ?? "—"}</td>
-                <td className="px-4 py-3 text-muted-foreground">{row.categoria ?? "—"}</td>
-                <td className="px-4 py-3">
-                  <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
-                    row.clasificacion?.includes("Full Price") || row.clasificacion?.includes("Ganador Full")
-                      ? "bg-emerald-500/10 text-emerald-600"
-                      : row.clasificacion?.includes("Rebajas")
-                      ? "bg-destructive/10 text-destructive"
-                      : "bg-warning/10 text-warning"
-                  }`}>
-                    {row.clasificacion ?? "—"}
-                  </span>
-                </td>
-                <td className="px-4 py-3 text-right font-medium">{(row.unidades_vendidas ?? 0).toLocaleString()}</td>
-                <td className="px-4 py-3 text-right">{new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(row.precio_promedio ?? 0)}</td>
-                <td className="px-4 py-3 text-right font-medium">{(row.stock_disponible ?? 0).toLocaleString()}</td>
-              </tr>
-            ))}
+            {data.map((row, i) => {
+              const { name, color } = extractNameColor(row.producto);
+              const isExpanded = expandedId === row.sku;
+              return (
+                <Fragment key={row.sku ?? i}>
+                  <tr
+                    className={cn("border-b border-border/50 hover:bg-muted/20 transition-colors cursor-pointer", isExpanded && "bg-muted/30")}
+                    onClick={() => handleRowClick(row.sku)}
+                  >
+                    <td className="px-3 py-3 text-center font-bold text-muted-foreground">{i + 1}</td>
+                    <td className="px-3 py-3">
+                      <div className="flex items-center gap-3">
+                        {row.foto ? (
+                          <img src={row.foto} alt={name} className="w-10 h-10 rounded-lg object-cover bg-muted shrink-0" onError={(e) => { e.currentTarget.style.display = "none"; }} />
+                        ) : (
+                          <div className="w-10 h-10 rounded-lg bg-muted/50 flex items-center justify-center text-sm shrink-0">👗</div>
+                        )}
+                        <span className="font-medium text-foreground line-clamp-1 max-w-[180px]">{name}</span>
+                      </div>
+                    </td>
+                    <td className="px-3 py-3 text-xs text-muted-foreground">{row.categoria ?? "—"}</td>
+                    <td className="px-3 py-3 text-xs font-medium text-foreground">{color}</td>
+                    <td className="px-3 py-3 text-right font-medium">{(row.stock_disponible ?? 0).toLocaleString()}</td>
+                    <td className="px-3 py-3 text-right font-semibold">{(row.unidades_vendidas ?? 0).toLocaleString()}</td>
+                    <td className="px-3 py-3">
+                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium ${
+                        row.clasificacion?.includes("Full Price") ? "bg-emerald-500/10 text-emerald-600"
+                        : row.clasificacion?.includes("Rebajas") ? "bg-destructive/10 text-destructive"
+                        : "bg-warning/10 text-warning"
+                      }`}>
+                        {row.clasificacion ?? "—"}
+                      </span>
+                    </td>
+                    <td className="px-3 py-3 text-right text-xs font-medium">{(row.sell_through_pct ?? 0).toFixed(1)}%</td>
+                    <td className={cn("px-3 py-3 text-right text-xs font-semibold", getWosStatusColor(row.wos ?? 0))}>{(row.wos ?? 0).toFixed(1)}</td>
+                    <td className="px-3 py-3 text-right text-xs">{fmtCurrency(row.precio_promedio ?? 0)}</td>
+                  </tr>
+                  {isExpanded && (
+                    <tr>
+                      <td colSpan={10} className="p-0">
+                        <div className="bg-muted/20 border-b border-border px-6 py-3">
+                          <p className="text-xs font-semibold text-muted-foreground mb-2">📦 Desglose por SKU</p>
+                          {skuLoading ? (
+                            <div className="py-4 text-center text-xs text-muted-foreground">Cargando...</div>
+                          ) : !skuDetails.length ? (
+                            <div className="py-4 text-center text-xs text-muted-foreground">Sin SKUs</div>
+                          ) : (
+                            <table className="w-full text-xs">
+                              <thead>
+                                <tr className="border-b border-border/50">
+                                  <th className="px-3 py-2 text-left text-muted-foreground font-medium">SKU</th>
+                                  <th className="px-3 py-2 text-right text-muted-foreground font-medium">Stock</th>
+                                  <th className="px-3 py-2 text-right text-muted-foreground font-medium">Uds</th>
+                                  <th className="px-3 py-2 text-left text-muted-foreground font-medium">Clasif.</th>
+                                  <th className="px-3 py-2 text-right text-muted-foreground font-medium">ST%</th>
+                                  <th className="px-3 py-2 text-right text-muted-foreground font-medium">WOS</th>
+                                  <th className="px-3 py-2 text-right text-muted-foreground font-medium">Precio Prom</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {skuDetails.map((s) => (
+                                  <tr key={s.sku} className="border-b border-border/30 hover:bg-muted/10">
+                                    <td className="px-3 py-2 font-mono">{s.sku}</td>
+                                    <td className="px-3 py-2 text-right font-medium">{(s.stock_disponible ?? 0).toLocaleString()}</td>
+                                    <td className="px-3 py-2 text-right font-semibold">{(s.unidades_vendidas ?? 0).toLocaleString()}</td>
+                                    <td className="px-3 py-2">
+                                      <span className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium ${
+                                        s.clasificacion?.includes("Full") ? "bg-emerald-500/10 text-emerald-600"
+                                        : s.clasificacion?.includes("Rebajas") ? "bg-destructive/10 text-destructive"
+                                        : "bg-warning/10 text-warning"
+                                      }`}>{s.clasificacion}</span>
+                                    </td>
+                                    <td className="px-3 py-2 text-right">{(s.sell_through_pct ?? 0).toFixed(1)}%</td>
+                                    <td className={cn("px-3 py-2 text-right font-semibold", getWosStatusColor(s.wos ?? 0))}>{(s.wos ?? 0).toFixed(1)}</td>
+                                    <td className="px-3 py-2 text-right">{s.precio_prom_venta != null ? fmtCurrency(s.precio_prom_venta) : "—"}</td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                </Fragment>
+              );
+            })}
           </tbody>
         </table>
       </div>
@@ -879,6 +993,7 @@ function ChannelPanel({ days, canal, showLocationFilter, locationFilter }: {
             categoria: r.categoria ?? null, clasificacion: r.clasificacion ?? null,
             unidades_vendidas: r.unidades_vendidas ?? 0, precio_promedio: r.precio_prom_venta ?? 0,
             stock_disponible: r.stock_disponible ?? 0,
+            sell_through_pct: r.sell_through_pct ?? 0, wos: r.wos ?? 0,
           } as ProductRow)));
         }
 
@@ -889,6 +1004,7 @@ function ChannelPanel({ days, canal, showLocationFilter, locationFilter }: {
             categoria: r.categoria ?? null, clasificacion: r.clasificacion ?? null,
             unidades_vendidas: r.unidades_vendidas ?? 0, precio_promedio: r.precio_prom_venta ?? 0,
             stock_disponible: r.stock_disponible ?? 0,
+            sell_through_pct: r.sell_through_pct ?? 0, wos: r.wos ?? 0,
           } as ProductRow)));
         }
       } catch (err) {
@@ -1030,12 +1146,18 @@ function ChannelPanel({ days, canal, showLocationFilter, locationFilter }: {
         data={topProducts}
         title="Top 20 — Más Vendidos"
         exportFilename={`top20_${canal}_${days}d`}
+        days={days}
+        canalFiltro={canal === "digital" ? "DIGITAL" : "POS"}
+        locationFiltro={locParam}
       />
 
       <ProductTable
         data={bottomProducts}
         title="Bottom 20 — Menor Rotación (con stock)"
         exportFilename={`bottom20_${canal}_${days}d`}
+        days={days}
+        canalFiltro={canal === "digital" ? "DIGITAL" : "POS"}
+        locationFiltro={locParam}
       />
     </div>
   );
