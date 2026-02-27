@@ -5,7 +5,7 @@ import { resolveDays } from "@/components/dashboard/TimeFilter";
 import { exportToCSV } from "@/lib/csv-export";
 import { exportToPDF } from "@/lib/pdf-export";
 import { LoadingState, EmptyState } from "./LoadingState";
-import { Download, FileText, Trophy } from "lucide-react";
+import { Download, FileText, Trophy, ChevronDown, ChevronUp } from "lucide-react";
 
 interface RankingRow {
   tienda: string;
@@ -24,6 +24,7 @@ const fmt = (v: number) =>
 export function StoreLeaderboard({ days, canal }: { days: number; canal?: string }) {
   const [data, setData] = useState<RankingRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [expanded, setExpanded] = useState(false);
 
   useEffect(() => {
     async function fetch() {
@@ -92,7 +93,7 @@ export function StoreLeaderboard({ days, canal }: { days: number; canal?: string
             </tr>
           </thead>
           <tbody>
-            {data.map((row, i) => (
+            {(expanded ? data : data.slice(0, 10)).map((row, i) => (
               <tr key={row.tienda} className="border-b border-border/50 hover:bg-muted/20 transition-colors">
                 <td className="px-4 py-3 text-center text-base">
                   {i < 3 ? MEDALS[i] : <span className="text-xs text-muted-foreground font-mono">{i + 1}</span>}
@@ -126,6 +127,27 @@ export function StoreLeaderboard({ days, canal }: { days: number; canal?: string
           </tbody>
         </table>
       </div>
+
+      {data.length > 10 && (
+        <div className="px-4 py-3 border-t border-border">
+          <button
+            onClick={() => setExpanded(!expanded)}
+            className="w-full flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
+          >
+            {expanded ? (
+              <>
+                <ChevronUp className="h-3.5 w-3.5" />
+                Mostrar solo Top 10
+              </>
+            ) : (
+              <>
+                <ChevronDown className="h-3.5 w-3.5" />
+                Ver las {data.length} tiendas
+              </>
+            )}
+          </button>
+        </div>
+      )}
     </div>
   );
 }

@@ -301,19 +301,59 @@ function getPerformanceClass(storeSales: number, allSales: number[]) {
   return { label: "🔴 Malo", color: "text-destructive" };
 }
 
-/* ── Worst 3 lines recommendation from bottom products ── */
-function WorstLinesRecommendation({ bottomProducts }: { bottomProducts: ProductRow[] }) {
-  if (!bottomProducts.length) return null;
+/* ── Worst 3 lines recommendation from comportamiento producto data ── */
+interface ComportamientoRow {
+  categoria: string | null;
+  stock_tiendas: number | null;
+  stock_digital: number | null;
+  sell_through_pct: number | null;
+  und_vendidas: number | null;
+}
 
-  // Group by category, sum stock
-  const catMap = new Map<string, number>();
-  for (const p of bottomProducts) {
-    const cat = p.categoria ?? "SIN CATEGORÍA";
-    catMap.set(cat, (catMap.get(cat) ?? 0) + (p.stock_disponible ?? 0));
+function WorstLinesRecommendation({ days, canal, locationId }: { days: number; canal: string; locationId?: string | null }) {
+  const [data, setData] = useState<ComportamientoRow[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetch() {
+      if (!isValidDays(days)) return;
+      setLoading(true);
+      const effectiveDays = resolveDays(days);
+      const { data: rows } = await supabase.rpc("reporte_comportamiento_producto", {
+        dias_atras: effectiveDays,
+        p_location_id: locationId || null,
+      });
+      if (rows) setData(rows as unknown as ComportamientoRow[]);
+      setLoading(false);
+    }
+    fetch();
+  }, [days, canal, locationId]);
+
+  if (loading) return <LoadingState rows={2} />;
+  if (!data.length) return null;
+
+  // Group by category: sum stock, avg sell-through, sum units sold
+  const catMap = new Map<string, { stock: number; stSum: number; count: number; uds: number }>();
+  for (const p of data) {
+    const cat = (p.categoria ?? "SIN CATEGORÍA").toUpperCase();
+    const prev = catMap.get(cat) ?? { stock: 0, stSum: 0, count: 0, uds: 0 };
+    prev.stock += (p.stock_tiendas ?? 0) + (p.stock_digital ?? 0);
+    prev.stSum += (p.sell_through_pct ?? 0);
+    prev.count += 1;
+    prev.uds += (p.und_vendidas ?? 0);
+    catMap.set(cat, prev);
   }
 
+  // Worst = highest stock + lowest sell-through (sort by stock desc, then ST asc)
   const sorted = Array.from(catMap.entries())
-    .sort((a, b) => b[1] - a[1])
+    .filter(([, v]) => v.stock > 0)
+    .map(([cat, v]) => ({
+      cat,
+      stock: v.stock,
+      avgST: v.count > 0 ? v.stSum / v.count : 0,
+      uds: v.uds,
+    }))
+    .sort((a, b) => a.avgST - b.avgST || b.stock - a.stock)
     .slice(0, 3);
 
   if (sorted.length === 0) return null;
@@ -328,12 +368,17 @@ function WorstLinesRecommendation({ bottomProducts }: { bottomProducts: ProductR
       </div>
       <p className="text-xs text-muted-foreground mb-3">Las 3 líneas con menor rotación y mayor stock disponible:</p>
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        {sorted.map(([cat, stock], i) => (
-          <div key={cat} className="flex items-center gap-3 p-3 rounded-lg bg-card border border-border">
+        {sorted.map((item, i) => (
+          <div key={item.cat} className="flex items-center gap-3 p-3 rounded-lg bg-card border border-border">
             <span className="text-lg font-bold text-amber-500">{i + 1}</span>
-            <div className="min-w-0">
-              <p className="text-sm font-medium text-foreground truncate">{cat}</p>
-              <p className="text-xs text-muted-foreground">{stock.toLocaleString()} uds en stock</p>
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-medium text-foreground truncate">{item.cat}</p>
+              <p className="text-xs text-muted-foreground">{item.stock.toLocaleString()} uds en stock</p>
+              <div className="flex items-center gap-2 mt-1">
+                <span className={cn("text-xs font-semibold", item.avgST < 20 ? "text-destructive" : item.avgST < 40 ? "text-amber-500" : "text-emerald-600")}>
+                  %ST: {item.avgST.toFixed(1)}%
+                </span>
+              </div>
             </div>
           </div>
         ))}
@@ -749,7 +794,7 @@ function ChannelPanel({ days, canal, showLocationFilter, locationFilter }: {
 
       <ParetoChart days={days} canal={canal === "digital" ? "digital" : "pos"} locationId={locParam} />
 
-      <WorstLinesRecommendation bottomProducts={bottomProducts} />
+      <WorstLinesRecommendation days={days} canal={canal} locationId={locParam} />
 
       <ProductTable
         data={topProducts}
