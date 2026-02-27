@@ -176,18 +176,16 @@ function ProductTable({ data, title, exportFilename, days, canalFiltro, location
   if (!data.length) return <EmptyState message="Sin datos para mostrar." />;
 
   const exportData = data.map((r, i) => {
-    const { name, color } = extractNameColor(r.producto);
+    const { name } = extractNameColor(r.producto);
     return {
       "#": i + 1,
       Línea: r.categoria ?? "",
       Nombre: name,
-      Color: color,
       "Stock Total": r.stock_disponible ?? 0,
-      "Uds Vendidas": r.unidades_vendidas ?? 0,
+      "Unidades Vendidas": r.unidades_vendidas ?? 0,
       Clasificación: r.clasificacion ?? "",
       "ST%": r.sell_through_pct ?? 0,
       WOS: r.wos ?? 0,
-      "Precio Prom": r.precio_promedio ?? 0,
     };
   });
 
@@ -217,25 +215,25 @@ function ProductTable({ data, title, exportFilename, days, canalFiltro, location
         <ExportButtons data={exportData as unknown as Record<string, unknown>[]} filename={exportFilename} title={title} />
       </div>
       <div className="overflow-x-auto">
-        <table className="w-full text-sm min-w-[900px]">
+        <table className="w-full text-sm min-w-[800px]">
           <thead>
             <tr className="border-b border-border bg-muted/30">
               <th className="px-3 py-3 text-center text-xs font-medium text-muted-foreground w-10">#</th>
               <th className="px-3 py-3 text-left text-xs font-medium text-muted-foreground">Producto</th>
               <th className="px-3 py-3 text-left text-xs font-medium text-muted-foreground">Línea</th>
-              <th className="px-3 py-3 text-left text-xs font-medium text-muted-foreground">Color</th>
               <th className="px-3 py-3 text-right text-xs font-medium text-muted-foreground">Stock</th>
-              <th className="px-3 py-3 text-right text-xs font-medium text-muted-foreground">Uds</th>
+              <th className="px-3 py-3 text-right text-xs font-medium text-muted-foreground">Unidades Vendidas</th>
               <th className="px-3 py-3 text-left text-xs font-medium text-muted-foreground">Clasif.</th>
-              <th className="px-3 py-3 text-right text-xs font-medium text-muted-foreground">ST%</th>
+              <th className="px-3 py-3 text-center text-xs font-medium text-muted-foreground w-32">ST%</th>
               <th className="px-3 py-3 text-right text-xs font-medium text-muted-foreground">WOS</th>
-              <th className="px-3 py-3 text-right text-xs font-medium text-muted-foreground">Precio Prom</th>
             </tr>
           </thead>
           <tbody>
-            {data.map((row, i) => {
-              const { name, color } = extractNameColor(row.producto);
+          {data.map((row, i) => {
+              const { name } = extractNameColor(row.producto);
               const isExpanded = expandedId === row.sku;
+              const stVal = row.sell_through_pct ?? 0;
+              const stColor = stVal > 70 ? "bg-emerald-500" : stVal >= 30 ? "bg-amber-500" : "bg-destructive";
               return (
                 <Fragment key={row.sku ?? i}>
                   <tr
@@ -254,7 +252,6 @@ function ProductTable({ data, title, exportFilename, days, canalFiltro, location
                       </div>
                     </td>
                     <td className="px-3 py-3 text-xs text-muted-foreground">{row.categoria ?? "—"}</td>
-                    <td className="px-3 py-3 text-xs font-medium text-foreground">{color}</td>
                     <td className="px-3 py-3 text-right font-medium">{(row.stock_disponible ?? 0).toLocaleString()}</td>
                     <td className="px-3 py-3 text-right font-semibold">{(row.unidades_vendidas ?? 0).toLocaleString()}</td>
                     <td className="px-3 py-3">
@@ -266,13 +263,19 @@ function ProductTable({ data, title, exportFilename, days, canalFiltro, location
                         {row.clasificacion ?? "—"}
                       </span>
                     </td>
-                    <td className="px-3 py-3 text-right text-xs font-medium">{(row.sell_through_pct ?? 0).toFixed(1)}%</td>
+                    <td className="px-3 py-3">
+                      <div className="flex items-center gap-2">
+                        <div className="w-full h-2 rounded-full bg-muted overflow-hidden">
+                          <div className={cn("h-full rounded-full transition-all", stColor)} style={{ width: `${Math.min(stVal, 100)}%` }} />
+                        </div>
+                        <span className="text-[10px] font-medium text-muted-foreground w-10 text-right shrink-0">{stVal.toFixed(1)}%</span>
+                      </div>
+                    </td>
                     <td className={cn("px-3 py-3 text-right text-xs font-semibold", getWosStatusColor(row.wos ?? 0))}>{(row.wos ?? 0).toFixed(1)}</td>
-                    <td className="px-3 py-3 text-right text-xs">{fmtCurrency(row.precio_promedio ?? 0)}</td>
                   </tr>
                   {isExpanded && (
                     <tr>
-                      <td colSpan={10} className="p-0">
+                      <td colSpan={8} className="p-0">
                         <div className="bg-muted/20 border-b border-border px-6 py-3">
                           <p className="text-xs font-semibold text-muted-foreground mb-2">📦 Desglose por SKU</p>
                           {skuLoading ? (
@@ -285,31 +288,40 @@ function ProductTable({ data, title, exportFilename, days, canalFiltro, location
                                 <tr className="border-b border-border/50">
                                   <th className="px-3 py-2 text-left text-muted-foreground font-medium">SKU</th>
                                   <th className="px-3 py-2 text-right text-muted-foreground font-medium">Stock</th>
-                                  <th className="px-3 py-2 text-right text-muted-foreground font-medium">Uds</th>
+                                  <th className="px-3 py-2 text-right text-muted-foreground font-medium">Unidades Vendidas</th>
                                   <th className="px-3 py-2 text-left text-muted-foreground font-medium">Clasif.</th>
-                                  <th className="px-3 py-2 text-right text-muted-foreground font-medium">ST%</th>
+                                  <th className="px-3 py-2 text-center text-muted-foreground font-medium w-28">ST%</th>
                                   <th className="px-3 py-2 text-right text-muted-foreground font-medium">WOS</th>
-                                  <th className="px-3 py-2 text-right text-muted-foreground font-medium">Precio Prom</th>
                                 </tr>
                               </thead>
                               <tbody>
-                                {skuDetails.map((s) => (
-                                  <tr key={s.sku} className="border-b border-border/30 hover:bg-muted/10">
-                                    <td className="px-3 py-2 font-mono">{s.sku}</td>
-                                    <td className="px-3 py-2 text-right font-medium">{(s.stock_disponible ?? 0).toLocaleString()}</td>
-                                    <td className="px-3 py-2 text-right font-semibold">{(s.unidades_vendidas ?? 0).toLocaleString()}</td>
-                                    <td className="px-3 py-2">
-                                      <span className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium ${
-                                        s.clasificacion?.includes("Full") ? "bg-emerald-500/10 text-emerald-600"
-                                        : s.clasificacion?.includes("Rebajas") ? "bg-destructive/10 text-destructive"
-                                        : "bg-warning/10 text-warning"
-                                      }`}>{s.clasificacion}</span>
-                                    </td>
-                                    <td className="px-3 py-2 text-right">{(s.sell_through_pct ?? 0).toFixed(1)}%</td>
-                                    <td className={cn("px-3 py-2 text-right font-semibold", getWosStatusColor(s.wos ?? 0))}>{(s.wos ?? 0).toFixed(1)}</td>
-                                    <td className="px-3 py-2 text-right">{s.precio_prom_venta != null ? fmtCurrency(s.precio_prom_venta) : "—"}</td>
-                                  </tr>
-                                ))}
+                                {skuDetails.map((s) => {
+                                  const skuSt = s.sell_through_pct ?? 0;
+                                  const skuStColor = skuSt > 70 ? "bg-emerald-500" : skuSt >= 30 ? "bg-amber-500" : "bg-destructive";
+                                  return (
+                                    <tr key={s.sku} className="border-b border-border/30 hover:bg-muted/10">
+                                      <td className="px-3 py-2 font-mono">{s.sku}</td>
+                                      <td className="px-3 py-2 text-right font-medium">{(s.stock_disponible ?? 0).toLocaleString()}</td>
+                                      <td className="px-3 py-2 text-right font-semibold">{(s.unidades_vendidas ?? 0).toLocaleString()}</td>
+                                      <td className="px-3 py-2">
+                                        <span className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium ${
+                                          s.clasificacion?.includes("Full") ? "bg-emerald-500/10 text-emerald-600"
+                                          : s.clasificacion?.includes("Rebajas") ? "bg-destructive/10 text-destructive"
+                                          : "bg-warning/10 text-warning"
+                                        }`}>{s.clasificacion}</span>
+                                      </td>
+                                      <td className="px-3 py-2">
+                                        <div className="flex items-center gap-1.5">
+                                          <div className="w-full h-1.5 rounded-full bg-muted overflow-hidden">
+                                            <div className={cn("h-full rounded-full", skuStColor)} style={{ width: `${Math.min(skuSt, 100)}%` }} />
+                                          </div>
+                                          <span className="text-[10px] text-muted-foreground w-9 text-right shrink-0">{skuSt.toFixed(1)}%</span>
+                                        </div>
+                                      </td>
+                                      <td className={cn("px-3 py-2 text-right font-semibold", getWosStatusColor(s.wos ?? 0))}>{(s.wos ?? 0).toFixed(1)}</td>
+                                    </tr>
+                                  );
+                                })}
                               </tbody>
                             </table>
                           )}
