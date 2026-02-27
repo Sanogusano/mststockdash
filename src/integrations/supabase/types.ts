@@ -498,6 +498,7 @@ export type Database = {
           inventario_total: number
           semanas_inventario: number
           tienda: string
+          tipo: string
           venta_promedio_semanal: number
         }[]
       }
