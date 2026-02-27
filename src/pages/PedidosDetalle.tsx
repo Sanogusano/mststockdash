@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
@@ -7,10 +7,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
-import { CalendarIcon, ArrowLeft, Download, FileText, AlertTriangle } from "lucide-react";
+import { CalendarIcon, ArrowLeft, Download, FileText, AlertTriangle, X, ChevronDown } from "lucide-react";
 import { exportToCSV } from "@/lib/csv-export";
 import { exportToPDF } from "@/lib/pdf-export";
 import { LoadingState } from "@/components/dashboard/LoadingState";
@@ -36,7 +37,7 @@ interface Location {
 
 const CEDI_ID = "71474315479";
 const CEDI_DISPLAY = "Bodega Ecommerce";
-const ALERT_CATEGORIES = ["SUNGLASSES", "PARFUM"];
+const ALERT_CATEGORIES = ["SUNGLASSES", "FRAGANCES"];
 
 export default function PedidosDetallePage() {
   const [searchParams] = useSearchParams();
@@ -50,9 +51,10 @@ export default function PedidosDetallePage() {
   const [loading, setLoading] = useState(true);
   const [locations, setLocations] = useState<Location[]>([]);
   const [selectedLocation, setSelectedLocation] = useState<string>("all");
-  const [selectedCategory, setSelectedCategory] = useState<string>("all");
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [dateFrom, setDateFrom] = useState<Date | undefined>(undefined);
   const [dateTo, setDateTo] = useState<Date | undefined>(undefined);
+  const [showAlertDetail, setShowAlertDetail] = useState(false);
 
   const title = tipo === "full_price" ? "Pedidos a Full Price" : "Pedidos con Descuento";
 
@@ -64,9 +66,50 @@ export default function PedidosDetallePage() {
 
   // Filtered data
   const filteredData = useMemo(() => {
-    if (selectedCategory === "all") return data;
-    return data.filter(r => r.categoria === selectedCategory);
-  }, [data, selectedCategory]);
+    if (selectedCategories.length === 0) return data;
+    return data.filter(r => selectedCategories.includes(r.categoria));
+  }, [data, selectedCategories]);
+
+  // Alert stats for control categories
+  const alertStats = useMemo(() => {
+    const stats: { cat: string; pedidos: number; unidades: number; byStore: Record<string, number> }[] = [];
+    for (const cat of ALERT_CATEGORIES) {
+      const rows = data.filter(r => r.categoria === cat);
+      if (rows.length === 0) continue;
+      const byStore: Record<string, number> = {};
+      rows.forEach(r => {
+        byStore[r.sucursal] = (byStore[r.sucursal] || 0) + r.cantidad;
+      });
+      stats.push({
+        cat,
+        pedidos: new Set(rows.map(r => r.numero_pedido)).size,
+        unidades: rows.reduce((s, r) => s + r.cantidad, 0),
+        byStore,
+      });
+    }
+    return stats;
+  }, [data]);
+
+  const handleAlertClick = useCallback((cat?: string) => {
+    if (cat) {
+      setSelectedCategories([cat]);
+    } else {
+      setSelectedCategories(ALERT_CATEGORIES.filter(c => data.some(r => r.categoria === c)));
+    }
+    setShowAlertDetail(true);
+  }, [data]);
+
+  const toggleCategory = (cat: string) => {
+    setSelectedCategories(prev =>
+      prev.includes(cat) ? prev.filter(c => c !== cat) : [...prev, cat]
+    );
+    setShowAlertDetail(false);
+  };
+
+  const clearCategories = () => {
+    setSelectedCategories([]);
+    setShowAlertDetail(false);
+  };
 
   // Load locations
   useEffect(() => {
@@ -150,6 +193,12 @@ export default function PedidosDetallePage() {
     } : {}),
   }));
 
+  const categoryLabel = selectedCategories.length === 0
+    ? "Todas"
+    : selectedCategories.length <= 2
+      ? selectedCategories.join(", ")
+      : `${selectedCategories.length} seleccionadas`;
+
   return (
     <SidebarProvider>
       <div className="flex min-h-screen w-full bg-background">
@@ -187,6 +236,59 @@ export default function PedidosDetallePage() {
             )}
           </header>
 
+          {/* Alert Banner for control categories */}
+          {tipo === "descuento" && alertStats.length > 0 && (
+            <div className="px-4 sm:px-6 py-2 border-b border-border bg-destructive/5">
+              <div className="flex flex-wrap items-center gap-3">
+                {alertStats.map(stat => (
+                  <button
+                    key={stat.cat}
+                    onClick={() => handleAlertClick(stat.cat)}
+                    className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-destructive/10 hover:bg-destructive/20 transition-colors text-destructive text-xs font-semibold"
+                  >
+                    <AlertTriangle className="h-3.5 w-3.5" />
+                    <span>{stat.cat}: {stat.unidades} uds en {stat.pedidos} pedidos</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Store breakdown when alert clicked and no location filter */}
+          {showAlertDetail && selectedLocation === "all" && (
+            <div className="px-4 sm:px-6 py-3 border-b border-border bg-destructive/5">
+              <div className="flex items-center justify-between mb-2">
+                <h4 className="text-xs font-semibold text-destructive flex items-center gap-1.5">
+                  <AlertTriangle className="h-3.5 w-3.5" />
+                  Desglose por tienda — {selectedCategories.join(", ")}
+                </h4>
+                <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-muted-foreground" onClick={() => setShowAlertDetail(false)}>
+                  <X className="h-3.5 w-3.5" />
+                </Button>
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2">
+                {(() => {
+                  const merged: Record<string, number> = {};
+                  alertStats
+                    .filter(s => selectedCategories.includes(s.cat))
+                    .forEach(s => {
+                      Object.entries(s.byStore).forEach(([store, qty]) => {
+                        merged[store] = (merged[store] || 0) + qty;
+                      });
+                    });
+                  return Object.entries(merged)
+                    .sort((a, b) => b[1] - a[1])
+                    .map(([store, qty]) => (
+                      <div key={store} className="flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-md bg-card border border-border text-xs">
+                        <span className="truncate text-foreground">{store}</span>
+                        <span className="font-bold text-destructive whitespace-nowrap">{qty} uds</span>
+                      </div>
+                    ));
+                })()}
+              </div>
+            </div>
+          )}
+
           {/* Filters */}
           <div className="px-4 sm:px-6 py-3 border-b border-border flex flex-wrap items-center gap-3">
             <div className="flex items-center gap-2">
@@ -204,24 +306,46 @@ export default function PedidosDetallePage() {
               </Select>
             </div>
 
+            {/* Multi-select categories */}
             <div className="flex items-center gap-2">
               <span className="text-xs text-muted-foreground font-medium">Categoría:</span>
-              <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-                <SelectTrigger className="w-[180px] h-8 text-xs bg-card">
-                  <SelectValue placeholder="Todas" />
-                </SelectTrigger>
-                <SelectContent className="bg-popover border border-border shadow-lg z-50">
-                  <SelectItem value="all">Todas las categorías</SelectItem>
-                  {categories.map((cat) => (
-                    <SelectItem key={cat} value={cat}>
-                      <span className="flex items-center gap-1.5">
-                        {isAlertCategory(cat) && <AlertTriangle className="h-3 w-3 text-destructive" />}
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" size="sm" className="h-8 text-xs gap-1.5 w-[200px] justify-between">
+                    <span className="truncate">{categoryLabel}</span>
+                    <ChevronDown className="h-3.5 w-3.5 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[220px] p-2 max-h-[280px] overflow-y-auto" align="start">
+                  {selectedCategories.length > 0 && (
+                    <button
+                      onClick={clearCategories}
+                      className="w-full text-left px-2 py-1.5 text-xs text-muted-foreground hover:text-foreground hover:bg-muted rounded-sm mb-1 transition-colors"
+                    >
+                      Limpiar selección
+                    </button>
+                  )}
+                  {categories.map(cat => (
+                    <label
+                      key={cat}
+                      className={cn(
+                        "flex items-center gap-2 px-2 py-1.5 rounded-sm cursor-pointer hover:bg-muted transition-colors text-sm",
+                        isAlertCategory(cat) && "text-destructive"
+                      )}
+                    >
+                      <Checkbox
+                        checked={selectedCategories.includes(cat)}
+                        onCheckedChange={() => toggleCategory(cat)}
+                        className="h-3.5 w-3.5"
+                      />
+                      <span className="flex items-center gap-1 text-xs">
+                        {isAlertCategory(cat) && <AlertTriangle className="h-3 w-3" />}
                         {cat}
                       </span>
-                    </SelectItem>
+                    </label>
                   ))}
-                </SelectContent>
-              </Select>
+                </PopoverContent>
+              </Popover>
             </div>
 
             <div className="flex items-center gap-2">
