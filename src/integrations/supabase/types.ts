@@ -582,6 +582,20 @@ export type Database = {
           und_total: number
         }[]
       }
+      reporte_wos_categoria_global: {
+        Args: { dias_atras: number; p_location_ids?: string[] }
+        Returns: {
+          categoria: string
+          estado_salud: string
+          inventario_total: number
+          location_id: string
+          pct_full_price: number
+          pct_rebajado: number
+          semanas_inventario: number
+          tienda: string
+          venta_promedio_semanal: number
+        }[]
+      }
       reporte_wos_categoria_tienda: {
         Args: { dias_atras: number; p_location_id: string }
         Returns: {
