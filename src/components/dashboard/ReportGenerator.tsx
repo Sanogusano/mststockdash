@@ -81,6 +81,21 @@ const isOutlet = (name: string) => OUTLET_KEYWORDS.some(k => name.toUpperCase().
 const fmtCOP = (v: number) =>
   new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(v);
 
+/** Strip emojis and non-latin unicode symbols that jsPDF can't render */
+function stripEmoji(text: string): string {
+  return text
+    .replace(/[\u{1F000}-\u{1FFFF}]/gu, "")
+    .replace(/[\u{2600}-\u{27BF}]/gu, "")
+    .replace(/[\u{FE00}-\u{FE0F}]/gu, "")
+    .replace(/[\u{1F900}-\u{1F9FF}]/gu, "")
+    .replace(/[\u{200D}]/gu, "")
+    .replace(/[\u{20E3}]/gu, "")
+    .replace(/[\u{E0020}-\u{E007F}]/gu, "")
+    .replace(/\u{2B50}|\u{2705}|\u{26A0}|\u{1F534}|\u{1F7E1}|\u{1F7E2}/gu, "")
+    .replace(/\s{2,}/g, " ")
+    .trim();
+}
+
 /* ── Logo to base64 ── */
 async function getLogoBase64(): Promise<string> {
   return new Promise((resolve) => {
@@ -128,12 +143,12 @@ async function generateReport(
   const effectiveDays = resolveDays(days);
   
   // Determine title
-  let titulo = "DESEMPEÑO COMERCIAL — Venta Directa";
+  let titulo = "DESEMPENO COMERCIAL - Venta Directa";
   if (reportType === "canal" && canal) {
-    const canalLabel = canal === "tiendas" ? "Tiendas de Línea" : canal === "outlets" ? "Outlets" : "Digital";
-    titulo = `DESEMPEÑO COMERCIAL — ${canalLabel}`;
+    const canalLabel = canal === "tiendas" ? "Tiendas de Linea" : canal === "outlets" ? "Outlets" : "Digital";
+    titulo = `DESEMPENO COMERCIAL - ${canalLabel}`;
   } else if (reportType === "tienda" && locationName) {
-    titulo = `DESEMPEÑO COMERCIAL — ${locationName}`;
+    titulo = `DESEMPENO COMERCIAL - ${locationName}`;
   }
 
   // Determine RPC params
@@ -222,15 +237,16 @@ async function generateReport(
   const margin = 14;
   let y = margin;
 
-  // Colors
-  const PRIMARY = [42, 67, 101] as [number, number, number]; // deep navy
-  const ACCENT = [63, 81, 181] as [number, number, number];
+  // Colors — Black theme
+  const BLACK = [15, 15, 15] as [number, number, number];
+  const DARK = [30, 30, 30] as [number, number, number];
+  const ACCENT = [40, 40, 40] as [number, number, number];
   const GREEN = [16, 185, 129] as [number, number, number];
-  const RED = [239, 68, 68] as [number, number, number];
-  const ORANGE = [249, 115, 22] as [number, number, number];
-  const BLUE = [59, 130, 246] as [number, number, number];
-  const GRAY = [107, 114, 128] as [number, number, number];
-  const LIGHT_BG = [248, 250, 252] as [number, number, number];
+  const RED = [220, 38, 38] as [number, number, number];
+  const ORANGE = [234, 88, 12] as [number, number, number];
+  const GRAY = [120, 120, 120] as [number, number, number];
+  const LIGHT_BG = [245, 245, 245] as [number, number, number];
+  const WHITE = [255, 255, 255] as [number, number, number];
 
   function addNewPageIfNeeded(requiredSpace: number) {
     if (y + requiredSpace > pageH - margin) {
@@ -241,21 +257,20 @@ async function generateReport(
     return false;
   }
 
-  function drawSectionTitle(title: string, emoji: string = "") {
+  function drawSectionTitle(title: string) {
     addNewPageIfNeeded(16);
-    doc.setFillColor(...PRIMARY);
+    doc.setFillColor(...BLACK);
     doc.roundedRect(margin, y, pageW - 2 * margin, 9, 2, 2, "F");
     doc.setTextColor(255, 255, 255);
     doc.setFontSize(10);
     doc.setFont("helvetica", "bold");
-    doc.text(`${emoji} ${title}`, margin + 4, y + 6.2);
+    doc.text(stripEmoji(title), margin + 4, y + 6.2);
     doc.setTextColor(0, 0, 0);
     y += 13;
   }
 
   // ── HEADER ──
-  // Dark header bar
-  doc.setFillColor(...PRIMARY);
+  doc.setFillColor(...BLACK);
   doc.rect(0, 0, pageW, 30, "F");
 
   // Logo
@@ -273,17 +288,17 @@ async function generateReport(
   doc.setTextColor(255, 255, 255);
   doc.setFontSize(13);
   doc.setFont("helvetica", "bold");
-  doc.text(titulo, pageW - margin, 12, { align: "right" });
+  doc.text(stripEmoji(titulo), pageW - margin, 12, { align: "right" });
   doc.setFontSize(8);
   doc.setFont("helvetica", "normal");
-  doc.text(dateStr, pageW - margin, 19, { align: "right" });
-  doc.text(`Período: últimos ${effectiveDays} días`, pageW - margin, 24, { align: "right" });
+  doc.text(stripEmoji(dateStr), pageW - margin, 19, { align: "right" });
+  doc.text(`Periodo: ultimos ${effectiveDays} dias`, pageW - margin, 24, { align: "right" });
   
   doc.setTextColor(0, 0, 0);
   y = 36;
 
   // ── PARTICIPACIÓN POR LÍNEA ──
-  drawSectionTitle("PARTICIPACIÓN POR LÍNEA", "📊");
+  drawSectionTitle("PARTICIPACION POR LINEA");
 
   if (paretoData.length) {
     // Draw a mini bar chart representation
@@ -300,7 +315,7 @@ async function generateReport(
       doc.setFontSize(7);
       doc.setFont("helvetica", "normal");
       doc.setTextColor(...GRAY);
-      doc.text((row.categoria ?? "—").substring(0, 20), margin, y + 3.5);
+      doc.text(stripEmoji((row.categoria ?? "-")).substring(0, 20), margin, y + 3.5);
       
       // Bar
       const barX = margin + 40;
@@ -313,7 +328,7 @@ async function generateReport(
       doc.roundedRect(barX, y, Math.max(barW, 1), barH, 1, 1, "F");
       
       // Value
-      doc.setTextColor(...PRIMARY);
+      doc.setTextColor(...BLACK);
       doc.setFont("helvetica", "bold");
       doc.text(`${pct.toFixed(1)}% · ${(row.unidades ?? 0).toLocaleString()} uds`, barX + barW + 3, y + 3.5);
       
@@ -323,12 +338,12 @@ async function generateReport(
   }
 
   // ── KPIs ──
-  drawSectionTitle("INDICADORES COMERCIALES", "📈");
+  drawSectionTitle("INDICADORES COMERCIALES");
 
   const kpiItems = [
-    { label: "Ventas Netas", value: fmtCOP(kpis.ingresos_netos), color: PRIMARY },
-    { label: "Ticket Promedio", value: fmtCOP(kpis.ticket_promedio), color: PRIMARY },
-    { label: "UPT", value: kpis.upt.toFixed(2), color: PRIMARY },
+    { label: "Ventas Netas", value: fmtCOP(kpis.ingresos_netos), color: BLACK },
+    { label: "Ticket Promedio", value: fmtCOP(kpis.ticket_promedio), color: BLACK },
+    { label: "UPT", value: kpis.upt.toFixed(2), color: BLACK },
     { label: "% Full Price", value: `${kpis.pct_pedidos_full_price.toFixed(1)}%`, color: GREEN },
     { label: "% Rebajas", value: `${kpis.pct_pedidos_rebajas.toFixed(1)}%`, color: RED },
     { label: "% Desc. Promo", value: `${kpis.pct_pedidos_con_descuento.toFixed(1)}%`, color: ORANGE },
@@ -366,20 +381,20 @@ async function generateReport(
 
   // ── DESEMPEÑO POR LÍNEA TABLE ──
   if (lineaData.length) {
-    drawSectionTitle("DESEMPEÑO POR LÍNEA", "📋");
+    drawSectionTitle("DESEMPENO POR LINEA");
     autoTable(doc, {
       startY: y,
-      head: [["Categoría", "Und. Total", "% Part.", "Sell-Through", "WOS", "Estado"]],
+      head: [["Categoria", "Und. Total", "% Part.", "Sell-Through", "WOS", "Estado"]],
       body: lineaData.map(r => [
-        (r.categoria ?? "—").substring(0, 25),
+        stripEmoji((r.categoria ?? "-")).substring(0, 25),
         (r.und_total ?? 0).toLocaleString(),
         `${(r.pct_participacion ?? 0).toFixed(1)}%`,
         `${(r.sell_through_pct ?? 0).toFixed(1)}%`,
         (r.wos ?? 0).toFixed(1),
-        r.estado_salud ?? "—",
+        stripEmoji(r.estado_salud ?? "-"),
       ]),
       styles: { fontSize: 7, cellPadding: 2 },
-      headStyles: { fillColor: ACCENT, textColor: 255, fontStyle: "bold", fontSize: 7 },
+      headStyles: { fillColor: BLACK as any, textColor: 255, fontStyle: "bold", fontSize: 7 },
       alternateRowStyles: { fillColor: [248, 250, 252] },
       margin: { left: margin, right: margin },
       didParseCell: (data) => {
@@ -396,22 +411,22 @@ async function generateReport(
 
   // ── TOP 20 ──
   if (topProducts.length) {
-    drawSectionTitle("TOP 20 — PRODUCTOS MÁS VENDIDOS", "🏆");
+    drawSectionTitle("TOP 20 - PRODUCTOS MAS VENDIDOS");
     
     autoTable(doc, {
       startY: y,
-      head: [["", "Producto", "Categoría", "Clasificación", "Uds", "Precio Prom", "Stock"]],
+      head: [["", "Producto", "Categoria", "Clasificacion", "Uds", "Precio Prom", "Stock"]],
       body: topProducts.slice(0, 20).map(r => [
         { content: "", styles: { minCellWidth: 10, cellWidth: 10 } },
-        (r.producto ?? "—").substring(0, 35),
-        (r.categoria ?? "—").substring(0, 15),
-        r.clasificacion ?? "—",
+        stripEmoji((r.producto ?? "-")).substring(0, 35),
+        stripEmoji((r.categoria ?? "-")).substring(0, 15),
+        stripEmoji(r.clasificacion ?? "-"),
         (r.unidades_vendidas ?? 0).toLocaleString(),
         fmtCOP(r.precio_prom_venta ?? 0),
         (r.stock_disponible ?? 0).toLocaleString(),
       ]),
       styles: { fontSize: 7, cellPadding: 2, minCellHeight: 10 },
-      headStyles: { fillColor: ACCENT, textColor: 255, fontStyle: "bold", fontSize: 7 },
+      headStyles: { fillColor: BLACK as any, textColor: 255, fontStyle: "bold", fontSize: 7 },
       alternateRowStyles: { fillColor: [248, 250, 252] },
       margin: { left: margin, right: margin },
       columnStyles: { 0: { cellWidth: 10 } },
@@ -447,22 +462,22 @@ async function generateReport(
 
   // ── BOTTOM 20 ──
   if (bottomProducts.length) {
-    drawSectionTitle("BOTTOM 20 — MENOR ROTACIÓN", "📉");
+    drawSectionTitle("BOTTOM 20 - MENOR ROTACION");
     
     autoTable(doc, {
       startY: y,
-      head: [["", "Producto", "Categoría", "Clasificación", "Uds", "Precio Prom", "Stock"]],
+      head: [["", "Producto", "Categoria", "Clasificacion", "Uds", "Precio Prom", "Stock"]],
       body: bottomProducts.slice(0, 20).map(r => [
         { content: "", styles: { minCellWidth: 10, cellWidth: 10 } },
-        (r.producto ?? "—").substring(0, 35),
-        (r.categoria ?? "—").substring(0, 15),
-        r.clasificacion ?? "—",
+        stripEmoji((r.producto ?? "-")).substring(0, 35),
+        stripEmoji((r.categoria ?? "-")).substring(0, 15),
+        stripEmoji(r.clasificacion ?? "-"),
         (r.unidades_vendidas ?? 0).toLocaleString(),
         fmtCOP(r.precio_prom_venta ?? 0),
         (r.stock_disponible ?? 0).toLocaleString(),
       ]),
       styles: { fontSize: 7, cellPadding: 2, minCellHeight: 10 },
-      headStyles: { fillColor: [220, 38, 38], textColor: 255, fontStyle: "bold", fontSize: 7 },
+      headStyles: { fillColor: BLACK as any, textColor: 255, fontStyle: "bold", fontSize: 7 },
       alternateRowStyles: { fillColor: [254, 242, 242] },
       margin: { left: margin, right: margin },
       columnStyles: { 0: { cellWidth: 10 } },
@@ -498,21 +513,21 @@ async function generateReport(
 
   // ── SALUD DE PRODUCTO — RIESGO AGOTADOS ──
   if (healthData.length) {
-    drawSectionTitle("SALUD DE PRODUCTO — RIESGO DE AGOTADOS", "🟡");
+    drawSectionTitle("SALUD DE PRODUCTO - RIESGO DE AGOTADOS");
     
     autoTable(doc, {
       startY: y,
       head: [["", "Producto", "SKU", "Stock Total", "WOS", "Estado"]],
       body: healthData.slice(0, 30).map(r => [
         { content: "", styles: { minCellWidth: 10, cellWidth: 10 } },
-        (r.producto ?? "—").substring(0, 35),
-        (r.sku ?? "—").substring(0, 15),
+        stripEmoji((r.producto ?? "-")).substring(0, 35),
+        (r.sku ?? "-").substring(0, 15),
         ((r.stock_tiendas ?? 0) + (r.stock_digital ?? 0)).toLocaleString(),
         (r.wos ?? 0).toFixed(1),
-        r.estado_salud ?? "—",
+        stripEmoji(r.estado_salud ?? "-"),
       ]),
       styles: { fontSize: 7, cellPadding: 2, minCellHeight: 10 },
-      headStyles: { fillColor: [234, 179, 8], textColor: [0, 0, 0], fontStyle: "bold", fontSize: 7 },
+      headStyles: { fillColor: BLACK as any, textColor: 255, fontStyle: "bold", fontSize: 7 },
       alternateRowStyles: { fillColor: [254, 252, 232] },
       margin: { left: margin, right: margin },
       columnStyles: { 0: { cellWidth: 10 } },
@@ -540,21 +555,21 @@ async function generateReport(
 
   // ── RECOMENDACIONES DE TRASLADO ──
   if (transferData.length) {
-    drawSectionTitle("RECOMENDACIONES DE TRASLADO DE STOCK", "🚚");
+    drawSectionTitle("RECOMENDACIONES DE TRASLADO DE STOCK");
     
     autoTable(doc, {
       startY: y,
       head: [["Producto", "SKU", "Origen", "Stock Orig.", "Destino", "Uds Sugeridas"]],
       body: transferData.slice(0, 30).map(r => [
-        (r.producto ?? "—").substring(0, 30),
-        (r.sku ?? "—").substring(0, 15),
-        (r.tienda_origen ?? "—").substring(0, 20),
+        stripEmoji((r.producto ?? "-")).substring(0, 30),
+        (r.sku ?? "-").substring(0, 15),
+        (r.tienda_origen ?? "-").substring(0, 20),
         (r.stock_origen ?? 0).toLocaleString(),
-        (r.tienda_destino ?? "—").substring(0, 20),
+        (r.tienda_destino ?? "-").substring(0, 20),
         (r.uds_sugeridas ?? 0).toLocaleString(),
       ]),
       styles: { fontSize: 7, cellPadding: 2 },
-      headStyles: { fillColor: [79, 70, 229], textColor: 255, fontStyle: "bold", fontSize: 7 },
+      headStyles: { fillColor: BLACK as any, textColor: 255, fontStyle: "bold", fontSize: 7 },
       alternateRowStyles: { fillColor: [238, 242, 255] },
       margin: { left: margin, right: margin },
     });
@@ -568,8 +583,8 @@ async function generateReport(
     doc.setFontSize(7);
     doc.setFont("helvetica", "normal");
     doc.setTextColor(...GRAY);
-    doc.text(`Monastery — Informe Ejecutivo — ${dateStr}`, margin, pageH - 6);
-    doc.text(`Página ${i} / ${totalPages}`, pageW - margin, pageH - 6, { align: "right" });
+    doc.text(`Monastery - Informe Ejecutivo - ${stripEmoji(dateStr)}`, margin, pageH - 6);
+    doc.text(`Pagina ${i} / ${totalPages}`, pageW - margin, pageH - 6, { align: "right" });
     // Thin line
     doc.setDrawColor(200, 200, 210);
     doc.line(margin, pageH - 10, pageW - margin, pageH - 10);
