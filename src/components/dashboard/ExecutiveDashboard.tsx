@@ -91,12 +91,14 @@ function ExportButtons({ data, filename, title }: {
 }
 
 /* ── Venta/m² Status Classification ── */
-const VENTA_M2_MIN = 1_000_000; // $1M COP minimum acceptable
+const VENTA_M2_FLOOR = 1_000_000; // $1M COP minimum acceptable baseline
 
-function getVentaM2Status(ventaM2: number): { label: string; icon: React.ElementType; colorClass: string; bgClass: string; borderClass: string } {
-  if (ventaM2 >= VENTA_M2_MIN * 2) return { label: "Excelente", icon: Crown, colorClass: "text-amber-500", bgClass: "bg-amber-500/10", borderClass: "border-amber-500/30" };
-  if (ventaM2 >= VENTA_M2_MIN * 1.5) return { label: "Bueno", icon: Ruler, colorClass: "text-emerald-600", bgClass: "bg-emerald-500/10", borderClass: "border-emerald-500/30" };
-  if (ventaM2 >= VENTA_M2_MIN) return { label: "Regular", icon: ShieldAlert, colorClass: "text-amber-500", bgClass: "bg-amber-500/10", borderClass: "border-amber-500/30" };
+function getVentaM2Status(ventaM2: number, avgReference?: number): { label: string; icon: React.ElementType; colorClass: string; bgClass: string; borderClass: string } {
+  // Use the higher of actual average or $1M floor as baseline
+  const baseline = Math.max(avgReference ?? VENTA_M2_FLOOR, VENTA_M2_FLOOR);
+  if (ventaM2 >= baseline * 1.3) return { label: "Excelente", icon: Crown, colorClass: "text-amber-500", bgClass: "bg-amber-500/10", borderClass: "border-amber-500/30" };
+  if (ventaM2 >= baseline) return { label: "Bueno", icon: Ruler, colorClass: "text-emerald-600", bgClass: "bg-emerald-500/10", borderClass: "border-emerald-500/30" };
+  if (ventaM2 >= baseline * 0.7) return { label: "Regular", icon: ShieldAlert, colorClass: "text-amber-500", bgClass: "bg-amber-500/10", borderClass: "border-amber-500/30" };
   return { label: "Malo", icon: AlertTriangle, colorClass: "text-destructive", bgClass: "bg-destructive/10", borderClass: "border-destructive/30" };
 }
 
@@ -941,7 +943,7 @@ function ChannelPanel({ days, canal, showLocationFilter, locationFilter }: {
               {showM2 ? (
                 <KpiCard label="Venta / m²" value={fmtCurrency(ventaM2)} icon={Ruler}
                   actual={ventaM2} anterior={prevVentaM2}
-                  ventaM2Status={getVentaM2Status(ventaM2)}
+                  ventaM2Status={getVentaM2Status(ventaM2, ventaM2)}
                   onClick={() => navigate(`/venta-m2?days=${resolveDays(days)}&canal=${canal}`)} />
               ) : (
                 <KpiCard label="% Full Price" value={`${(kpis?.pct_pedidos_full_price ?? 0).toFixed(1)}%`} icon={Star} className="text-emerald-600"
@@ -1165,7 +1167,7 @@ function BrandOverviewPanel({ days }: { days: number }) {
             actual={kpis?.upt ?? 0} anterior={prevKpis?.upt ?? 0} />
           <KpiCard label="Venta m² Tienda" value={fmtCurrency(ventaM2)} icon={Ruler}
             actual={ventaM2} anterior={prevVentaM2}
-            ventaM2Status={totalM2 > 0 ? getVentaM2Status(ventaM2) : undefined}
+            ventaM2Status={totalM2 > 0 ? getVentaM2Status(ventaM2, ventaM2) : undefined}
             onClick={() => navigate(`/venta-m2?days=${resolveDays(days)}`)} />
         </div>
         {/* Row 3: % Full Price, % Rebajas, % Desc. Promo */}

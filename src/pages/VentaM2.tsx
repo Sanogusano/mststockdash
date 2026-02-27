@@ -12,11 +12,12 @@ import { exportToPDF } from "@/lib/pdf-export";
 import { ArrowLeft, Ruler, Download, FileText, TrendingUp, TrendingDown, Crown, AlertTriangle, ShieldAlert } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-const VENTA_M2_MIN = 1_000_000;
-function getVentaM2Status(v: number) {
-  if (v >= VENTA_M2_MIN * 2) return { label: "Excelente", emoji: "👑", colorClass: "text-amber-500", bgClass: "bg-amber-500/10" };
-  if (v >= VENTA_M2_MIN * 1.5) return { label: "Bueno", emoji: "✅", colorClass: "text-emerald-600", bgClass: "bg-emerald-500/10" };
-  if (v >= VENTA_M2_MIN) return { label: "Regular", emoji: "⚠️", colorClass: "text-amber-500", bgClass: "bg-amber-500/10" };
+const VENTA_M2_FLOOR = 1_000_000;
+function getVentaM2Status(v: number, avgReference?: number) {
+  const baseline = Math.max(avgReference ?? VENTA_M2_FLOOR, VENTA_M2_FLOOR);
+  if (v >= baseline * 1.3) return { label: "Excelente", emoji: "👑", colorClass: "text-amber-500", bgClass: "bg-amber-500/10" };
+  if (v >= baseline) return { label: "Bueno", emoji: "✅", colorClass: "text-emerald-600", bgClass: "bg-emerald-500/10" };
+  if (v >= baseline * 0.7) return { label: "Regular", emoji: "⚠️", colorClass: "text-amber-500", bgClass: "bg-amber-500/10" };
   return { label: "Malo", emoji: "🔴", colorClass: "text-destructive", bgClass: "bg-destructive/10" };
 }
 
@@ -156,7 +157,7 @@ export default function VentaM2Page() {
                     <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Promedio Venta / m²</p>
                     <p className="text-2xl font-semibold text-foreground mt-0.5">{fmtCurrency(avgVentaM2)}</p>
                     {(() => {
-                      const status = getVentaM2Status(avgVentaM2);
+                      const status = getVentaM2Status(avgVentaM2, avgVentaM2);
                       return (
                         <span className={cn("inline-flex items-center gap-1 mt-1 px-2 py-0.5 rounded-full text-xs font-bold", status.bgClass, status.colorClass)}>
                           {status.emoji} {status.label}
@@ -216,7 +217,7 @@ export default function VentaM2Page() {
                         {data.map((row, i) => {
                           const vsAvg = avgVentaM2 > 0 ? ((row.venta_m2 - avgVentaM2) / avgVentaM2) * 100 : 0;
                           const isAbove = vsAvg >= 0;
-                          const rowStatus = getVentaM2Status(row.venta_m2);
+                          const rowStatus = getVentaM2Status(row.venta_m2, avgVentaM2);
                           return (
                             <tr key={row.tienda} className="border-b border-border/50 hover:bg-muted/20 transition-colors">
                               <td className="px-4 py-3 text-center text-base">
