@@ -801,12 +801,6 @@ function ChannelPanel({ days, canal, showLocationFilter, locationFilter }: {
                 )}
               </div>
             </div>
-            {showDiscAlert && (
-              <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-destructive/10 border border-destructive/30">
-                <AlertTriangle className="h-4 w-4 text-destructive shrink-0" />
-                <p className="text-xs text-destructive font-medium">⚠️ El % de venta con descuento ({pctDesc.toFixed(1)}%) supera el 30%. Revisar política de descuentos.</p>
-              </div>
-            )}
           </>
         );
       })()}
@@ -893,12 +887,6 @@ function BrandOverviewPanel({ days }: { days: number }) {
           )}
         </div>
       </div>
-      {showDiscountAlert && (
-        <div className="mt-3 flex items-center gap-2 px-3 py-2 rounded-lg bg-destructive/10 border border-destructive/30">
-          <AlertTriangle className="h-4 w-4 text-destructive shrink-0" />
-          <p className="text-xs text-destructive font-medium">⚠️ El % de venta con descuento ({pctDescuento.toFixed(1)}%) supera el 30%. Revisar política de descuentos.</p>
-        </div>
-      )}
     </div>
   );
 }
