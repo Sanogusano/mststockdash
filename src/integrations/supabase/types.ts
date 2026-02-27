@@ -315,6 +315,22 @@ export type Database = {
           ventas_totales: number
         }[]
       }
+      reporte_desempeno_por_linea: {
+        Args: { dias_atras: number; p_canal?: string; p_categoria?: string }
+        Returns: {
+          categoria: string
+          estado_salud: string
+          pct_participacion: number
+          sell_through_pct: number
+          stock_digital: number
+          stock_tiendas: number
+          und_digital: number
+          und_outlets: number
+          und_tiendas: number
+          und_total: number
+          wos: number
+        }[]
+      }
       reporte_detalle_producto_tiendas: {
         Args: { dias_atras: number; p_producto: string }
         Returns: {

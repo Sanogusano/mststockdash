@@ -954,7 +954,7 @@ function BrandOverviewPanel({ days }: { days: number }) {
         <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
           <Package className="h-4 w-4 text-primary" />
         </div>
-        <h3 className="text-sm font-semibold text-foreground">📊 General de Marca</h3>
+        <h3 className="text-sm font-semibold text-foreground">📊 DESEMPEÑO COMERCIAL VENTA DIRECTA</h3>
       </div>
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
         <KpiCard label="Ventas Netas" value={(kpis?.ingresos_netos ?? 0).toLocaleString()} prefix="$" icon={DollarSign} />
@@ -974,11 +974,26 @@ function BrandOverviewPanel({ days }: { days: number }) {
   );
 }
 
+/* ── Brand Pareto (all channels, clickable) ── */
+function BrandParetoPreview({ days }: { days: number }) {
+  const navigate = useNavigate();
+  return (
+    <div
+      className="cursor-pointer hover:ring-2 hover:ring-primary/30 transition-all mb-6"
+      onClick={() => navigate(`/lineas?days=${days}`)}
+    >
+      <ParetoChart days={days} canal="" locationId={null} />
+    </div>
+  );
+}
+
 /* ── Main Component ── */
 export function ExecutiveDashboard({ days }: Props) {
   return (
     <div>
       <BrandOverviewPanel days={days} />
+      <BrandParetoPreview days={days} />
+      <h3 className="text-sm font-semibold text-foreground uppercase tracking-wider mb-4">📈 DESEMPEÑO COMERCIAL POR CANAL</h3>
       <Tabs defaultValue="tiendas" className="w-full">
         <TabsList className="w-full grid grid-cols-3 bg-muted/50 rounded-xl p-1 h-auto border border-border">
           <TabsTrigger value="tiendas" className="flex items-center justify-center gap-2 sm:gap-2.5 text-sm sm:text-base font-medium rounded-lg px-4 py-2.5 sm:py-3 transition-all duration-200 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm text-muted-foreground hover:text-foreground hover:bg-muted">
