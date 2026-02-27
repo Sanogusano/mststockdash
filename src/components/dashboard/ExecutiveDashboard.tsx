@@ -873,9 +873,9 @@ function ChannelPanel({ days, canal, showLocationFilter, locationFilter }: {
               <KpiCard label="Ventas Netas" value={(kpis?.ingresos_netos ?? 0).toLocaleString()} prefix="$" icon={DollarSign} />
               <KpiCard label="Ticket Promedio" value={(kpis?.ticket_promedio ?? 0).toLocaleString()} prefix="$" icon={Receipt} />
               <KpiCard label="UPT" value={(kpis?.upt ?? 0).toFixed(2)} icon={ShoppingBag} />
-              <KpiCard label="% Full Price" value={`${(kpis?.pct_pedidos_full_price ?? 0).toFixed(1)}%`} icon={Star} className="text-emerald-600" onClick={() => navigate(`/pedidos?tipo=full_price&canal=${canal}&days=${days}`)} />
+              <KpiCard label="% Full Price" value={`${(kpis?.pct_pedidos_full_price ?? 0).toFixed(1)}%`} icon={Star} className="text-emerald-600" onClick={() => navigate(`/pedidos?tipo=full_price&canal=${canal}&days=${resolveDays(days)}`)} />
               <div className="relative">
-                <KpiCard label="% Descuento" value={`${pctDesc.toFixed(1)}%`} icon={Percent} className="text-orange-500" onClick={() => navigate(`/pedidos?tipo=descuento&canal=${canal}&days=${days}`)} />
+                <KpiCard label="% Descuento" value={`${pctDesc.toFixed(1)}%`} icon={Percent} className="text-orange-500" onClick={() => navigate(`/pedidos?tipo=descuento&canal=${canal}&days=${resolveDays(days)}`)} />
                 {showDiscAlert && (
                   <div className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-destructive flex items-center justify-center">
                     <AlertTriangle className="h-3 w-3 text-destructive-foreground" />
@@ -923,6 +923,81 @@ function ChannelPanel({ days, canal, showLocationFilter, locationFilter }: {
   );
 }
 
+/* ── Brand Top/Bottom Product Row ── */
+interface GlobalProductRow {
+  foto: string | null;
+  producto: string | null;
+  categoria: string | null;
+  und_total: number;
+  clasificacion: string | null;
+}
+
+function BrandTopBottomProducts({ days }: { days: number }) {
+  const [top5, setTop5] = useState<GlobalProductRow[]>([]);
+  const [bottom5, setBottom5] = useState<GlobalProductRow[]>([]);
+  const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    async function fetch() {
+      if (!isValidDays(days)) return;
+      setLoading(true);
+      const effectiveDays = resolveDays(days);
+      const [topRes, bottomRes] = await Promise.all([
+        supabase.rpc("reporte_top_productos_global" as any, { dias_atras: effectiveDays, p_orden: "TOP", p_limite: 5 }),
+        supabase.rpc("reporte_top_productos_global" as any, { dias_atras: effectiveDays, p_orden: "BOTTOM", p_limite: 5 }),
+      ]);
+      if (topRes.data) setTop5(topRes.data as unknown as GlobalProductRow[]);
+      if (bottomRes.data) setBottom5(bottomRes.data as unknown as GlobalProductRow[]);
+      setLoading(false);
+    }
+    fetch();
+  }, [days]);
+
+  if (loading) return <LoadingState rows={2} />;
+
+  const renderList = (items: GlobalProductRow[], icon: React.ReactNode, title: string, color: string) => (
+    <div className="glass-card p-4">
+      <div className="flex items-center gap-2 mb-3">
+        {icon}
+        <h4 className="text-xs font-semibold text-foreground uppercase tracking-wider">{title}</h4>
+      </div>
+      <div className="space-y-2">
+        {items.map((item, i) => (
+          <div key={`${item.producto}-${i}`} className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/30 transition-colors">
+            <span className={cn("text-sm font-bold w-5 text-center", color)}>{i + 1}</span>
+            {item.foto ? (
+              <img src={item.foto} alt="" className="w-8 h-8 rounded object-cover bg-muted shrink-0" onError={e => { e.currentTarget.style.display = "none"; }} />
+            ) : (
+              <div className="w-8 h-8 rounded bg-muted/50 flex items-center justify-center text-sm shrink-0">👗</div>
+            )}
+            <div className="min-w-0 flex-1">
+              <p className="text-xs font-medium text-foreground truncate">{item.producto ?? "—"}</p>
+              <p className="text-[10px] text-muted-foreground">{item.categoria ?? "—"}</p>
+            </div>
+            <div className="text-right shrink-0">
+              <p className="text-xs font-semibold text-foreground">{(item.und_total ?? 0).toLocaleString()} uds</p>
+              <span className={`text-[10px] font-medium ${item.clasificacion?.includes("Full Price") ? "text-primary" : "text-warning"}`}>
+                {item.clasificacion ?? "—"}
+              </span>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+
+  return (
+    <div
+      className="grid grid-cols-1 lg:grid-cols-2 gap-4 cursor-pointer"
+      onClick={() => navigate(`/desempeno-productos?days=${resolveDays(days)}`)}
+    >
+      {renderList(top5, <TrendingUp className="h-4 w-4 text-emerald-600" />, "Top 5 Más Vendidos", "text-emerald-600")}
+      {renderList(bottom5, <TrendingDown className="h-4 w-4 text-destructive" />, "Top 5 Menor Rotación", "text-destructive")}
+    </div>
+  );
+}
+
 /* ── Brand-wide KPI Panel ── */
 function BrandOverviewPanel({ days }: { days: number }) {
   const [kpis, setKpis] = useState<KpiData | null>(null);
@@ -952,27 +1027,30 @@ function BrandOverviewPanel({ days }: { days: number }) {
   const showDiscountAlert = pctDescuento > 30;
 
   return (
-    <div className="glass-card p-5 mb-6">
-      <div className="flex items-center gap-3 mb-4">
-        <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-          <Package className="h-4 w-4 text-primary" />
+    <div className="space-y-4 mb-6">
+      <div className="glass-card p-5">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+            <Package className="h-4 w-4 text-primary" />
+          </div>
+          <h3 className="text-sm font-semibold text-foreground">📊 DESEMPEÑO COMERCIAL VENTA DIRECTA</h3>
         </div>
-        <h3 className="text-sm font-semibold text-foreground">📊 DESEMPEÑO COMERCIAL VENTA DIRECTA</h3>
-      </div>
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
-        <KpiCard label="Ventas Netas" value={(kpis?.ingresos_netos ?? 0).toLocaleString()} prefix="$" icon={DollarSign} />
-        <KpiCard label="Ticket Promedio" value={(kpis?.ticket_promedio ?? 0).toLocaleString()} prefix="$" icon={Receipt} />
-        <KpiCard label="UPT" value={(kpis?.upt ?? 0).toFixed(2)} icon={ShoppingBag} />
-        <KpiCard label="% Full Price" value={`${(kpis?.pct_pedidos_full_price ?? 0).toFixed(1)}%`} icon={Star} className="text-emerald-600" onClick={() => navigate(`/pedidos?tipo=full_price&days=${days}`)} />
-        <div className="relative">
-          <KpiCard label="% Descuento" value={`${pctDescuento.toFixed(1)}%`} icon={Percent} className="text-orange-500" onClick={() => navigate(`/pedidos?tipo=descuento&days=${days}`)} />
-          {showDiscountAlert && (
-            <div className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-destructive flex items-center justify-center">
-              <AlertTriangle className="h-3 w-3 text-destructive-foreground" />
-            </div>
-          )}
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+          <KpiCard label="Ventas Netas" value={(kpis?.ingresos_netos ?? 0).toLocaleString()} prefix="$" icon={DollarSign} />
+          <KpiCard label="Ticket Promedio" value={(kpis?.ticket_promedio ?? 0).toLocaleString()} prefix="$" icon={Receipt} />
+          <KpiCard label="UPT" value={(kpis?.upt ?? 0).toFixed(2)} icon={ShoppingBag} />
+          <KpiCard label="% Full Price" value={`${(kpis?.pct_pedidos_full_price ?? 0).toFixed(1)}%`} icon={Star} className="text-emerald-600" onClick={() => navigate(`/pedidos?tipo=full_price&days=${resolveDays(days)}`)} />
+          <div className="relative">
+            <KpiCard label="% Descuento" value={`${pctDescuento.toFixed(1)}%`} icon={Percent} className="text-orange-500" onClick={() => navigate(`/pedidos?tipo=descuento&canal=tiendas&days=${resolveDays(days)}`)} />
+            {showDiscountAlert && (
+              <div className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-destructive flex items-center justify-center">
+                <AlertTriangle className="h-3 w-3 text-destructive-foreground" />
+              </div>
+            )}
+          </div>
         </div>
       </div>
+      <BrandTopBottomProducts days={days} />
     </div>
   );
 }
