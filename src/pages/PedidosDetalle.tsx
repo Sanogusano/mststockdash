@@ -37,7 +37,7 @@ interface Location {
 
 const CEDI_ID = "71474315479";
 const CEDI_DISPLAY = "Bodega Ecommerce";
-const ALERT_CATEGORIES = ["SUNGLASSES", "FRAGANCES"];
+const ALERT_CATEGORIES = ["SUNGLASSES", "FRAGANCE"];
 
 export default function PedidosDetallePage() {
   const [searchParams] = useSearchParams();
