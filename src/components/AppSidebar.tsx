@@ -1,4 +1,4 @@
-import { BarChart3, TrendingUp, ArrowLeftRight, Package, Tag } from "lucide-react";
+import { BarChart3, TrendingUp, ArrowLeftRight, Package, Tag, Layers } from "lucide-react";
 import { useLocation, Link } from "react-router-dom";
 import monasteryLogoWhite from "@/assets/monastery-logo-white.jpg";
 import {
@@ -31,6 +31,12 @@ const navItems = [
     url: "/producto",
     icon: Tag,
     description: "Sell-through & WOS",
+  },
+  {
+    title: "Desempeño por Línea",
+    url: "/lineas",
+    icon: Layers,
+    description: "Categorías & canales",
   },
   {
     title: "Logística & Traslados",
