@@ -47,18 +47,21 @@ export type Database = {
       locations: {
         Row: {
           created_at: string | null
+          dimension_m2: number | null
           is_active: boolean | null
           location_id: string
           name: string
         }
         Insert: {
           created_at?: string | null
+          dimension_m2?: number | null
           is_active?: boolean | null
           location_id: string
           name: string
         }
         Update: {
           created_at?: string | null
+          dimension_m2?: number | null
           is_active?: boolean | null
           location_id?: string
           name?: string
