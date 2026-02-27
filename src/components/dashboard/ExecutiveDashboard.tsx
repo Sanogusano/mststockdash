@@ -168,9 +168,9 @@ function ProductTable({ data, title, exportFilename }: {
                 <td className="px-4 py-3">
                   <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
                     row.clasificacion?.includes("Full Price") || row.clasificacion?.includes("Ganador Full")
-                      ? "bg-primary/10 text-primary"
+                      ? "bg-emerald-500/10 text-emerald-600"
                       : row.clasificacion?.includes("Rebajas")
-                      ? "bg-blue-500/10 text-blue-500"
+                      ? "bg-destructive/10 text-destructive"
                       : "bg-warning/10 text-warning"
                   }`}>
                     {row.clasificacion ?? "—"}
@@ -982,8 +982,8 @@ function BrandTopBottomProducts({ days }: { days: number }) {
             <div className="text-right shrink-0">
               <p className="text-xs font-semibold text-foreground">{(item.und_total ?? 0).toLocaleString()} uds</p>
               <span className={`text-[10px] font-medium ${
-                item.clasificacion?.includes("Full Price") ? "text-primary" 
-                : item.clasificacion?.includes("Rebajas") ? "text-blue-500" 
+                item.clasificacion?.includes("Full Price") ? "text-emerald-600" 
+                : item.clasificacion?.includes("Rebajas") ? "text-destructive" 
                 : "text-warning"
               }`}>
                 {item.clasificacion ?? "—"}
