@@ -349,7 +349,7 @@ function WorstLinesRecommendation({ days, canal, locationId }: { days: number; c
     catMap.set(cat, prev);
   }
 
-  // Worst = highest stock + lowest sell-through (sort by stock desc, then ST asc)
+  // Worst = lowest sell-through with significant stock (sort by ST asc, then stock desc)
   const sorted = Array.from(catMap.entries())
     .filter(([, v]) => v.stock > 0)
     .map(([cat, v]) => ({
@@ -358,7 +358,13 @@ function WorstLinesRecommendation({ days, canal, locationId }: { days: number; c
       avgST: v.count > 0 ? v.stSum / v.count : 0,
       uds: v.uds,
     }))
-    .sort((a, b) => a.avgST - b.avgST || b.stock - a.stock)
+    .sort((a, b) => {
+      // Primary: lower %ST is worse
+      const stDiff = a.avgST - b.avgST;
+      if (Math.abs(stDiff) > 2) return stDiff;
+      // Secondary: higher stock is worse
+      return b.stock - a.stock;
+    })
     .slice(0, 3);
 
   if (sorted.length === 0) return null;
@@ -776,13 +782,34 @@ function ChannelPanel({ days, canal, showLocationFilter, locationFilter }: {
         </div>
       )}
 
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
-        <KpiCard label="Ventas Netas" value={(kpis?.ingresos_netos ?? 0).toLocaleString()} prefix="$" icon={DollarSign} />
-        <KpiCard label="Ticket Promedio" value={(kpis?.ticket_promedio ?? 0).toLocaleString()} prefix="$" icon={Receipt} />
-        <KpiCard label="UPT" value={(kpis?.upt ?? 0).toFixed(2)} icon={ShoppingBag} />
-        <KpiCard label="% Full Price" value={`${(kpis?.pct_pedidos_full_price ?? 0).toFixed(1)}%`} icon={Star} className="text-emerald-600" onClick={() => navigate(`/pedidos?tipo=full_price&canal=${canal}&days=${days}`)} />
-        <KpiCard label="% Descuento" value={`${(kpis?.pct_pedidos_con_descuento ?? 0).toFixed(1)}%`} icon={Percent} className="text-orange-500" onClick={() => navigate(`/pedidos?tipo=descuento&canal=${canal}&days=${days}`)} />
-      </div>
+      {(() => {
+        const pctDesc = kpis?.pct_pedidos_con_descuento ?? 0;
+        const showDiscAlert = pctDesc > 30;
+        return (
+          <>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+              <KpiCard label="Ventas Netas" value={(kpis?.ingresos_netos ?? 0).toLocaleString()} prefix="$" icon={DollarSign} />
+              <KpiCard label="Ticket Promedio" value={(kpis?.ticket_promedio ?? 0).toLocaleString()} prefix="$" icon={Receipt} />
+              <KpiCard label="UPT" value={(kpis?.upt ?? 0).toFixed(2)} icon={ShoppingBag} />
+              <KpiCard label="% Full Price" value={`${(kpis?.pct_pedidos_full_price ?? 0).toFixed(1)}%`} icon={Star} className="text-emerald-600" onClick={() => navigate(`/pedidos?tipo=full_price&canal=${canal}&days=${days}`)} />
+              <div className="relative">
+                <KpiCard label="% Descuento" value={`${pctDesc.toFixed(1)}%`} icon={Percent} className="text-orange-500" onClick={() => navigate(`/pedidos?tipo=descuento&canal=${canal}&days=${days}`)} />
+                {showDiscAlert && (
+                  <div className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-destructive flex items-center justify-center">
+                    <AlertTriangle className="h-3 w-3 text-destructive-foreground" />
+                  </div>
+                )}
+              </div>
+            </div>
+            {showDiscAlert && (
+              <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-destructive/10 border border-destructive/30">
+                <AlertTriangle className="h-4 w-4 text-destructive shrink-0" />
+                <p className="text-xs text-destructive font-medium">⚠️ El % de venta con descuento ({pctDesc.toFixed(1)}%) supera el 30%. Revisar política de descuentos.</p>
+              </div>
+            )}
+          </>
+        );
+      })()}
 
       {canal === "digital" ? (
         <DigitalChannelCard days={days} />
@@ -797,9 +824,9 @@ function ChannelPanel({ days, canal, showLocationFilter, locationFilter }: {
         />
       )}
 
-      <ParetoChart days={days} canal={canal} locationId={locParam} />
-
       <WorstLinesRecommendation days={days} canal={canal} locationId={locParam} />
+
+      <ParetoChart days={days} canal={canal} locationId={locParam} />
 
       <ProductTable
         data={topProducts}
@@ -816,35 +843,98 @@ function ChannelPanel({ days, canal, showLocationFilter, locationFilter }: {
   );
 }
 
+/* ── Brand-wide KPI Panel ── */
+function BrandOverviewPanel({ days }: { days: number }) {
+  const [kpis, setKpis] = useState<KpiData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    async function fetch() {
+      if (!isValidDays(days)) return;
+      setLoading(true);
+      const effectiveDays = resolveDays(days);
+      const { data } = await supabase.rpc("reporte_kpis_comerciales", {
+        dias_atras: effectiveDays,
+        p_canal: null,
+        p_location_id: null,
+      });
+      if (data && data.length > 0) setKpis(data[0] as unknown as KpiData);
+      else setKpis({ total_pedidos: 0, unidades_vendidas: 0, ingresos_netos: 0, ticket_promedio: 0, upt: 0, pct_pedidos_full_price: 0, pct_pedidos_con_descuento: 0 });
+      setLoading(false);
+    }
+    fetch();
+  }, [days]);
+
+  if (loading) return <LoadingState rows={2} />;
+
+  const pctDescuento = kpis?.pct_pedidos_con_descuento ?? 0;
+  const showDiscountAlert = pctDescuento > 30;
+
+  return (
+    <div className="glass-card p-5 mb-6">
+      <div className="flex items-center gap-3 mb-4">
+        <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+          <Package className="h-4 w-4 text-primary" />
+        </div>
+        <h3 className="text-sm font-semibold text-foreground">📊 General de Marca</h3>
+      </div>
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+        <KpiCard label="Ventas Netas" value={(kpis?.ingresos_netos ?? 0).toLocaleString()} prefix="$" icon={DollarSign} />
+        <KpiCard label="Ticket Promedio" value={(kpis?.ticket_promedio ?? 0).toLocaleString()} prefix="$" icon={Receipt} />
+        <KpiCard label="UPT" value={(kpis?.upt ?? 0).toFixed(2)} icon={ShoppingBag} />
+        <KpiCard label="% Full Price" value={`${(kpis?.pct_pedidos_full_price ?? 0).toFixed(1)}%`} icon={Star} className="text-emerald-600" onClick={() => navigate(`/pedidos?tipo=full_price&days=${days}`)} />
+        <div className="relative">
+          <KpiCard label="% Descuento" value={`${pctDescuento.toFixed(1)}%`} icon={Percent} className="text-orange-500" onClick={() => navigate(`/pedidos?tipo=descuento&days=${days}`)} />
+          {showDiscountAlert && (
+            <div className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-destructive flex items-center justify-center">
+              <AlertTriangle className="h-3 w-3 text-destructive-foreground" />
+            </div>
+          )}
+        </div>
+      </div>
+      {showDiscountAlert && (
+        <div className="mt-3 flex items-center gap-2 px-3 py-2 rounded-lg bg-destructive/10 border border-destructive/30">
+          <AlertTriangle className="h-4 w-4 text-destructive shrink-0" />
+          <p className="text-xs text-destructive font-medium">⚠️ El % de venta con descuento ({pctDescuento.toFixed(1)}%) supera el 30%. Revisar política de descuentos.</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
 /* ── Main Component ── */
 export function ExecutiveDashboard({ days }: Props) {
   return (
-    <Tabs defaultValue="tiendas" className="w-full">
-      <TabsList className="w-full grid grid-cols-3 bg-muted/50 rounded-lg p-1 h-auto sm:h-11">
-        <TabsTrigger value="tiendas" className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm font-medium data-[state=active]:bg-card data-[state=active]:shadow-sm rounded-md px-2 py-1.5 sm:px-3 sm:py-2">
-          <Store className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-          <span className="hidden sm:inline">Tiendas de Línea</span>
-          <span className="sm:hidden">Tiendas</span>
-        </TabsTrigger>
-        <TabsTrigger value="outlets" className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm font-medium data-[state=active]:bg-card data-[state=active]:shadow-sm rounded-md px-2 py-1.5 sm:px-3 sm:py-2">
-          <Tag className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-          Outlets
-        </TabsTrigger>
-        <TabsTrigger value="digital" className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm font-medium data-[state=active]:bg-card data-[state=active]:shadow-sm rounded-md px-2 py-1.5 sm:px-3 sm:py-2">
-          <Globe className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-          Digital
-        </TabsTrigger>
-      </TabsList>
+    <div>
+      <BrandOverviewPanel days={days} />
+      <Tabs defaultValue="tiendas" className="w-full">
+        <TabsList className="w-full grid grid-cols-3 bg-muted/50 rounded-lg p-1 h-auto sm:h-11">
+          <TabsTrigger value="tiendas" className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm font-medium data-[state=active]:bg-card data-[state=active]:shadow-sm rounded-md px-2 py-1.5 sm:px-3 sm:py-2">
+            <Store className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+            <span className="hidden sm:inline">Tiendas de Línea</span>
+            <span className="sm:hidden">Tiendas</span>
+          </TabsTrigger>
+          <TabsTrigger value="outlets" className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm font-medium data-[state=active]:bg-card data-[state=active]:shadow-sm rounded-md px-2 py-1.5 sm:px-3 sm:py-2">
+            <Tag className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+            Outlets
+          </TabsTrigger>
+          <TabsTrigger value="digital" className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm font-medium data-[state=active]:bg-card data-[state=active]:shadow-sm rounded-md px-2 py-1.5 sm:px-3 sm:py-2">
+            <Globe className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+            Digital
+          </TabsTrigger>
+        </TabsList>
 
-      <TabsContent value="tiendas" className="mt-6">
-        <ChannelPanel days={days} canal="tiendas" showLocationFilter={true} locationFilter="tiendas" />
-      </TabsContent>
-      <TabsContent value="outlets" className="mt-6">
-        <ChannelPanel days={days} canal="outlets" showLocationFilter={true} locationFilter="outlets" />
-      </TabsContent>
-      <TabsContent value="digital" className="mt-6">
-        <ChannelPanel days={days} canal="digital" showLocationFilter={false} />
-      </TabsContent>
-    </Tabs>
+        <TabsContent value="tiendas" className="mt-6">
+          <ChannelPanel days={days} canal="tiendas" showLocationFilter={true} locationFilter="tiendas" />
+        </TabsContent>
+        <TabsContent value="outlets" className="mt-6">
+          <ChannelPanel days={days} canal="outlets" showLocationFilter={true} locationFilter="outlets" />
+        </TabsContent>
+        <TabsContent value="digital" className="mt-6">
+          <ChannelPanel days={days} canal="digital" showLocationFilter={false} />
+        </TabsContent>
+      </Tabs>
+    </div>
   );
 }
