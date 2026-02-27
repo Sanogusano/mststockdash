@@ -5,16 +5,14 @@ import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Calendar } from "@/components/ui/calendar";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
-import { format } from "date-fns";
-import { es } from "date-fns/locale";
-import { CalendarIcon, ArrowLeft, Download, FileText, AlertTriangle, X, ChevronDown } from "lucide-react";
+import { ArrowLeft, Download, FileText, AlertTriangle, X, ChevronDown } from "lucide-react";
 import { exportToCSV } from "@/lib/csv-export";
 import { exportToPDF } from "@/lib/pdf-export";
 import { LoadingState } from "@/components/dashboard/LoadingState";
+import { TimeFilter, resolveDays } from "@/components/dashboard/TimeFilter";
 
 interface OrderRow {
   numero_pedido: string;
@@ -44,16 +42,16 @@ export default function PedidosDetallePage() {
   const navigate = useNavigate();
 
   const tipo = (searchParams.get("tipo") as "full_price" | "descuento" | "rebajas") || "descuento";
-  const canal = searchParams.get("canal") || "";
-  const daysParam = parseInt(searchParams.get("days") || "30", 10);
+  const initialCanal = searchParams.get("canal") || "";
+  const initialDays = parseInt(searchParams.get("days") || "30", 10);
 
+  const [days, setDays] = useState(initialDays);
+  const [selectedCanal, setSelectedCanal] = useState(initialCanal);
   const [data, setData] = useState<OrderRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [locations, setLocations] = useState<Location[]>([]);
   const [selectedLocation, setSelectedLocation] = useState<string>("all");
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
-  const [dateFrom, setDateFrom] = useState<Date | undefined>(undefined);
-  const [dateTo, setDateTo] = useState<Date | undefined>(undefined);
   const [showAlertDetail, setShowAlertDetail] = useState(false);
 
   const title = tipo === "full_price" ? "Pedidos a Full Price" : tipo === "rebajas" ? "Pedidos con Rebajas" : "Pedidos con Descuento";
@@ -128,10 +126,11 @@ export default function PedidosDetallePage() {
   useEffect(() => {
     setLoading(true);
     const locParam = selectedLocation === "all" ? null : selectedLocation;
-    const canalParam = canal || null;
+    const canalParam = selectedCanal || null;
+    const effectiveDays = resolveDays(days);
 
     supabase.rpc("reporte_pedidos_por_tipo_venta", {
-      dias_atras: daysParam,
+      dias_atras: effectiveDays,
       p_canal: canalParam,
       p_location_id: locParam,
       p_tipo: tipo,
@@ -140,20 +139,11 @@ export default function PedidosDetallePage() {
         console.error("Error fetching orders:", error);
         setData([]);
       } else if (rows) {
-        let filtered = rows as unknown as OrderRow[];
-        if (dateFrom) {
-          filtered = filtered.filter(r => new Date(r.fecha) >= dateFrom);
-        }
-        if (dateTo) {
-          const endOfDay = new Date(dateTo);
-          endOfDay.setHours(23, 59, 59, 999);
-          filtered = filtered.filter(r => new Date(r.fecha) <= endOfDay);
-        }
-        setData(filtered);
+        setData(rows as unknown as OrderRow[]);
       }
       setLoading(false);
     });
-  }, [daysParam, canal, selectedLocation, tipo, dateFrom, dateTo]);
+  }, [days, selectedCanal, selectedLocation, tipo]);
 
   const calcDiscountPct = (row: OrderRow) => {
     if (row.tipo_venta === "Descuento de Producto" && row.compare_at_price > 0) {
@@ -215,20 +205,20 @@ export default function PedidosDetallePage() {
               <div>
                 <h2 className="text-base sm:text-lg font-semibold text-foreground">{title}</h2>
                 <p className="text-[10px] sm:text-xs text-muted-foreground">
-                  Canal: {!canal ? "Todos" : canal === "digital" ? "Digital" : canal === "outlets" ? "Outlets" : "Tiendas"} · Últimos {daysParam} días
+                  Canal: {!selectedCanal ? "Todos" : selectedCanal === "digital" ? "Digital" : selectedCanal === "outlets" ? "Outlets" : "Tiendas"} · {resolveDays(days)} días
                 </p>
               </div>
             </div>
             {filteredData.length > 0 && (
               <div className="flex items-center gap-1">
                 <button
-                  onClick={() => exportToCSV(exportData as any, `pedidos_${tipo}_${daysParam}d`)}
+                  onClick={() => exportToCSV(exportData as any, `pedidos_${tipo}_${resolveDays(days)}d`)}
                   className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
                 >
                   <Download className="h-3.5 w-3.5" /> CSV
                 </button>
                 <button
-                  onClick={() => exportToPDF(exportData as any, `pedidos_${tipo}_${daysParam}d`, title)}
+                  onClick={() => exportToPDF(exportData as any, `pedidos_${tipo}_${resolveDays(days)}d`, title)}
                   className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
                 >
                   <FileText className="h-3.5 w-3.5" /> PDF
@@ -349,41 +339,24 @@ export default function PedidosDetallePage() {
               </Popover>
             </div>
 
+            {/* Canal filter */}
             <div className="flex items-center gap-2">
-              <span className="text-xs text-muted-foreground font-medium">Desde:</span>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button variant="outline" size="sm" className={cn("h-8 text-xs gap-1.5 w-[140px] justify-start", !dateFrom && "text-muted-foreground")}>
-                    <CalendarIcon className="h-3.5 w-3.5" />
-                    {dateFrom ? format(dateFrom, "dd MMM yyyy", { locale: es }) : "Seleccionar"}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar mode="single" selected={dateFrom} onSelect={setDateFrom} initialFocus className={cn("p-3 pointer-events-auto")} />
-                </PopoverContent>
-              </Popover>
+              <span className="text-xs text-muted-foreground font-medium">Canal:</span>
+              <Select value={selectedCanal || "all"} onValueChange={(v) => setSelectedCanal(v === "all" ? "" : v)}>
+                <SelectTrigger className="w-[160px] h-8 text-xs bg-card">
+                  <SelectValue placeholder="Todos" />
+                </SelectTrigger>
+                <SelectContent className="bg-popover border border-border shadow-lg z-50">
+                  <SelectItem value="all">Todos los canales</SelectItem>
+                  <SelectItem value="tiendas">Tiendas</SelectItem>
+                  <SelectItem value="digital">Digital</SelectItem>
+                  <SelectItem value="outlets">Outlets</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-muted-foreground font-medium">Hasta:</span>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button variant="outline" size="sm" className={cn("h-8 text-xs gap-1.5 w-[140px] justify-start", !dateTo && "text-muted-foreground")}>
-                    <CalendarIcon className="h-3.5 w-3.5" />
-                    {dateTo ? format(dateTo, "dd MMM yyyy", { locale: es }) : "Seleccionar"}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar mode="single" selected={dateTo} onSelect={setDateTo} initialFocus className={cn("p-3 pointer-events-auto")} />
-                </PopoverContent>
-              </Popover>
-            </div>
-
-            {(dateFrom || dateTo) && (
-              <Button variant="ghost" size="sm" className="h-8 text-xs text-muted-foreground" onClick={() => { setDateFrom(undefined); setDateTo(undefined); }}>
-                Limpiar fechas
-              </Button>
-            )}
+            {/* Time filter */}
+            <TimeFilter value={days} onChange={setDays} />
 
             <span className="ml-auto text-xs text-muted-foreground">{filteredData.length} registros</span>
           </div>
