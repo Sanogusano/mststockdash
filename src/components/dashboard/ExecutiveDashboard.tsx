@@ -60,6 +60,7 @@ interface ProductRow {
 interface Location {
   location_id: string;
   name: string;
+  tipo_tienda: string | null;
 }
 
 interface Props {
@@ -785,7 +786,7 @@ function ChannelPanel({ days, canal, showLocationFilter, locationFilter }: {
 
   useEffect(() => {
     if (!showLocationFilter) return;
-    supabase.from("locations").select("location_id, name").eq("is_active", true)
+    supabase.from("locations").select("location_id, name, tipo_tienda").eq("is_active", true)
       .then(({ data }) => {
         if (data) {
           const filtered = data
@@ -905,22 +906,50 @@ function ChannelPanel({ days, canal, showLocationFilter, locationFilter }: {
 
   return (
     <div className="space-y-6">
-      {showLocationFilter && locations.length > 0 && (
-        <div className="flex items-center gap-3">
-          <span className="text-sm text-muted-foreground font-medium">Sucursal:</span>
-          <Select value={selectedLocation} onValueChange={setSelectedLocation}>
-            <SelectTrigger className="w-[220px] bg-card">
-              <SelectValue placeholder="Todas las tiendas" />
-            </SelectTrigger>
-            <SelectContent className="bg-popover border border-border shadow-lg z-50">
-              <SelectItem value="all">Todas las tiendas</SelectItem>
-              {locations.map((loc) => (
-                <SelectItem key={loc.location_id} value={loc.location_id}>{loc.name}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      )}
+      {showLocationFilter && locations.length > 0 && (() => {
+        const selectedLoc = locations.find(l => l.location_id === selectedLocation);
+        const tipoLabel = selectedLoc?.tipo_tienda;
+        const tipoColor = tipoLabel === "A" ? "bg-amber-500/15 text-amber-600 border-amber-500/30"
+          : tipoLabel === "B" ? "bg-sky-500/15 text-sky-600 border-sky-500/30"
+          : tipoLabel === "C" ? "bg-emerald-500/15 text-emerald-600 border-emerald-500/30"
+          : "bg-muted text-muted-foreground border-border";
+        return (
+          <div className="glass-card p-4 flex flex-col sm:flex-row items-start sm:items-center gap-3 border-2 border-primary/20 bg-primary/5">
+            <div className="flex items-center gap-2">
+              <Store className="h-5 w-5 text-primary" />
+              <span className="text-sm font-semibold text-foreground">Sucursal:</span>
+            </div>
+            <Select value={selectedLocation} onValueChange={setSelectedLocation}>
+              <SelectTrigger className="w-[240px] bg-card border-2 border-primary/30 font-medium shadow-sm">
+                <SelectValue placeholder="Todas las tiendas" />
+              </SelectTrigger>
+              <SelectContent className="bg-popover border border-border shadow-lg z-50">
+                <SelectItem value="all">Todas las tiendas</SelectItem>
+                {locations.map((loc) => (
+                  <SelectItem key={loc.location_id} value={loc.location_id}>
+                    <span className="flex items-center gap-2">
+                      {loc.name}
+                      {loc.tipo_tienda && <span className="text-[10px] font-bold opacity-60">({loc.tipo_tienda})</span>}
+                    </span>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {selectedLocation !== "all" && selectedLoc && (
+              <div className="flex items-center gap-2 ml-0 sm:ml-2">
+                <span className="text-sm font-bold text-foreground">
+                  DATOS PARA <span className="text-primary">{selectedLoc.name}</span>
+                </span>
+                {tipoLabel && (
+                  <span className={cn("inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold border", tipoColor)}>
+                    Tipo {tipoLabel}
+                  </span>
+                )}
+              </div>
+            )}
+          </div>
+        );
+      })()}
 
       {(() => {
         const ventaM2 = channelM2 > 0 ? (kpis?.ingresos_netos ?? 0) / channelM2 : 0;

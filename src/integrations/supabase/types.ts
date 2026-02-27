@@ -51,6 +51,7 @@ export type Database = {
           is_active: boolean | null
           location_id: string
           name: string
+          tipo_tienda: string | null
         }
         Insert: {
           created_at?: string | null
@@ -58,6 +59,7 @@ export type Database = {
           is_active?: boolean | null
           location_id: string
           name: string
+          tipo_tienda?: string | null
         }
         Update: {
           created_at?: string | null
@@ -65,6 +67,7 @@ export type Database = {
           is_active?: boolean | null
           location_id?: string
           name?: string
+          tipo_tienda?: string | null
         }
         Relationships: []
       }
