@@ -570,7 +570,7 @@ function DigitalChannelCard({ days }: { days: number }) {
 
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-4">
+      <div className={cn("grid grid-cols-1 gap-4", rank !== null && "lg:grid-cols-[280px_1fr]")}>
         {/* Card 1: Solo posición en ranking */}
         {rank !== null && (
           <div className="glass-card p-5">
@@ -595,7 +595,7 @@ function DigitalChannelCard({ days }: { days: number }) {
             <h3 className="text-sm font-semibold text-foreground">Desempeño Comercial</h3>
           </div>
           <div className="space-y-5">
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               <div className="p-3 rounded-lg bg-emerald-500/5 border border-emerald-500/20">
                 <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">🟢 Mejor Día</p>
                 <p className="text-sm font-semibold text-foreground">{translateDay(extraMetrics?.mejor_dia_semana ?? "N/A")}</p>
@@ -615,7 +615,7 @@ function DigitalChannelCard({ days }: { days: number }) {
                 <p className="text-sm font-semibold text-foreground">{fmtCurrency(extraMetrics?.venta_promedio_finde ?? 0)}</p>
               </div>
             </div>
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div className="p-3 rounded-lg bg-muted/30 border border-border">
                 <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Venta Prom/Día</p>
                 <p className="text-base font-semibold text-foreground">{fmtCurrency(extraMetrics?.venta_promedio_diaria_actual ?? 0)}</p>
