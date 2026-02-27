@@ -382,6 +382,7 @@ export type Database = {
           ingresos_netos: number
           pct_pedidos_con_descuento: number
           pct_pedidos_full_price: number
+          pct_pedidos_rebajas: number
           ticket_promedio: number
           total_pedidos: number
           unidades_vendidas: number
@@ -533,6 +534,7 @@ export type Database = {
           foto: string
           pct_descuento: number
           pct_full_price: number
+          pct_rebajas: number
           producto: string
           sku: string
           und_digital: number
