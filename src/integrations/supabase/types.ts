@@ -351,6 +351,23 @@ export type Database = {
           wos: number
         }[]
       }
+      reporte_detalle_skus_producto: {
+        Args: {
+          canal_filtro?: string
+          dias_atras: number
+          location_filtro?: string
+          p_product_id: string
+        }
+        Returns: {
+          clasificacion: string
+          precio_prom_venta: number
+          sell_through_pct: number
+          sku: string
+          stock_disponible: number
+          unidades_vendidas: number
+          wos: number
+        }[]
+      }
       reporte_ejecutivo_kpis: {
         Args: {
           canal_filtro?: string
@@ -377,9 +394,11 @@ export type Database = {
           foto: string
           precio_prom_venta: number
           producto: string
+          sell_through_pct: number
           sku: string
           stock_disponible: number
           unidades_vendidas: number
+          wos: number
         }[]
       }
       reporte_kpis_comerciales: {
