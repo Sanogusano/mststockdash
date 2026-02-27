@@ -54,13 +54,13 @@ interface LocationOption {
   name: string;
 }
 
-export function ProductBehaviorTable({ days }: { days: number }) {
+export function ProductBehaviorTable({ days, initialWosFilter, initialLocationId }: { days: number; initialWosFilter?: string; initialLocationId?: string }) {
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(0);
   const [selectedProduct, setSelectedProduct] = useState<ProductRow | null>(null);
-  const [wosFilter, setWosFilter] = useState("all");
+  const [wosFilter, setWosFilter] = useState(initialWosFilter ?? "all");
   const [stFilter, setStFilter] = useState("all");
-  const [locationId, setLocationId] = useState("all");
+  const [locationId, setLocationId] = useState(initialLocationId ?? "all");
 
   const resolvedDays = resolveDays(days);
 
