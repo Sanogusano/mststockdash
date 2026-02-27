@@ -255,9 +255,9 @@ export default function DesempenoProductosPage() {
                           <TableCell>
                             <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
                               row.clasificacion?.includes("Full Price")
-                                ? "bg-primary/10 text-primary"
+                                ? "bg-emerald-500/10 text-emerald-600"
                                 : row.clasificacion?.includes("Rebajas")
-                                ? "bg-blue-500/10 text-blue-500"
+                                ? "bg-destructive/10 text-destructive"
                                 : "bg-warning/10 text-warning"
                             }`}>
                               {row.clasificacion}
