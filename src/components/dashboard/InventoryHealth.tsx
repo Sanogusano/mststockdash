@@ -16,7 +16,9 @@ import {
 import { LoadingState, EmptyState } from "./LoadingState";
 import { StatusBadge } from "./StatusBadge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Package, Shirt } from "lucide-react";
+import { Package, Shirt, BarChart3 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { InventoryGlobalReport } from "./InventoryGlobalReport";
 
 interface HealthRow {
   tipo: string | null;
@@ -156,6 +158,7 @@ export function InventoryHealth({ days }: Props) {
   const [data, setData] = useState<HealthRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [locationMap, setLocationMap] = useState<Record<string, string>>({});
+  const [showGlobal, setShowGlobal] = useState(false);
 
   useEffect(() => {
     async function fetchData() {
@@ -192,16 +195,22 @@ export function InventoryHealth({ days }: Props) {
   return (
     <div className="space-y-6">
       <Tabs defaultValue="prendas" className="space-y-4">
-        <TabsList className="bg-muted/50">
-          <TabsTrigger value="prendas" className="gap-2">
-            <Shirt className="h-4 w-4" />
-            Prendas
-          </TabsTrigger>
-          <TabsTrigger value="bolsas" className="gap-2">
-            <Package className="h-4 w-4" />
-            Bolsas & Empaques
-          </TabsTrigger>
-        </TabsList>
+        <div className="flex items-center justify-between gap-3 flex-wrap">
+          <TabsList className="bg-muted/50">
+            <TabsTrigger value="prendas" className="gap-2">
+              <Shirt className="h-4 w-4" />
+              Prendas
+            </TabsTrigger>
+            <TabsTrigger value="bolsas" className="gap-2">
+              <Package className="h-4 w-4" />
+              Bolsas & Empaques
+            </TabsTrigger>
+          </TabsList>
+          <Button variant="outline" size="sm" className="gap-2 text-xs" onClick={() => setShowGlobal(true)}>
+            <BarChart3 className="h-4 w-4" />
+            Ver Informe General
+          </Button>
+        </div>
         <TabsContent value="prendas">
           {prendas.length ? (
             <InventorySection data={prendas} tipo="PRENDAS" locationMap={locationMap} />
@@ -217,6 +226,8 @@ export function InventoryHealth({ days }: Props) {
           )}
         </TabsContent>
       </Tabs>
+
+      <InventoryGlobalReport open={showGlobal} onOpenChange={setShowGlobal} days={days} />
     </div>
   );
 }
