@@ -392,6 +392,19 @@ export type Database = {
           upt: number
         }[]
       }
+      reporte_kpis_periodo_anterior: {
+        Args: { dias_atras: number; p_canal?: string; p_location_id?: string }
+        Returns: {
+          ingresos_netos: number
+          pct_pedidos_con_descuento: number
+          pct_pedidos_full_price: number
+          pct_pedidos_rebajas: number
+          ticket_promedio: number
+          total_pedidos: number
+          unidades_vendidas: number
+          upt: number
+        }[]
+      }
       reporte_metricas_tienda_individual: {
         Args: { dias_atras: number; p_location_id: string }
         Returns: {
