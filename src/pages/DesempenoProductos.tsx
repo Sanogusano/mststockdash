@@ -28,6 +28,7 @@ interface ProductRow {
   und_digital: number;
   und_total: number;
   pct_full_price: number;
+  pct_rebajas: number;
   pct_descuento: number;
   clasificacion: string;
 }
@@ -102,7 +103,8 @@ export default function DesempenoProductosPage() {
         "Uds Digital": r.und_digital,
         "Total Uds": r.und_total,
         "% Full Price": r.pct_full_price,
-        "% Descuento": r.pct_descuento,
+        "% Rebajas": r.pct_rebajas,
+        "% Desc Promo": r.pct_descuento,
         Clasificación: r.clasificacion,
       })),
       "desempeno_productos_global"
@@ -120,7 +122,8 @@ export default function DesempenoProductosPage() {
         Digital: r.und_digital,
         Total: r.und_total,
         "%FP": r.pct_full_price,
-        "%Desc": r.pct_descuento,
+        "%Reb": r.pct_rebajas,
+        "%Promo": r.pct_descuento,
         Clasif: r.clasificacion,
       })),
       "desempeno_productos_global",
@@ -213,7 +216,8 @@ export default function DesempenoProductosPage() {
                         <TableHead className="text-right">Digital</TableHead>
                         <TableHead className="text-right font-semibold">Total</TableHead>
                         <TableHead className="text-right">% Full Price</TableHead>
-                        <TableHead className="text-right">% Descuento</TableHead>
+                        <TableHead className="text-right">% Rebajas</TableHead>
+                        <TableHead className="text-right">% Desc Promo</TableHead>
                         <TableHead>Clasificación</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -239,6 +243,9 @@ export default function DesempenoProductosPage() {
                             <span className="text-sm font-medium text-emerald-600">{row.pct_full_price ?? 0}%</span>
                           </TableCell>
                           <TableCell className="text-right">
+                            <span className="text-sm font-medium text-blue-500">{row.pct_rebajas ?? 0}%</span>
+                          </TableCell>
+                          <TableCell className="text-right">
                             <span className="text-sm font-medium text-orange-500 cursor-pointer hover:underline"
                               onClick={() => navigate(`/pedidos?tipo=descuento&days=${resolveDays(days)}`)}
                             >
@@ -249,6 +256,8 @@ export default function DesempenoProductosPage() {
                             <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
                               row.clasificacion?.includes("Full Price")
                                 ? "bg-primary/10 text-primary"
+                                : row.clasificacion?.includes("Rebajas")
+                                ? "bg-blue-500/10 text-blue-500"
                                 : "bg-warning/10 text-warning"
                             }`}>
                               {row.clasificacion}
