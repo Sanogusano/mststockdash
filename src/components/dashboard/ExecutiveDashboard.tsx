@@ -1080,37 +1080,54 @@ function BrandParetoPreview({ days }: { days: number }) {
 /* ── Main Component ── */
 export function ExecutiveDashboard({ days }: Props) {
   return (
-    <div>
-      <BrandOverviewPanel days={days} />
-      <BrandParetoPreview days={days} />
-      <h3 className="text-sm font-semibold text-foreground uppercase tracking-wider mb-4">📈 DESEMPEÑO COMERCIAL POR CANAL</h3>
-      <Tabs defaultValue="tiendas" className="w-full">
-        <TabsList className="w-full grid grid-cols-3 bg-muted/50 rounded-xl p-1 h-auto border border-border">
-          <TabsTrigger value="tiendas" className="flex items-center justify-center gap-2 sm:gap-2.5 text-sm sm:text-base font-medium rounded-lg px-4 py-2.5 sm:py-3 transition-all duration-200 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm text-muted-foreground hover:text-foreground hover:bg-muted">
-            <Store className="h-4 w-4 sm:h-5 sm:w-5" />
-            <span className="hidden sm:inline">Tiendas de Línea</span>
-            <span className="sm:hidden">Tiendas</span>
-          </TabsTrigger>
-          <TabsTrigger value="outlets" className="flex items-center justify-center gap-2 sm:gap-2.5 text-sm sm:text-base font-medium rounded-lg px-4 py-2.5 sm:py-3 transition-all duration-200 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm text-muted-foreground hover:text-foreground hover:bg-muted">
-            <Tag className="h-4 w-4 sm:h-5 sm:w-5" />
-            Outlets
-          </TabsTrigger>
-          <TabsTrigger value="digital" className="flex items-center justify-center gap-2 sm:gap-2.5 text-sm sm:text-base font-medium rounded-lg px-4 py-2.5 sm:py-3 transition-all duration-200 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm text-muted-foreground hover:text-foreground hover:bg-muted">
-            <Globe className="h-4 w-4 sm:h-5 sm:w-5" />
-            Digital
-          </TabsTrigger>
-        </TabsList>
+    <Tabs defaultValue="venta-directa" className="w-full">
+      <TabsList className="w-full grid grid-cols-2 bg-muted/50 rounded-xl p-1 h-auto border border-border mb-6">
+        <TabsTrigger value="venta-directa" className="flex items-center justify-center gap-2 sm:gap-2.5 text-sm sm:text-base font-medium rounded-lg px-4 py-2.5 sm:py-3 transition-all duration-200 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm text-muted-foreground hover:text-foreground hover:bg-muted">
+          <Package className="h-4 w-4 sm:h-5 sm:w-5" />
+          <span className="hidden sm:inline">Desempeño Comercial Venta Directa</span>
+          <span className="sm:hidden">Venta Directa</span>
+        </TabsTrigger>
+        <TabsTrigger value="por-canal" className="flex items-center justify-center gap-2 sm:gap-2.5 text-sm sm:text-base font-medium rounded-lg px-4 py-2.5 sm:py-3 transition-all duration-200 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm text-muted-foreground hover:text-foreground hover:bg-muted">
+          <Store className="h-4 w-4 sm:h-5 sm:w-5" />
+          <span className="hidden sm:inline">Desempeño por Canal</span>
+          <span className="sm:hidden">Por Canal</span>
+        </TabsTrigger>
+      </TabsList>
 
-        <TabsContent value="tiendas" className="mt-6">
-          <ChannelPanel days={days} canal="tiendas" showLocationFilter={true} locationFilter="tiendas" />
-        </TabsContent>
-        <TabsContent value="outlets" className="mt-6">
-          <ChannelPanel days={days} canal="outlets" showLocationFilter={true} locationFilter="outlets" />
-        </TabsContent>
-        <TabsContent value="digital" className="mt-6">
-          <ChannelPanel days={days} canal="digital" showLocationFilter={false} />
-        </TabsContent>
-      </Tabs>
-    </div>
+      <TabsContent value="venta-directa">
+        <BrandOverviewPanel days={days} />
+        <BrandParetoPreview days={days} />
+      </TabsContent>
+
+      <TabsContent value="por-canal">
+        <Tabs defaultValue="tiendas" className="w-full">
+          <TabsList className="w-full grid grid-cols-3 bg-muted/50 rounded-xl p-1 h-auto border border-border">
+            <TabsTrigger value="tiendas" className="flex items-center justify-center gap-2 sm:gap-2.5 text-sm sm:text-base font-medium rounded-lg px-4 py-2.5 sm:py-3 transition-all duration-200 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm text-muted-foreground hover:text-foreground hover:bg-muted">
+              <Store className="h-4 w-4 sm:h-5 sm:w-5" />
+              <span className="hidden sm:inline">Tiendas de Línea</span>
+              <span className="sm:hidden">Tiendas</span>
+            </TabsTrigger>
+            <TabsTrigger value="outlets" className="flex items-center justify-center gap-2 sm:gap-2.5 text-sm sm:text-base font-medium rounded-lg px-4 py-2.5 sm:py-3 transition-all duration-200 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm text-muted-foreground hover:text-foreground hover:bg-muted">
+              <Tag className="h-4 w-4 sm:h-5 sm:w-5" />
+              Outlets
+            </TabsTrigger>
+            <TabsTrigger value="digital" className="flex items-center justify-center gap-2 sm:gap-2.5 text-sm sm:text-base font-medium rounded-lg px-4 py-2.5 sm:py-3 transition-all duration-200 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm text-muted-foreground hover:text-foreground hover:bg-muted">
+              <Globe className="h-4 w-4 sm:h-5 sm:w-5" />
+              Digital
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="tiendas" className="mt-6">
+            <ChannelPanel days={days} canal="tiendas" showLocationFilter={true} locationFilter="tiendas" />
+          </TabsContent>
+          <TabsContent value="outlets" className="mt-6">
+            <ChannelPanel days={days} canal="outlets" showLocationFilter={true} locationFilter="outlets" />
+          </TabsContent>
+          <TabsContent value="digital" className="mt-6">
+            <ChannelPanel days={days} canal="digital" showLocationFilter={false} />
+          </TabsContent>
+        </Tabs>
+      </TabsContent>
+    </Tabs>
   );
 }
