@@ -1,11 +1,24 @@
 import { useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { TimeFilter } from "@/components/dashboard/TimeFilter";
 import { ProductBehaviorTable } from "@/components/dashboard/ProductBehaviorTable";
 
 export default function ComportamientoProductoPage() {
-  const [days, setDays] = useState(30);
+  const [searchParams] = useSearchParams();
+  const initialDays = Number(searchParams.get("days")) || 30;
+  const initialSalud = searchParams.get("salud"); // "riesgo" → "risk"
+  const initialLocation = searchParams.get("location") || undefined;
+
+  const saludMap: Record<string, string> = {
+    riesgo: "risk",
+    optimo: "optimal",
+    sobrestock: "overstock",
+    estancado: "stagnant",
+  };
+
+  const [days, setDays] = useState(initialDays);
 
   return (
     <SidebarProvider>
@@ -23,7 +36,11 @@ export default function ComportamientoProductoPage() {
             <TimeFilter value={days} onChange={setDays} />
           </header>
           <div className="flex-1 px-4 sm:px-6 py-4 sm:py-6">
-            <ProductBehaviorTable days={days} />
+            <ProductBehaviorTable
+              days={days}
+              initialWosFilter={initialSalud ? saludMap[initialSalud] ?? "all" : undefined}
+              initialLocationId={initialLocation}
+            />
           </div>
         </main>
       </div>

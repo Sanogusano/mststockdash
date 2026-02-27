@@ -398,6 +398,87 @@ function WorstLinesRecommendation({ days, canal, locationId }: { days: number; c
   );
 }
 
+/* ── Stock-out Alerts Panel ── */
+interface AlertRow {
+  foto: string | null;
+  producto: string | null;
+  sku: string | null;
+  categoria: string | null;
+  stock_tiendas: number | null;
+  stock_digital: number | null;
+  wos: number | null;
+  estado_salud: string | null;
+  sell_through_pct: number | null;
+}
+
+function StockOutAlerts({ days, locationId }: { days: number; locationId?: string | null }) {
+  const [alerts, setAlerts] = useState<AlertRow[]>([]);
+  const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    async function fetch() {
+      if (!isValidDays(days)) return;
+      setLoading(true);
+      const effectiveDays = resolveDays(days);
+      const { data: rows } = await supabase.rpc("reporte_comportamiento_producto", {
+        dias_atras: effectiveDays,
+        p_location_id: locationId || null,
+      });
+      if (rows) {
+        const filtered = (rows as unknown as AlertRow[])
+          .filter(r => r.estado_salud?.includes("RIESGO AGOTADOS"))
+          .sort((a, b) => (a.wos ?? 999) - (b.wos ?? 999))
+          .slice(0, locationId ? 50 : 10);
+        setAlerts(filtered);
+      }
+      setLoading(false);
+    }
+    fetch();
+  }, [days, locationId]);
+
+  if (loading) return <LoadingState rows={2} />;
+  if (!alerts.length) return null;
+
+  return (
+    <div
+      className="glass-card p-5 border border-destructive/30 bg-destructive/5 cursor-pointer hover:ring-2 hover:ring-destructive/30 transition-all"
+      onClick={() => navigate(`/producto?salud=riesgo${locationId ? `&location=${locationId}` : ''}&days=${days}`)}
+    >
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-3">
+          <div className="h-8 w-8 rounded-lg bg-destructive/10 flex items-center justify-center shrink-0">
+            <AlertTriangle className="h-4 w-4 text-destructive" />
+          </div>
+          <div>
+            <h3 className="text-sm font-semibold text-foreground">🟡 Alertas de Riesgo de Agotados</h3>
+            <p className="text-xs text-muted-foreground">{alerts.length} producto{alerts.length !== 1 ? 's' : ''} con menos de 4 semanas de inventario</p>
+          </div>
+        </div>
+        <span className="text-xs text-muted-foreground">Ver detalle →</span>
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2">
+        {alerts.slice(0, 10).map((item, i) => (
+          <div key={item.sku ?? i} className="flex items-center gap-2 p-2 rounded-lg bg-card border border-border">
+            {item.foto ? (
+              <img src={item.foto} alt="" className="w-8 h-8 rounded object-cover bg-muted shrink-0" onError={(e) => { e.currentTarget.style.display = "none"; }} />
+            ) : (
+              <div className="w-8 h-8 rounded bg-muted/50 flex items-center justify-center text-sm shrink-0">👗</div>
+            )}
+            <div className="min-w-0 flex-1">
+              <p className="text-xs font-medium text-foreground truncate">{item.producto ?? "—"}</p>
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] text-destructive font-semibold">{(item.wos ?? 0).toFixed(1)} sem</span>
+                <span className="text-[10px] text-muted-foreground">{((item.stock_tiendas ?? 0) + (item.stock_digital ?? 0)).toLocaleString()} uds</span>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 /* ── Store Rank Card (when a specific location is selected) ── */
 function StoreRankCard({ days, canal, locationId, locationName }: {
   days: number; canal?: string; locationId: string; locationName: string;
@@ -819,6 +900,8 @@ function ChannelPanel({ days, canal, showLocationFilter, locationFilter }: {
       )}
 
       <WorstLinesRecommendation days={days} canal={canal} locationId={locParam} />
+
+      <StockOutAlerts days={days} locationId={locParam} />
 
       <ParetoChart days={days} canal={canal} locationId={locParam} />
 
