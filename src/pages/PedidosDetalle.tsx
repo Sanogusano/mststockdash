@@ -43,8 +43,8 @@ export default function PedidosDetallePage() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
 
-  const tipo = (searchParams.get("tipo") as "full_price" | "descuento") || "descuento";
-  const canal = searchParams.get("canal") || "tiendas";
+  const tipo = (searchParams.get("tipo") as "full_price" | "descuento" | "rebajas") || "descuento";
+  const canal = searchParams.get("canal") || "";
   const daysParam = parseInt(searchParams.get("days") || "30", 10);
 
   const [data, setData] = useState<OrderRow[]>([]);
@@ -56,7 +56,7 @@ export default function PedidosDetallePage() {
   const [dateTo, setDateTo] = useState<Date | undefined>(undefined);
   const [showAlertDetail, setShowAlertDetail] = useState(false);
 
-  const title = tipo === "full_price" ? "Pedidos a Full Price" : "Pedidos con Descuento";
+  const title = tipo === "full_price" ? "Pedidos a Full Price" : tipo === "rebajas" ? "Pedidos con Rebajas" : "Pedidos con Descuento";
 
   // Extract unique categories
   const categories = useMemo(() => {
@@ -128,10 +128,11 @@ export default function PedidosDetallePage() {
   useEffect(() => {
     setLoading(true);
     const locParam = selectedLocation === "all" ? null : selectedLocation;
+    const canalParam = canal || null;
 
     supabase.rpc("reporte_pedidos_por_tipo_venta", {
       dias_atras: daysParam,
-      p_canal: canal,
+      p_canal: canalParam,
       p_location_id: locParam,
       p_tipo: tipo,
     }).then(({ data: rows, error }) => {
@@ -214,7 +215,7 @@ export default function PedidosDetallePage() {
               <div>
                 <h2 className="text-base sm:text-lg font-semibold text-foreground">{title}</h2>
                 <p className="text-[10px] sm:text-xs text-muted-foreground">
-                  Canal: {canal === "digital" ? "Digital" : canal === "outlets" ? "Outlets" : "Tiendas"} · Últimos {daysParam} días
+                  Canal: {!canal ? "Todos" : canal === "digital" ? "Digital" : canal === "outlets" ? "Outlets" : "Tiendas"} · Últimos {daysParam} días
                 </p>
               </div>
             </div>
