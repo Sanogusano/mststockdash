@@ -9,7 +9,7 @@ import { exportToPDF } from "@/lib/pdf-export";
 import { LoadingState, EmptyState } from "./LoadingState";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Store, Globe, Download, FileText, DollarSign, ShoppingBag, Receipt, Star, Percent, Tag, Trophy, TrendingDown, TrendingUp, CalendarDays, Package, AlertTriangle, Ruler } from "lucide-react";
+import { Store, Globe, Download, FileText, DollarSign, ShoppingBag, Receipt, Star, Percent, Tag, Trophy, TrendingDown, TrendingUp, CalendarDays, Package, AlertTriangle, Ruler, Crown, ShieldAlert } from "lucide-react";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 import { StoreLeaderboard } from "./StoreLeaderboard";
 
@@ -90,21 +90,39 @@ function ExportButtons({ data, filename, title }: {
   );
 }
 
+/* ── Venta/m² Status Classification ── */
+const VENTA_M2_MIN = 1_000_000; // $1M COP minimum acceptable
+
+function getVentaM2Status(ventaM2: number): { label: string; icon: React.ElementType; colorClass: string; bgClass: string; borderClass: string } {
+  if (ventaM2 >= VENTA_M2_MIN * 2) return { label: "Excelente", icon: Crown, colorClass: "text-amber-500", bgClass: "bg-amber-500/10", borderClass: "border-amber-500/30" };
+  if (ventaM2 >= VENTA_M2_MIN * 1.5) return { label: "Bueno", icon: Ruler, colorClass: "text-emerald-600", bgClass: "bg-emerald-500/10", borderClass: "border-emerald-500/30" };
+  if (ventaM2 >= VENTA_M2_MIN) return { label: "Regular", icon: ShieldAlert, colorClass: "text-amber-500", bgClass: "bg-amber-500/10", borderClass: "border-amber-500/30" };
+  return { label: "Malo", icon: AlertTriangle, colorClass: "text-destructive", bgClass: "bg-destructive/10", borderClass: "border-destructive/30" };
+}
+
 /* ── KPI Card with comparison ── */
-function KpiCard({ label, value, prefix = "", icon: Icon, className, onClick, actual, anterior }: {
+function KpiCard({ label, value, prefix = "", icon: Icon, className, onClick, actual, anterior, ventaM2Status }: {
   label: string; value: string; prefix?: string; icon: React.ElementType; className?: string; onClick?: () => void;
   actual?: number; anterior?: number;
+  ventaM2Status?: { label: string; icon: React.ElementType; colorClass: string; bgClass: string; borderClass: string };
 }) {
   return (
     <div
-      className={cn("glass-card p-5 flex items-start gap-4", onClick && "cursor-pointer hover:ring-2 hover:ring-primary/30 transition-all")}
+      className={cn("glass-card p-5 flex items-start gap-4", ventaM2Status && `border ${ventaM2Status.borderClass}`, onClick && "cursor-pointer hover:ring-2 hover:ring-primary/30 transition-all")}
       onClick={onClick}
     >
-      <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-        <Icon className={cn("h-5 w-5 text-primary", className)} />
+      <div className={cn("h-10 w-10 rounded-lg flex items-center justify-center shrink-0", ventaM2Status ? ventaM2Status.bgClass : "bg-primary/10")}>
+        {ventaM2Status ? <ventaM2Status.icon className={cn("h-5 w-5", ventaM2Status.colorClass)} /> : <Icon className={cn("h-5 w-5 text-primary", className)} />}
       </div>
-      <div className="min-w-0">
-        <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">{label}</p>
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center gap-2">
+          <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">{label}</p>
+          {ventaM2Status && (
+            <span className={cn("inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-bold", ventaM2Status.bgClass, ventaM2Status.colorClass)}>
+              {ventaM2Status.label === "Excelente" && "👑"} {ventaM2Status.label}
+            </span>
+          )}
+        </div>
         <p className={cn("text-xl sm:text-2xl font-semibold text-foreground mt-0.5 truncate", className)}>{prefix}{value}</p>
         {actual !== undefined && anterior !== undefined && (
           <ComparisonIndicator actual={actual} anterior={anterior} label="vs ant." />
@@ -923,6 +941,7 @@ function ChannelPanel({ days, canal, showLocationFilter, locationFilter }: {
               {showM2 ? (
                 <KpiCard label="Venta / m²" value={fmtCurrency(ventaM2)} icon={Ruler}
                   actual={ventaM2} anterior={prevVentaM2}
+                  ventaM2Status={getVentaM2Status(ventaM2)}
                   onClick={() => navigate(`/venta-m2?days=${resolveDays(days)}&canal=${canal}`)} />
               ) : (
                 <KpiCard label="% Full Price" value={`${(kpis?.pct_pedidos_full_price ?? 0).toFixed(1)}%`} icon={Star} className="text-emerald-600"
@@ -1146,6 +1165,7 @@ function BrandOverviewPanel({ days }: { days: number }) {
             actual={kpis?.upt ?? 0} anterior={prevKpis?.upt ?? 0} />
           <KpiCard label="Venta m² Tienda" value={fmtCurrency(ventaM2)} icon={Ruler}
             actual={ventaM2} anterior={prevVentaM2}
+            ventaM2Status={totalM2 > 0 ? getVentaM2Status(ventaM2) : undefined}
             onClick={() => navigate(`/venta-m2?days=${resolveDays(days)}`)} />
         </div>
         {/* Row 3: % Full Price, % Rebajas, % Desc. Promo */}
