@@ -9,7 +9,7 @@ import { exportToPDF } from "@/lib/pdf-export";
 import { LoadingState, EmptyState } from "./LoadingState";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Store, Globe, Download, FileText, DollarSign, ShoppingBag, Receipt, Star, Percent, Tag, Trophy, TrendingDown, TrendingUp, CalendarDays, Package, AlertTriangle } from "lucide-react";
+import { Store, Globe, Download, FileText, DollarSign, ShoppingBag, Receipt, Star, Percent, Tag, Trophy, TrendingDown, TrendingUp, CalendarDays, Package, AlertTriangle, Ruler } from "lucide-react";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 import { StoreLeaderboard } from "./StoreLeaderboard";
 
@@ -90,9 +90,10 @@ function ExportButtons({ data, filename, title }: {
   );
 }
 
-/* ── KPI Card ── */
-function KpiCard({ label, value, prefix = "", icon: Icon, className, onClick }: {
+/* ── KPI Card with comparison ── */
+function KpiCard({ label, value, prefix = "", icon: Icon, className, onClick, actual, anterior }: {
   label: string; value: string; prefix?: string; icon: React.ElementType; className?: string; onClick?: () => void;
+  actual?: number; anterior?: number;
 }) {
   return (
     <div
@@ -102,9 +103,12 @@ function KpiCard({ label, value, prefix = "", icon: Icon, className, onClick }: 
       <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
         <Icon className={cn("h-5 w-5 text-primary", className)} />
       </div>
-      <div>
+      <div className="min-w-0">
         <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">{label}</p>
-        <p className={cn("text-2xl font-semibold text-foreground mt-0.5", className)}>{prefix}{value}</p>
+        <p className={cn("text-xl sm:text-2xl font-semibold text-foreground mt-0.5 truncate", className)}>{prefix}{value}</p>
+        {actual !== undefined && anterior !== undefined && (
+          <ComparisonIndicator actual={actual} anterior={anterior} label="vs ant." />
+        )}
       </div>
     </div>
   );
@@ -750,6 +754,8 @@ function ChannelPanel({ days, canal, showLocationFilter, locationFilter }: {
   locationFilter?: "tiendas" | "outlets";
 }) {
   const [kpis, setKpis] = useState<KpiData | null>(null);
+  const [prevKpis, setPrevKpis] = useState<KpiData | null>(null);
+  const [channelM2, setChannelM2] = useState<number>(0);
   const [topProducts, setTopProducts] = useState<ProductRow[]>([]);
   const [bottomProducts, setBottomProducts] = useState<ProductRow[]>([]);
   const [locations, setLocations] = useState<Location[]>([]);
@@ -787,8 +793,13 @@ function ChannelPanel({ days, canal, showLocationFilter, locationFilter }: {
       const canalFiltro = canal === "digital" ? "DIGITAL" : "POS";
 
       try {
-        const [kpiRes, topRes, bottomRes] = await Promise.all([
+        const [kpiRes, prevKpiRes, topRes, bottomRes, m2Res] = await Promise.all([
           supabase.rpc("reporte_kpis_comerciales", {
+            dias_atras: effectiveDays,
+            p_canal: canal,
+            p_location_id: locParam,
+          }),
+          supabase.rpc("reporte_kpis_periodo_anterior" as any, {
             dias_atras: effectiveDays,
             p_canal: canal,
             p_location_id: locParam,
@@ -807,13 +818,37 @@ function ChannelPanel({ days, canal, showLocationFilter, locationFilter }: {
             orden: "BOTTOM",
             limite: 20,
           }),
+          // Fetch m² for the selected location or all relevant locations
+          locParam
+            ? supabase.from("locations").select("dimension_m2").eq("location_id", locParam)
+            : supabase.from("locations").select("dimension_m2, name, location_id").eq("is_active", true).not("dimension_m2", "is", null),
         ]);
 
+        const emptyKpi = { total_pedidos: 0, unidades_vendidas: 0, ingresos_netos: 0, ticket_promedio: 0, upt: 0, pct_pedidos_full_price: 0, pct_pedidos_rebajas: 0, pct_pedidos_con_descuento: 0 };
+        
         if (kpiRes.error) console.error(`Error en reporte_kpis_comerciales:`, kpiRes.error);
         if (kpiRes.data && kpiRes.data.length > 0) {
           setKpis(kpiRes.data[0] as unknown as KpiData);
         } else {
-          setKpis({ total_pedidos: 0, unidades_vendidas: 0, ingresos_netos: 0, ticket_promedio: 0, upt: 0, pct_pedidos_full_price: 0, pct_pedidos_rebajas: 0, pct_pedidos_con_descuento: 0 });
+          setKpis(emptyKpi);
+        }
+
+        if (prevKpiRes.data && (prevKpiRes.data as any[]).length > 0) {
+          setPrevKpis((prevKpiRes.data as any[])[0] as unknown as KpiData);
+        } else {
+          setPrevKpis(emptyKpi);
+        }
+
+        // Calculate total m²
+        if (m2Res.data) {
+          const relevantLocs = (m2Res.data as any[]).filter((l: any) => {
+            if (locParam) return true; // single location
+            if (canal === "digital") return false; // no m² for digital
+            if (locationFilter === "tiendas") return l.location_id !== CEDI_ID && !isOutlet(l.name ?? "");
+            if (locationFilter === "outlets") return isOutlet(l.name ?? "");
+            return l.location_id !== CEDI_ID;
+          });
+          setChannelM2(relevantLocs.reduce((s: number, r: any) => s + (r.dimension_m2 ?? 0), 0));
         }
 
         if (topRes.error) console.error("Error en reporte_ejecutivo_productos (TOP):", topRes.error);
@@ -868,26 +903,26 @@ function ChannelPanel({ days, canal, showLocationFilter, locationFilter }: {
       )}
 
       {(() => {
-        const pctDesc = kpis?.pct_pedidos_con_descuento ?? 0;
-        const showDiscAlert = pctDesc > 30;
+        const ventaM2 = channelM2 > 0 ? (kpis?.ingresos_netos ?? 0) / channelM2 : 0;
+        const prevVentaM2 = channelM2 > 0 ? (prevKpis?.ingresos_netos ?? 0) / channelM2 : 0;
+        const showM2 = canal !== "digital" && channelM2 > 0;
         return (
-          <>
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
-              <KpiCard label="Ventas Netas" value={(kpis?.ingresos_netos ?? 0).toLocaleString()} prefix="$" icon={DollarSign} />
-              <KpiCard label="Ticket Promedio" value={(kpis?.ticket_promedio ?? 0).toLocaleString()} prefix="$" icon={Receipt} />
-              <KpiCard label="UPT" value={(kpis?.upt ?? 0).toFixed(2)} icon={ShoppingBag} />
-              <KpiCard label="% Full Price" value={`${(kpis?.pct_pedidos_full_price ?? 0).toFixed(1)}%`} icon={Star} className="text-emerald-600" onClick={() => navigate(`/pedidos?tipo=full_price&canal=${canal}&days=${resolveDays(days)}`)} />
-              <KpiCard label="% Rebajas" value={`${(kpis?.pct_pedidos_rebajas ?? 0).toFixed(1)}%`} icon={Tag} className="text-blue-500" onClick={() => navigate(`/pedidos?tipo=rebajas&canal=${canal}&days=${resolveDays(days)}`)} />
-              <div className="relative">
-                <KpiCard label="% Desc. Promo" value={`${pctDesc.toFixed(1)}%`} icon={Percent} className="text-orange-500" onClick={() => navigate(`/pedidos?tipo=descuento&canal=${canal}&days=${resolveDays(days)}`)} />
-                {showDiscAlert && (
-                  <div className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-destructive flex items-center justify-center">
-                    <AlertTriangle className="h-3 w-3 text-destructive-foreground" />
-                  </div>
-                )}
-              </div>
-            </div>
-          </>
+          <div className="grid grid-cols-2 gap-4">
+            <KpiCard label="Ventas Netas" value={fmtCurrency(kpis?.ingresos_netos ?? 0)} icon={DollarSign}
+              actual={kpis?.ingresos_netos ?? 0} anterior={prevKpis?.ingresos_netos ?? 0} />
+            <KpiCard label="Ticket Promedio" value={fmtCurrency(kpis?.ticket_promedio ?? 0)} icon={Receipt}
+              actual={kpis?.ticket_promedio ?? 0} anterior={prevKpis?.ticket_promedio ?? 0} />
+            <KpiCard label="UPT" value={(kpis?.upt ?? 0).toFixed(2)} icon={ShoppingBag}
+              actual={kpis?.upt ?? 0} anterior={prevKpis?.upt ?? 0} />
+            {showM2 ? (
+              <KpiCard label="Venta / m²" value={fmtCurrency(ventaM2)} icon={Ruler}
+                actual={ventaM2} anterior={prevVentaM2} />
+            ) : (
+              <KpiCard label="% Full Price" value={`${(kpis?.pct_pedidos_full_price ?? 0).toFixed(1)}%`} icon={Star} className="text-emerald-600"
+                actual={kpis?.pct_pedidos_full_price ?? 0} anterior={prevKpis?.pct_pedidos_full_price ?? 0}
+                onClick={() => navigate(`/pedidos?tipo=full_price&canal=${canal}&days=${resolveDays(days)}`)} />
+            )}
+          </div>
         );
       })()}
 
@@ -1009,6 +1044,8 @@ function BrandTopBottomProducts({ days }: { days: number }) {
 /* ── Brand-wide KPI Panel ── */
 function BrandOverviewPanel({ days }: { days: number }) {
   const [kpis, setKpis] = useState<KpiData | null>(null);
+  const [prevKpis, setPrevKpis] = useState<KpiData | null>(null);
+  const [totalM2, setTotalM2] = useState<number>(0);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
@@ -1017,13 +1054,26 @@ function BrandOverviewPanel({ days }: { days: number }) {
       if (!isValidDays(days)) return;
       setLoading(true);
       const effectiveDays = resolveDays(days);
-      const { data } = await supabase.rpc("reporte_kpis_comerciales", {
-        dias_atras: effectiveDays,
-        p_canal: null,
-        p_location_id: null,
-      });
-      if (data && data.length > 0) setKpis(data[0] as unknown as KpiData);
-      else setKpis({ total_pedidos: 0, unidades_vendidas: 0, ingresos_netos: 0, ticket_promedio: 0, upt: 0, pct_pedidos_full_price: 0, pct_pedidos_rebajas: 0, pct_pedidos_con_descuento: 0 });
+      const [currentRes, prevRes, m2Res] = await Promise.all([
+        supabase.rpc("reporte_kpis_comerciales", {
+          dias_atras: effectiveDays,
+          p_canal: null,
+          p_location_id: null,
+        }),
+        supabase.rpc("reporte_kpis_periodo_anterior" as any, {
+          dias_atras: effectiveDays,
+          p_canal: null,
+          p_location_id: null,
+        }),
+        supabase.from("locations").select("dimension_m2").eq("is_active", true).not("dimension_m2", "is", null),
+      ]);
+
+      const emptyKpi = { total_pedidos: 0, unidades_vendidas: 0, ingresos_netos: 0, ticket_promedio: 0, upt: 0, pct_pedidos_full_price: 0, pct_pedidos_rebajas: 0, pct_pedidos_con_descuento: 0 };
+      if (currentRes.data && currentRes.data.length > 0) setKpis(currentRes.data[0] as unknown as KpiData);
+      else setKpis(emptyKpi);
+      if (prevRes.data && (prevRes.data as any[]).length > 0) setPrevKpis((prevRes.data as any[])[0] as unknown as KpiData);
+      else setPrevKpis(emptyKpi);
+      if (m2Res.data) setTotalM2(m2Res.data.reduce((s: number, r: any) => s + (r.dimension_m2 ?? 0), 0));
       setLoading(false);
     }
     fetch();
@@ -1031,8 +1081,8 @@ function BrandOverviewPanel({ days }: { days: number }) {
 
   if (loading) return <LoadingState rows={2} />;
 
-  const pctDescuento = kpis?.pct_pedidos_con_descuento ?? 0;
-  const showDiscountAlert = pctDescuento > 30;
+  const ventaM2 = totalM2 > 0 ? (kpis?.ingresos_netos ?? 0) / totalM2 : 0;
+  const prevVentaM2 = totalM2 > 0 ? (prevKpis?.ingresos_netos ?? 0) / totalM2 : 0;
 
   return (
     <div className="space-y-4 mb-6">
@@ -1043,20 +1093,15 @@ function BrandOverviewPanel({ days }: { days: number }) {
           </div>
           <h3 className="text-sm font-semibold text-foreground">📊 DESEMPEÑO COMERCIAL VENTA DIRECTA</h3>
         </div>
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
-          <KpiCard label="Ventas Netas" value={(kpis?.ingresos_netos ?? 0).toLocaleString()} prefix="$" icon={DollarSign} />
-          <KpiCard label="Ticket Promedio" value={(kpis?.ticket_promedio ?? 0).toLocaleString()} prefix="$" icon={Receipt} />
-          <KpiCard label="UPT" value={(kpis?.upt ?? 0).toFixed(2)} icon={ShoppingBag} />
-          <KpiCard label="% Full Price" value={`${(kpis?.pct_pedidos_full_price ?? 0).toFixed(1)}%`} icon={Star} className="text-emerald-600" onClick={() => navigate(`/pedidos?tipo=full_price&days=${resolveDays(days)}`)} />
-          <KpiCard label="% Rebajas" value={`${(kpis?.pct_pedidos_rebajas ?? 0).toFixed(1)}%`} icon={Tag} className="text-blue-500" onClick={() => navigate(`/pedidos?tipo=rebajas&days=${resolveDays(days)}`)} />
-          <div className="relative">
-            <KpiCard label="% Desc. Promo" value={`${pctDescuento.toFixed(1)}%`} icon={Percent} className="text-orange-500" onClick={() => navigate(`/pedidos?tipo=descuento&canal=tiendas&days=${resolveDays(days)}`)} />
-            {showDiscountAlert && (
-              <div className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-destructive flex items-center justify-center">
-                <AlertTriangle className="h-3 w-3 text-destructive-foreground" />
-              </div>
-            )}
-          </div>
+        <div className="grid grid-cols-2 gap-4">
+          <KpiCard label="Ventas Netas" value={fmtCurrency(kpis?.ingresos_netos ?? 0)} icon={DollarSign}
+            actual={kpis?.ingresos_netos ?? 0} anterior={prevKpis?.ingresos_netos ?? 0} />
+          <KpiCard label="Ticket Promedio" value={fmtCurrency(kpis?.ticket_promedio ?? 0)} icon={Receipt}
+            actual={kpis?.ticket_promedio ?? 0} anterior={prevKpis?.ticket_promedio ?? 0} />
+          <KpiCard label="UPT" value={(kpis?.upt ?? 0).toFixed(2)} icon={ShoppingBag}
+            actual={kpis?.upt ?? 0} anterior={prevKpis?.upt ?? 0} />
+          <KpiCard label="Venta / m²" value={fmtCurrency(ventaM2)} icon={Ruler}
+            actual={ventaM2} anterior={prevVentaM2} />
         </div>
       </div>
       <BrandTopBottomProducts days={days} />
