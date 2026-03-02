@@ -4,8 +4,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { LoadingState, EmptyState } from "./LoadingState";
 import { StatusBadge } from "./StatusBadge";
 import { Progress } from "@/components/ui/progress";
-import { Input } from "@/components/ui/input";
-import { Search } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { exportToCSV } from "@/lib/csv-export";
+import { exportToPDF } from "@/lib/pdf-export";
+import { Download, FileText } from "lucide-react";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
@@ -71,7 +73,6 @@ export function ProductDetailDrawer({
         dias_atras: days,
         p_producto: product.producto,
       });
-      if (import.meta.env.DEV) console.log("[ProductDetail] RPC response:", { data, error, producto: product.producto, days });
       if (error) throw new Error(error.message);
       return (data ?? []) as DetailRow[];
     },
@@ -80,21 +81,11 @@ export function ProductDetailDrawer({
 
   const rows = data ?? [];
 
-  // Unique store names for the dropdown
-  const storeNames = useMemo(() => {
-    const names = [...new Set(rows.map((r) => r.tienda))].sort();
-    return names;
-  }, [rows]);
+  const storeNames = useMemo(() => [...new Set(rows.map((r) => r.tienda))].sort(), [rows]);
 
   const filtered = useMemo(() => {
     let result = rows;
-
-    // Store filter
-    if (storeFilter !== "all") {
-      result = result.filter((r) => r.tienda === storeFilter);
-    }
-
-    // WOS filter
+    if (storeFilter !== "all") result = result.filter((r) => r.tienda === storeFilter);
     if (wosFilter !== "all") {
       result = result.filter((r) => {
         if (wosFilter === "stagnant") return r.estado_salud.includes("ESTANCADO");
@@ -104,8 +95,6 @@ export function ProductDetailDrawer({
         return true;
       });
     }
-
-    // ST% filter
     if (stFilter !== "all") {
       result = result.filter((r) => {
         if (stFilter === "high") return r.sell_through_pct >= 70;
@@ -114,7 +103,6 @@ export function ProductDetailDrawer({
         return true;
       });
     }
-
     return result;
   }, [rows, storeFilter, wosFilter, stFilter]);
 
@@ -127,6 +115,45 @@ export function ProductDetailDrawer({
   const formatCurrency = (n: number) =>
     new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", minimumFractionDigits: 0 }).format(n);
 
+  const handleExportCSV = () => {
+    if (!filtered.length || !product) return;
+    exportToCSV(
+      filtered.map((r) => ({
+        Producto: product.producto,
+        SKU: product.sku,
+        Tienda: r.tienda,
+        "Und. Vendidas": r.und_vendidas,
+        Ingresos: r.ingresos,
+        "% Full Price": r.pct_full_price,
+        "% Descuento": r.pct_descuento,
+        Stock: r.stock_actual,
+        "Sell-Through %": r.sell_through_pct,
+        WOS: r.wos,
+        Salud: r.estado_salud,
+      })),
+      `detalle_${product.sku}`
+    );
+  };
+
+  const handleExportPDF = () => {
+    if (!filtered.length || !product) return;
+    exportToPDF(
+      filtered.map((r) => ({
+        Tienda: r.tienda,
+        "Und.": r.und_vendidas,
+        Ingresos: r.ingresos,
+        "% Full": r.pct_full_price,
+        "% Dto.": r.pct_descuento,
+        Stock: r.stock_actual,
+        "ST%": r.sell_through_pct,
+        WOS: r.wos,
+        Salud: r.estado_salud,
+      })),
+      `detalle_${product.sku}`,
+      `Detalle: ${product.producto}`
+    );
+  };
+
   return (
     <Sheet open={!!product} onOpenChange={(open) => { if (!open) { onClose(); setStoreFilter("all"); setWosFilter("all"); setStFilter("all"); } }}>
       <SheetContent className="!max-w-full w-full overflow-y-auto p-0" side="right">
@@ -136,20 +163,12 @@ export function ProductDetailDrawer({
             <SheetHeader className="p-6 pb-4 border-b border-border">
               <div className="flex items-start gap-4">
                 {product.foto ? (
-                  <img
-                    src={product.foto}
-                    alt={product.producto}
-                    className="h-20 w-20 rounded-xl object-cover border border-border shrink-0"
-                  />
+                  <img src={product.foto} alt={product.producto} className="h-20 w-20 rounded-xl object-cover border border-border shrink-0" />
                 ) : (
-                  <div className="h-20 w-20 rounded-xl bg-muted/50 flex items-center justify-center text-muted-foreground shrink-0">
-                    N/A
-                  </div>
+                  <div className="h-20 w-20 rounded-xl bg-muted/50 flex items-center justify-center text-muted-foreground shrink-0">N/A</div>
                 )}
                 <div className="min-w-0 flex-1">
-                  <SheetTitle className="text-base font-semibold text-foreground leading-tight">
-                    {product.producto}
-                  </SheetTitle>
+                  <SheetTitle className="text-base font-semibold text-foreground leading-tight">{product.producto}</SheetTitle>
                   <p className="text-sm text-muted-foreground font-mono mt-1">{product.sku}</p>
                   <p className="text-xs text-muted-foreground mt-0.5">{product.categoria}</p>
                 </div>
@@ -191,6 +210,16 @@ export function ProductDetailDrawer({
               </Select>
             </div>
 
+            {/* Export buttons */}
+            <div className="px-6 pb-2 flex items-center gap-2">
+              <Button variant="outline" size="sm" onClick={handleExportCSV} disabled={!filtered.length}>
+                <Download className="h-4 w-4 mr-1" /> CSV
+              </Button>
+              <Button variant="outline" size="sm" onClick={handleExportPDF} disabled={!filtered.length}>
+                <FileText className="h-4 w-4 mr-1" /> PDF
+              </Button>
+            </div>
+
             {/* Detail Table */}
             <div className="px-6 pb-6">
               {isLoading ? (
@@ -215,28 +244,16 @@ export function ProductDetailDrawer({
                     <TableBody>
                       {filtered.map((row) => (
                         <TableRow key={row.tienda}>
-                          <TableCell className="text-sm font-medium text-foreground whitespace-nowrap">
-                            {row.tienda}
-                          </TableCell>
-                          <TableCell className="text-right text-sm font-semibold">
-                            {row.und_vendidas.toLocaleString()}
-                          </TableCell>
-                          <TableCell className="text-right text-sm">
-                            {formatCurrency(row.ingresos)}
+                          <TableCell className="text-sm font-medium text-foreground whitespace-nowrap">{row.tienda}</TableCell>
+                          <TableCell className="text-right text-sm font-semibold">{row.und_vendidas.toLocaleString()}</TableCell>
+                          <TableCell className="text-right text-sm">{formatCurrency(row.ingresos)}</TableCell>
+                          <TableCell className="text-right">
+                            <span className="text-sm font-medium text-success">{row.pct_full_price}%</span>
                           </TableCell>
                           <TableCell className="text-right">
-                            <span className="text-sm font-medium text-success">
-                              {row.pct_full_price}%
-                            </span>
+                            <span className="text-sm font-medium text-warning">{row.pct_descuento}%</span>
                           </TableCell>
-                          <TableCell className="text-right">
-                            <span className="text-sm font-medium text-warning">
-                              {row.pct_descuento}%
-                            </span>
-                          </TableCell>
-                          <TableCell className="text-right text-sm font-medium">
-                            {row.stock_actual.toLocaleString()}
-                          </TableCell>
+                          <TableCell className="text-right text-sm font-medium">{row.stock_actual.toLocaleString()}</TableCell>
                           <TableCell>
                             <div className="flex items-center gap-1.5">
                               <Progress
@@ -244,9 +261,7 @@ export function ProductDetailDrawer({
                                 className="h-2 flex-1 bg-muted"
                                 indicatorClassName={getSellThroughColor(row.sell_through_pct)}
                               />
-                              <span className="text-xs font-medium w-10 text-right">
-                                {row.sell_through_pct}%
-                              </span>
+                              <span className="text-xs font-medium w-10 text-right">{row.sell_through_pct}%</span>
                             </div>
                           </TableCell>
                           <TableCell>

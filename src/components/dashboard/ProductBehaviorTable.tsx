@@ -7,7 +7,7 @@ import { StatusBadge } from "./StatusBadge";
 import { ProductDetailDrawer } from "./ProductDetailDrawer";
 import { exportToCSV } from "@/lib/csv-export";
 import { exportToPDF } from "@/lib/pdf-export";
-import { Search, Download, FileText } from "lucide-react";
+import { Search, Download, FileText, Tag } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -56,62 +56,45 @@ const ST_FILTERS = [
   { value: "low", label: "🔴 Bajo (<30%)" },
 ];
 
+const CANAL_FILTERS = [
+  { value: "all", label: "Todos los canales" },
+  { value: "tiendas", label: "🏪 Tiendas de Línea" },
+  { value: "outlet", label: "🏷️ Outlets" },
+  { value: "digital", label: "🌐 Digital" },
+];
+
+const DIGITAL_LOCATION_ID = "71474315479";
+
 interface LocationOption {
   location_id: string;
   name: string;
+  tipo_tienda: string | null;
 }
 
-/* ── Sales Breakdown Bar ── */
-function SalesBreakdownBar({ full, rebajas, promo, total }: { full: number; rebajas: number; promo: number; total: number }) {
+/* ── Sales Breakdown Bars (3 individual) ── */
+function SalesBreakdownBars({ full, rebajas, promo, total }: { full: number; rebajas: number; promo: number; total: number }) {
   if (total === 0) return <span className="text-xs text-muted-foreground">Sin ventas</span>;
 
-  const pFull = (full / total) * 100;
-  const pRebajas = (rebajas / total) * 100;
-  const pPromo = (promo / total) * 100;
+  const max = Math.max(full, rebajas, promo, 1);
+
+  const bars = [
+    { label: "Full", value: full, color: "bg-emerald-500", textColor: "text-emerald-600" },
+    { label: "Reb.", value: rebajas, color: "bg-destructive", textColor: "text-destructive" },
+    { label: "Promo", value: promo, color: "bg-amber-500", textColor: "text-amber-600" },
+  ];
 
   return (
-    <TooltipProvider>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <div className="space-y-1.5">
-            {/* Stacked bar */}
-            <div className="flex h-3 w-full rounded-full overflow-hidden bg-muted">
-              {pFull > 0 && (
-                <div className="h-full bg-emerald-500 transition-all" style={{ width: `${pFull}%` }} />
-              )}
-              {pRebajas > 0 && (
-                <div className="h-full bg-destructive transition-all" style={{ width: `${pRebajas}%` }} />
-              )}
-              {pPromo > 0 && (
-                <div className="h-full bg-amber-500 transition-all" style={{ width: `${pPromo}%` }} />
-              )}
-            </div>
-            {/* Labels */}
-            <div className="flex items-center gap-2 text-[10px]">
-              <span className="text-emerald-600 font-medium">{full}</span>
-              <span className="text-destructive font-medium">{rebajas}</span>
-              <span className="text-amber-500 font-medium">{promo}</span>
-            </div>
+    <div className="space-y-1 w-full min-w-[140px]">
+      {bars.map((b) => (
+        <div key={b.label} className="flex items-center gap-1.5">
+          <span className={cn("text-[9px] font-semibold w-8 text-right shrink-0", b.textColor)}>{b.label}</span>
+          <div className="flex-1 h-2 rounded-full bg-muted overflow-hidden">
+            <div className={cn("h-full rounded-full transition-all", b.color)} style={{ width: `${max > 0 ? (b.value / max) * 100 : 0}%` }} />
           </div>
-        </TooltipTrigger>
-        <TooltipContent side="top" className="text-xs">
-          <div className="space-y-1">
-            <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-emerald-500" />
-              Full Price: {full} uds ({pFull.toFixed(1)}%)
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-destructive" />
-              Rebajas: {rebajas} uds ({pRebajas.toFixed(1)}%)
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-amber-500" />
-              Promo: {promo} uds ({pPromo.toFixed(1)}%)
-            </div>
-          </div>
-        </TooltipContent>
-      </Tooltip>
-    </TooltipProvider>
+          <span className={cn("text-[10px] font-semibold w-8 shrink-0", b.textColor)}>{b.value}</span>
+        </div>
+      ))}
+    </div>
   );
 }
 
@@ -121,18 +104,39 @@ export function ProductBehaviorTable({ days, initialWosFilter, initialLocationId
   const [selectedProduct, setSelectedProduct] = useState<ProductRow | null>(null);
   const [wosFilter, setWosFilter] = useState(initialWosFilter ?? "all");
   const [stFilter, setStFilter] = useState("all");
+  const [canalFilter, setCanalFilter] = useState("all");
   const [locationId, setLocationId] = useState(initialLocationId ?? "all");
 
   const resolvedDays = resolveDays(days);
 
-  const { data: locations } = useQuery({
-    queryKey: ["locations-active"],
+  const { data: allLocations } = useQuery({
+    queryKey: ["locations-active-full"],
     queryFn: async () => {
-      const { data } = await supabase.from("locations").select("location_id, name").eq("is_active", true).order("name");
+      const { data } = await supabase.from("locations").select("location_id, name, tipo_tienda").eq("is_active", true).order("name");
       return (data ?? []) as LocationOption[];
     },
     staleTime: 10 * 60 * 1000,
   });
+
+  // Filter locations by selected channel
+  const filteredLocations = useMemo(() => {
+    if (!allLocations) return [];
+    if (canalFilter === "all") return allLocations;
+    if (canalFilter === "digital") return allLocations.filter((l) => l.location_id === DIGITAL_LOCATION_ID);
+    if (canalFilter === "outlet") return allLocations.filter((l) => (l.tipo_tienda ?? "").toUpperCase() === "OUTLET");
+    // tiendas = A, B, C
+    return allLocations.filter((l) => ["A", "B", "C"].includes((l.tipo_tienda ?? "").toUpperCase()));
+  }, [allLocations, canalFilter]);
+
+  // Reset location when channel changes
+  useMemo(() => {
+    if (canalFilter !== "all") {
+      const valid = filteredLocations.map((l) => l.location_id);
+      if (locationId !== "all" && !valid.includes(locationId)) {
+        setLocationId("all");
+      }
+    }
+  }, [canalFilter, filteredLocations]);
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["producto-comportamiento", resolvedDays, search, locationId],
@@ -147,6 +151,7 @@ export function ProductBehaviorTable({ days, initialWosFilter, initialLocationId
     staleTime: 5 * 60 * 1000,
     retry: 1,
   });
+
   const rows = useMemo(() => {
     let all = data ?? [];
     if (wosFilter !== "all") {
@@ -172,8 +177,7 @@ export function ProductBehaviorTable({ days, initialWosFilter, initialLocationId
   const totalPages = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
   const paged = rows.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
 
-  // Reset page when filters change
-  useMemo(() => setPage(0), [search, days, wosFilter, stFilter, locationId]);
+  useMemo(() => setPage(0), [search, days, wosFilter, stFilter, locationId, canalFilter]);
 
   const handleExportCSV = () => {
     if (!rows.length) return;
@@ -182,7 +186,7 @@ export function ProductBehaviorTable({ days, initialWosFilter, initialLocationId
         SKU: r.sku,
         Producto: r.producto,
         Categoría: r.categoria,
-        Tipo: r.clasificacion,
+        Clasificación: r.clasificacion,
         "Und. Vendidas": r.und_vendidas,
         "Und. Full Price": r.und_full_price ?? 0,
         "Und. Rebajas": r.und_rebajas ?? 0,
@@ -204,11 +208,11 @@ export function ProductBehaviorTable({ days, initialWosFilter, initialLocationId
         SKU: r.sku,
         Producto: r.producto,
         Categoría: r.categoria,
-        Tipo: r.clasificacion,
+        Clasificación: r.clasificacion,
         "Und. Vendidas": r.und_vendidas,
-        "Full": r.und_full_price ?? 0,
-        "Rebajas": r.und_rebajas ?? 0,
-        "Promo": r.und_promo ?? 0,
+        Full: r.und_full_price ?? 0,
+        Rebajas: r.und_rebajas ?? 0,
+        Promo: r.und_promo ?? 0,
         "Sell-Through %": r.sell_through_pct,
         WOS: r.wos,
         Salud: r.estado_salud,
@@ -226,7 +230,7 @@ export function ProductBehaviorTable({ days, initialWosFilter, initialLocationId
 
   return (
     <div className="space-y-4">
-      {/* Filters bar */}
+      {/* Filters row 1 */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 flex-wrap">
         <div className="relative flex-1 w-full sm:max-w-xs">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -237,13 +241,25 @@ export function ProductBehaviorTable({ days, initialWosFilter, initialLocationId
             className="pl-10 h-10"
           />
         </div>
+        <Select value={canalFilter} onValueChange={(v) => { setCanalFilter(v); setLocationId("all"); }}>
+          <SelectTrigger className="w-full sm:w-[200px] h-10">
+            <SelectValue placeholder="Canal" />
+          </SelectTrigger>
+          <SelectContent>
+            {CANAL_FILTERS.map((f) => (
+              <SelectItem key={f.value} value={f.value}>{f.label}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
         <Select value={locationId} onValueChange={setLocationId}>
           <SelectTrigger className="w-full sm:w-[200px] h-10">
             <SelectValue placeholder="Todas las tiendas" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">Todas las tiendas</SelectItem>
-            {(locations ?? []).map((loc) => (
+            <SelectItem value="all">
+              {canalFilter === "all" ? "Todas las tiendas" : `Todas (${CANAL_FILTERS.find(c => c.value === canalFilter)?.label.replace(/🏪|🏷️|🌐/g, "").trim()})`}
+            </SelectItem>
+            {filteredLocations.map((loc) => (
               <SelectItem key={loc.location_id} value={loc.location_id}>
                 {loc.name}
               </SelectItem>
@@ -251,7 +267,7 @@ export function ProductBehaviorTable({ days, initialWosFilter, initialLocationId
           </SelectContent>
         </Select>
         <Select value={wosFilter} onValueChange={setWosFilter}>
-          <SelectTrigger className="w-full sm:w-[200px] h-10">
+          <SelectTrigger className="w-full sm:w-[180px] h-10">
             <SelectValue placeholder="Filtrar por WOS" />
           </SelectTrigger>
           <SelectContent>
@@ -261,7 +277,7 @@ export function ProductBehaviorTable({ days, initialWosFilter, initialLocationId
           </SelectContent>
         </Select>
         <Select value={stFilter} onValueChange={setStFilter}>
-          <SelectTrigger className="w-full sm:w-[200px] h-10">
+          <SelectTrigger className="w-full sm:w-[180px] h-10">
             <SelectValue placeholder="Filtrar por %ST" />
           </SelectTrigger>
           <SelectContent>
@@ -270,29 +286,31 @@ export function ProductBehaviorTable({ days, initialWosFilter, initialLocationId
             ))}
           </SelectContent>
         </Select>
-        <div className="flex items-center gap-2 ml-auto">
+      </div>
+
+      {/* Export row */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-4 text-xs text-muted-foreground">
+          <div className="flex items-center gap-1.5">
+            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
+            Full Price
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span className="w-2.5 h-2.5 rounded-full bg-destructive" />
+            Rebajas
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span className="w-2.5 h-2.5 rounded-full bg-amber-500" />
+            Promo
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" onClick={handleExportCSV} disabled={!rows.length}>
             <Download className="h-4 w-4 mr-1" /> CSV
           </Button>
           <Button variant="outline" size="sm" onClick={handleExportPDF} disabled={!rows.length}>
             <FileText className="h-4 w-4 mr-1" /> PDF
           </Button>
-        </div>
-      </div>
-
-      {/* Legend */}
-      <div className="flex items-center gap-4 text-xs text-muted-foreground">
-        <div className="flex items-center gap-1.5">
-          <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
-          Full Price
-        </div>
-        <div className="flex items-center gap-1.5">
-          <span className="w-2.5 h-2.5 rounded-full bg-destructive" />
-          Rebajas
-        </div>
-        <div className="flex items-center gap-1.5">
-          <span className="w-2.5 h-2.5 rounded-full bg-amber-500" />
-          Promo
         </div>
       </div>
 
@@ -315,11 +333,16 @@ export function ProductBehaviorTable({ days, initialWosFilter, initialLocationId
               <TableHeader>
                 <TableRow className="bg-muted/30">
                   <TableHead className="min-w-[240px]">Producto</TableHead>
-                  <TableHead className="text-right">Und. Vendidas</TableHead>
+                  <TableHead className="text-right">Und.</TableHead>
                   <TableHead className="min-w-[180px]">Desglose Ventas</TableHead>
-                  <TableHead className="min-w-[80px]">Tipo</TableHead>
-                  <TableHead>Stock Actual</TableHead>
-                  <TableHead className="min-w-[160px]">Sell-Through</TableHead>
+                  <TableHead className="min-w-[110px]">
+                    <div className="flex items-center gap-1">
+                      <Tag className="h-3.5 w-3.5" />
+                      Clasificación
+                    </div>
+                  </TableHead>
+                  <TableHead>Stock</TableHead>
+                  <TableHead className="min-w-[140px]">Sell-Through</TableHead>
                   <TableHead>WOS & Salud</TableHead>
                 </TableRow>
               </TableHeader>
@@ -332,19 +355,12 @@ export function ProductBehaviorTable({ days, initialWosFilter, initialLocationId
 
                   return (
                     <TableRow key={row.sku} className="cursor-pointer" onClick={() => setSelectedProduct(row)}>
-                      {/* Producto */}
                       <TableCell>
                         <div className="flex items-center gap-3">
                           {row.foto ? (
-                            <img
-                              src={row.foto}
-                              alt={row.producto}
-                              className="h-14 w-14 rounded-lg object-cover border border-border shrink-0"
-                            />
+                            <img src={row.foto} alt={row.producto} className="h-14 w-14 rounded-lg object-cover border border-border shrink-0" />
                           ) : (
-                            <div className="h-14 w-14 rounded-lg bg-muted/50 flex items-center justify-center text-muted-foreground text-xs shrink-0">
-                              N/A
-                            </div>
+                            <div className="h-14 w-14 rounded-lg bg-muted/50 flex items-center justify-center text-muted-foreground text-xs shrink-0">N/A</div>
                           )}
                           <div className="min-w-0">
                             <p className="text-sm font-medium text-foreground truncate">{row.producto}</p>
@@ -353,36 +369,23 @@ export function ProductBehaviorTable({ days, initialWosFilter, initialLocationId
                         </div>
                       </TableCell>
 
-                      {/* Unidades Vendidas */}
                       <TableCell className="text-right">
-                        <span className="text-base font-semibold text-foreground">
-                          {(row.und_vendidas ?? 0).toLocaleString()}
-                        </span>
+                        <span className="text-base font-semibold text-foreground">{(row.und_vendidas ?? 0).toLocaleString()}</span>
                       </TableCell>
 
-                      {/* Desglose Ventas */}
                       <TableCell>
-                        <SalesBreakdownBar
-                          full={full}
-                          rebajas={reb}
-                          promo={promo}
-                          total={row.und_vendidas ?? 0}
-                        />
+                        <SalesBreakdownBars full={full} rebajas={reb} promo={promo} total={row.und_vendidas ?? 0} />
                       </TableCell>
 
-                      {/* Tipo */}
                       <TableCell>
                         <span className={cn(
-                          "inline-flex items-center px-2 py-1 rounded-full text-[10px] font-bold",
-                          isFull
-                            ? "bg-emerald-500/10 text-emerald-600"
-                            : "bg-destructive/10 text-destructive"
+                          "inline-flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-bold",
+                          isFull ? "bg-emerald-500/10 text-emerald-600" : "bg-destructive/10 text-destructive"
                         )}>
-                          {isFull ? "Venta Full" : "Con Impulso"}
+                          {isFull ? "✅ Venta Full" : "🔻 Con Impulso"}
                         </span>
                       </TableCell>
 
-                      {/* Stock Actual */}
                       <TableCell>
                         <div className="space-y-0.5 text-sm">
                           <p>🏪 <span className="font-medium">{(row.stock_tiendas ?? 0).toLocaleString()}</span></p>
@@ -390,7 +393,6 @@ export function ProductBehaviorTable({ days, initialWosFilter, initialLocationId
                         </div>
                       </TableCell>
 
-                      {/* Sell-Through */}
                       <TableCell>
                         <div className="flex items-center gap-2">
                           <Progress
@@ -398,13 +400,10 @@ export function ProductBehaviorTable({ days, initialWosFilter, initialLocationId
                             className="h-2.5 flex-1 bg-muted"
                             indicatorClassName={getSellThroughColor(row.sell_through_pct ?? 0)}
                           />
-                          <span className="text-sm font-medium text-foreground w-12 text-right">
-                            {row.sell_through_pct ?? 0}%
-                          </span>
+                          <span className="text-sm font-medium text-foreground w-12 text-right">{row.sell_through_pct ?? 0}%</span>
                         </div>
                       </TableCell>
 
-                      {/* WOS & Salud */}
                       <TableCell>
                         <p className="text-sm font-semibold text-foreground">{row.wos ?? 0} sem.</p>
                         <StatusBadge label={row.estado_salud} />
@@ -416,30 +415,19 @@ export function ProductBehaviorTable({ days, initialWosFilter, initialLocationId
             </Table>
             </div>
 
-            {/* Pagination */}
             {totalPages > 1 && (
               <div className="flex items-center justify-between px-4 py-3 border-t border-border">
-                <p className="text-xs text-muted-foreground">
-                  {rows.length} productos · Página {page + 1} de {totalPages}
-                </p>
+                <p className="text-xs text-muted-foreground">{rows.length} productos · Página {page + 1} de {totalPages}</p>
                 <div className="flex items-center gap-1">
-                  <Button variant="ghost" size="sm" disabled={page === 0} onClick={() => setPage(page - 1)}>
-                    Anterior
-                  </Button>
-                  <Button variant="ghost" size="sm" disabled={page >= totalPages - 1} onClick={() => setPage(page + 1)}>
-                    Siguiente
-                  </Button>
+                  <Button variant="ghost" size="sm" disabled={page === 0} onClick={() => setPage(page - 1)}>Anterior</Button>
+                  <Button variant="ghost" size="sm" disabled={page >= totalPages - 1} onClick={() => setPage(page + 1)}>Siguiente</Button>
                 </div>
               </div>
             )}
           </>
         )}
       </div>
-      <ProductDetailDrawer
-        product={selectedProduct}
-        days={resolveDays(days)}
-        onClose={() => setSelectedProduct(null)}
-      />
+      <ProductDetailDrawer product={selectedProduct} days={resolveDays(days)} onClose={() => setSelectedProduct(null)} />
     </div>
   );
 }
