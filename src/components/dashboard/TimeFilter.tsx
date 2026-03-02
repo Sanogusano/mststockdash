@@ -1,9 +1,8 @@
 import { useState } from "react";
-import { format, differenceInCalendarDays } from "date-fns";
+import { format, differenceInCalendarDays, startOfMonth, subMonths, endOfMonth } from "date-fns";
 import { es } from "date-fns/locale";
-import { CalendarIcon } from "lucide-react";
+import { CalendarIcon, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import {
   Popover,
@@ -11,41 +10,66 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 
-// Value -1 is a sentinel for "Este Mes" (dynamic days since 1st of current month)
 export const THIS_MONTH_SENTINEL = -1;
-// Value -2 is a sentinel for custom date range
 export const CUSTOM_SENTINEL = -2;
+const PREV_MONTH_SENTINEL = -3;
 
-/** Resolve the sentinel to the actual number of elapsed days this month */
 export function resolveDays(value: number): number {
   if (value === THIS_MONTH_SENTINEL) {
     return Math.max(new Date().getDate(), 1);
   }
+  if (value === PREV_MONTH_SENTINEL) {
+    const now = new Date();
+    const prevStart = startOfMonth(subMonths(now, 1));
+    const prevEnd = endOfMonth(subMonths(now, 1));
+    return differenceInCalendarDays(now, prevStart);
+  }
   if (value === CUSTOM_SENTINEL) {
-    // Should not happen — caller must resolve before using
     return 30;
   }
   return value;
 }
 
-/** Get the date range label for the current filter */
-function getDateRangeLabel(value: number, customFrom?: Date): string {
+interface Preset {
+  label: string;
+  value: number;
+}
+
+const presets: Preset[] = [
+  { label: "Última Semana", value: 7 },
+  { label: "15 Días", value: 15 },
+  { label: "30 Días", value: 30 },
+  { label: "Mes Anterior", value: PREV_MONTH_SENTINEL },
+  { label: "90 Días", value: 90 },
+  { label: "180 Días", value: 180 },
+];
+
+function getDateRange(value: number, customFrom?: Date): { from: Date; to: Date } {
   const now = new Date();
 
   if (value === CUSTOM_SENTINEL && customFrom) {
-    const fmt = (d: Date) =>
-      d.toLocaleDateString("es-CO", { day: "numeric", month: "short" });
-    return `${fmt(customFrom)} – ${fmt(now)}`;
+    return { from: customFrom, to: now };
+  }
+
+  if (value === PREV_MONTH_SENTINEL) {
+    const prevStart = startOfMonth(subMonths(now, 1));
+    const prevEnd = endOfMonth(subMonths(now, 1));
+    return { from: prevStart, to: prevEnd };
   }
 
   const effectiveDays = resolveDays(value);
   const from = new Date(now);
   from.setDate(from.getDate() - effectiveDays);
+  return { from, to: now };
+}
 
-  const fmt = (d: Date) =>
-    d.toLocaleDateString("es-CO", { day: "numeric", month: "short" });
+function formatRange(from: Date, to: Date): string {
+  const fmt = (d: Date) => format(d, "d MMM", { locale: es });
+  return `${fmt(from)} – ${fmt(to)}`;
+}
 
-  return `${fmt(from)} – ${fmt(now)}`;
+function getPresetLabel(value: number): string | undefined {
+  return presets.find((p) => p.value === value)?.label;
 }
 
 interface TimeFilterProps {
@@ -53,89 +77,113 @@ interface TimeFilterProps {
   onChange: (days: number) => void;
 }
 
-const presets = [
-  { label: "Este Mes", value: THIS_MONTH_SENTINEL },
-  { label: "7D", value: 7 },
-  { label: "30D", value: 30 },
-  { label: "90D", value: 90 },
-  { label: "180D", value: 180 },
-];
-
 export function TimeFilter({ value, onChange }: TimeFilterProps) {
   const [customFrom, setCustomFrom] = useState<Date | undefined>();
-  const [popoverOpen, setPopoverOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [showCalendar, setShowCalendar] = useState(false);
 
-  const isCustom = value === CUSTOM_SENTINEL;
+  const isCustom = !!customFrom;
+  const presetLabel = !isCustom ? getPresetLabel(value) : undefined;
+  const { from, to } = getDateRange(isCustom ? CUSTOM_SENTINEL : value, customFrom);
+
+  const handlePresetClick = (preset: Preset) => {
+    setCustomFrom(undefined);
+    setShowCalendar(false);
+    onChange(preset.value);
+    setMenuOpen(false);
+  };
+
+  const handleCustomClick = () => {
+    setShowCalendar(true);
+  };
 
   const handleDateSelect = (date: Date | undefined) => {
     if (!date) return;
     setCustomFrom(date);
     const days = differenceInCalendarDays(new Date(), date);
-    // We store the actual days but signal "custom" mode via the sentinel
-    // Actually, we pass the computed days directly so RPCs work
     onChange(Math.max(days, 1));
-    // Track that we're in custom mode by storing the date
-    setPopoverOpen(false);
+    setShowCalendar(false);
+    setMenuOpen(false);
   };
 
-  const handlePresetClick = (presetValue: number) => {
-    setCustomFrom(undefined);
-    onChange(presetValue);
+  const handleOpenChange = (open: boolean) => {
+    setMenuOpen(open);
+    if (!open) setShowCalendar(false);
   };
 
-  const isPreset = presets.some((p) => p.value === value);
+  const displayLabel = isCustom
+    ? format(customFrom!, "d MMM", { locale: es }) + " – Hoy"
+    : presetLabel || "Seleccionar";
 
   return (
-    <div className="flex items-center gap-1.5 sm:gap-2">
-      <div className="flex items-center gap-0.5 sm:gap-1 bg-muted/50 rounded-lg p-0.5 sm:p-1 border border-border overflow-x-auto">
-        {presets.map((opt) => (
+    <div className="flex items-center gap-2">
+      <Popover open={menuOpen} onOpenChange={handleOpenChange}>
+        <PopoverTrigger asChild>
           <button
-            key={opt.value}
-            onClick={() => handlePresetClick(opt.value)}
-            className={`px-2 sm:px-4 py-1 sm:py-1.5 rounded-md text-xs sm:text-sm font-medium transition-all duration-200 whitespace-nowrap ${
-              value === opt.value && !customFrom
-                ? "bg-primary text-primary-foreground shadow-sm"
-                : "text-muted-foreground hover:text-foreground hover:bg-muted"
-            }`}
+            className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-border bg-muted/50 hover:bg-muted text-sm font-medium text-foreground transition-colors"
           >
-            {opt.label}
+            <CalendarIcon className="h-3.5 w-3.5 text-muted-foreground" />
+            <span>{displayLabel}</span>
+            <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
           </button>
-        ))}
-
-        {/* Custom date picker */}
-        <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
-          <PopoverTrigger asChild>
-            <button
-              className={`px-2 sm:px-3 py-1 sm:py-1.5 rounded-md text-xs sm:text-sm font-medium transition-all duration-200 whitespace-nowrap flex items-center gap-1 ${
-                customFrom
-                  ? "bg-primary text-primary-foreground shadow-sm"
-                  : "text-muted-foreground hover:text-foreground hover:bg-muted"
-              }`}
-            >
-              <CalendarIcon className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
-              <span className="hidden sm:inline">
-                {customFrom
-                  ? format(customFrom, "d MMM", { locale: es })
-                  : "Fecha"}
-              </span>
-            </button>
-          </PopoverTrigger>
-          <PopoverContent className="w-auto p-0" align="end">
-            <Calendar
-              mode="single"
-              selected={customFrom}
-              onSelect={handleDateSelect}
-              disabled={(date) =>
-                date > new Date() || date < new Date("2024-01-01")
-              }
-              initialFocus
-              className={cn("p-3 pointer-events-auto")}
-            />
-          </PopoverContent>
-        </Popover>
-      </div>
+        </PopoverTrigger>
+        <PopoverContent className="w-auto p-0" align="end">
+          {showCalendar ? (
+            <div>
+              <div className="px-3 pt-3 pb-1">
+                <button
+                  onClick={() => setShowCalendar(false)}
+                  className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  ← Volver
+                </button>
+              </div>
+              <Calendar
+                mode="single"
+                selected={customFrom}
+                onSelect={handleDateSelect}
+                disabled={(date) =>
+                  date > new Date() || date < new Date("2024-01-01")
+                }
+                initialFocus
+                className={cn("p-3 pointer-events-auto")}
+              />
+            </div>
+          ) : (
+            <div className="py-1 min-w-[180px]">
+              {presets.map((preset) => (
+                <button
+                  key={preset.value}
+                  onClick={() => handlePresetClick(preset)}
+                  className={cn(
+                    "w-full text-left px-4 py-2 text-sm transition-colors",
+                    value === preset.value && !isCustom
+                      ? "bg-primary/10 text-primary font-medium"
+                      : "text-foreground hover:bg-muted"
+                  )}
+                >
+                  {preset.label}
+                </button>
+              ))}
+              <div className="h-px bg-border my-1" />
+              <button
+                onClick={handleCustomClick}
+                className={cn(
+                  "w-full text-left px-4 py-2 text-sm transition-colors flex items-center gap-2",
+                  isCustom
+                    ? "bg-primary/10 text-primary font-medium"
+                    : "text-foreground hover:bg-muted"
+                )}
+              >
+                <CalendarIcon className="h-3.5 w-3.5" />
+                Periodo Personalizado
+              </button>
+            </div>
+          )}
+        </PopoverContent>
+      </Popover>
       <span className="text-[10px] sm:text-xs text-muted-foreground whitespace-nowrap">
-        {getDateRangeLabel(customFrom ? CUSTOM_SENTINEL : value, customFrom)}
+        {formatRange(from, to)}
       </span>
     </div>
   );
