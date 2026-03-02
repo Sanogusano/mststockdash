@@ -36,6 +36,7 @@ interface Preset {
 }
 
 const presets: Preset[] = [
+  { label: "Este Mes", value: THIS_MONTH_SENTINEL },
   { label: "Última Semana", value: 7 },
   { label: "15 Días", value: 15 },
   { label: "30 Días", value: 30 },
@@ -120,7 +121,7 @@ export function TimeFilter({ value, onChange }: TimeFilterProps) {
       <Popover open={menuOpen} onOpenChange={handleOpenChange}>
         <PopoverTrigger asChild>
           <button
-            className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-border bg-muted/50 hover:bg-muted text-sm font-medium text-foreground transition-colors"
+            className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-primary/30 bg-primary/10 hover:bg-primary/20 text-sm font-medium text-primary transition-colors"
           >
             <CalendarIcon className="h-3.5 w-3.5 text-muted-foreground" />
             <span>{displayLabel}</span>
