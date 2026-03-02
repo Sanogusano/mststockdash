@@ -10,7 +10,7 @@ import { LoadingState, EmptyState } from "./LoadingState";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Store, Globe, Download, FileText, DollarSign, ShoppingBag, Receipt, Star, Percent, Tag, Trophy, TrendingDown, TrendingUp, CalendarDays, Package, AlertTriangle, Ruler, Crown, ShieldAlert } from "lucide-react";
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid } from "recharts";
 import { StoreLeaderboard } from "./StoreLeaderboard";
 
 /* ── Constants ── */
@@ -1326,6 +1326,68 @@ function BrandTopBottomProducts({ days }: { days: number }) {
   );
 }
 
+/* ── Channel Contribution Chart ── */
+function ChannelContributionChart({ channelData }: {
+  channelData: { name: string; actual: number; anterior: number }[];
+}) {
+  if (!channelData.length) return null;
+
+  const fmtMillions = (v: number) => `$${(v / 1_000_000).toFixed(1)}M`;
+
+  return (
+    <div className="glass-card p-5 mt-4">
+      <h3 className="text-sm font-semibold text-foreground mb-4">💰 Aporte por Canal</h3>
+      <div className="flex flex-col lg:flex-row gap-6">
+        {/* Bar Chart */}
+        <div className="flex-1 min-h-[200px]">
+          <ResponsiveContainer width="100%" height={220}>
+            <BarChart data={channelData} barGap={4} barCategoryGap="25%">
+              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
+              <XAxis dataKey="name" tick={{ fontSize: 12, fill: "hsl(var(--muted-foreground))" }} axisLine={false} tickLine={false} />
+              <YAxis tickFormatter={(v) => `$${(v / 1_000_000).toFixed(0)}M`} tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} axisLine={false} tickLine={false} width={55} />
+              <Tooltip
+                formatter={(v: number, name: string) => [fmtMillions(v), name === "actual" ? "Período actual" : "Período anterior"]}
+                contentStyle={{ background: "hsl(var(--background))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12 }}
+              />
+              <Bar dataKey="actual" name="actual" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="anterior" name="anterior" fill="hsl(var(--muted-foreground) / 0.3)" radius={[4, 4, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+        {/* Summary Cards */}
+        <div className="flex flex-col gap-3 lg:w-[260px]">
+          {channelData.map((ch) => {
+            const diff = ch.anterior > 0 ? ((ch.actual - ch.anterior) / ch.anterior) * 100 : 0;
+            const isUp = diff >= 0;
+            return (
+              <div key={ch.name} className="p-3 rounded-lg bg-muted/30 border border-border">
+                <p className="text-xs text-muted-foreground font-medium mb-1">{ch.name}</p>
+                <p className="text-base font-semibold text-foreground">{fmtMillions(ch.actual)}</p>
+                <div className="flex items-center gap-2 mt-0.5">
+                  <span className={cn("text-xs font-medium", isUp ? "text-emerald-600" : "text-destructive")}>
+                    {isUp ? "▲" : "▼"} {Math.abs(diff).toFixed(1)}%
+                  </span>
+                  <span className="text-[10px] text-muted-foreground">vs {fmtMillions(ch.anterior)}</span>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+      <div className="flex items-center gap-4 mt-3">
+        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+          <span className="w-3 h-3 rounded-sm" style={{ background: "hsl(var(--primary))" }} />
+          Período actual
+        </div>
+        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+          <span className="w-3 h-3 rounded-sm" style={{ background: "hsl(var(--muted-foreground) / 0.3)" }} />
+          Período anterior
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* ── Brand-wide KPI Panel ── */
 function BrandOverviewPanel({ days }: { days: number }) {
   const [kpis, setKpis] = useState<KpiData | null>(null);
@@ -1333,6 +1395,7 @@ function BrandOverviewPanel({ days }: { days: number }) {
   const [storeVentas, setStoreVentas] = useState(0);
   const [prevStoreVentas, setPrevStoreVentas] = useState(0);
   const [totalM2, setTotalM2] = useState<number>(0);
+  const [channelData, setChannelData] = useState<{ name: string; actual: number; anterior: number }[]>([]);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
@@ -1341,13 +1404,15 @@ function BrandOverviewPanel({ days }: { days: number }) {
       if (!isValidDays(days)) return;
       setLoading(true);
       const effectiveDays = resolveDays(days);
-      const [currentRes, prevRes, kpiTiendasRes, kpiOutletsRes, prevTiendasRes, prevOutletsRes, m2Res] = await Promise.all([
+      const [currentRes, prevRes, kpiTiendasRes, kpiOutletsRes, kpiDigitalRes, prevTiendasRes, prevOutletsRes, prevDigitalRes, m2Res] = await Promise.all([
         supabase.rpc("reporte_kpis_comerciales", { dias_atras: effectiveDays, p_canal: null, p_location_id: null }),
         supabase.rpc("reporte_kpis_periodo_anterior" as any, { dias_atras: effectiveDays, p_canal: null, p_location_id: null }),
         supabase.rpc("reporte_kpis_comerciales", { dias_atras: effectiveDays, p_canal: "tiendas", p_location_id: null }),
         supabase.rpc("reporte_kpis_comerciales", { dias_atras: effectiveDays, p_canal: "outlets", p_location_id: null }),
+        supabase.rpc("reporte_kpis_comerciales", { dias_atras: effectiveDays, p_canal: "digital", p_location_id: null }),
         supabase.rpc("reporte_kpis_periodo_anterior" as any, { dias_atras: effectiveDays, p_canal: "tiendas", p_location_id: null }),
         supabase.rpc("reporte_kpis_periodo_anterior" as any, { dias_atras: effectiveDays, p_canal: "outlets", p_location_id: null }),
+        supabase.rpc("reporte_kpis_periodo_anterior" as any, { dias_atras: effectiveDays, p_canal: "digital", p_location_id: null }),
         supabase.from("locations").select("dimension_m2, name, location_id").eq("is_active", true).not("dimension_m2", "is", null),
       ]);
 
@@ -1360,11 +1425,19 @@ function BrandOverviewPanel({ days }: { days: number }) {
       // Sum tiendas + outlets ventas for m² calc
       const vTiendas = (kpiTiendasRes.data && kpiTiendasRes.data.length > 0) ? (kpiTiendasRes.data[0] as any).ingresos_netos ?? 0 : 0;
       const vOutlets = (kpiOutletsRes.data && kpiOutletsRes.data.length > 0) ? (kpiOutletsRes.data[0] as any).ingresos_netos ?? 0 : 0;
+      const vDigital = (kpiDigitalRes.data && kpiDigitalRes.data.length > 0) ? (kpiDigitalRes.data[0] as any).ingresos_netos ?? 0 : 0;
       setStoreVentas(vTiendas + vOutlets);
 
       const pvTiendas = (prevTiendasRes.data && (prevTiendasRes.data as any[]).length > 0) ? (prevTiendasRes.data as any[])[0].ingresos_netos ?? 0 : 0;
       const pvOutlets = (prevOutletsRes.data && (prevOutletsRes.data as any[]).length > 0) ? (prevOutletsRes.data as any[])[0].ingresos_netos ?? 0 : 0;
+      const pvDigital = (prevDigitalRes.data && (prevDigitalRes.data as any[]).length > 0) ? (prevDigitalRes.data as any[])[0].ingresos_netos ?? 0 : 0;
       setPrevStoreVentas(pvTiendas + pvOutlets);
+
+      setChannelData([
+        { name: "Tiendas", actual: vTiendas, anterior: pvTiendas },
+        { name: "Outlets", actual: vOutlets, anterior: pvOutlets },
+        { name: "Digital", actual: vDigital, anterior: pvDigital },
+      ]);
 
       if (m2Res.data) {
         const storeLocations = (m2Res.data as any[]).filter((l: any) => l.location_id !== CEDI_ID);
@@ -1375,7 +1448,7 @@ function BrandOverviewPanel({ days }: { days: number }) {
     fetch();
   }, [days]);
 
-  if (loading) return <LoadingState rows={2} />;
+  if (loading) return <LoadingState rows={4} />;
 
   const ventaM2 = totalM2 > 0 ? storeVentas / totalM2 : 0;
   const prevVentaM2 = totalM2 > 0 ? prevStoreVentas / totalM2 : 0;
@@ -1409,6 +1482,8 @@ function BrandOverviewPanel({ days }: { days: number }) {
         <div className="mt-4">
           <VentasTipoCards days={days} />
         </div>
+        {/* Channel Contribution Chart */}
+        <ChannelContributionChart channelData={channelData} />
       </div>
       <BrandTopBottomProducts days={days} />
     </div>
