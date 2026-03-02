@@ -16,6 +16,7 @@ interface WosCatGlobalRow {
   semanas_inventario: number | null;
   pct_full_price: number;
   pct_rebajado: number;
+  pct_promo: number;
   estado_salud: string;
 }
 
@@ -116,22 +117,23 @@ export function InventoryGlobalReport({ open, onOpenChange, days }: Props) {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-border bg-muted/30">
-                    <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">Tienda</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">Categoría</th>
-                    <th className="px-4 py-3 text-right text-xs font-medium text-muted-foreground">Stock Total</th>
-                    <th className="px-4 py-3 text-right text-xs font-medium text-muted-foreground">Venta Prom/Sem</th>
-                    <th className="px-4 py-3 text-right text-xs font-medium text-muted-foreground">WOS</th>
-                    <th className="px-4 py-3 text-right text-xs font-medium text-muted-foreground">% Full Price</th>
-                    <th className="px-4 py-3 text-right text-xs font-medium text-muted-foreground">% Rebajado</th>
-                    <th className="px-4 py-3 text-center text-xs font-medium text-muted-foreground">Estado</th>
-                  </tr>
+                     <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">Tienda</th>
+                     <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">Categoría</th>
+                     <th className="px-4 py-3 text-right text-xs font-medium text-muted-foreground">Stock Total</th>
+                     <th className="px-4 py-3 text-right text-xs font-medium text-muted-foreground">Venta Prom/Sem</th>
+                     <th className="px-4 py-3 text-right text-xs font-medium text-muted-foreground">WOS</th>
+                     <th className="px-4 py-3 text-right text-xs font-medium text-muted-foreground">% Full Price</th>
+                     <th className="px-4 py-3 text-right text-xs font-medium text-muted-foreground">% Rebajado</th>
+                     <th className="px-4 py-3 text-right text-xs font-medium text-muted-foreground">% Promo</th>
+                     <th className="px-4 py-3 text-center text-xs font-medium text-muted-foreground">Estado</th>
+                   </tr>
                 </thead>
                 <tbody>
                   {filtered.length === 0 ? (
                     <tr>
-                      <td colSpan={8} className="px-4 py-8 text-center text-sm text-muted-foreground">
-                        No hay datos con los filtros seleccionados.
-                      </td>
+                     <td colSpan={9} className="px-4 py-8 text-center text-sm text-muted-foreground">
+                         No hay datos con los filtros seleccionados.
+                       </td>
                     </tr>
                   ) : (
                     filtered.map((row, i) => (
@@ -143,15 +145,18 @@ export function InventoryGlobalReport({ open, onOpenChange, days }: Props) {
                         <td className="px-4 py-2.5 text-right text-xs font-medium" style={{ color: getBarColor(row.semanas_inventario) }}>
                           {row.semanas_inventario == null ? "∞" : row.semanas_inventario > 99 ? "+99w" : `${row.semanas_inventario.toFixed(1)}w`}
                         </td>
-                        <td className="px-4 py-2.5 text-right text-xs">
-                          <span className="text-emerald-600 font-medium">{row.pct_full_price.toFixed(1)}%</span>
-                        </td>
-                        <td className="px-4 py-2.5 text-right text-xs">
-                          <span className="text-orange-500 font-medium">{row.pct_rebajado.toFixed(1)}%</span>
-                        </td>
-                        <td className="px-4 py-2.5 text-center">
-                          <StatusBadge label={row.estado_salud} />
-                        </td>
+                         <td className="px-4 py-2.5 text-right text-xs">
+                           <span className="text-emerald-600 font-medium">{row.pct_full_price.toFixed(1)}%</span>
+                         </td>
+                         <td className="px-4 py-2.5 text-right text-xs">
+                           <span className="text-orange-500 font-medium">{row.pct_rebajado.toFixed(1)}%</span>
+                         </td>
+                         <td className="px-4 py-2.5 text-right text-xs">
+                           <span className="text-amber-500 font-medium">{row.pct_promo.toFixed(1)}%</span>
+                         </td>
+                         <td className="px-4 py-2.5 text-center">
+                           <StatusBadge label={row.estado_salud} />
+                         </td>
                       </tr>
                     ))
                   )}
