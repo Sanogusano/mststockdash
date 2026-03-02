@@ -52,6 +52,7 @@ export type Database = {
           location_id: string
           name: string
           tipo_tienda: string | null
+          zona: string | null
         }
         Insert: {
           created_at?: string | null
@@ -60,6 +61,7 @@ export type Database = {
           location_id: string
           name: string
           tipo_tienda?: string | null
+          zona?: string | null
         }
         Update: {
           created_at?: string | null
@@ -68,6 +70,7 @@ export type Database = {
           location_id?: string
           name?: string
           tipo_tienda?: string | null
+          zona?: string | null
         }
         Relationships: []
       }
