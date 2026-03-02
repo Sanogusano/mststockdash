@@ -59,6 +59,22 @@ interface ProductRow {
   wos: number | null;
 }
 
+const toNumber = (value: unknown): number => {
+  const n = typeof value === "number" ? value : Number(value ?? 0);
+  return Number.isFinite(n) ? n : 0;
+};
+
+const normalizeKpiData = (row: any): KpiData => ({
+  total_pedidos: toNumber(row?.total_pedidos),
+  unidades_vendidas: toNumber(row?.unidades_vendidas),
+  ingresos_netos: toNumber(row?.ingresos_netos),
+  ticket_promedio: toNumber(row?.ticket_promedio),
+  upt: toNumber(row?.upt),
+  pct_pedidos_full_price: toNumber(row?.pct_pedidos_full_price),
+  pct_pedidos_rebajas: toNumber(row?.pct_pedidos_rebajas),
+  pct_pedidos_con_descuento: toNumber(row?.pct_pedidos_con_descuento),
+});
+
 interface SkuDetailRow {
   sku: string;
   unidades_vendidas: number;
@@ -354,7 +370,26 @@ function ParetoChart({ days, canal, locationId }: { days: number; canal: string;
         p_canal: canal || null,
         p_location_id: locationId || null,
       });
-      if (rows) setData(rows as unknown as ParetoRow[]);
+      if (rows) {
+        const normalized = (rows as any[]).map((r) => ({
+          categoria: r.categoria ?? "—",
+          unidades: toNumber(r.unidades),
+          ingresos: toNumber(r.ingresos),
+          pct_participacion: toNumber(r.pct_participacion),
+        })) as ParetoRow[];
+
+        const pctTotal = normalized.reduce((s, r) => s + (r.pct_participacion ?? 0), 0);
+        const totalIngresos = normalized.reduce((s, r) => s + (r.ingresos ?? 0), 0);
+
+        setData(
+          pctTotal > 0 || totalIngresos === 0
+            ? normalized
+            : normalized.map((r) => ({
+                ...r,
+                pct_participacion: ((r.ingresos ?? 0) / totalIngresos) * 100,
+              })),
+        );
+      }
       setLoading(false);
     }
     fetch();
@@ -971,17 +1006,17 @@ function ChannelPanel({ days, canal, showLocationFilter, locationFilter }: {
             : supabase.from("locations").select("dimension_m2, name, location_id").eq("is_active", true).not("dimension_m2", "is", null),
         ]);
 
-        const emptyKpi = { total_pedidos: 0, unidades_vendidas: 0, ingresos_netos: 0, ticket_promedio: 0, upt: 0, pct_pedidos_full_price: 0, pct_pedidos_rebajas: 0, pct_pedidos_con_descuento: 0 };
+        const emptyKpi = normalizeKpiData({});
         
         if (kpiRes.error) console.error(`Error en reporte_kpis_comerciales:`, kpiRes.error);
         if (kpiRes.data && kpiRes.data.length > 0) {
-          setKpis(kpiRes.data[0] as unknown as KpiData);
+          setKpis(normalizeKpiData(kpiRes.data[0]));
         } else {
           setKpis(emptyKpi);
         }
 
         if (prevKpiRes.data && (prevKpiRes.data as any[]).length > 0) {
-          setPrevKpis((prevKpiRes.data as any[])[0] as unknown as KpiData);
+          setPrevKpis(normalizeKpiData((prevKpiRes.data as any[])[0]));
         } else {
           setPrevKpis(emptyKpi);
         }
@@ -1279,10 +1314,10 @@ function BrandOverviewPanel({ days }: { days: number }) {
         supabase.from("locations").select("dimension_m2, name, location_id").eq("is_active", true).not("dimension_m2", "is", null),
       ]);
 
-      const emptyKpi = { total_pedidos: 0, unidades_vendidas: 0, ingresos_netos: 0, ticket_promedio: 0, upt: 0, pct_pedidos_full_price: 0, pct_pedidos_rebajas: 0, pct_pedidos_con_descuento: 0 };
-      if (currentRes.data && currentRes.data.length > 0) setKpis(currentRes.data[0] as unknown as KpiData);
+      const emptyKpi = normalizeKpiData({});
+      if (currentRes.data && currentRes.data.length > 0) setKpis(normalizeKpiData(currentRes.data[0]));
       else setKpis(emptyKpi);
-      if (prevRes.data && (prevRes.data as any[]).length > 0) setPrevKpis((prevRes.data as any[])[0] as unknown as KpiData);
+      if (prevRes.data && (prevRes.data as any[]).length > 0) setPrevKpis(normalizeKpiData((prevRes.data as any[])[0]));
       else setPrevKpis(emptyKpi);
 
       // Sum tiendas + outlets ventas for m² calc
