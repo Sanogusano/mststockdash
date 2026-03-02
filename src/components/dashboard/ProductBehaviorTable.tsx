@@ -11,12 +11,16 @@ import { Search, Download, FileText } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
+import { cn } from "@/lib/utils";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
+import {
+  Tooltip, TooltipContent, TooltipProvider, TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 const PAGE_SIZE = 15;
 
@@ -32,6 +36,9 @@ interface ProductRow {
   sell_through_pct: number;
   wos: number;
   estado_salud: string;
+  und_full_price: number;
+  und_rebajas: number;
+  und_promo: number;
 }
 
 const WOS_FILTERS = [
@@ -52,6 +59,60 @@ const ST_FILTERS = [
 interface LocationOption {
   location_id: string;
   name: string;
+}
+
+/* ── Sales Breakdown Bar ── */
+function SalesBreakdownBar({ full, rebajas, promo, total }: { full: number; rebajas: number; promo: number; total: number }) {
+  if (total === 0) return <span className="text-xs text-muted-foreground">Sin ventas</span>;
+
+  const pFull = (full / total) * 100;
+  const pRebajas = (rebajas / total) * 100;
+  const pPromo = (promo / total) * 100;
+
+  return (
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <div className="space-y-1.5">
+            {/* Stacked bar */}
+            <div className="flex h-3 w-full rounded-full overflow-hidden bg-muted">
+              {pFull > 0 && (
+                <div className="h-full bg-emerald-500 transition-all" style={{ width: `${pFull}%` }} />
+              )}
+              {pRebajas > 0 && (
+                <div className="h-full bg-destructive transition-all" style={{ width: `${pRebajas}%` }} />
+              )}
+              {pPromo > 0 && (
+                <div className="h-full bg-amber-500 transition-all" style={{ width: `${pPromo}%` }} />
+              )}
+            </div>
+            {/* Labels */}
+            <div className="flex items-center gap-2 text-[10px]">
+              <span className="text-emerald-600 font-medium">{full}</span>
+              <span className="text-destructive font-medium">{rebajas}</span>
+              <span className="text-amber-500 font-medium">{promo}</span>
+            </div>
+          </div>
+        </TooltipTrigger>
+        <TooltipContent side="top" className="text-xs">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-emerald-500" />
+              Full Price: {full} uds ({pFull.toFixed(1)}%)
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-destructive" />
+              Rebajas: {rebajas} uds ({pRebajas.toFixed(1)}%)
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-amber-500" />
+              Promo: {promo} uds ({pPromo.toFixed(1)}%)
+            </div>
+          </div>
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  );
 }
 
 export function ProductBehaviorTable({ days, initialWosFilter, initialLocationId }: { days: number; initialWosFilter?: string; initialLocationId?: string }) {
@@ -80,7 +141,6 @@ export function ProductBehaviorTable({ days, initialWosFilter, initialLocationId
       if (search.trim()) params.p_sku_filter = search.trim();
       if (locationId !== "all") params.p_location_id = locationId;
       const { data, error } = await supabase.rpc("reporte_comportamiento_producto", params);
-      if (import.meta.env.DEV) console.log("[ProductBehavior] RPC response:", { data, error, params });
       if (error) throw new Error(error.message);
       return (data ?? []) as ProductRow[];
     },
@@ -122,8 +182,11 @@ export function ProductBehaviorTable({ days, initialWosFilter, initialLocationId
         SKU: r.sku,
         Producto: r.producto,
         Categoría: r.categoria,
-        Clasificación: r.clasificacion,
+        Tipo: r.clasificacion,
         "Und. Vendidas": r.und_vendidas,
+        "Und. Full Price": r.und_full_price ?? 0,
+        "Und. Rebajas": r.und_rebajas ?? 0,
+        "Und. Promo": r.und_promo ?? 0,
         "Stock Tiendas": r.stock_tiendas,
         "Stock Digital": r.stock_digital,
         "Sell-Through %": r.sell_through_pct,
@@ -141,9 +204,11 @@ export function ProductBehaviorTable({ days, initialWosFilter, initialLocationId
         SKU: r.sku,
         Producto: r.producto,
         Categoría: r.categoria,
+        Tipo: r.clasificacion,
         "Und. Vendidas": r.und_vendidas,
-        "Stock Tiendas": r.stock_tiendas,
-        "Stock Digital": r.stock_digital,
+        "Full": r.und_full_price ?? 0,
+        "Rebajas": r.und_rebajas ?? 0,
+        "Promo": r.und_promo ?? 0,
         "Sell-Through %": r.sell_through_pct,
         WOS: r.wos,
         Salud: r.estado_salud,
@@ -215,6 +280,22 @@ export function ProductBehaviorTable({ days, initialWosFilter, initialLocationId
         </div>
       </div>
 
+      {/* Legend */}
+      <div className="flex items-center gap-4 text-xs text-muted-foreground">
+        <div className="flex items-center gap-1.5">
+          <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
+          Full Price
+        </div>
+        <div className="flex items-center gap-1.5">
+          <span className="w-2.5 h-2.5 rounded-full bg-destructive" />
+          Rebajas
+        </div>
+        <div className="flex items-center gap-1.5">
+          <span className="w-2.5 h-2.5 rounded-full bg-amber-500" />
+          Promo
+        </div>
+      </div>
+
       {/* Table */}
       <div className="glass-card overflow-hidden">
         {isLoading ? (
@@ -230,82 +311,107 @@ export function ProductBehaviorTable({ days, initialWosFilter, initialLocationId
         ) : (
           <>
             <div className="overflow-x-auto">
-            <Table className="min-w-[800px]">
+            <Table className="min-w-[900px]">
               <TableHeader>
                 <TableRow className="bg-muted/30">
-                  <TableHead className="min-w-[260px]">Producto</TableHead>
-                  <TableHead>Clasificación</TableHead>
+                  <TableHead className="min-w-[240px]">Producto</TableHead>
                   <TableHead className="text-right">Und. Vendidas</TableHead>
+                  <TableHead className="min-w-[180px]">Desglose Ventas</TableHead>
+                  <TableHead className="min-w-[80px]">Tipo</TableHead>
                   <TableHead>Stock Actual</TableHead>
-                  <TableHead className="min-w-[180px]">Sell-Through</TableHead>
+                  <TableHead className="min-w-[160px]">Sell-Through</TableHead>
                   <TableHead>WOS & Salud</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {paged.map((row) => (
-                  <TableRow key={row.sku} className="cursor-pointer" onClick={() => setSelectedProduct(row)}>
-                    {/* Producto */}
-                    <TableCell>
-                      <div className="flex items-center gap-3">
-                        {row.foto ? (
-                          <img
-                            src={row.foto}
-                            alt={row.producto}
-                            className="h-14 w-14 rounded-lg object-cover border border-border shrink-0"
-                          />
-                        ) : (
-                          <div className="h-14 w-14 rounded-lg bg-muted/50 flex items-center justify-center text-muted-foreground text-xs shrink-0">
-                            N/A
+                {paged.map((row) => {
+                  const full = row.und_full_price ?? 0;
+                  const reb = row.und_rebajas ?? 0;
+                  const promo = row.und_promo ?? 0;
+                  const isFull = full >= (reb + promo);
+
+                  return (
+                    <TableRow key={row.sku} className="cursor-pointer" onClick={() => setSelectedProduct(row)}>
+                      {/* Producto */}
+                      <TableCell>
+                        <div className="flex items-center gap-3">
+                          {row.foto ? (
+                            <img
+                              src={row.foto}
+                              alt={row.producto}
+                              className="h-14 w-14 rounded-lg object-cover border border-border shrink-0"
+                            />
+                          ) : (
+                            <div className="h-14 w-14 rounded-lg bg-muted/50 flex items-center justify-center text-muted-foreground text-xs shrink-0">
+                              N/A
+                            </div>
+                          )}
+                          <div className="min-w-0">
+                            <p className="text-sm font-medium text-foreground truncate">{row.producto}</p>
+                            <p className="text-xs text-muted-foreground">{row.categoria}</p>
                           </div>
-                        )}
-                        <div className="min-w-0">
-                          <p className="text-sm font-medium text-foreground truncate">{row.producto}</p>
-                          <p className="text-xs text-muted-foreground">{row.categoria}</p>
                         </div>
-                      </div>
-                    </TableCell>
+                      </TableCell>
 
-                    {/* Clasificación */}
-                    <TableCell>
-                      <StatusBadge label={row.clasificacion} />
-                    </TableCell>
-
-                    {/* Unidades Vendidas */}
-                    <TableCell className="text-right">
-                      <span className="text-base font-semibold text-foreground">
-                        {(row.und_vendidas ?? 0).toLocaleString()}
-                      </span>
-                    </TableCell>
-
-                    {/* Stock Actual */}
-                    <TableCell>
-                      <div className="space-y-0.5 text-sm">
-                        <p>🏪 Tiendas: <span className="font-medium">{(row.stock_tiendas ?? 0).toLocaleString()}</span></p>
-                        <p>📦 Digital: <span className="font-medium">{(row.stock_digital ?? 0).toLocaleString()}</span></p>
-                      </div>
-                    </TableCell>
-
-                    {/* Sell-Through */}
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <Progress
-                          value={Math.min(row.sell_through_pct ?? 0, 100)}
-                          className="h-2.5 flex-1 bg-muted"
-                          indicatorClassName={getSellThroughColor(row.sell_through_pct ?? 0)}
-                        />
-                        <span className="text-sm font-medium text-foreground w-12 text-right">
-                          {row.sell_through_pct ?? 0}%
+                      {/* Unidades Vendidas */}
+                      <TableCell className="text-right">
+                        <span className="text-base font-semibold text-foreground">
+                          {(row.und_vendidas ?? 0).toLocaleString()}
                         </span>
-                      </div>
-                    </TableCell>
+                      </TableCell>
 
-                    {/* WOS & Salud */}
-                    <TableCell>
-                      <p className="text-sm font-semibold text-foreground">{row.wos ?? 0} sem.</p>
-                      <StatusBadge label={row.estado_salud} />
-                    </TableCell>
-                  </TableRow>
-                ))}
+                      {/* Desglose Ventas */}
+                      <TableCell>
+                        <SalesBreakdownBar
+                          full={full}
+                          rebajas={reb}
+                          promo={promo}
+                          total={row.und_vendidas ?? 0}
+                        />
+                      </TableCell>
+
+                      {/* Tipo */}
+                      <TableCell>
+                        <span className={cn(
+                          "inline-flex items-center px-2 py-1 rounded-full text-[10px] font-bold",
+                          isFull
+                            ? "bg-emerald-500/10 text-emerald-600"
+                            : "bg-destructive/10 text-destructive"
+                        )}>
+                          {isFull ? "Venta Full" : "Con Impulso"}
+                        </span>
+                      </TableCell>
+
+                      {/* Stock Actual */}
+                      <TableCell>
+                        <div className="space-y-0.5 text-sm">
+                          <p>🏪 <span className="font-medium">{(row.stock_tiendas ?? 0).toLocaleString()}</span></p>
+                          <p>📦 <span className="font-medium">{(row.stock_digital ?? 0).toLocaleString()}</span></p>
+                        </div>
+                      </TableCell>
+
+                      {/* Sell-Through */}
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <Progress
+                            value={Math.min(row.sell_through_pct ?? 0, 100)}
+                            className="h-2.5 flex-1 bg-muted"
+                            indicatorClassName={getSellThroughColor(row.sell_through_pct ?? 0)}
+                          />
+                          <span className="text-sm font-medium text-foreground w-12 text-right">
+                            {row.sell_through_pct ?? 0}%
+                          </span>
+                        </div>
+                      </TableCell>
+
+                      {/* WOS & Salud */}
+                      <TableCell>
+                        <p className="text-sm font-semibold text-foreground">{row.wos ?? 0} sem.</p>
+                        <StatusBadge label={row.estado_salud} />
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
               </TableBody>
             </Table>
             </div>
