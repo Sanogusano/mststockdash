@@ -692,6 +692,13 @@ export type Database = {
           venta_promedio_semanal: number
         }[]
       }
+      stock_general_por_producto: {
+        Args: never
+        Returns: {
+          product_id: string
+          stock_total: number
+        }[]
+      }
       upsert_product_catalog_safe: {
         Args: { products_json: Json }
         Returns: undefined
