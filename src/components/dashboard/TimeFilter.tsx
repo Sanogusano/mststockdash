@@ -12,7 +12,7 @@ import {
 
 export const THIS_MONTH_SENTINEL = -1;
 export const CUSTOM_SENTINEL = -2;
-const PREV_MONTH_SENTINEL = -3;
+export const PREV_MONTH_SENTINEL = -3;
 
 export function resolveDays(value: number): number {
   if (value === THIS_MONTH_SENTINEL) {
