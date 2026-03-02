@@ -397,6 +397,7 @@ export type Database = {
           sell_through_pct: number
           sku: string
           stock_disponible: number
+          talla: string
           unidades_vendidas: number
           wos: number
         }[]
