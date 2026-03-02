@@ -121,24 +121,14 @@ export function LogisticsTransfers({ days }: Props) {
     fetchData();
   }, [days, origenFilter, destinoFilter]);
 
-  // Fetch stock general for all products
+  // Fetch stock general via RPC (avoids 1000-row limit)
   useEffect(() => {
     async function fetchStock() {
-      const { data: stockRows } = await supabase
-        .from("inventory_snapshot")
-        .select("sku, available");
-      if (!stockRows) return;
-      // Group by product via product_catalog mapping
-      const { data: catalog } = await supabase
-        .from("product_catalog")
-        .select("sku, product_id");
-      if (!catalog) return;
-      const skuToProduct = new Map<string, string>();
-      catalog.forEach((c: any) => { if (c.product_id) skuToProduct.set(c.sku, c.product_id); });
+      const { data: rows, error } = await supabase.rpc("stock_general_por_producto" as any);
+      if (error || !rows) return;
       const map: Record<string, number> = {};
-      stockRows.forEach((r: any) => {
-        const pid = skuToProduct.get(r.sku);
-        if (pid) map[pid] = (map[pid] || 0) + (r.available || 0);
+      (rows as any[]).forEach((r: any) => {
+        if (r.product_id) map[r.product_id] = Number(r.stock_total) || 0;
       });
       setStockMap(map);
     }
