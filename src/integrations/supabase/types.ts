@@ -635,7 +635,6 @@ export type Database = {
           inventario_total: number
           location_id: string
           pct_full_price: number
-          pct_promo: number
           pct_rebajado: number
           semanas_inventario: number
           tienda: string
