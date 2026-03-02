@@ -355,6 +355,68 @@ function ProductTable({ data, title, exportFilename, days, canalFiltro, location
   );
 }
 
+/* ── Ventas por Tipo (line-item level) ── */
+interface VentasTipoData {
+  pct_full_price: number;
+  pct_rebajas: number;
+  pct_desc_promo: number;
+}
+
+function VentasTipoCards({ days, canal, locationId }: { days: number; canal?: string | null; locationId?: string | null }) {
+  const [data, setData] = useState<VentasTipoData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    async function fetch() {
+      if (!isValidDays(days)) return;
+      setLoading(true);
+      const effectiveDays = resolveDays(days);
+      const { data: rows } = await supabase.rpc("reporte_pct_ventas_por_tipo" as any, {
+        dias_atras: effectiveDays,
+        p_canal: canal || null,
+        p_location_id: locationId || null,
+      });
+      if (rows && (rows as any[]).length > 0) {
+        const r = (rows as any[])[0];
+        setData({
+          pct_full_price: toNumber(r.pct_full_price),
+          pct_rebajas: toNumber(r.pct_rebajas),
+          pct_desc_promo: toNumber(r.pct_desc_promo),
+        });
+      } else {
+        setData({ pct_full_price: 0, pct_rebajas: 0, pct_desc_promo: 0 });
+      }
+      setLoading(false);
+    }
+    fetch();
+  }, [days, canal, locationId]);
+
+  if (loading) return <LoadingState rows={1} />;
+
+  const canalParam = canal ? `&canal=${canal}` : '';
+  const daysParam = resolveDays(days);
+  const pctDesc = data?.pct_desc_promo ?? 0;
+
+  return (
+    <div className="grid grid-cols-3 gap-4">
+      <KpiCard label="% Full Price" value={`${(data?.pct_full_price ?? 0).toFixed(1)}%`} icon={Star} className="text-emerald-600"
+        onClick={() => navigate(`/pedidos?tipo=full_price${canalParam}&days=${daysParam}`)} />
+      <KpiCard label="% Rebajas" value={`${(data?.pct_rebajas ?? 0).toFixed(1)}%`} icon={Tag} className="text-blue-500"
+        onClick={() => navigate(`/pedidos?tipo=rebajas${canalParam}&days=${daysParam}`)} />
+      <div className="relative">
+        <KpiCard label="% Desc. Promo" value={`${pctDesc.toFixed(1)}%`} icon={Percent} className="text-orange-500"
+          onClick={() => navigate(`/pedidos?tipo=descuento${canalParam}&days=${daysParam}`)} />
+        {pctDesc > 30 && (
+          <div className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-destructive flex items-center justify-center">
+            <AlertTriangle className="h-3 w-3 text-destructive-foreground" />
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 /* ── Pareto Chart (Top 10 + Otros) ── */
 function ParetoChart({ days, canal, locationId }: { days: number; canal: string; locationId?: string | null }) {
   const [data, setData] = useState<ParetoRow[]>([]);
@@ -1128,42 +1190,19 @@ function ChannelPanel({ days, canal, showLocationFilter, locationFilter }: {
               <KpiCard label="Ticket Promedio" value={fmtCurrency(kpis?.ticket_promedio ?? 0)} icon={Receipt}
                 actual={kpis?.ticket_promedio ?? 0} anterior={prevKpis?.ticket_promedio ?? 0} />
             </div>
-            {/* Row 2: UPT + Venta/m² (or % Full Price for digital) */}
-            <div className="grid grid-cols-2 gap-4">
+            {/* Row 2: UPT + Venta/m² */}
+            <div className={cn("grid gap-4", showM2 ? "grid-cols-2" : "grid-cols-1")}>
               <KpiCard label="UPT" value={(kpis?.upt ?? 0).toFixed(2)} icon={ShoppingBag}
                 actual={kpis?.upt ?? 0} anterior={prevKpis?.upt ?? 0} />
-              {showM2 ? (
+              {showM2 && (
                 <KpiCard label="Venta / m²" value={fmtCurrency(ventaM2)} icon={Ruler}
                   actual={ventaM2} anterior={prevVentaM2}
                   ventaM2Status={getVentaM2Status(ventaM2, ventaM2)}
                   onClick={() => navigate(`/venta-m2?days=${resolveDays(days)}&canal=${canal}`)} />
-              ) : (
-                <KpiCard label="% Full Price" value={`${(kpis?.pct_pedidos_full_price ?? 0).toFixed(1)}%`} icon={Star} className="text-emerald-600"
-                  actual={kpis?.pct_pedidos_full_price ?? 0} anterior={prevKpis?.pct_pedidos_full_price ?? 0}
-                  onClick={() => navigate(`/pedidos?tipo=full_price&canal=${canal}&days=${resolveDays(days)}`)} />
               )}
             </div>
-            {/* Row 3: % Full Price, % Rebajas, % Desc. Promo */}
-            <div className="grid grid-cols-3 gap-4">
-              {showM2 && (
-                <KpiCard label="% Full Price" value={`${(kpis?.pct_pedidos_full_price ?? 0).toFixed(1)}%`} icon={Star} className="text-emerald-600"
-                  actual={kpis?.pct_pedidos_full_price ?? 0} anterior={prevKpis?.pct_pedidos_full_price ?? 0}
-                  onClick={() => navigate(`/pedidos?tipo=full_price&canal=${canal}&days=${resolveDays(days)}`)} />
-              )}
-              <KpiCard label="% Rebajas" value={`${(kpis?.pct_pedidos_rebajas ?? 0).toFixed(1)}%`} icon={Tag} className="text-blue-500"
-                actual={kpis?.pct_pedidos_rebajas ?? 0} anterior={prevKpis?.pct_pedidos_rebajas ?? 0}
-                onClick={() => navigate(`/pedidos?tipo=rebajas&canal=${canal}&days=${resolveDays(days)}`)} />
-              <div className="relative">
-                <KpiCard label="% Desc. Promo" value={`${pctDesc.toFixed(1)}%`} icon={Percent} className="text-orange-500"
-                  actual={pctDesc} anterior={prevKpis?.pct_pedidos_con_descuento ?? 0}
-                  onClick={() => navigate(`/pedidos?tipo=descuento&canal=${canal}&days=${resolveDays(days)}`)} />
-                {pctDesc > 30 && (
-                  <div className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-destructive flex items-center justify-center">
-                    <AlertTriangle className="h-3 w-3 text-destructive-foreground" />
-                  </div>
-                )}
-              </div>
-            </div>
+            {/* Row 3: % Full Price, % Rebajas, % Desc. Promo (line-item level) */}
+            <VentasTipoCards days={days} canal={canal} locationId={locParam} />
           </div>
         );
       })()}
@@ -1368,24 +1407,9 @@ function BrandOverviewPanel({ days }: { days: number }) {
             ventaM2Status={totalM2 > 0 ? getVentaM2Status(ventaM2, ventaM2) : undefined}
             onClick={() => navigate(`/venta-m2?days=${resolveDays(days)}`)} />
         </div>
-        {/* Row 3: % Full Price, % Rebajas, % Desc. Promo */}
-        <div className="grid grid-cols-3 gap-4 mt-4">
-          <KpiCard label="% Full Price" value={`${(kpis?.pct_pedidos_full_price ?? 0).toFixed(1)}%`} icon={Star} className="text-emerald-600"
-            actual={kpis?.pct_pedidos_full_price ?? 0} anterior={prevKpis?.pct_pedidos_full_price ?? 0}
-            onClick={() => navigate(`/pedidos?tipo=full_price&days=${resolveDays(days)}`)} />
-          <KpiCard label="% Rebajas" value={`${(kpis?.pct_pedidos_rebajas ?? 0).toFixed(1)}%`} icon={Tag} className="text-blue-500"
-            actual={kpis?.pct_pedidos_rebajas ?? 0} anterior={prevKpis?.pct_pedidos_rebajas ?? 0}
-            onClick={() => navigate(`/pedidos?tipo=rebajas&days=${resolveDays(days)}`)} />
-          <div className="relative">
-            <KpiCard label="% Desc. Promo" value={`${(kpis?.pct_pedidos_con_descuento ?? 0).toFixed(1)}%`} icon={Percent} className="text-orange-500"
-              actual={kpis?.pct_pedidos_con_descuento ?? 0} anterior={prevKpis?.pct_pedidos_con_descuento ?? 0}
-              onClick={() => navigate(`/pedidos?tipo=descuento&days=${resolveDays(days)}`)} />
-            {(kpis?.pct_pedidos_con_descuento ?? 0) > 30 && (
-              <div className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-destructive flex items-center justify-center">
-                <AlertTriangle className="h-3 w-3 text-destructive-foreground" />
-              </div>
-            )}
-          </div>
+        {/* Row 3: % Full Price, % Rebajas, % Desc. Promo (line-item level) */}
+        <div className="mt-4">
+          <VentasTipoCards days={days} />
         </div>
       </div>
       <BrandTopBottomProducts days={days} />
