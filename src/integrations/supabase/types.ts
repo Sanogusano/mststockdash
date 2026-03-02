@@ -162,30 +162,57 @@ export type Database = {
       product_catalog: {
         Row: {
           category: string | null
+          collection_season: string | null
+          color: string | null
+          compare_at_price: number | null
+          fecha_cargue_inventario: string | null
+          fecha_creacion: string | null
+          fecha_publicacion: string | null
           image_url: string | null
+          price: number | null
           product_id: string | null
           sku: string
+          target_gender: string | null
           title: string | null
           updated_at: string | null
           variant_id: string | null
+          variant_name: string | null
         }
         Insert: {
           category?: string | null
+          collection_season?: string | null
+          color?: string | null
+          compare_at_price?: number | null
+          fecha_cargue_inventario?: string | null
+          fecha_creacion?: string | null
+          fecha_publicacion?: string | null
           image_url?: string | null
+          price?: number | null
           product_id?: string | null
           sku: string
+          target_gender?: string | null
           title?: string | null
           updated_at?: string | null
           variant_id?: string | null
+          variant_name?: string | null
         }
         Update: {
           category?: string | null
+          collection_season?: string | null
+          color?: string | null
+          compare_at_price?: number | null
+          fecha_cargue_inventario?: string | null
+          fecha_creacion?: string | null
+          fecha_publicacion?: string | null
           image_url?: string | null
+          price?: number | null
           product_id?: string | null
           sku?: string
+          target_gender?: string | null
           title?: string | null
           updated_at?: string | null
           variant_id?: string | null
+          variant_name?: string | null
         }
         Relationships: []
       }
@@ -608,6 +635,10 @@ export type Database = {
           semanas_inventario: number
           venta_promedio_semanal: number
         }[]
+      }
+      upsert_product_catalog_safe: {
+        Args: { products_json: Json }
+        Returns: undefined
       }
     }
     Enums: {
