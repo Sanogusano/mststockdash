@@ -520,6 +520,28 @@ export type Database = {
           tipo_venta: string
         }[]
       }
+      reporte_productos_por_categoria: {
+        Args: {
+          dias_atras: number
+          p_canal?: string
+          p_categoria?: string
+          p_location_id?: string
+        }
+        Returns: {
+          clasificacion: string
+          estado_salud: string
+          foto: string
+          product_id: string
+          producto: string
+          stock_total: number
+          und_full_price: number
+          und_promo: number
+          und_rebajas: number
+          und_total: number
+          venta_prom_semanal: number
+          wos: number
+        }[]
+      }
       reporte_productos_trending: {
         Args: never
         Returns: {
