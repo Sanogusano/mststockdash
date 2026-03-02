@@ -86,6 +86,7 @@ export default function TiendaDetailPage() {
   // WOS global table filters
   const [selEstados, setSelEstados] = useState<string[]>([]);
   const [selStock, setSelStock] = useState<string[]>([]);
+  const [priceFilter, setPriceFilter] = useState<"all" | "full_price" | "rebajado">("all");
   const [selectedCategoria, setSelectedCategoria] = useState<string | null>(null);
 
   useEffect(() => {
@@ -136,13 +137,14 @@ export default function TiendaDetailPage() {
 
   // Compute stock-based % full price and % rebajado from WOS global data
   const stockPcts = useMemo(() => {
-    if (wosCatData.length === 0) return { fullPrice: 0, rebajado: 0 };
+    if (wosCatData.length === 0) return { fullPrice: 0, rebajado: 0, fullUnits: 0, rebUnits: 0 };
     const totalStock = wosCatData.reduce((s, r) => s + (r.inventario_total ?? 0), 0);
-    if (totalStock === 0) return { fullPrice: 0, rebajado: 0 };
-    // Weighted average by stock
+    if (totalStock === 0) return { fullPrice: 0, rebajado: 0, fullUnits: 0, rebUnits: 0 };
     const weightedFull = wosCatData.reduce((s, r) => s + (r.pct_full_price ?? 0) * (r.inventario_total ?? 0), 0) / totalStock;
     const weightedReb = wosCatData.reduce((s, r) => s + (r.pct_rebajado ?? 0) * (r.inventario_total ?? 0), 0) / totalStock;
-    return { fullPrice: weightedFull, rebajado: weightedReb };
+    const fullUnits = Math.round(totalStock * weightedFull / 100);
+    const rebUnits = totalStock - fullUnits;
+    return { fullPrice: weightedFull, rebajado: weightedReb, fullUnits, rebUnits };
   }, [wosCatData]);
 
   // Filtered WOS global data
@@ -163,9 +165,11 @@ export default function TiendaDetailPage() {
         });
         if (!pass) return false;
       }
+      if (priceFilter === "full_price" && row.pct_full_price < 50) return false;
+      if (priceFilter === "rebajado" && row.pct_rebajado < 50) return false;
       return true;
     });
-  }, [wosCatData, selEstados, selStock]);
+  }, [wosCatData, selEstados, selStock, priceFilter]);
 
   const supplyTotal = supplyStock.reduce((s, r) => s + r.available, 0);
 
@@ -193,130 +197,147 @@ export default function TiendaDetailPage() {
             ) : (
               <div className="space-y-6">
                 {/* KPI Cards */}
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                   <KpiCard label="Ventas Netas" value={(kpis?.ingresos_netos ?? 0).toLocaleString()} prefix="$" icon={DollarSign} />
                   <KpiCard label="Ticket Promedio" value={(kpis?.ticket_promedio ?? 0).toLocaleString()} prefix="$" icon={Receipt} />
                   <KpiCard label="UPT" value={(kpis?.upt ?? 0).toFixed(2)} icon={ShoppingBag} />
-                  <KpiCard label="% Full Price (Stock)" value={`${stockPcts.fullPrice.toFixed(1)}%`} icon={Star} className="text-emerald-600" />
-                  <KpiCard label="% Rebajado (Stock)" value={`${stockPcts.rebajado.toFixed(1)}%`} icon={Tag} className="text-rose-500" />
                 </div>
 
-                {/* Summary cards */}
-                {data.length === 0 ? (
-                  <EmptyState message="Sin datos de categoría para esta tienda." />
-                ) : (
-                  <>
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                      <div className="glass-card p-5">
-                        <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Categorías</p>
-                        <p className="text-2xl font-semibold text-foreground mt-0.5">{data.length}</p>
+                {/* Price Filter & Supply Cards */}
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                  <button
+                    onClick={() => setPriceFilter(priceFilter === "full_price" ? "all" : "full_price")}
+                    className={cn(
+                      "glass-card p-4 text-left transition-all border-2",
+                      priceFilter === "full_price" ? "border-emerald-500 ring-2 ring-emerald-500/20" : "border-transparent hover:border-border"
+                    )}
+                  >
+                    <div className="flex items-center gap-2 mb-1">
+                      <Star className="h-4 w-4 text-emerald-600" />
+                      <span className="text-xs text-muted-foreground font-medium uppercase">Full Price</span>
+                    </div>
+                    <p className="text-xl font-semibold text-foreground">{stockPcts.fullUnits.toLocaleString()} uds</p>
+                    <p className="text-sm text-emerald-600 font-medium">{stockPcts.fullPrice.toFixed(1)}%</p>
+                  </button>
+                  <button
+                    onClick={() => setPriceFilter(priceFilter === "rebajado" ? "all" : "rebajado")}
+                    className={cn(
+                      "glass-card p-4 text-left transition-all border-2",
+                      priceFilter === "rebajado" ? "border-orange-500 ring-2 ring-orange-500/20" : "border-transparent hover:border-border"
+                    )}
+                  >
+                    <div className="flex items-center gap-2 mb-1">
+                      <Tag className="h-4 w-4 text-orange-500" />
+                      <span className="text-xs text-muted-foreground font-medium uppercase">Rebajado</span>
+                    </div>
+                    <p className="text-xl font-semibold text-foreground">{stockPcts.rebUnits.toLocaleString()} uds</p>
+                    <p className="text-sm text-orange-500 font-medium">{stockPcts.rebajado.toFixed(1)}%</p>
+                  </button>
+                  {supplyStock.length > 0 && (
+                    <div className="glass-card p-4 text-left">
+                      <div className="flex items-center gap-2 mb-1">
+                        <Package className="h-4 w-4 text-primary" />
+                        <span className="text-xs text-muted-foreground font-medium uppercase">Insumos</span>
                       </div>
-                      <div className="glass-card p-5">
-                        <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Stock Total (Prendas)</p>
-                        <p className="text-2xl font-semibold text-foreground mt-0.5">
-                          {data.reduce((s, r) => s + (r.inventario_total ?? 0), 0).toLocaleString()}
-                        </p>
-                      </div>
-                      <div className="glass-card p-5">
-                        <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Venta Semanal</p>
-                        <p className="text-2xl font-semibold text-foreground mt-0.5">
-                          {data.reduce((s, r) => s + (r.venta_promedio_semanal ?? 0), 0).toLocaleString()} uds
-                        </p>
+                      <p className="text-xl font-semibold text-foreground">{supplyTotal.toLocaleString()} uds</p>
+                      <p className="text-sm text-primary font-medium">{supplyStock.length} SKUs</p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Bolsas & Empaques Stock */}
+                {supplyStock.length > 0 && (
+                  <div className="glass-card overflow-hidden">
+                    <div className="px-5 py-4 border-b border-border flex items-center gap-2">
+                      <Package className="h-4 w-4 text-primary" />
+                      <h3 className="text-sm font-semibold text-foreground">
+                        Bolsas & Empaques — Stock Total: {supplyTotal.toLocaleString()} uds
+                      </h3>
+                    </div>
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="border-b border-border bg-muted/30">
+                            <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">SKU</th>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">Insumo</th>
+                            <th className="px-4 py-3 text-right text-xs font-medium text-muted-foreground">Disponible</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {supplyStock.map((row) => (
+                            <tr key={row.sku} className="border-b border-border/50 hover:bg-muted/20 transition-colors">
+                              <td className="px-4 py-2.5 font-mono text-xs text-muted-foreground">{row.sku}</td>
+                              <td className="px-4 py-2.5 font-medium text-foreground text-xs">{row.title}</td>
+                              <td className="px-4 py-2.5 text-right font-semibold text-foreground">
+                                {row.available.toLocaleString()}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+
+                {/* WOS by Category with multi-select filters */}
+                {wosCatData.length > 0 && (
+                  <div className="glass-card overflow-hidden">
+                    <div className="px-5 py-4 border-b border-border space-y-3">
+                      <h3 className="text-sm font-semibold text-foreground">WOS por Categoría</h3>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Filter className="h-3.5 w-3.5 text-muted-foreground" />
+                        <MultiSelectFilter label="Stock" options={stockOptions} selected={selStock} onChange={setSelStock} />
+                        <MultiSelectFilter label="Estado" options={uniqueEstados} selected={selEstados} onChange={setSelEstados} />
+                        {priceFilter !== "all" && (
+                          <button onClick={() => setPriceFilter("all")} className="text-xs text-primary underline ml-2">Limpiar filtro precio</button>
+                        )}
                       </div>
                     </div>
-
-                    {/* Bolsas & Empaques Stock */}
-                    {supplyStock.length > 0 && (
-                      <div className="glass-card overflow-hidden">
-                        <div className="px-5 py-4 border-b border-border flex items-center gap-2">
-                          <Package className="h-4 w-4 text-primary" />
-                          <h3 className="text-sm font-semibold text-foreground">
-                            Bolsas & Empaques — Stock Total: {supplyTotal.toLocaleString()} uds
-                          </h3>
-                        </div>
-                        <div className="overflow-x-auto">
-                          <table className="w-full text-sm">
-                            <thead>
-                              <tr className="border-b border-border bg-muted/30">
-                                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">SKU</th>
-                                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">Insumo</th>
-                                <th className="px-4 py-3 text-right text-xs font-medium text-muted-foreground">Disponible</th>
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="border-b border-border bg-muted/30">
+                            <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">Categoría</th>
+                            <th className="px-4 py-3 text-right text-xs font-medium text-muted-foreground">Stock Total</th>
+                            <th className="px-4 py-3 text-right text-xs font-medium text-muted-foreground">Venta Prom/Sem</th>
+                            <th className="px-4 py-3 text-right text-xs font-medium text-muted-foreground">WOS</th>
+                            <th className="px-4 py-3 text-right text-xs font-medium text-muted-foreground">% Full Price</th>
+                            <th className="px-4 py-3 text-right text-xs font-medium text-muted-foreground">% Rebajado</th>
+                            <th className="px-4 py-3 text-center text-xs font-medium text-muted-foreground">Estado</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {filteredWosCat.length === 0 ? (
+                            <tr>
+                              <td colSpan={7} className="px-4 py-8 text-center text-sm text-muted-foreground">
+                                No hay datos con los filtros seleccionados.
+                              </td>
+                            </tr>
+                          ) : (
+                            filteredWosCat.map((row, i) => (
+                              <tr key={i} className="border-b border-border/50 hover:bg-primary/5 transition-colors cursor-pointer" onClick={() => setSelectedCategoria(row.categoria)}>
+                                <td className="px-4 py-3 font-medium text-primary underline decoration-primary/30">{row.categoria}</td>
+                                <td className="px-4 py-3 text-right">{(row.inventario_total ?? 0).toLocaleString()}</td>
+                                <td className="px-4 py-3 text-right">{(row.venta_promedio_semanal ?? 0).toLocaleString()}</td>
+                                <td className="px-4 py-3 text-right font-medium" style={{ color: getBarColor(row.semanas_inventario) }}>
+                                  {row.semanas_inventario == null ? "∞" : row.semanas_inventario > 99 ? "+99w" : `${row.semanas_inventario.toFixed(1)}w`}
+                                </td>
+                                <td className="px-4 py-3 text-right">
+                                  <span className="text-emerald-600 font-medium">{row.pct_full_price.toFixed(1)}%</span>
+                                </td>
+                                <td className="px-4 py-3 text-right">
+                                  <span className="text-orange-500 font-medium">{row.pct_rebajado.toFixed(1)}%</span>
+                                </td>
+                                <td className="px-4 py-3 text-center">
+                                  <StatusBadge label={row.estado_salud} />
+                                </td>
                               </tr>
-                            </thead>
-                            <tbody>
-                              {supplyStock.map((row) => (
-                                <tr key={row.sku} className="border-b border-border/50 hover:bg-muted/20 transition-colors">
-                                  <td className="px-4 py-2.5 font-mono text-xs text-muted-foreground">{row.sku}</td>
-                                  <td className="px-4 py-2.5 font-medium text-foreground text-xs">{row.title}</td>
-                                  <td className="px-4 py-2.5 text-right font-semibold text-foreground">
-                                    {row.available.toLocaleString()}
-                                  </td>
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* WOS by Category with multi-select filters */}
-                    {wosCatData.length > 0 && (
-                      <div className="glass-card overflow-hidden">
-                        <div className="px-5 py-4 border-b border-border space-y-3">
-                          <h3 className="text-sm font-semibold text-foreground">WOS por Categoría</h3>
-                          <div className="flex flex-wrap items-center gap-2">
-                            <Filter className="h-3.5 w-3.5 text-muted-foreground" />
-                            <MultiSelectFilter label="Stock" options={stockOptions} selected={selStock} onChange={setSelStock} />
-                            <MultiSelectFilter label="Estado" options={uniqueEstados} selected={selEstados} onChange={setSelEstados} />
-                          </div>
-                        </div>
-                        <div className="overflow-x-auto">
-                          <table className="w-full text-sm">
-                            <thead>
-                              <tr className="border-b border-border bg-muted/30">
-                                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">Categoría</th>
-                                <th className="px-4 py-3 text-right text-xs font-medium text-muted-foreground">Stock Total</th>
-                                <th className="px-4 py-3 text-right text-xs font-medium text-muted-foreground">Venta Prom/Sem</th>
-                                <th className="px-4 py-3 text-right text-xs font-medium text-muted-foreground">WOS</th>
-                                <th className="px-4 py-3 text-right text-xs font-medium text-muted-foreground">% Full Price</th>
-                                <th className="px-4 py-3 text-right text-xs font-medium text-muted-foreground">% Rebajado</th>
-                                <th className="px-4 py-3 text-center text-xs font-medium text-muted-foreground">Estado</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {filteredWosCat.length === 0 ? (
-                                <tr>
-                                  <td colSpan={7} className="px-4 py-8 text-center text-sm text-muted-foreground">
-                                    No hay datos con los filtros seleccionados.
-                                  </td>
-                                </tr>
-                              ) : (
-                                filteredWosCat.map((row, i) => (
-                                  <tr key={i} className="border-b border-border/50 hover:bg-primary/5 transition-colors cursor-pointer" onClick={() => setSelectedCategoria(row.categoria)}>
-                                    <td className="px-4 py-3 font-medium text-primary underline decoration-primary/30">{row.categoria}</td>
-                                    <td className="px-4 py-3 text-right">{(row.inventario_total ?? 0).toLocaleString()}</td>
-                                    <td className="px-4 py-3 text-right">{(row.venta_promedio_semanal ?? 0).toLocaleString()}</td>
-                                    <td className="px-4 py-3 text-right font-medium" style={{ color: getBarColor(row.semanas_inventario) }}>
-                                      {row.semanas_inventario == null ? "∞" : row.semanas_inventario > 99 ? "+99w" : `${row.semanas_inventario.toFixed(1)}w`}
-                                    </td>
-                                    <td className="px-4 py-3 text-right">
-                                      <span className="text-emerald-600 font-medium">{row.pct_full_price.toFixed(1)}%</span>
-                                    </td>
-                                    <td className="px-4 py-3 text-right">
-                                      <span className="text-orange-500 font-medium">{row.pct_rebajado.toFixed(1)}%</span>
-                                    </td>
-                                    <td className="px-4 py-3 text-center">
-                                      <StatusBadge label={row.estado_salud} />
-                                    </td>
-                                  </tr>
-                                ))
-                              )}
-                            </tbody>
-                          </table>
-                        </div>
-                      </div>
-                    )}
-                  </>
+                            ))
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
                 )}
               </div>
             )}
