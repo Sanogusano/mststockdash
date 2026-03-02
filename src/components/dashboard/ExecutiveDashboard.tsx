@@ -16,8 +16,6 @@ import { StoreLeaderboard } from "./StoreLeaderboard";
 /* ── Constants ── */
 const CEDI_ID = "71474315479";
 const CEDI_DISPLAY = "Bodega Ecommerce";
-const OUTLET_KEYWORDS = ["SOPO", "UNICO", "ÚNICO"];
-const isOutlet = (name: string) => OUTLET_KEYWORDS.some(k => name.toUpperCase().includes(k.toUpperCase()));
 
 /* ── Pareto Types ── */
 interface ParetoRow {
@@ -1015,8 +1013,8 @@ function ChannelPanel({ days, canal, showLocationFilter, locationFilter }: {
           const filtered = data
             .filter(l => l.location_id !== CEDI_ID)
             .filter(l => {
-              if (locationFilter === "tiendas") return !isOutlet(l.name);
-              if (locationFilter === "outlets") return isOutlet(l.name);
+              if (locationFilter === "tiendas") return (l.tipo_tienda ?? '').toUpperCase() !== 'OUTLET';
+              if (locationFilter === "outlets") return (l.tipo_tienda ?? '').toUpperCase() === 'OUTLET';
               return true;
             })
             .map(l => ({
@@ -1034,7 +1032,7 @@ function ChannelPanel({ days, canal, showLocationFilter, locationFilter }: {
       setLoading(true);
       const effectiveDays = resolveDays(days);
       const locParam = selectedLocation === "all" ? null : selectedLocation;
-      const canalFiltro = canal === "digital" ? "DIGITAL" : "POS";
+      const canalFiltro = canal === "digital" ? "DIGITAL" : canal === "outlets" ? "OUTLET" : "TIENDAS";
 
       try {
         const [kpiRes, prevKpiRes, topRes, bottomRes, m2Res] = await Promise.all([
@@ -1065,7 +1063,7 @@ function ChannelPanel({ days, canal, showLocationFilter, locationFilter }: {
           // Fetch m² for the selected location or all relevant locations
           locParam
             ? supabase.from("locations").select("dimension_m2").eq("location_id", locParam)
-            : supabase.from("locations").select("dimension_m2, name, location_id").eq("is_active", true).not("dimension_m2", "is", null),
+            : supabase.from("locations").select("dimension_m2, name, location_id, tipo_tienda").eq("is_active", true).not("dimension_m2", "is", null),
         ]);
 
         const emptyKpi = normalizeKpiData({});
@@ -1088,8 +1086,8 @@ function ChannelPanel({ days, canal, showLocationFilter, locationFilter }: {
           const relevantLocs = (m2Res.data as any[]).filter((l: any) => {
             if (locParam) return true; // single location
             if (canal === "digital") return false; // no m² for digital
-            if (locationFilter === "tiendas") return l.location_id !== CEDI_ID && !isOutlet(l.name ?? "");
-            if (locationFilter === "outlets") return isOutlet(l.name ?? "");
+            if (locationFilter === "tiendas") return l.location_id !== CEDI_ID && ((l as any).tipo_tienda ?? '').toUpperCase() !== 'OUTLET';
+            if (locationFilter === "outlets") return ((l as any).tipo_tienda ?? '').toUpperCase() === 'OUTLET';
             return l.location_id !== CEDI_ID;
           });
           setChannelM2(relevantLocs.reduce((s: number, r: any) => s + (r.dimension_m2 ?? 0), 0));

@@ -40,28 +40,40 @@ export function InventoryGlobalReport({ open, onOpenChange, days }: Props) {
   const [selTienda, setSelTienda] = useState<string[]>([]);
   const [selEstado, setSelEstado] = useState<string[]>([]);
 
+  const [locTipoMap, setLocTipoMap] = useState<Map<string, string>>(new Map());
+
   useEffect(() => {
     if (!open) return;
     async function fetch() {
       setLoading(true);
       const effectiveDays = resolveDays(days);
-      const res = await supabase.rpc("reporte_wos_categoria_global", { dias_atras: effectiveDays });
+      const [res, locRes] = await Promise.all([
+        supabase.rpc("reporte_wos_categoria_global", { dias_atras: effectiveDays }),
+        supabase.from("locations").select("location_id, tipo_tienda").eq("is_active", true),
+      ]);
       if (res.data) setData(res.data as unknown as WosCatGlobalRow[]);
+      if (locRes.data) {
+        const m = new Map<string, string>();
+        for (const l of locRes.data) m.set(l.location_id, (l.tipo_tienda ?? '').toUpperCase());
+        setLocTipoMap(m);
+      }
       setLoading(false);
     }
     fetch();
   }, [open, days]);
 
+  const getCanal = (row: WosCatGlobalRow) => {
+    const tipo = locTipoMap.get(row.location_id) ?? '';
+    if (tipo === 'OUTLET') return 'Outlets';
+    if (row.location_id === '71474315479') return 'Digital';
+    return 'Tiendas';
+  };
+
   const canalOptions = useMemo(() => {
     const set = new Set<string>();
-    data.forEach((r) => {
-      const name = r.tienda?.toUpperCase() ?? "";
-      if (name.includes("SOPO") || name.includes("UNICO") || name.includes("ÚNICO")) set.add("Outlets");
-      else if (r.location_id === "71474315479") set.add("Digital");
-      else set.add("Tiendas");
-    });
+    data.forEach((r) => set.add(getCanal(r)));
     return [...set].sort();
-  }, [data]);
+  }, [data, locTipoMap]);
 
   const tiendaOptions = useMemo(() => [...new Set(data.map((r) => r.tienda))].sort(), [data]);
   const estadoOptions = useMemo(() => [...new Set(data.map((r) => r.estado_salud))], [data]);
@@ -70,11 +82,7 @@ export function InventoryGlobalReport({ open, onOpenChange, days }: Props) {
     return data.filter((row) => {
       // Canal filter
       if (selCanal.length > 0) {
-        const name = row.tienda?.toUpperCase() ?? "";
-        const isOutlet = name.includes("SOPO") || name.includes("UNICO") || name.includes("ÚNICO");
-        const isDigital = row.location_id === "71474315479";
-        const canal = isOutlet ? "Outlets" : isDigital ? "Digital" : "Tiendas";
-        if (!selCanal.includes(canal)) return false;
+        if (!selCanal.includes(getCanal(row))) return false;
       }
       if (selTienda.length > 0 && !selTienda.includes(row.tienda)) return false;
       if (selEstado.length > 0 && !selEstado.some((e) => row.estado_salud.includes(e))) return false;

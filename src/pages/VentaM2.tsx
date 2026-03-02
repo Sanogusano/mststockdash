@@ -22,8 +22,6 @@ function getVentaM2Status(v: number, avgReference?: number) {
 }
 
 const CEDI_ID = "71474315479";
-const OUTLET_KEYWORDS = ["SOPO", "UNICO", "ÚNICO"];
-const isOutlet = (name: string) => OUTLET_KEYWORDS.some(k => name.toUpperCase().includes(k));
 
 interface RankingRow {
   tienda: string;
@@ -64,7 +62,7 @@ export default function VentaM2Page() {
       const [rankTiendasRes, rankOutletsRes, locRes] = await Promise.all([
         supabase.rpc("reporte_ranking_tiendas", { dias_atras: effectiveDays, p_canal: "tiendas" }),
         supabase.rpc("reporte_ranking_tiendas", { dias_atras: effectiveDays, p_canal: "outlets" }),
-        supabase.from("locations").select("location_id, name, dimension_m2").eq("is_active", true),
+        supabase.from("locations").select("location_id, name, dimension_m2, tipo_tienda").eq("is_active", true),
       ]);
 
       const locMap = new Map<string, LocationM2>();
@@ -84,8 +82,8 @@ export default function VentaM2Page() {
         ? allRanking.filter(r => {
             const loc = locMap.get(r.tienda);
             if (!loc) return false;
-            if (canalParam === "tiendas") return !isOutlet(loc.name) && loc.location_id !== CEDI_ID;
-            if (canalParam === "outlets") return isOutlet(loc.name);
+            if (canalParam === "tiendas") return (loc as any).tipo_tienda?.toUpperCase() !== 'OUTLET' && loc.location_id !== CEDI_ID;
+            if (canalParam === "outlets") return (loc as any).tipo_tienda?.toUpperCase() === 'OUTLET';
             return true;
           })
         : allRanking;
