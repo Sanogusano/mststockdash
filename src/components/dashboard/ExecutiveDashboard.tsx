@@ -351,7 +351,7 @@ function ParetoChart({ days, canal, locationId }: { days: number; canal: string;
       const effectiveDays = resolveDays(days);
       const { data: rows } = await supabase.rpc("reporte_pareto_categorias" as any, {
         dias_atras: effectiveDays,
-        p_canal: canal,
+        p_canal: canal || null,
         p_location_id: locationId || null,
       });
       if (rows) setData(rows as unknown as ParetoRow[]);
