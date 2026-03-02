@@ -334,6 +334,24 @@ export type Database = {
           wos: number
         }[]
       }
+      reporte_curva_traslados: {
+        Args: { dias_atras: number; p_destino?: string; p_origen?: string }
+        Returns: {
+          color: string
+          foto: string
+          prioridad: number
+          product_id: string
+          producto: string
+          ritmo_venta: number
+          sku: string
+          stock_destino: number
+          stock_origen: number
+          talla: string
+          tienda_destino: string
+          tienda_origen: string
+          uds_sugeridas: number
+        }[]
+      }
       reporte_desempeño_comercial: {
         Args: { dias_atras: number }
         Returns: {
