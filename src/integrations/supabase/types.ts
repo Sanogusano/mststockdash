@@ -483,6 +483,18 @@ export type Database = {
           unidades: number
         }[]
       }
+      reporte_pct_ventas_por_tipo: {
+        Args: { dias_atras: number; p_canal?: string; p_location_id?: string }
+        Returns: {
+          ingresos_desc_promo: number
+          ingresos_full_price: number
+          ingresos_rebajas: number
+          ingresos_total: number
+          pct_desc_promo: number
+          pct_full_price: number
+          pct_rebajas: number
+        }[]
+      }
       reporte_pedidos_por_tipo_venta: {
         Args: {
           dias_atras: number
