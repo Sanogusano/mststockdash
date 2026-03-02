@@ -327,6 +327,9 @@ export type Database = {
           sku: string
           stock_digital: number
           stock_tiendas: number
+          und_full_price: number
+          und_promo: number
+          und_rebajas: number
           und_vendidas: number
           wos: number
         }[]
