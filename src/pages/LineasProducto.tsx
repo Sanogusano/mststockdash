@@ -6,12 +6,15 @@ import { AppSidebar } from "@/components/AppSidebar";
 import { TimeFilter, THIS_MONTH_SENTINEL, resolveDays } from "@/components/dashboard/TimeFilter";
 import { LoadingState, EmptyState } from "@/components/dashboard/LoadingState";
 import { StatusBadge } from "@/components/dashboard/StatusBadge";
+import { CategoryProductsDrawer } from "@/components/dashboard/CategoryProductsDrawer";
 import { exportToCSV } from "@/lib/csv-export";
 import { exportToPDF } from "@/lib/pdf-export";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Download, FileText, Search } from "lucide-react";
+import { Download, FileText, Search, Star, Tag, Package } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { cn } from "@/lib/utils";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
@@ -33,6 +36,12 @@ interface LineRow {
   estado_salud: string;
 }
 
+interface SupplyStockRow {
+  sku: string;
+  title: string;
+  available: number;
+}
+
 const CANAL_OPTIONS = [
   { value: "all", label: "Todos los Canales" },
   { value: "tiendas", label: "Tiendas de Línea" },
@@ -50,6 +59,9 @@ export default function LineasProductoPage() {
   const [data, setData] = useState<LineRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [selectedCategoria, setSelectedCategoria] = useState<string | null>(null);
+  const [supplyStock, setSupplyStock] = useState<SupplyStockRow[]>([]);
+  const [showSupplies, setShowSupplies] = useState(false);
 
   useEffect(() => {
     async function fetch() {
@@ -57,15 +69,34 @@ export default function LineasProductoPage() {
       setError(null);
       const effectiveDays = resolveDays(days);
       const canalParam = canal === "all" ? null : canal;
-      const { data: rows, error: err } = await supabase.rpc("reporte_desempeno_por_linea" as any, {
-        dias_atras: effectiveDays,
-        p_canal: canalParam,
-      });
-      if (err) {
-        setError(err.message);
+      const [res, supplyRes] = await Promise.all([
+        supabase.rpc("reporte_desempeno_por_linea" as any, {
+          dias_atras: effectiveDays,
+          p_canal: canalParam,
+        }),
+        supabase
+          .from("inventory_snapshot")
+          .select("sku, available, product_catalog!inner(title, category)")
+          .or("category.ilike.%bolsa%,category.ilike.%insumo%", { referencedTable: "product_catalog" }),
+      ]);
+      if (res.error) {
+        setError(res.error.message);
         setData([]);
       } else {
-        setData((rows ?? []) as unknown as LineRow[]);
+        setData((res.data ?? []) as unknown as LineRow[]);
+      }
+      if (supplyRes.data) {
+        const mapped = (supplyRes.data as any[]).map((r) => ({
+          sku: r.sku,
+          title: (r.product_catalog as any)?.title ?? r.sku,
+          available: r.available ?? 0,
+        }));
+        const aggregated: Record<string, SupplyStockRow> = {};
+        mapped.forEach((r) => {
+          if (aggregated[r.sku]) aggregated[r.sku].available += r.available;
+          else aggregated[r.sku] = { ...r };
+        });
+        setSupplyStock(Object.values(aggregated).sort((a, b) => b.available - a.available));
       }
       setLoading(false);
     }
@@ -76,6 +107,14 @@ export default function LineasProductoPage() {
     if (!search.trim()) return data;
     return data.filter(r => r.categoria?.toLowerCase().includes(search.toLowerCase()));
   }, [data, search]);
+
+  // Compute stock totals for price cards
+  const stockTotals = useMemo(() => {
+    const totalStock = data.reduce((s, r) => s + (r.stock_tiendas ?? 0) + (r.stock_digital ?? 0), 0);
+    return { total: totalStock };
+  }, [data]);
+
+  const supplyTotal = supplyStock.reduce((s, r) => s + r.available, 0);
 
   const getSellThroughColor = (pct: number) => {
     if (pct >= 70) return "bg-success";
@@ -123,6 +162,8 @@ export default function LineasProductoPage() {
     );
   };
 
+  const canalRpcParam = canal === "all" ? null : canal;
+
   return (
     <SidebarProvider>
       <div className="flex min-h-screen w-full bg-background">
@@ -139,6 +180,35 @@ export default function LineasProductoPage() {
             <TimeFilter value={days} onChange={setDays} />
           </header>
           <div className="flex-1 px-4 sm:px-6 py-4 sm:py-6 space-y-4">
+            {/* Summary Cards */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+              <div className="glass-card p-4">
+                <div className="flex items-center gap-2 mb-1">
+                  <Star className="h-4 w-4 text-emerald-600" />
+                  <span className="text-xs text-muted-foreground font-medium uppercase">Stock Prendas</span>
+                </div>
+                <p className="text-xl font-semibold text-foreground">{stockTotals.total.toLocaleString()} uds</p>
+              </div>
+              <div className="glass-card p-4">
+                <div className="flex items-center gap-2 mb-1">
+                  <Tag className="h-4 w-4 text-primary" />
+                  <span className="text-xs text-muted-foreground font-medium uppercase">Categorías</span>
+                </div>
+                <p className="text-xl font-semibold text-foreground">{data.length}</p>
+              </div>
+              <button
+                onClick={() => setShowSupplies(true)}
+                className="glass-card p-4 text-left transition-all border-2 border-transparent hover:border-border"
+              >
+                <div className="flex items-center gap-2 mb-1">
+                  <Package className="h-4 w-4 text-primary" />
+                  <span className="text-xs text-muted-foreground font-medium uppercase">Insumos</span>
+                </div>
+                <p className="text-xl font-semibold text-foreground">{supplyTotal.toLocaleString()} uds</p>
+                <p className="text-xs text-primary font-medium">{supplyStock.length} SKUs →</p>
+              </button>
+            </div>
+
             {/* Filters */}
             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 flex-wrap">
               <div className="relative flex-1 w-full sm:max-w-xs">
@@ -201,9 +271,13 @@ export default function LineasProductoPage() {
                     </TableHeader>
                     <TableBody>
                       {filtered.map(row => (
-                        <TableRow key={row.categoria}>
+                        <TableRow
+                          key={row.categoria}
+                          className="cursor-pointer hover:bg-primary/5"
+                          onClick={() => setSelectedCategoria(row.categoria)}
+                        >
                           <TableCell>
-                            <span className="text-sm font-medium text-foreground">{row.categoria}</span>
+                            <span className="text-sm font-medium text-primary underline decoration-primary/30">{row.categoria}</span>
                           </TableCell>
                           <TableCell className="text-right font-medium text-sm">
                             {(row.stock_tiendas ?? 0).toLocaleString()}
@@ -246,12 +320,53 @@ export default function LineasProductoPage() {
                       ))}
                     </TableBody>
                   </Table>
+                  <p className="text-xs text-muted-foreground px-4 py-2">Click en una categoría para ver productos</p>
                 </div>
               )}
             </div>
           </div>
         </main>
       </div>
+
+      {/* Category Products Drawer */}
+      <CategoryProductsDrawer
+        categoria={selectedCategoria}
+        days={days}
+        canal={canalRpcParam}
+        onClose={() => setSelectedCategoria(null)}
+      />
+
+      {/* Supplies Dialog */}
+      <Dialog open={showSupplies} onOpenChange={setShowSupplies}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Package className="h-5 w-5 text-primary" />
+              Stock Total Insumos — {supplyTotal.toLocaleString()} uds
+            </DialogTitle>
+          </DialogHeader>
+          <div className="overflow-x-auto border border-border rounded-lg">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-border bg-muted/30">
+                  <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">SKU</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">Insumo</th>
+                  <th className="px-4 py-3 text-right text-xs font-medium text-muted-foreground">Disponible</th>
+                </tr>
+              </thead>
+              <tbody>
+                {supplyStock.map((row) => (
+                  <tr key={row.sku} className="border-b border-border/50 hover:bg-muted/20 transition-colors">
+                    <td className="px-4 py-2.5 font-mono text-xs text-muted-foreground">{row.sku}</td>
+                    <td className="px-4 py-2.5 font-medium text-foreground text-xs">{row.title}</td>
+                    <td className="px-4 py-2.5 text-right font-semibold text-foreground">{row.available.toLocaleString()}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </DialogContent>
+      </Dialog>
     </SidebarProvider>
   );
 }

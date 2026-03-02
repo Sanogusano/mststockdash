@@ -11,6 +11,7 @@ import { ArrowLeft, DollarSign, Receipt, ShoppingBag, Star, Percent, Package, Fi
 import { isValidDays } from "@/lib/validation";
 import { resolveDays } from "@/components/dashboard/TimeFilter";
 import { cn } from "@/lib/utils";
+import { CategoryProductsDrawer } from "@/components/dashboard/CategoryProductsDrawer";
 
 interface WosCategoryRow {
   categoria: string | null;
@@ -85,6 +86,7 @@ export default function TiendaDetailPage() {
   // WOS global table filters
   const [selEstados, setSelEstados] = useState<string[]>([]);
   const [selStock, setSelStock] = useState<string[]>([]);
+  const [selectedCategoria, setSelectedCategoria] = useState<string | null>(null);
 
   useEffect(() => {
     async function fetchData() {
@@ -290,8 +292,8 @@ export default function TiendaDetailPage() {
                                 </tr>
                               ) : (
                                 filteredWosCat.map((row, i) => (
-                                  <tr key={i} className="border-b border-border/50 hover:bg-muted/20 transition-colors">
-                                    <td className="px-4 py-3 font-medium text-foreground">{row.categoria}</td>
+                                  <tr key={i} className="border-b border-border/50 hover:bg-primary/5 transition-colors cursor-pointer" onClick={() => setSelectedCategoria(row.categoria)}>
+                                    <td className="px-4 py-3 font-medium text-primary underline decoration-primary/30">{row.categoria}</td>
                                     <td className="px-4 py-3 text-right">{(row.inventario_total ?? 0).toLocaleString()}</td>
                                     <td className="px-4 py-3 text-right">{(row.venta_promedio_semanal ?? 0).toLocaleString()}</td>
                                     <td className="px-4 py-3 text-right font-medium" style={{ color: getBarColor(row.semanas_inventario) }}>
@@ -321,6 +323,13 @@ export default function TiendaDetailPage() {
           </div>
         </main>
       </div>
+
+      <CategoryProductsDrawer
+        categoria={selectedCategoria}
+        days={days}
+        locationId={id}
+        onClose={() => setSelectedCategoria(null)}
+      />
     </SidebarProvider>
   );
 }
