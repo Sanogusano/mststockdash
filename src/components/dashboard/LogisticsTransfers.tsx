@@ -4,11 +4,14 @@ import { isValidDays } from "@/lib/validation";
 import { resolveDays } from "@/components/dashboard/TimeFilter";
 import { exportToCSV } from "@/lib/csv-export";
 import { exportToPDF } from "@/lib/pdf-export";
-import { Download, FileText, Filter, X } from "lucide-react";
+import { exportToXLS } from "@/lib/xls-export";
+import { Download, FileText, FileSpreadsheet, Filter, X, Package } from "lucide-react";
 import { LoadingState, EmptyState } from "./LoadingState";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 
 interface CurvaRow {
   product_id: string | null;
@@ -41,6 +44,7 @@ interface GroupedProduct {
     origenes: { tienda: string; stock: number; uds: number }[];
   }[];
   total_uds: number;
+  stock_general: number;
   origenes_unicos: string[];
   puede_una_fuente: boolean;
 }
@@ -49,12 +53,56 @@ interface Props {
   days: number;
 }
 
+// Flat export row for downloads
+function buildFlatExport(grouped: GroupedProduct[]) {
+  const rows: Record<string, unknown>[] = [];
+  grouped.forEach((g) => {
+    g.tallas.forEach((t) => {
+      t.origenes.forEach((o) => {
+        if (o.uds > 0) {
+          rows.push({
+            SKU: t.sku,
+            Producto: g.producto,
+            Color: g.color,
+            Talla: t.talla,
+            Origen: o.tienda,
+            Destino: g.tienda_destino,
+            "Stock Origen": o.stock,
+            "Stock Destino": t.stock_destino,
+            "Stock General": g.stock_general,
+            Cantidad: o.uds,
+          });
+        }
+      });
+    });
+  });
+  return rows;
+}
+
+const SIZE_ORDER = ["XXS", "XS", "S", "M", "L", "XL", "XXL", "2XL", "3XL"];
+
+function sortTallas(tallas: GroupedProduct["tallas"]) {
+  return tallas.sort((a, b) => {
+    const ai = SIZE_ORDER.findIndex((s) => a.talla.toUpperCase().includes(s));
+    const bi = SIZE_ORDER.findIndex((s) => b.talla.toUpperCase().includes(s));
+    if (ai !== -1 && bi !== -1) return ai - bi;
+    if (ai !== -1) return -1;
+    if (bi !== -1) return 1;
+    return a.talla.localeCompare(b.talla, undefined, { numeric: true });
+  });
+}
+
 export function LogisticsTransfers({ days }: Props) {
   const [data, setData] = useState<CurvaRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [origenFilter, setOrigenFilter] = useState<string>("all");
   const [destinoFilter, setDestinoFilter] = useState<string>("all");
+  const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [selectedGroup, setSelectedGroup] = useState<GroupedProduct | null>(null);
+  const [modeCurva, setModeCurva] = useState(true); // true = Curvas, false = Unidades
+
+  // Fetch stock general per product_id
+  const [stockMap, setStockMap] = useState<Record<string, number>>({});
 
   useEffect(() => {
     async function fetchData() {
@@ -73,7 +121,66 @@ export function LogisticsTransfers({ days }: Props) {
     fetchData();
   }, [days, origenFilter, destinoFilter]);
 
-  // Extract unique tiendas for filters
+  // Fetch stock general for all products
+  useEffect(() => {
+    async function fetchStock() {
+      const { data: stockRows } = await supabase
+        .from("inventory_snapshot")
+        .select("sku, available");
+      if (!stockRows) return;
+      // Group by product via product_catalog mapping
+      const { data: catalog } = await supabase
+        .from("product_catalog")
+        .select("sku, product_id");
+      if (!catalog) return;
+      const skuToProduct = new Map<string, string>();
+      catalog.forEach((c: any) => { if (c.product_id) skuToProduct.set(c.sku, c.product_id); });
+      const map: Record<string, number> = {};
+      stockRows.forEach((r: any) => {
+        const pid = skuToProduct.get(r.sku);
+        if (pid) map[pid] = (map[pid] || 0) + (r.available || 0);
+      });
+      setStockMap(map);
+    }
+    fetchStock();
+  }, []);
+
+  // Categories from product_catalog
+  const [categories, setCategories] = useState<string[]>([]);
+  useEffect(() => {
+    async function fetchCats() {
+      const { data: cats } = await supabase
+        .from("product_catalog")
+        .select("category")
+        .not("category", "is", null);
+      if (!cats) return;
+      const unique = new Set<string>();
+      cats.forEach((c: any) => {
+        const cat = (c.category || "").toUpperCase();
+        if (cat && !["BOLSA", "INSUMOS"].includes(cat)) unique.add(cat);
+      });
+      setCategories(Array.from(unique).sort());
+    }
+    fetchCats();
+  }, []);
+
+  // Product → category mapping
+  const [productCategoryMap, setProductCategoryMap] = useState<Record<string, string>>({});
+  useEffect(() => {
+    async function fetchMap() {
+      const { data: catalog } = await supabase
+        .from("product_catalog")
+        .select("product_id, category");
+      if (!catalog) return;
+      const map: Record<string, string> = {};
+      catalog.forEach((c: any) => {
+        if (c.product_id && c.category) map[c.product_id] = c.category.toUpperCase();
+      });
+      setProductCategoryMap(map);
+    }
+    fetchMap();
+  }, []);
+
   const { origenes, destinos } = useMemo(() => {
     const orig = new Set<string>();
     const dest = new Set<string>();
@@ -81,18 +188,22 @@ export function LogisticsTransfers({ days }: Props) {
       if (r.tienda_origen) orig.add(r.tienda_origen);
       if (r.tienda_destino) dest.add(r.tienda_destino);
     });
-    return {
-      origenes: Array.from(orig).sort(),
-      destinos: Array.from(dest).sort(),
-    };
+    return { origenes: Array.from(orig).sort(), destinos: Array.from(dest).sort() };
   }, [data]);
 
-  // Group data by product_id + tienda_destino
+  // Group data
   const grouped = useMemo(() => {
     const map = new Map<string, GroupedProduct>();
 
     data.forEach((row) => {
       if (!row.product_id || !row.tienda_destino) return;
+
+      // Category filter
+      if (categoryFilter !== "all") {
+        const cat = productCategoryMap[row.product_id];
+        if (cat !== categoryFilter) return;
+      }
+
       const key = `${row.product_id}__${row.tienda_destino}`;
 
       if (!map.has(key)) {
@@ -104,6 +215,7 @@ export function LogisticsTransfers({ days }: Props) {
           tienda_destino: row.tienda_destino,
           tallas: [],
           total_uds: 0,
+          stock_general: stockMap[row.product_id] ?? 0,
           origenes_unicos: [],
           puede_una_fuente: true,
         });
@@ -137,15 +249,12 @@ export function LogisticsTransfers({ days }: Props) {
       });
     });
 
-    // Post-process: check single source feasibility
     map.forEach((group) => {
       const allOrig = new Set<string>();
       group.tallas.forEach((t) => t.origenes.forEach((o) => allOrig.add(o.tienda)));
       group.origenes_unicos = Array.from(allOrig);
 
-      // Can one source fulfill all sizes?
       if (group.origenes_unicos.length > 1) {
-        // Check if any single origin has priority 1 for all tallas
         const originCounts = new Map<string, number>();
         group.tallas.forEach((t) => {
           if (t.origenes.length > 0) {
@@ -158,198 +267,333 @@ export function LogisticsTransfers({ days }: Props) {
         );
       }
 
-      // Sort tallas naturally
-      group.tallas.sort((a, b) => {
-        const sizeOrder = ["XXS", "XS", "S", "M", "L", "XL", "XXL", "2XL", "3XL"];
-        const ai = sizeOrder.findIndex((s) => a.talla.toUpperCase().includes(s));
-        const bi = sizeOrder.findIndex((s) => b.talla.toUpperCase().includes(s));
-        if (ai !== -1 && bi !== -1) return ai - bi;
-        if (ai !== -1) return -1;
-        if (bi !== -1) return 1;
-        return a.talla.localeCompare(b.talla, undefined, { numeric: true });
-      });
+      sortTallas(group.tallas);
     });
 
     return Array.from(map.values()).sort((a, b) => b.total_uds - a.total_uds);
-  }, [data]);
+  }, [data, categoryFilter, productCategoryMap, stockMap]);
 
-  const exportData = grouped.map((g) => ({
-    Producto: g.producto,
-    Color: g.color,
-    Destino: g.tienda_destino,
-    "Curva (tallas)": g.tallas.map((t) => `${t.talla}:${t.uds_sugeridas}`).join(" | "),
-    "Total Uds": g.total_uds,
-    "Origen Principal": g.origenes_unicos[0] ?? "—",
-    "Fuente Única": g.puede_una_fuente ? "Sí" : "No",
-  }));
+  const flatExport = useMemo(() => buildFlatExport(grouped), [grouped]);
+
+  const downloadFilename = `traslados_${modeCurva ? "curvas" : "unidades"}_${days}d`;
 
   if (loading) return <LoadingState rows={5} />;
 
   return (
     <div className="space-y-4">
-      {/* Filters */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 flex-wrap">
-        <div className="flex items-center gap-2">
-          <Filter className="h-4 w-4 text-muted-foreground" />
-          <span className="text-xs font-medium text-muted-foreground">Filtros:</span>
-        </div>
-        <div className="flex items-center gap-2 flex-wrap">
-          <Select value={origenFilter} onValueChange={setOrigenFilter}>
-            <SelectTrigger className="w-[200px] h-8 text-xs">
-              <SelectValue placeholder="Origen" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos los orígenes</SelectItem>
-              {origenes.map((o) => (
-                <SelectItem key={o} value={o}>{o}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
-          <Select value={destinoFilter} onValueChange={setDestinoFilter}>
-            <SelectTrigger className="w-[200px] h-8 text-xs">
-              <SelectValue placeholder="Destino" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos los destinos</SelectItem>
-              {destinos.map((d) => (
-                <SelectItem key={d} value={d}>{d}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
-          {(origenFilter !== "all" || destinoFilter !== "all") && (
-            <button
-              onClick={() => { setOrigenFilter("all"); setDestinoFilter("all"); }}
-              className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-            >
-              <X className="h-3 w-3" /> Limpiar
-            </button>
-          )}
-        </div>
-
-        <div className="flex items-center gap-2 ml-auto flex-wrap">
-          <span className="text-sm text-muted-foreground">
-            <span className="text-primary font-semibold">{grouped.length}</span> curvas sugeridas
+      {/* Mode Switch + Filters */}
+      <div className="flex flex-col gap-3">
+        {/* Top row: mode switch */}
+        <div className="flex items-center gap-4 flex-wrap">
+          <div className="flex items-center gap-2.5 bg-muted/40 rounded-lg px-3 py-2 border border-border">
+            <Label htmlFor="mode-switch" className={`text-xs font-medium transition-colors ${modeCurva ? "text-primary" : "text-muted-foreground"}`}>
+              Curvas
+            </Label>
+            <Switch
+              id="mode-switch"
+              checked={!modeCurva}
+              onCheckedChange={(checked) => setModeCurva(!checked)}
+            />
+            <Label htmlFor="mode-switch" className={`text-xs font-medium transition-colors ${!modeCurva ? "text-primary" : "text-muted-foreground"}`}>
+              Unidades
+            </Label>
+          </div>
+          <span className="text-xs text-muted-foreground">
+            {modeCurva ? "Vista por curva de tallas agrupada" : "Vista por unidades sugeridas por producto"}
           </span>
-          <button
-            onClick={() => exportToCSV(exportData as unknown as Record<string, unknown>[], `curvas_traslado_${days}d`)}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-          >
-            <Download className="h-3.5 w-3.5" /> CSV
-          </button>
-          <button
-            onClick={() => exportToPDF(exportData as unknown as Record<string, unknown>[], `curvas_traslado_${days}d`, "Curvas de Traslado")}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-          >
-            <FileText className="h-3.5 w-3.5" /> PDF
-          </button>
+        </div>
+
+        {/* Filters row */}
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 flex-wrap">
+          <div className="flex items-center gap-2">
+            <Filter className="h-4 w-4 text-muted-foreground" />
+            <span className="text-xs font-medium text-muted-foreground">Filtros:</span>
+          </div>
+          <div className="flex items-center gap-2 flex-wrap">
+            <Select value={origenFilter} onValueChange={setOrigenFilter}>
+              <SelectTrigger className="w-[180px] h-8 text-xs">
+                <SelectValue placeholder="Origen" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos los orígenes</SelectItem>
+                {origenes.map((o) => (
+                  <SelectItem key={o} value={o}>{o}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <Select value={destinoFilter} onValueChange={setDestinoFilter}>
+              <SelectTrigger className="w-[180px] h-8 text-xs">
+                <SelectValue placeholder="Destino" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos los destinos</SelectItem>
+                {destinos.map((d) => (
+                  <SelectItem key={d} value={d}>{d}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+              <SelectTrigger className="w-[180px] h-8 text-xs">
+                <SelectValue placeholder="Categoría" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todas las categorías</SelectItem>
+                {categories.map((c) => (
+                  <SelectItem key={c} value={c}>{c}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            {(origenFilter !== "all" || destinoFilter !== "all" || categoryFilter !== "all") && (
+              <button
+                onClick={() => { setOrigenFilter("all"); setDestinoFilter("all"); setCategoryFilter("all"); }}
+                className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+              >
+                <X className="h-3 w-3" /> Limpiar
+              </button>
+            )}
+          </div>
+
+          <div className="flex items-center gap-2 ml-auto flex-wrap">
+            <span className="text-sm text-muted-foreground">
+              <span className="text-primary font-semibold">{grouped.length}</span> {modeCurva ? "curvas" : "productos"}
+            </span>
+            <button
+              onClick={() => exportToXLS(flatExport, downloadFilename, "Traslados")}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+            >
+              <FileSpreadsheet className="h-3.5 w-3.5" /> XLS
+            </button>
+            <button
+              onClick={() => exportToCSV(flatExport, downloadFilename)}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+            >
+              <Download className="h-3.5 w-3.5" /> CSV
+            </button>
+            <button
+              onClick={() => exportToPDF(flatExport, downloadFilename, "Traslados Sugeridos")}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+            >
+              <FileText className="h-3.5 w-3.5" /> PDF
+            </button>
+          </div>
         </div>
       </div>
 
       {!grouped.length ? (
-        <EmptyState message="No hay curvas de traslado sugeridas para este período. ✅ El inventario está bien distribuido." />
+        <EmptyState message="No hay sugerencias de traslado para este período. ✅ El inventario está bien distribuido." />
+      ) : modeCurva ? (
+        <CurvaView grouped={grouped} onSelect={setSelectedGroup} />
       ) : (
-        <div className="glass-card overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm min-w-[900px]">
-              <thead>
-                <tr className="border-b border-border bg-muted/30">
-                  <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">Producto</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">Color</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">Destino</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">Curva de Tallas</th>
-                  <th className="px-4 py-3 text-right text-xs font-medium text-muted-foreground">Total Uds</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">Origen</th>
-                  <th className="px-4 py-3 text-center text-xs font-medium text-muted-foreground">Fuente</th>
-                </tr>
-              </thead>
-              <tbody>
-                {grouped.slice(0, 100).map((g, i) => (
-                  <tr
-                    key={`${g.product_id}__${g.tienda_destino}__${i}`}
-                    className="border-b border-border/50 hover:bg-muted/20 transition-colors cursor-pointer"
-                    onClick={() => setSelectedGroup(g)}
-                  >
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-3">
-                        {g.foto ? (
-                          <img src={g.foto} alt="" className="w-12 h-12 rounded-lg object-cover bg-muted shrink-0"
-                            onError={(e) => { e.currentTarget.style.display = "none"; }} />
-                        ) : (
-                          <div className="w-12 h-12 rounded-lg bg-muted/50 flex items-center justify-center text-sm shrink-0">👗</div>
-                        )}
-                        <span className="font-medium text-foreground line-clamp-2 max-w-[200px] hover:text-primary transition-colors">
-                          {g.producto}
-                        </span>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 text-xs text-muted-foreground">{g.color}</td>
-                    <td className="px-4 py-3">
-                      <span className="text-xs font-medium text-primary">{g.tienda_destino}</span>
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-1 flex-wrap">
-                        {g.tallas.map((t) => (
-                          <div
-                            key={t.talla}
-                            className="flex flex-col items-center px-2 py-1 rounded border border-border bg-muted/20 min-w-[40px]"
-                          >
-                            <span className="text-[10px] text-muted-foreground leading-none">{t.talla}</span>
-                            <span className="text-xs font-bold text-primary leading-tight">{t.uds_sugeridas}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      <span className="inline-flex items-center justify-center px-2.5 py-1 rounded-full text-xs font-bold bg-primary/10 text-primary border border-primary/20">
-                        {g.total_uds}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-xs">
-                      {g.origenes_unicos.length <= 2 ? (
-                        g.origenes_unicos.map((o, idx) => (
-                          <span key={o}>
-                            {idx > 0 && <span className="text-muted-foreground"> + </span>}
-                            <span className="font-medium text-destructive">{o}</span>
-                          </span>
-                        ))
-                      ) : (
-                        <span className="font-medium text-destructive">
-                          {g.origenes_unicos[0]} <span className="text-muted-foreground">+{g.origenes_unicos.length - 1}</span>
-                        </span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3 text-center">
-                      {g.puede_una_fuente ? (
-                        <span className="inline-flex px-2 py-0.5 rounded-full text-[10px] font-medium bg-emerald-500/10 text-emerald-600 border border-emerald-500/20">
-                          ✅ Única
-                        </span>
-                      ) : (
-                        <span className="inline-flex px-2 py-0.5 rounded-full text-[10px] font-medium bg-warning/10 text-warning border border-warning/20">
-                          ⚠️ Múltiple
-                        </span>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          {grouped.length > 100 && (
-            <div className="px-4 py-2 text-xs text-muted-foreground text-center border-t border-border bg-muted/10">
-              Mostrando 100 de {grouped.length} curvas. Usa los filtros para acotar.
-            </div>
-          )}
-        </div>
+        <UnidadesView grouped={grouped} onSelect={setSelectedGroup} />
       )}
 
-      {/* Detail Drawer */}
       <CurvaDetailDrawer group={selectedGroup} onClose={() => setSelectedGroup(null)} />
     </div>
   );
 }
 
+/* ─── Curva View ─── */
+function CurvaView({ grouped, onSelect }: { grouped: GroupedProduct[]; onSelect: (g: GroupedProduct) => void }) {
+  return (
+    <div className="glass-card overflow-hidden">
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm min-w-[1000px]">
+          <thead>
+            <tr className="border-b border-border bg-muted/30">
+              <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">Producto</th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">Color</th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">Destino</th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">Curva de Tallas</th>
+              <th className="px-4 py-3 text-right text-xs font-medium text-muted-foreground">Total Uds</th>
+              <th className="px-4 py-3 text-right text-xs font-medium text-muted-foreground">Stock Gral.</th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">Origen</th>
+              <th className="px-4 py-3 text-center text-xs font-medium text-muted-foreground">Fuente</th>
+            </tr>
+          </thead>
+          <tbody>
+            {grouped.slice(0, 100).map((g, i) => (
+              <tr
+                key={`${g.product_id}__${g.tienda_destino}__${i}`}
+                className="border-b border-border/50 hover:bg-muted/20 transition-colors cursor-pointer"
+                onClick={() => onSelect(g)}
+              >
+                <td className="px-4 py-3">
+                  <div className="flex items-center gap-3">
+                    {g.foto ? (
+                      <img src={g.foto} alt="" className="w-12 h-12 rounded-lg object-cover bg-muted shrink-0"
+                        onError={(e) => { e.currentTarget.style.display = "none"; }} />
+                    ) : (
+                      <div className="w-12 h-12 rounded-lg bg-muted/50 flex items-center justify-center text-sm shrink-0">👗</div>
+                    )}
+                    <span className="font-medium text-foreground line-clamp-2 max-w-[200px] hover:text-primary transition-colors">
+                      {g.producto}
+                    </span>
+                  </div>
+                </td>
+                <td className="px-4 py-3 text-xs text-muted-foreground">{g.color}</td>
+                <td className="px-4 py-3">
+                  <span className="text-xs font-medium text-primary">{g.tienda_destino}</span>
+                </td>
+                <td className="px-4 py-3">
+                  <div className="flex items-center gap-1 flex-wrap">
+                    {g.tallas.map((t) => (
+                      <div key={t.talla} className="flex flex-col items-center px-2 py-1 rounded border border-border bg-muted/20 min-w-[40px]">
+                        <span className="text-[10px] text-muted-foreground leading-none">{t.talla}</span>
+                        <span className="text-xs font-bold text-primary leading-tight">{t.uds_sugeridas}</span>
+                      </div>
+                    ))}
+                  </div>
+                </td>
+                <td className="px-4 py-3 text-right">
+                  <span className="inline-flex items-center justify-center px-2.5 py-1 rounded-full text-xs font-bold bg-primary/10 text-primary border border-primary/20">
+                    {g.total_uds}
+                  </span>
+                </td>
+                <td className="px-4 py-3 text-right">
+                  <div className="flex items-center justify-end gap-1">
+                    <Package className="h-3 w-3 text-muted-foreground" />
+                    <span className="text-xs font-medium text-muted-foreground">{g.stock_general}</span>
+                  </div>
+                </td>
+                <td className="px-4 py-3 text-xs">
+                  <OrigenBadges origenes={g.origenes_unicos} />
+                </td>
+                <td className="px-4 py-3 text-center">
+                  <FuenteBadge unica={g.puede_una_fuente} />
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      {grouped.length > 100 && (
+        <div className="px-4 py-2 text-xs text-muted-foreground text-center border-t border-border bg-muted/10">
+          Mostrando 100 de {grouped.length} curvas. Usa los filtros para acotar.
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ─── Unidades View ─── */
+function UnidadesView({ grouped, onSelect }: { grouped: GroupedProduct[]; onSelect: (g: GroupedProduct) => void }) {
+  // Flatten: one row per product+talla+destino
+  const rows = useMemo(() => {
+    const flat: { group: GroupedProduct; talla: GroupedProduct["tallas"][0] }[] = [];
+    grouped.forEach((g) => {
+      g.tallas.forEach((t) => {
+        if (t.uds_sugeridas > 0) flat.push({ group: g, talla: t });
+      });
+    });
+    return flat;
+  }, [grouped]);
+
+  return (
+    <div className="glass-card overflow-hidden">
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm min-w-[1000px]">
+          <thead>
+            <tr className="border-b border-border bg-muted/30">
+              <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">Producto</th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">Color</th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">Talla</th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">SKU</th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">Destino</th>
+              <th className="px-4 py-3 text-right text-xs font-medium text-muted-foreground">Stock Destino</th>
+              <th className="px-4 py-3 text-right text-xs font-medium text-muted-foreground">Ritmo Vta.</th>
+              <th className="px-4 py-3 text-right text-xs font-medium text-muted-foreground">Uds Sugeridas</th>
+              <th className="px-4 py-3 text-right text-xs font-medium text-muted-foreground">Stock Gral.</th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">Origen</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.slice(0, 200).map((r, i) => (
+              <tr
+                key={`${r.talla.sku}__${r.group.tienda_destino}__${i}`}
+                className="border-b border-border/50 hover:bg-muted/20 transition-colors cursor-pointer"
+                onClick={() => onSelect(r.group)}
+              >
+                <td className="px-4 py-2.5">
+                  <div className="flex items-center gap-2">
+                    {r.group.foto ? (
+                      <img src={r.group.foto} alt="" className="w-8 h-8 rounded object-cover bg-muted shrink-0"
+                        onError={(e) => { e.currentTarget.style.display = "none"; }} />
+                    ) : null}
+                    <span className="font-medium text-foreground text-xs line-clamp-1 max-w-[180px]">{r.group.producto}</span>
+                  </div>
+                </td>
+                <td className="px-4 py-2.5 text-xs text-muted-foreground">{r.group.color}</td>
+                <td className="px-4 py-2.5 text-xs font-medium">{r.talla.talla}</td>
+                <td className="px-4 py-2.5 font-mono text-[11px] text-muted-foreground">{r.talla.sku}</td>
+                <td className="px-4 py-2.5 text-xs font-medium text-primary">{r.group.tienda_destino}</td>
+                <td className="px-4 py-2.5 text-right text-xs">{r.talla.stock_destino}</td>
+                <td className="px-4 py-2.5 text-right text-xs text-muted-foreground">{r.talla.ritmo_venta.toFixed(1)}/sem</td>
+                <td className="px-4 py-2.5 text-right">
+                  <span className="inline-flex items-center justify-center px-2 py-0.5 rounded-full text-xs font-bold bg-primary/10 text-primary border border-primary/20">
+                    {r.talla.uds_sugeridas}
+                  </span>
+                </td>
+                <td className="px-4 py-2.5 text-right">
+                  <div className="flex items-center justify-end gap-1">
+                    <Package className="h-3 w-3 text-muted-foreground" />
+                    <span className="text-xs text-muted-foreground">{r.group.stock_general}</span>
+                  </div>
+                </td>
+                <td className="px-4 py-2.5 text-xs">
+                  <OrigenBadges origenes={r.talla.origenes.map(o => o.tienda)} />
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      {rows.length > 200 && (
+        <div className="px-4 py-2 text-xs text-muted-foreground text-center border-t border-border bg-muted/10">
+          Mostrando 200 de {rows.length} líneas. Usa los filtros para acotar.
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ─── Small reusable pieces ─── */
+function OrigenBadges({ origenes }: { origenes: string[] }) {
+  const unique = [...new Set(origenes)];
+  if (unique.length <= 2) {
+    return (
+      <span>
+        {unique.map((o, idx) => (
+          <span key={o}>
+            {idx > 0 && <span className="text-muted-foreground"> + </span>}
+            <span className="font-medium text-destructive">{o}</span>
+          </span>
+        ))}
+      </span>
+    );
+  }
+  return (
+    <span className="font-medium text-destructive">
+      {unique[0]} <span className="text-muted-foreground">+{unique.length - 1}</span>
+    </span>
+  );
+}
+
+function FuenteBadge({ unica }: { unica: boolean }) {
+  return unica ? (
+    <span className="inline-flex px-2 py-0.5 rounded-full text-[10px] font-medium bg-emerald-500/10 text-emerald-600 border border-emerald-500/20">
+      ✅ Única
+    </span>
+  ) : (
+    <span className="inline-flex px-2 py-0.5 rounded-full text-[10px] font-medium bg-warning/10 text-warning border border-warning/20">
+      ⚠️ Múltiple
+    </span>
+  );
+}
+
+/* ─── Detail Drawer ─── */
 function CurvaDetailDrawer({ group, onClose }: { group: GroupedProduct | null; onClose: () => void }) {
   if (!group) return null;
 
@@ -368,19 +612,14 @@ function CurvaDetailDrawer({ group, onClose }: { group: GroupedProduct | null; o
               <p className="text-xs text-muted-foreground mt-1">
                 Color: <span className="font-medium text-foreground">{group.color}</span> · Destino: <span className="font-medium text-primary">{group.tienda_destino}</span>
               </p>
-              <div className="flex items-center gap-2 mt-2">
+              <div className="flex items-center gap-2 mt-2 flex-wrap">
                 <span className="inline-flex px-2.5 py-1 rounded-full text-xs font-bold bg-primary/10 text-primary border border-primary/20">
                   {group.total_uds} uds totales
                 </span>
-                {group.puede_una_fuente ? (
-                  <span className="inline-flex px-2 py-0.5 rounded-full text-[10px] font-medium bg-emerald-500/10 text-emerald-600 border border-emerald-500/20">
-                    ✅ Fuente Única
-                  </span>
-                ) : (
-                  <span className="inline-flex px-2 py-0.5 rounded-full text-[10px] font-medium bg-warning/10 text-warning border border-warning/20">
-                    ⚠️ Múltiples Fuentes
-                  </span>
-                )}
+                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-muted text-muted-foreground border border-border">
+                  <Package className="h-3 w-3" /> Stock Gral: {group.stock_general}
+                </span>
+                <FuenteBadge unica={group.puede_una_fuente} />
               </div>
             </div>
           </div>
@@ -407,7 +646,7 @@ function CurvaDetailDrawer({ group, onClose }: { group: GroupedProduct | null; o
           </div>
         </div>
 
-        {/* Detail table: per talla, show sources */}
+        {/* Detail table */}
         <div className="px-6 py-4">
           <p className="text-xs font-medium text-muted-foreground mb-3">Detalle por Talla & Origen</p>
           <div className="border border-border rounded-lg overflow-hidden">
@@ -429,26 +668,16 @@ function CurvaDetailDrawer({ group, onClose }: { group: GroupedProduct | null; o
                     <TableRow key={`${t.talla}-${o.tienda}-${oi}`} className={oi > 0 ? "bg-muted/5" : ""}>
                       {oi === 0 ? (
                         <>
-                          <TableCell rowSpan={t.origenes.length} className="text-sm font-medium border-r border-border/30">
-                            {t.talla}
-                          </TableCell>
-                          <TableCell rowSpan={t.origenes.length} className="font-mono text-xs text-muted-foreground border-r border-border/30">
-                            {t.sku}
-                          </TableCell>
-                          <TableCell rowSpan={t.origenes.length} className="text-right text-sm border-r border-border/30">
-                            {t.stock_destino}
-                          </TableCell>
-                          <TableCell rowSpan={t.origenes.length} className="text-right text-xs text-muted-foreground border-r border-border/30">
-                            {t.ritmo_venta.toFixed(1)} uds/sem
-                          </TableCell>
+                          <TableCell rowSpan={t.origenes.length} className="text-sm font-medium border-r border-border/30">{t.talla}</TableCell>
+                          <TableCell rowSpan={t.origenes.length} className="font-mono text-xs text-muted-foreground border-r border-border/30">{t.sku}</TableCell>
+                          <TableCell rowSpan={t.origenes.length} className="text-right text-sm border-r border-border/30">{t.stock_destino}</TableCell>
+                          <TableCell rowSpan={t.origenes.length} className="text-right text-xs text-muted-foreground border-r border-border/30">{t.ritmo_venta.toFixed(1)} uds/sem</TableCell>
                         </>
                       ) : null}
                       <TableCell className="text-xs font-medium text-destructive">{o.tienda}</TableCell>
                       <TableCell className="text-right text-sm">{o.stock}</TableCell>
                       <TableCell className="text-right">
-                        <span className="inline-flex items-center justify-center px-2 py-0.5 rounded-full text-xs font-bold bg-primary/10 text-primary">
-                          {o.uds}
-                        </span>
+                        <span className="inline-flex items-center justify-center px-2 py-0.5 rounded-full text-xs font-bold bg-primary/10 text-primary">{o.uds}</span>
                       </TableCell>
                     </TableRow>
                   ))
