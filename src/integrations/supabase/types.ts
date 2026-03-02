@@ -699,6 +699,14 @@ export type Database = {
           stock_total: number
         }[]
       }
+      stock_insumos_agregado: {
+        Args: never
+        Returns: {
+          sku: string
+          stock_total: number
+          titulo: string
+        }[]
+      }
       upsert_product_catalog_safe: {
         Args: { products_json: Json }
         Returns: undefined

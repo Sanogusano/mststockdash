@@ -74,10 +74,7 @@ export default function LineasProductoPage() {
           dias_atras: effectiveDays,
           p_canal: canalParam,
         }),
-        supabase
-          .from("inventory_snapshot")
-          .select("sku, available, product_catalog!inner(title, category)")
-          .or("category.ilike.%bolsa%,category.ilike.%insumo%", { referencedTable: "product_catalog" }),
+        supabase.rpc("stock_insumos_agregado" as any),
       ]);
       if (res.error) {
         setError(res.error.message);
@@ -86,17 +83,12 @@ export default function LineasProductoPage() {
         setData((res.data ?? []) as unknown as LineRow[]);
       }
       if (supplyRes.data) {
-        const mapped = (supplyRes.data as any[]).map((r) => ({
+        const rows = (supplyRes.data as any[]).map((r: any) => ({
           sku: r.sku,
-          title: (r.product_catalog as any)?.title ?? r.sku,
-          available: r.available ?? 0,
+          title: r.titulo ?? r.sku,
+          available: Number(r.stock_total) || 0,
         }));
-        const aggregated: Record<string, SupplyStockRow> = {};
-        mapped.forEach((r) => {
-          if (aggregated[r.sku]) aggregated[r.sku].available += r.available;
-          else aggregated[r.sku] = { ...r };
-        });
-        setSupplyStock(Object.values(aggregated).sort((a, b) => b.available - a.available));
+        setSupplyStock(rows.sort((a, b) => b.available - a.available));
       }
       setLoading(false);
     }
