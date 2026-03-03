@@ -139,16 +139,23 @@ export function LogisticsTransfers({ days }: Props) {
   const [categories, setCategories] = useState<string[]>([]);
   useEffect(() => {
     async function fetchCats() {
-      const { data: cats } = await supabase
-        .from("product_catalog")
-        .select("category")
-        .not("category", "is", null);
-      if (!cats) return;
       const unique = new Set<string>();
-      cats.forEach((c: any) => {
-        const cat = (c.category || "").toUpperCase();
-        if (cat && !["BOLSA", "INSUMOS"].includes(cat)) unique.add(cat);
-      });
+      let from = 0;
+      const pageSize = 1000;
+      while (true) {
+        const { data: cats } = await supabase
+          .from("product_catalog")
+          .select("category")
+          .not("category", "is", null)
+          .range(from, from + pageSize - 1);
+        if (!cats || cats.length === 0) break;
+        cats.forEach((c: any) => {
+          const cat = (c.category || "").toUpperCase();
+          if (cat && !["BOLSA", "INSUMOS"].includes(cat)) unique.add(cat);
+        });
+        if (cats.length < pageSize) break;
+        from += pageSize;
+      }
       setCategories(Array.from(unique).sort());
     }
     fetchCats();
@@ -158,14 +165,22 @@ export function LogisticsTransfers({ days }: Props) {
   const [productCategoryMap, setProductCategoryMap] = useState<Record<string, string>>({});
   useEffect(() => {
     async function fetchMap() {
-      const { data: catalog } = await supabase
-        .from("product_catalog")
-        .select("product_id, category");
-      if (!catalog) return;
       const map: Record<string, string> = {};
-      catalog.forEach((c: any) => {
-        if (c.product_id && c.category) map[c.product_id] = c.category.toUpperCase();
-      });
+      let from = 0;
+      const pageSize = 1000;
+      while (true) {
+        const { data: catalog } = await supabase
+          .from("product_catalog")
+          .select("product_id, category")
+          .not("category", "is", null)
+          .range(from, from + pageSize - 1);
+        if (!catalog || catalog.length === 0) break;
+        catalog.forEach((c: any) => {
+          if (c.product_id && c.category) map[c.product_id] = c.category.toUpperCase();
+        });
+        if (catalog.length < pageSize) break;
+        from += pageSize;
+      }
       setProductCategoryMap(map);
     }
     fetchMap();
