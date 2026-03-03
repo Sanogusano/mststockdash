@@ -156,19 +156,33 @@ export function LogisticsTransfers({ days }: Props) {
 
       for (let i = 0; i < productIds.length; i += chunkSize) {
         const chunk = productIds.slice(i, i + chunkSize);
-        const { data: catalog } = await supabase
-          .from("product_catalog")
-          .select("product_id, category")
-          .in("product_id", chunk)
-          .not("category", "is", null)
-          .limit(5000);
+        // Fetch in pages to bypass the 1000-row default limit
+        let from = 0;
+        const pageSize = 1000;
+        let hasMore = true;
+        while (hasMore) {
+          const { data: catalog } = await supabase
+            .from("product_catalog")
+            .select("product_id, category")
+            .in("product_id", chunk)
+            .not("category", "is", null)
+            .range(from, from + pageSize - 1);
 
-        if (!catalog) continue;
-        catalog.forEach((c: any) => {
-          if (c.product_id && c.category) {
-            map[c.product_id] = String(c.category).toUpperCase();
+          if (!catalog || catalog.length === 0) {
+            hasMore = false;
+            break;
           }
-        });
+          catalog.forEach((c: any) => {
+            if (c.product_id && c.category) {
+              map[c.product_id] = String(c.category).toUpperCase();
+            }
+          });
+          if (catalog.length < pageSize) {
+            hasMore = false;
+          } else {
+            from += pageSize;
+          }
+        }
       }
 
       const categorySet = new Set<string>();
