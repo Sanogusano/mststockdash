@@ -618,6 +618,18 @@ export type Database = {
           unidades_vendidas: number
           upt: number
           ventas_totales: number
+          zona: string
+        }[]
+      }
+      reporte_ranking_tiendas_anterior: {
+        Args: { dias_atras: number; p_canal?: string }
+        Returns: {
+          pct_venta_full_price: number
+          ticket_promedio: number
+          tienda: string
+          unidades_vendidas: number
+          upt: number
+          ventas_totales: number
         }[]
       }
       reporte_reorden_insumos: {
