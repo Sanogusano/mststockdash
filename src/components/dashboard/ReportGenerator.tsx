@@ -93,9 +93,10 @@ interface ParetoRow {
   pct_participacion: number | null;
 }
 
-interface Location {
+interface LocationItem {
   location_id: string;
   name: string;
+  zona: string | null;
 }
 
 /* ── Constants ── */
@@ -103,6 +104,16 @@ const fmtCOP = (v: number) =>
   new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(v);
 
 const fmtNum = (v: number) => v.toLocaleString("es-CO");
+
+const DAY_MAP: Record<string, string> = {
+  Monday: "Lunes", Tuesday: "Martes", Wednesday: "Miércoles",
+  Thursday: "Jueves", Friday: "Viernes", Saturday: "Sábado", Sunday: "Domingo",
+};
+
+function translateDay(d: string): string {
+  const trimmed = d.trim();
+  return DAY_MAP[trimmed] ?? trimmed;
+}
 
 function stripEmoji(text: string): string {
   return text
@@ -238,15 +249,216 @@ async function prefetchImages(items: { foto: string | null }[], cache: Map<strin
   await Promise.all(promises);
 }
 
+/* ── Comparison helper ── */
+function pctChange(cur: number, prev: number): string {
+  if (!prev) return "";
+  const pct = ((cur - prev) / Math.abs(prev)) * 100;
+  return pct >= 0 ? `+${pct.toFixed(1)}%` : `${pct.toFixed(1)}%`;
+}
+
+/* ── Draw KPI card with comparison arrow ── */
+function drawKpiCardWithArrow(
+  doc: jsPDF, x: number, y: number, w: number, h: number,
+  label: string, value: string, color: [number, number, number],
+  change?: string, subLabel?: string,
+) {
+  doc.setFillColor(...LIGHT_BG);
+  doc.roundedRect(x, y, w, h, 2, 2, "F");
+  doc.setDrawColor(220, 220, 230);
+  doc.roundedRect(x, y, w, h, 2, 2, "S");
+  doc.setFontSize(6.5);
+  doc.setFont("helvetica", "normal");
+  doc.setTextColor(...GRAY);
+  doc.text(label, x + 3, y + 5);
+  doc.setFontSize(10);
+  doc.setFont("helvetica", "bold");
+  doc.setTextColor(...color);
+  doc.text(value, x + 3, y + 11.5);
+  if (subLabel) {
+    doc.setFontSize(6.5);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(...GRAY);
+    doc.text(subLabel, x + 3, y + 15.5);
+  }
+  if (change) {
+    const isPositive = change.startsWith("+");
+    const arrow = isPositive ? "▲" : "▼";
+    doc.setFontSize(7);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(...(isPositive ? GREEN : RED));
+    const changeText = `${arrow} ${change} vs periodo ant.`;
+    doc.text(changeText, x + w - 3, y + 5, { align: "right" });
+  }
+}
+
+/* ── Panel de Accionables ── */
+function drawAccionablesPanel(
+  doc: jsPDF, y: number,
+  kpis: KpiData, kpisPrev: KpiData,
+): number {
+  const margin = 14;
+  const pageW = doc.internal.pageSize.getWidth();
+  const contentW = pageW - 2 * margin;
+
+  y = drawSectionTitle(doc, y, "PANEL DE ACCIONABLES");
+
+  const indicators = [
+    { name: "Ventas Netas", cur: kpis.ingresos_netos, prev: kpisPrev.ingresos_netos, isCurrency: true },
+    { name: "Pedidos", cur: kpis.total_pedidos, prev: kpisPrev.total_pedidos, isCurrency: false },
+    { name: "Unidades Vendidas", cur: kpis.unidades_vendidas, prev: kpisPrev.unidades_vendidas, isCurrency: false },
+    { name: "Ticket Promedio", cur: kpis.ticket_promedio, prev: kpisPrev.ticket_promedio, isCurrency: true },
+    { name: "UPT", cur: kpis.upt, prev: kpisPrev.upt, isCurrency: false },
+    { name: "% Full Price", cur: kpis.pct_pedidos_full_price, prev: kpisPrev.pct_pedidos_full_price, isCurrency: false },
+    { name: "% Rebajas", cur: kpis.pct_pedidos_rebajas, prev: kpisPrev.pct_pedidos_rebajas, isCurrency: false },
+    { name: "% Desc. Promo", cur: kpis.pct_pedidos_con_descuento, prev: kpisPrev.pct_pedidos_con_descuento, isCurrency: false },
+  ];
+
+  const withPct = indicators.map(i => ({
+    ...i,
+    pct: i.prev ? ((i.cur - i.prev) / Math.abs(i.prev)) * 100 : 0,
+  }));
+
+  const dropping = withPct.filter(i => i.pct <= -10);
+  const rising = withPct.filter(i => i.pct >= 10);
+
+  // ── INDICADORES EN CAIDA ──
+  if (dropping.length) {
+    const blockH = 10 + dropping.length * 6;
+    y = ensureSpace(doc, y, blockH + 4);
+    doc.setFillColor(254, 226, 226);
+    doc.roundedRect(margin, y, contentW, blockH, 2, 2, "F");
+    doc.setDrawColor(220, 180, 180);
+    doc.roundedRect(margin, y, contentW, blockH, 2, 2, "S");
+    doc.setFontSize(8);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(...RED);
+    doc.text("INDICADORES EN CAIDA (>10%)", margin + 4, y + 6);
+    dropping.forEach((ind, i) => {
+      doc.setFontSize(7);
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(80, 80, 80);
+      const fmt = ind.isCurrency
+        ? `${fmtCOP(ind.prev)} -> ${fmtCOP(ind.cur)}`
+        : `${fmtNum(Math.round(ind.prev))} -> ${fmtNum(Math.round(ind.cur))}`;
+      doc.text(
+        `  ▼ ${ind.name}: ${ind.pct.toFixed(1)}% (${fmt})`,
+        margin + 4, y + 12 + i * 6,
+      );
+    });
+    y += blockH + 4;
+  }
+
+  // ── INDICADORES EN ALZA ──
+  if (rising.length) {
+    // Generate hypotheses
+    const hypotheses: string[] = [];
+    const rebajasRising = rising.find(i => i.name === "% Rebajas");
+    const ventasRising = rising.find(i => i.name === "Ventas Netas");
+    const fullPriceDropping = dropping.find(i => i.name === "% Full Price");
+    const promoRising = rising.find(i => i.name === "% Desc. Promo");
+    const ticketRising = rising.find(i => i.name === "Ticket Promedio");
+    const ticketDropping = dropping.find(i => i.name === "Ticket Promedio");
+    const unidadesRising = rising.find(i => i.name === "Unidades Vendidas");
+
+    if (rebajasRising && ventasRising) {
+      hypotheses.push(
+        `CORRELACION: El aumento de Rebajas (+${rebajasRising.pct.toFixed(1)}%) posiblemente impulso Ventas Netas (+${ventasRising.pct.toFixed(1)}%). Evaluar si el margen neto se mantuvo.`,
+      );
+    }
+    if (rebajasRising && fullPriceDropping) {
+      hypotheses.push(
+        `CORRELACION: Las Rebajas (+${rebajasRising.pct.toFixed(1)}%) estan desplazando ventas Full Price (${fullPriceDropping.pct.toFixed(1)}%). Revisar estrategia de precios.`,
+      );
+    }
+    if (promoRising && ventasRising) {
+      hypotheses.push(
+        `CORRELACION: Las promociones (+${promoRising.pct.toFixed(1)}%) contribuyeron al crecimiento en ventas (+${ventasRising.pct.toFixed(1)}%). Medir impacto en margen.`,
+      );
+    }
+    if (ticketRising && !unidadesRising) {
+      hypotheses.push(
+        `NO CORRELACION: El ticket promedio sube (+${ticketRising.pct.toFixed(1)}%) pero las unidades no crecen al mismo ritmo. Posible cambio en mix de producto hacia items de mayor valor.`,
+      );
+    }
+    if (ticketDropping && unidadesRising) {
+      hypotheses.push(
+        `CORRELACION: Las unidades suben (+${unidadesRising.pct.toFixed(1)}%) pero el ticket cae (${ticketDropping.pct.toFixed(1)}%). Se estan vendiendo mas items de menor valor o con mayor descuento.`,
+      );
+    }
+    if (ventasRising && !rebajasRising && !promoRising) {
+      hypotheses.push(
+        `POSITIVO: Las ventas crecen (+${ventasRising.pct.toFixed(1)}%) sin depender de rebajas o promociones. Crecimiento organico saludable.`,
+      );
+    }
+
+    const risingBlockH = 10 + rising.length * 6;
+    y = ensureSpace(doc, y, risingBlockH + 4);
+    doc.setFillColor(220, 252, 231);
+    doc.roundedRect(margin, y, contentW, risingBlockH, 2, 2, "F");
+    doc.setDrawColor(180, 220, 190);
+    doc.roundedRect(margin, y, contentW, risingBlockH, 2, 2, "S");
+    doc.setFontSize(8);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(...GREEN);
+    doc.text("INDICADORES EN ALZA (>10%)", margin + 4, y + 6);
+    rising.forEach((ind, i) => {
+      doc.setFontSize(7);
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(80, 80, 80);
+      const fmt = ind.isCurrency
+        ? `${fmtCOP(ind.prev)} -> ${fmtCOP(ind.cur)}`
+        : `${fmtNum(Math.round(ind.prev))} -> ${fmtNum(Math.round(ind.cur))}`;
+      doc.text(
+        `  ▲ ${ind.name}: +${ind.pct.toFixed(1)}% (${fmt})`,
+        margin + 4, y + 12 + i * 6,
+      );
+    });
+    y += risingBlockH + 4;
+
+    // ── HIPOTESIS ──
+    if (hypotheses.length) {
+      const hypoBlockH = 10 + hypotheses.length * 10;
+      y = ensureSpace(doc, y, hypoBlockH + 4);
+      doc.setFillColor(254, 249, 195);
+      doc.roundedRect(margin, y, contentW, hypoBlockH, 2, 2, "F");
+      doc.setDrawColor(220, 210, 150);
+      doc.roundedRect(margin, y, contentW, hypoBlockH, 2, 2, "S");
+      doc.setFontSize(8);
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(...AMBER);
+      doc.text("HIPOTESIS Y CORRELACIONES", margin + 4, y + 6);
+      hypotheses.forEach((h, i) => {
+        doc.setFontSize(6.5);
+        doc.setFont("helvetica", "normal");
+        doc.setTextColor(80, 80, 80);
+        const lines = doc.splitTextToSize(`• ${h}`, contentW - 10);
+        doc.text(lines, margin + 4, y + 12 + i * 10);
+      });
+      y += hypoBlockH + 4;
+    }
+  }
+
+  if (!dropping.length && !rising.length) {
+    y = ensureSpace(doc, y, 14);
+    doc.setFontSize(8);
+    doc.setTextColor(...GRAY);
+    doc.text("Todos los indicadores se mantienen estables (variaciones menores al 10%).", margin, y + 5);
+    y += 14;
+  }
+
+  return y;
+}
+
 /* ─────────────────────────────────────────────────
    REPORT 1: EXECUTIVE REPORT
    ───────────────────────────────────────────────── */
 async function generateExecutiveReport(
   days: number,
-  reportType: "completo" | "canal" | "tienda",
+  reportType: "completo" | "canal" | "tienda" | "zona",
   canal?: string,
   locationId?: string,
   locationName?: string,
+  zona?: string,
 ) {
   const effectiveDays = resolveDays(days);
   let titulo = "DESEMPENO COMERCIAL - Venta Directa";
@@ -255,33 +467,42 @@ async function generateExecutiveReport(
     titulo = `DESEMPENO COMERCIAL - ${canalLabel}`;
   } else if (reportType === "tienda" && locationName) {
     titulo = `DESEMPENO COMERCIAL - ${stripEmoji(locationName)}`;
+  } else if (reportType === "zona") {
+    titulo = `DESEMPENO COMERCIAL - Zona ${zona ?? "Todas"}`;
   }
 
   const canalParam = reportType === "canal" ? canal ?? null : null;
   const locationParam = reportType === "tienda" ? locationId ?? null : null;
+  const zonaParam = (reportType === "zona" && zona) ? zona : null;
 
-  // Fetch data
   const canalFiltro = reportType === "canal" ? (canal === "tiendas" || canal === "outlets" ? "POS" : "DIGITAL") : null;
+
   const fetchPromises: PromiseLike<any>[] = [
-    supabase.rpc("reporte_kpis_comerciales", { dias_atras: effectiveDays, p_canal: canalParam, p_location_id: locationParam }) as any,
+    supabase.rpc("reporte_kpis_comerciales", { dias_atras: effectiveDays, p_canal: canalParam, p_location_id: locationParam, p_zona: zonaParam }) as any,
     supabase.rpc("reporte_pareto_categorias" as any, { dias_atras: effectiveDays, p_canal: canalParam ?? "", p_location_id: locationParam }) as any,
-    supabase.rpc("reporte_ejecutivo_productos", { dias_atras: effectiveDays, canal_filtro: canalFiltro, location_filtro: locationParam, orden: "TOP", limite: 20 }) as any,
-    supabase.rpc("reporte_ejecutivo_productos", { dias_atras: effectiveDays, canal_filtro: canalFiltro, location_filtro: locationParam, orden: "BOTTOM", limite: 20 }) as any,
+    supabase.rpc("reporte_ejecutivo_productos", { dias_atras: effectiveDays, canal_filtro: canalFiltro, location_filtro: locationParam, orden: "TOP", limite: 20, zona_filtro: zonaParam }) as any,
+    supabase.rpc("reporte_ejecutivo_productos", { dias_atras: effectiveDays, canal_filtro: canalFiltro, location_filtro: locationParam, orden: "BOTTOM", limite: 20, zona_filtro: zonaParam }) as any,
     supabase.rpc("reporte_desempeno_por_linea" as any, { dias_atras: effectiveDays, p_canal: canalParam }) as any,
     getLogoBase64(),
+    // Previous period KPIs for comparison
+    supabase.rpc("reporte_kpis_periodo_anterior", { dias_atras: effectiveDays, p_canal: canalParam, p_location_id: locationParam, p_zona: zonaParam }) as any,
   ];
 
-  // Fetch metricas tienda individual if we have a location
+  // Fetch metricas tienda individual or zona
   if (locationParam) {
     fetchPromises.push(supabase.rpc("reporte_metricas_tienda_individual", { dias_atras: effectiveDays, p_location_id: locationParam }) as any);
+  } else if (reportType === "zona" || reportType === "completo" || reportType === "canal") {
+    fetchPromises.push(supabase.rpc("reporte_metricas_zona", { dias_atras: effectiveDays, p_canal: canalParam, p_zona: zonaParam }) as any);
   }
 
   const results = await Promise.all(fetchPromises);
   const [kpiRes, paretoRes, topRes, bottomRes, lineaRes] = results;
   const logoB64 = results[5] as string;
-  const metricasData = locationParam ? (results[6]?.data?.[0] as unknown as MetricasData | null) : null;
+  const kpisPrevRes = results[6];
+  const metricasData = results[7]?.data?.[0] as unknown as MetricasData | null;
 
   const kpis = kpiRes.data?.[0] as unknown as KpiData ?? { total_pedidos: 0, unidades_vendidas: 0, ingresos_netos: 0, ticket_promedio: 0, upt: 0, pct_pedidos_full_price: 0, pct_pedidos_rebajas: 0, pct_pedidos_con_descuento: 0 };
+  const kpisPrev = kpisPrevRes.data?.[0] as unknown as KpiData ?? { total_pedidos: 0, unidades_vendidas: 0, ingresos_netos: 0, ticket_promedio: 0, upt: 0, pct_pedidos_full_price: 0, pct_pedidos_rebajas: 0, pct_pedidos_con_descuento: 0 };
   const paretoData = (paretoRes.data ?? []) as unknown as ParetoRow[];
   const topProducts = (topRes.data ?? []) as unknown as ProductRow[];
   const bottomProducts = (bottomRes.data ?? []) as unknown as ProductRow[];
@@ -299,17 +520,11 @@ async function generateExecutiveReport(
   // ── 1. INDICADORES COMERCIALES ──
   y = drawSectionTitle(doc, y, "INDICADORES COMERCIALES");
 
-  // If we have metricas (tienda), show extended grid
+  // Metricas row (días, promedios) - available for all report types now
   if (metricasData) {
-    const pctChange = (cur: number, prev: number) => {
-      if (!prev) return "";
-      const pct = ((cur - prev) / prev) * 100;
-      return pct >= 0 ? `+${pct.toFixed(1)}%` : `${pct.toFixed(1)}%`;
-    };
-
     const metricItems = [
-      { label: "Mejor Dia", value: stripEmoji(metricasData.mejor_dia_semana ?? "-"), sub: fmtCOP(metricasData.venta_mejor_dia ?? 0), color: GREEN },
-      { label: "Peor Dia", value: stripEmoji(metricasData.peor_dia_semana ?? "-"), sub: fmtCOP(metricasData.venta_peor_dia ?? 0), color: RED },
+      { label: "Mejor Dia", value: translateDay(metricasData.mejor_dia_semana ?? "-"), sub: fmtCOP(metricasData.venta_mejor_dia ?? 0), color: GREEN },
+      { label: "Peor Dia", value: translateDay(metricasData.peor_dia_semana ?? "-"), sub: fmtCOP(metricasData.venta_peor_dia ?? 0), color: RED },
       { label: "Prom. Lun-Vie", value: fmtCOP(metricasData.venta_promedio_semana ?? 0), sub: "", color: BLACK },
       { label: "Prom. Sab-Dom", value: fmtCOP(metricasData.venta_promedio_finde ?? 0), sub: "", color: BLACK },
     ];
@@ -318,28 +533,11 @@ async function generateExecutiveReport(
     y = ensureSpace(doc, y, 22);
     metricItems.forEach((item, i) => {
       const x = margin + i * colW;
-      doc.setFillColor(...LIGHT_BG);
-      doc.roundedRect(x, y, colW - 2, 18, 2, 2, "F");
-      doc.setDrawColor(220, 220, 230);
-      doc.roundedRect(x, y, colW - 2, 18, 2, 2, "S");
-      doc.setFontSize(6.5);
-      doc.setFont("helvetica", "normal");
-      doc.setTextColor(...GRAY);
-      doc.text(item.label, x + 3, y + 5);
-      doc.setFontSize(10);
-      doc.setFont("helvetica", "bold");
-      doc.setTextColor(...(item.color as [number, number, number]));
-      doc.text(item.value, x + 3, y + 11.5);
-      if (item.sub) {
-        doc.setFontSize(6.5);
-        doc.setFont("helvetica", "normal");
-        doc.setTextColor(...GRAY);
-        doc.text(item.sub, x + 3, y + 15.5);
-      }
+      drawKpiCardWithArrow(doc, x, y, colW - 2, 18, item.label, item.value, item.color as [number, number, number], undefined, item.sub);
     });
     y += 22;
 
-    // Row 2: Venta Prom/Dia, Pedidos Prom/Dia, Uds Prom/Dia
+    // Row 2: Venta Prom/Dia, Pedidos Prom/Dia, Uds Prom/Dia (with comparison)
     const row2Items = [
       { label: "Venta Prom./Dia", value: fmtCOP(metricasData.venta_promedio_diaria_actual ?? 0), change: pctChange(metricasData.venta_promedio_diaria_actual, metricasData.venta_promedio_diaria_anterior) },
       { label: "Pedidos Prom./Dia", value: fmtNum(Math.round(metricasData.pedidos_promedio_diario_actual ?? 0)), change: pctChange(metricasData.pedidos_promedio_diario_actual, metricasData.pedidos_promedio_diario_anterior) },
@@ -349,37 +547,19 @@ async function generateExecutiveReport(
     y = ensureSpace(doc, y, 22);
     row2Items.forEach((item, i) => {
       const x = margin + i * col3W;
-      doc.setFillColor(...LIGHT_BG);
-      doc.roundedRect(x, y, col3W - 2, 18, 2, 2, "F");
-      doc.setDrawColor(220, 220, 230);
-      doc.roundedRect(x, y, col3W - 2, 18, 2, 2, "S");
-      doc.setFontSize(6.5);
-      doc.setFont("helvetica", "normal");
-      doc.setTextColor(...GRAY);
-      doc.text(item.label, x + 3, y + 5);
-      doc.setFontSize(10);
-      doc.setFont("helvetica", "bold");
-      doc.setTextColor(...BLACK);
-      doc.text(item.value, x + 3, y + 11.5);
-      if (item.change) {
-        const isPositive = item.change.startsWith("+");
-        doc.setFontSize(7);
-        doc.setFont("helvetica", "bold");
-        doc.setTextColor(...(isPositive ? GREEN : RED));
-        doc.text(item.change, x + 3, y + 15.5);
-      }
+      drawKpiCardWithArrow(doc, x, y, col3W - 2, 18, item.label, item.value, BLACK, item.change);
     });
     y += 22;
   }
 
-  // KPIs row: Ventas Netas, Ticket, UPT + % Full Price, % Rebajas, % Promo
+  // KPIs row: Ventas Netas, Ticket, UPT + % Full Price, % Rebajas, % Promo (WITH comparison arrows)
   const kpiItems = [
-    { label: "Ventas Netas", value: fmtCOP(kpis.ingresos_netos), color: BLACK },
-    { label: "Ticket Promedio", value: fmtCOP(kpis.ticket_promedio), color: BLACK },
-    { label: "UPT", value: kpis.upt.toFixed(2), color: BLACK },
-    { label: "% Full Price", value: `${kpis.pct_pedidos_full_price.toFixed(1)}%`, color: GREEN },
-    { label: "% Rebajas", value: `${kpis.pct_pedidos_rebajas.toFixed(1)}%`, color: RED },
-    { label: "% Desc. Promo", value: `${kpis.pct_pedidos_con_descuento.toFixed(1)}%`, color: ORANGE },
+    { label: "Ventas Netas", value: fmtCOP(kpis.ingresos_netos), color: BLACK, change: pctChange(kpis.ingresos_netos, kpisPrev.ingresos_netos) },
+    { label: "Ticket Promedio", value: fmtCOP(kpis.ticket_promedio), color: BLACK, change: pctChange(kpis.ticket_promedio, kpisPrev.ticket_promedio) },
+    { label: "UPT", value: kpis.upt.toFixed(2), color: BLACK, change: pctChange(kpis.upt, kpisPrev.upt) },
+    { label: "% Full Price", value: `${kpis.pct_pedidos_full_price.toFixed(1)}%`, color: GREEN, change: pctChange(kpis.pct_pedidos_full_price, kpisPrev.pct_pedidos_full_price) },
+    { label: "% Rebajas", value: `${kpis.pct_pedidos_rebajas.toFixed(1)}%`, color: RED, change: pctChange(kpis.pct_pedidos_rebajas, kpisPrev.pct_pedidos_rebajas) },
+    { label: "% Desc. Promo", value: `${kpis.pct_pedidos_con_descuento.toFixed(1)}%`, color: ORANGE, change: pctChange(kpis.pct_pedidos_con_descuento, kpisPrev.pct_pedidos_con_descuento) },
   ];
 
   const kpiColW = (pageW - 2 * margin) / 3;
@@ -388,21 +568,10 @@ async function generateExecutiveReport(
     const col = i % 3;
     const row = Math.floor(i / 3);
     const x = margin + col * kpiColW;
-    const boxY = y + row * 18;
-    doc.setFillColor(...LIGHT_BG);
-    doc.roundedRect(x, boxY, kpiColW - 2, 16, 2, 2, "F");
-    doc.setDrawColor(220, 220, 230);
-    doc.roundedRect(x, boxY, kpiColW - 2, 16, 2, 2, "S");
-    doc.setFontSize(6.5);
-    doc.setFont("helvetica", "normal");
-    doc.setTextColor(...GRAY);
-    doc.text(item.label, x + 3, boxY + 5);
-    doc.setFontSize(11);
-    doc.setFont("helvetica", "bold");
-    doc.setTextColor(...(item.color as [number, number, number]));
-    doc.text(item.value, x + 3, boxY + 12.5);
+    const boxY = y + row * 20;
+    drawKpiCardWithArrow(doc, x, boxY, kpiColW - 2, 18, item.label, item.value, item.color as [number, number, number], item.change);
   });
-  y += 40;
+  y += 44;
 
   // ── 2. PARTICIPACIÓN POR LÍNEA ──
   if (paretoData.length) {
@@ -426,7 +595,6 @@ async function generateExecutiveReport(
 
   // ── 3. DESEMPEÑO POR LÍNEA (Top 20 + Bottom 20) ──
   if (lineaData.length) {
-    // Sort by und_total desc for top, asc for bottom
     const sorted = [...lineaData].sort((a, b) => (b.und_total ?? 0) - (a.und_total ?? 0));
     const top20Lineas = sorted.slice(0, 20);
     const bottom20Lineas = sorted.length > 20 ? sorted.slice(-20).reverse() : [];
@@ -568,6 +736,9 @@ async function generateExecutiveReport(
     y = (doc as any).lastAutoTable.finalY + 6;
   }
 
+  // ── 5. PANEL DE ACCIONABLES ──
+  y = drawAccionablesPanel(doc, y, kpis, kpisPrev);
+
   addFooters(doc, dateStr);
   const safeName = titulo.replace(/[^a-zA-Z0-9 ]/g, "").replace(/\s+/g, "_");
   doc.save(`${safeName}_${effectiveDays}d.pdf`);
@@ -596,7 +767,6 @@ async function generateHealthReport(days: number) {
   const dateStr = drawHeader(doc, logoB64, titulo, effectiveDays);
   let y = 36;
 
-  // Summary
   y = drawSectionTitle(doc, y, `${healthData.length} PRODUCTOS EN RIESGO DE AGOTADO`);
 
   if (healthData.length) {
@@ -700,7 +870,7 @@ async function generateTransferReport(days: number) {
 }
 
 /* ── Component ── */
-type ReportTypeOption = "completo" | "canal" | "tienda" | "salud" | "traslados";
+type ReportTypeOption = "completo" | "canal" | "tienda" | "zona" | "salud" | "traslados";
 
 interface ReportGeneratorProps {
   days: number;
@@ -711,13 +881,21 @@ export function ReportGeneratorButton({ days }: ReportGeneratorProps) {
   const [reportType, setReportType] = useState<ReportTypeOption>("completo");
   const [canal, setCanal] = useState("tiendas");
   const [locationId, setLocationId] = useState("");
-  const [locations, setLocations] = useState<Location[]>([]);
+  const [selectedZona, setSelectedZona] = useState("");
+  const [locations, setLocations] = useState<LocationItem[]>([]);
+  const [zones, setZones] = useState<string[]>([]);
   const [generating, setGenerating] = useState(false);
 
   useEffect(() => {
-    if (reportType === "tienda" && locations.length === 0) {
-      supabase.from("locations").select("location_id, name").eq("is_active", true).order("name")
-        .then(({ data }) => { if (data) setLocations(data as Location[]); });
+    if ((reportType === "tienda" || reportType === "zona") && locations.length === 0) {
+      supabase.from("locations").select("location_id, name, zona").eq("is_active", true).order("name")
+        .then(({ data }) => {
+          if (data) {
+            setLocations(data as LocationItem[]);
+            const uniqueZones = [...new Set(data.map(l => l.zona).filter(Boolean))] as string[];
+            setZones(uniqueZones.sort());
+          }
+        });
     }
   }, [reportType, locations.length]);
 
@@ -728,6 +906,8 @@ export function ReportGeneratorButton({ days }: ReportGeneratorProps) {
         await generateHealthReport(days);
       } else if (reportType === "traslados") {
         await generateTransferReport(days);
+      } else if (reportType === "zona") {
+        await generateExecutiveReport(days, "zona", undefined, undefined, undefined, selectedZona);
       } else {
         const loc = locations.find(l => l.location_id === locationId);
         await generateExecutiveReport(
@@ -746,6 +926,7 @@ export function ReportGeneratorButton({ days }: ReportGeneratorProps) {
   };
 
   const needsLocation = reportType === "tienda" && !locationId;
+  const needsZona = reportType === "zona" && !selectedZona;
 
   return (
     <>
@@ -775,6 +956,7 @@ export function ReportGeneratorButton({ days }: ReportGeneratorProps) {
                   <SelectItem value="completo">Informe Ejecutivo Completo</SelectItem>
                   <SelectItem value="canal">Informe Ejecutivo por Canal</SelectItem>
                   <SelectItem value="tienda">Informe Ejecutivo por Tienda</SelectItem>
+                  <SelectItem value="zona">Informe Ejecutivo por Zona</SelectItem>
                   <SelectItem value="salud">Salud de Producto - Riesgo de Agotados</SelectItem>
                   <SelectItem value="traslados">Recomendaciones de Traslado de Stock</SelectItem>
                 </SelectContent>
@@ -792,6 +974,22 @@ export function ReportGeneratorButton({ days }: ReportGeneratorProps) {
                     <SelectItem value="tiendas">Tiendas de Linea</SelectItem>
                     <SelectItem value="outlets">Outlets</SelectItem>
                     <SelectItem value="digital">Digital</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
+            {reportType === "zona" && (
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-foreground">Zona</label>
+                <Select value={selectedZona} onValueChange={setSelectedZona}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Seleccionar zona..." />
+                  </SelectTrigger>
+                  <SelectContent className="bg-popover border border-border shadow-lg z-50 max-h-[200px]">
+                    {zones.map(z => (
+                      <SelectItem key={z} value={z}>{z}</SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -816,7 +1014,7 @@ export function ReportGeneratorButton({ days }: ReportGeneratorProps) {
 
           <div className="flex justify-end gap-3">
             <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
-            <Button onClick={handleGenerate} disabled={generating || needsLocation}>
+            <Button onClick={handleGenerate} disabled={generating || needsLocation || needsZona}>
               {generating ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin" />
