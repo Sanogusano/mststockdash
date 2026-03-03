@@ -87,6 +87,7 @@ interface Location {
   location_id: string;
   name: string;
   tipo_tienda: string | null;
+  zona: string | null;
 }
 
 interface Props {
@@ -1007,7 +1008,7 @@ function ChannelPanel({ days, canal, showLocationFilter, locationFilter }: {
 
   useEffect(() => {
     if (!showLocationFilter) return;
-    supabase.from("locations").select("location_id, name, tipo_tienda").eq("is_active", true)
+    supabase.from("locations").select("location_id, name, tipo_tienda, zona").eq("is_active", true)
       .then(({ data }) => {
         if (data) {
           const filtered = data
@@ -1159,13 +1160,18 @@ function ChannelPanel({ days, canal, showLocationFilter, locationFilter }: {
               </SelectContent>
             </Select>
             {selectedLocation !== "all" && selectedLoc && (
-              <div className="flex items-center gap-2 ml-0 sm:ml-2">
+              <div className="flex items-center gap-2 ml-0 sm:ml-2 flex-wrap">
                 <span className="text-sm font-bold text-foreground">
                   DATOS PARA <span className="text-primary">{selectedLoc.name}</span>
                 </span>
                 {tipoLabel && (
                   <span className={cn("inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold border", tipoColor)}>
                     Tipo {tipoLabel}
+                  </span>
+                )}
+                {selectedLoc.zona && (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold border bg-muted text-muted-foreground border-border">
+                    Zona: {selectedLoc.zona}
                   </span>
                 )}
               </div>
