@@ -1144,7 +1144,7 @@ function ChannelPanel({ days, canal, showLocationFilter, locationFilter }: {
               <span className="text-sm font-semibold text-foreground">Sucursal:</span>
             </div>
             <Select value={selectedLocation} onValueChange={setSelectedLocation}>
-              <SelectTrigger className="w-[240px] bg-card border-2 border-primary/30 font-medium shadow-sm">
+              <SelectTrigger className="w-[340px] bg-card border-2 border-primary/30 font-medium shadow-sm">
                 <SelectValue placeholder="Todas las tiendas" />
               </SelectTrigger>
               <SelectContent className="bg-popover border border-border shadow-lg z-50">
