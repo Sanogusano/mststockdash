@@ -9,7 +9,7 @@ import { exportToPDF } from "@/lib/pdf-export";
 import { LoadingState, EmptyState } from "./LoadingState";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Store, Globe, Download, FileText, DollarSign, ShoppingBag, Receipt, Star, Percent, Tag, Trophy, TrendingDown, TrendingUp, CalendarDays, Package, AlertTriangle, Ruler, Crown, ShieldAlert } from "lucide-react";
+import { Store, Globe, Download, FileText, DollarSign, ShoppingBag, Receipt, Star, Percent, Tag, Trophy, TrendingDown, TrendingUp, CalendarDays, Package, AlertTriangle, Ruler, Crown, ShieldAlert, MapPin } from "lucide-react";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid } from "recharts";
 import { StoreLeaderboard } from "./StoreLeaderboard";
 
@@ -1506,15 +1506,274 @@ function BrandParetoPreview({ days }: { days: number }) {
   );
 }
 
+/* ── Zone Panel ── */
+function ZonePanel({ days, locationFilter }: { days: number; locationFilter: "tiendas" | "outlets" }) {
+  const [locations, setLocations] = useState<Location[]>([]);
+  const [selectedZone, setSelectedZone] = useState("all");
+  const [selectedLocation, setSelectedLocation] = useState("all");
+  const [ranking, setRanking] = useState<RankingRow[]>([]);
+  const [kpis, setKpis] = useState<KpiData | null>(null);
+  const [prevKpis, setPrevKpis] = useState<KpiData | null>(null);
+  const [channelM2, setChannelM2] = useState(0);
+  const [topProducts, setTopProducts] = useState<ProductRow[]>([]);
+  const [bottomProducts, setBottomProducts] = useState<ProductRow[]>([]);
+  const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
+
+  const canal = locationFilter === "outlets" ? "outlets" : "tiendas";
+  const canalFiltro = locationFilter === "outlets" ? "OUTLET" : "TIENDAS";
+
+  useEffect(() => {
+    supabase.from("locations").select("location_id, name, tipo_tienda, zona, dimension_m2").eq("is_active", true)
+      .then(({ data }) => {
+        if (data) {
+          const filtered = data
+            .filter(l => l.location_id !== CEDI_ID)
+            .filter(l => {
+              if (locationFilter === "tiendas") return (l.tipo_tienda ?? '').toUpperCase() !== 'OUTLET';
+              if (locationFilter === "outlets") return (l.tipo_tienda ?? '').toUpperCase() === 'OUTLET';
+              return true;
+            });
+          setLocations(filtered as Location[]);
+        }
+      });
+  }, [locationFilter]);
+
+  const zones = [...new Set(locations.map(l => l.zona).filter(Boolean))] as string[];
+  const zoneLocations = selectedZone === "all" ? locations : locations.filter(l => l.zona === selectedZone);
+
+  useEffect(() => { setSelectedLocation("all"); }, [selectedZone]);
+
+  useEffect(() => {
+    async function fetchAll() {
+      if (!isValidDays(days)) return;
+      setLoading(true);
+      const effectiveDays = resolveDays(days);
+      const locParam = selectedLocation !== "all" ? selectedLocation : null;
+
+      const [kpiRes, prevKpiRes, rankRes, topRes, bottomRes, m2Res] = await Promise.all([
+        supabase.rpc("reporte_kpis_comerciales", {
+          dias_atras: effectiveDays, p_canal: canal, p_location_id: locParam,
+        }),
+        supabase.rpc("reporte_kpis_periodo_anterior" as any, {
+          dias_atras: effectiveDays, p_canal: canal, p_location_id: locParam,
+        }),
+        supabase.rpc("reporte_ranking_tiendas", { dias_atras: effectiveDays, p_canal: canal }),
+        supabase.rpc("reporte_ejecutivo_productos", {
+          dias_atras: effectiveDays, canal_filtro: canalFiltro, location_filtro: locParam, orden: "TOP", limite: 20,
+        }),
+        supabase.rpc("reporte_ejecutivo_productos", {
+          dias_atras: effectiveDays, canal_filtro: canalFiltro, location_filtro: locParam, orden: "BOTTOM", limite: 20,
+        }),
+        locParam
+          ? supabase.from("locations").select("dimension_m2").eq("location_id", locParam)
+          : supabase.from("locations").select("dimension_m2, location_id, tipo_tienda").eq("is_active", true).not("dimension_m2", "is", null),
+      ]);
+
+      const emptyKpi = normalizeKpiData({});
+      if (kpiRes.data && kpiRes.data.length > 0) setKpis(normalizeKpiData(kpiRes.data[0]));
+      else setKpis(emptyKpi);
+      if (prevKpiRes.data && (prevKpiRes.data as any[]).length > 0) setPrevKpis(normalizeKpiData((prevKpiRes.data as any[])[0]));
+      else setPrevKpis(emptyKpi);
+
+      if (rankRes.data) setRanking(rankRes.data as unknown as RankingRow[]);
+
+      if (m2Res.data) {
+        const relevant = (m2Res.data as any[]).filter((l: any) => {
+          if (locParam) return true;
+          if (locationFilter === "tiendas") return l.location_id !== CEDI_ID && ((l.tipo_tienda ?? '').toUpperCase() !== 'OUTLET');
+          if (locationFilter === "outlets") return (l.tipo_tienda ?? '').toUpperCase() === 'OUTLET';
+          return l.location_id !== CEDI_ID;
+        });
+        setChannelM2(relevant.reduce((s: number, r: any) => s + (r.dimension_m2 ?? 0), 0));
+      }
+
+      const mapProduct = (r: any): ProductRow => ({
+        foto: r.foto ?? null, producto: r.producto ?? "—", sku: r.sku ?? null,
+        categoria: r.categoria ?? null, clasificacion: r.clasificacion ?? null,
+        unidades_vendidas: r.unidades_vendidas ?? 0, precio_promedio: r.precio_prom_venta ?? 0,
+        stock_disponible: r.stock_disponible ?? 0, sell_through_pct: r.sell_through_pct ?? 0, wos: r.wos ?? 0,
+      });
+      if (topRes.data) setTopProducts((topRes.data as any[]).map(mapProduct));
+      if (bottomRes.data) setBottomProducts((bottomRes.data as any[]).map(mapProduct));
+      setLoading(false);
+    }
+    fetchAll();
+  }, [days, canal, selectedLocation]);
+
+  if (loading) return <LoadingState rows={6} />;
+
+  const locParam = selectedLocation !== "all" ? selectedLocation : null;
+  const allRanking = ranking;
+  const zoneRanking = selectedZone === "all"
+    ? allRanking
+    : allRanking.filter(r => {
+        const loc = locations.find(l => l.name === r.tienda);
+        return loc && loc.zona === selectedZone;
+      });
+
+  const ventaM2 = channelM2 > 0 ? (kpis?.ingresos_netos ?? 0) / channelM2 : 0;
+  const prevVentaM2 = channelM2 > 0 ? (prevKpis?.ingresos_netos ?? 0) / channelM2 : 0;
+
+  return (
+    <div className="space-y-6">
+      {/* Filters */}
+      <div className="flex flex-wrap items-center gap-3 p-3 rounded-xl bg-muted/30 border border-border">
+        <div className="flex items-center gap-2">
+          <MapPin className="h-4 w-4 text-primary" />
+          <span className="text-sm font-semibold text-foreground">Zona:</span>
+        </div>
+        <Select value={selectedZone} onValueChange={setSelectedZone}>
+          <SelectTrigger className="w-[220px] bg-card border-2 border-primary/30 font-medium shadow-sm">
+            <SelectValue placeholder="Todas las zonas" />
+          </SelectTrigger>
+          <SelectContent className="bg-popover border border-border shadow-lg z-50">
+            <SelectItem value="all">Todas las Zonas</SelectItem>
+            {zones.sort().map(z => <SelectItem key={z} value={z}>{z}</SelectItem>)}
+          </SelectContent>
+        </Select>
+
+        {selectedZone !== "all" && (
+          <>
+            <div className="flex items-center gap-2 ml-2">
+              <Store className="h-4 w-4 text-muted-foreground" />
+              <span className="text-sm font-semibold text-foreground">Sucursal:</span>
+            </div>
+            <Select value={selectedLocation} onValueChange={setSelectedLocation}>
+              <SelectTrigger className="w-[340px] bg-card border-2 border-primary/30 font-medium shadow-sm">
+                <SelectValue placeholder="Todas las sucursales" />
+              </SelectTrigger>
+              <SelectContent className="bg-popover border border-border shadow-lg z-50">
+                <SelectItem value="all">Todas las Sucursales</SelectItem>
+                {zoneLocations.map(l => <SelectItem key={l.location_id} value={l.location_id}>{l.name}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </>
+        )}
+      </div>
+
+      {/* KPI Cards */}
+      <div className="glass-card p-5">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+            <MapPin className="h-4 w-4 text-primary" />
+          </div>
+          <h3 className="text-sm font-semibold text-foreground">📊 DESEMPEÑO POR ZONA</h3>
+        </div>
+        {/* Row 1 */}
+        <div className="grid grid-cols-2 gap-4">
+          <KpiCard label="Ventas Netas" value={fmtCurrency(kpis?.ingresos_netos ?? 0)} icon={DollarSign}
+            actual={kpis?.ingresos_netos ?? 0} anterior={prevKpis?.ingresos_netos ?? 0} />
+          <KpiCard label="Ticket Promedio" value={fmtCurrency(kpis?.ticket_promedio ?? 0)} icon={Receipt}
+            actual={kpis?.ticket_promedio ?? 0} anterior={prevKpis?.ticket_promedio ?? 0} />
+        </div>
+        {/* Row 2 */}
+        <div className="grid grid-cols-2 gap-4 mt-4">
+          <KpiCard label="UPT" value={(kpis?.upt ?? 0).toFixed(2)} icon={ShoppingBag}
+            actual={kpis?.upt ?? 0} anterior={prevKpis?.upt ?? 0} />
+          <KpiCard label="Venta / m²" value={fmtCurrency(ventaM2)} icon={Ruler}
+            actual={ventaM2} anterior={prevVentaM2}
+            ventaM2Status={channelM2 > 0 ? getVentaM2Status(ventaM2, ventaM2) : undefined}
+            onClick={() => navigate(`/venta-m2?days=${resolveDays(days)}&canal=${canal}`)} />
+        </div>
+        {/* Row 3 */}
+        <div className="mt-4">
+          <VentasTipoCards days={days} canal={canal} locationId={locParam} />
+        </div>
+      </div>
+
+      {/* Top Tiendas */}
+      <div className="glass-card overflow-hidden">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-border">
+          <div className="flex items-center gap-3">
+            <Trophy className="h-5 w-5 text-primary" />
+            <h3 className="text-sm font-semibold text-foreground">Top Tiendas</h3>
+          </div>
+          <ExportButtons
+            data={zoneRanking.map((r, i) => ({
+              "# Zona": i + 1,
+              "# País": allRanking.findIndex(a => a.tienda === r.tienda) + 1,
+              Tienda: r.tienda,
+              "Ventas Netas": r.ventas_totales,
+              "Uds Vendidas": r.unidades_vendidas,
+              "Ticket Prom": r.ticket_promedio,
+              UPT: r.upt,
+              "% Full Price": r.pct_venta_full_price,
+            }))}
+            filename={`top_tiendas_zona_${days}d`}
+            title="Top Tiendas por Zona"
+          />
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm min-w-[800px]">
+            <thead>
+              <tr className="border-b border-border bg-muted/30">
+                <th className="px-3 py-3 text-center text-xs font-medium text-muted-foreground"># Zona</th>
+                <th className="px-3 py-3 text-center text-xs font-medium text-muted-foreground"># País</th>
+                <th className="px-3 py-3 text-left text-xs font-medium text-muted-foreground">Tienda</th>
+                <th className="px-3 py-3 text-right text-xs font-medium text-muted-foreground">Ventas Netas</th>
+                <th className="px-3 py-3 text-right text-xs font-medium text-muted-foreground">Uds Vendidas</th>
+                <th className="px-3 py-3 text-right text-xs font-medium text-muted-foreground">Ticket Prom</th>
+                <th className="px-3 py-3 text-right text-xs font-medium text-muted-foreground">UPT</th>
+                <th className="px-3 py-3 text-right text-xs font-medium text-muted-foreground">% Full Price</th>
+              </tr>
+            </thead>
+            <tbody>
+              {zoneRanking.map((row, i) => {
+                const countryIdx = allRanking.findIndex(r => r.tienda === row.tienda);
+                return (
+                  <tr key={row.tienda} className="border-b border-border/50 hover:bg-muted/20 transition-colors">
+                    <td className="px-3 py-3 text-center font-bold text-primary">{i + 1}</td>
+                    <td className="px-3 py-3 text-center font-bold text-muted-foreground">{countryIdx + 1}</td>
+                    <td className="px-3 py-3 font-medium text-foreground">{row.tienda}</td>
+                    <td className="px-3 py-3 text-right font-semibold">{fmtCurrency(row.ventas_totales)}</td>
+                    <td className="px-3 py-3 text-right">{(row.unidades_vendidas ?? 0).toLocaleString()}</td>
+                    <td className="px-3 py-3 text-right">{fmtCurrency(row.ticket_promedio)}</td>
+                    <td className="px-3 py-3 text-right">{(row.upt ?? 0).toFixed(2)}</td>
+                    <td className="px-3 py-3 text-right">
+                      <span className={cn("font-medium", (row.pct_venta_full_price ?? 0) >= 60 ? "text-emerald-600" : "text-amber-500")}>
+                        {(row.pct_venta_full_price ?? 0).toFixed(1)}%
+                      </span>
+                    </td>
+                  </tr>
+                );
+              })}
+              {zoneRanking.length === 0 && (
+                <tr><td colSpan={8} className="px-4 py-8 text-center text-muted-foreground text-sm">Sin datos para esta zona</td></tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Pareto */}
+      <div className="cursor-pointer hover:ring-2 hover:ring-primary/30 transition-all" onClick={() => navigate(`/lineas?canal=${canal}&days=${days}`)}>
+        <ParetoChart days={days} canal={canal} locationId={locParam} />
+      </div>
+
+      {/* Top/Bottom Products */}
+      <ProductTable data={topProducts} title="Top 20 — Más Vendidos" exportFilename={`top20_zona_${canal}_${days}d`}
+        days={days} canalFiltro={canalFiltro} locationFiltro={locParam} />
+      <ProductTable data={bottomProducts} title="Bottom 20 — Menor Rotación (con stock)" exportFilename={`bottom20_zona_${canal}_${days}d`}
+        days={days} canalFiltro={canalFiltro} locationFiltro={locParam} />
+    </div>
+  );
+}
+
 /* ── Main Component ── */
 export function ExecutiveDashboard({ days }: Props) {
   return (
     <Tabs defaultValue="venta-directa" className="w-full">
-      <TabsList className="w-full grid grid-cols-2 bg-muted/50 rounded-xl p-1 h-auto border border-border mb-6">
+      <TabsList className="w-full grid grid-cols-3 bg-muted/50 rounded-xl p-1 h-auto border border-border mb-6">
         <TabsTrigger value="venta-directa" className="flex items-center justify-center gap-2 sm:gap-2.5 text-sm sm:text-base font-medium rounded-lg px-4 py-2.5 sm:py-3 transition-all duration-200 data-[state=active]:bg-emerald-600 data-[state=active]:text-white data-[state=active]:shadow-sm text-muted-foreground hover:text-foreground hover:bg-muted">
           <Package className="h-4 w-4 sm:h-5 sm:w-5" />
           <span className="hidden sm:inline">Desempeño Comercial Venta Directa</span>
           <span className="sm:hidden">Venta Directa</span>
+        </TabsTrigger>
+        <TabsTrigger value="por-zona" className="flex items-center justify-center gap-2 sm:gap-2.5 text-sm sm:text-base font-medium rounded-lg px-4 py-2.5 sm:py-3 transition-all duration-200 data-[state=active]:bg-emerald-600 data-[state=active]:text-white data-[state=active]:shadow-sm text-muted-foreground hover:text-foreground hover:bg-muted">
+          <MapPin className="h-4 w-4 sm:h-5 sm:w-5" />
+          <span className="hidden sm:inline">Desempeño por Zona</span>
+          <span className="sm:hidden">Por Zona</span>
         </TabsTrigger>
         <TabsTrigger value="por-canal" className="flex items-center justify-center gap-2 sm:gap-2.5 text-sm sm:text-base font-medium rounded-lg px-4 py-2.5 sm:py-3 transition-all duration-200 data-[state=active]:bg-emerald-600 data-[state=active]:text-white data-[state=active]:shadow-sm text-muted-foreground hover:text-foreground hover:bg-muted">
           <Store className="h-4 w-4 sm:h-5 sm:w-5" />
@@ -1526,6 +1785,29 @@ export function ExecutiveDashboard({ days }: Props) {
       <TabsContent value="venta-directa">
         <BrandOverviewPanel days={days} />
         <BrandParetoPreview days={days} />
+      </TabsContent>
+
+      <TabsContent value="por-zona">
+        <Tabs defaultValue="tiendas" className="w-full">
+          <TabsList className="w-full grid grid-cols-2 bg-muted/50 rounded-xl p-1 h-auto border border-border">
+            <TabsTrigger value="tiendas" className="flex items-center justify-center gap-2 sm:gap-2.5 text-sm sm:text-base font-medium rounded-lg px-4 py-2.5 sm:py-3 transition-all duration-200 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm text-muted-foreground hover:text-foreground hover:bg-muted">
+              <Store className="h-4 w-4 sm:h-5 sm:w-5" />
+              <span className="hidden sm:inline">Tiendas de Línea</span>
+              <span className="sm:hidden">Tiendas</span>
+            </TabsTrigger>
+            <TabsTrigger value="outlets" className="flex items-center justify-center gap-2 sm:gap-2.5 text-sm sm:text-base font-medium rounded-lg px-4 py-2.5 sm:py-3 transition-all duration-200 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm text-muted-foreground hover:text-foreground hover:bg-muted">
+              <Tag className="h-4 w-4 sm:h-5 sm:w-5" />
+              Outlets
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="tiendas" className="mt-6">
+            <ZonePanel days={days} locationFilter="tiendas" />
+          </TabsContent>
+          <TabsContent value="outlets" className="mt-6">
+            <ZonePanel days={days} locationFilter="outlets" />
+          </TabsContent>
+        </Tabs>
       </TabsContent>
 
       <TabsContent value="por-canal">
