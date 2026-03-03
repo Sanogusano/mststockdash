@@ -442,6 +442,7 @@ export type Database = {
           limite?: number
           location_filtro?: string
           orden?: string
+          zona_filtro?: string
         }
         Returns: {
           categoria: string
@@ -457,7 +458,12 @@ export type Database = {
         }[]
       }
       reporte_kpis_comerciales: {
-        Args: { dias_atras: number; p_canal?: string; p_location_id?: string }
+        Args: {
+          dias_atras: number
+          p_canal?: string
+          p_location_id?: string
+          p_zona?: string
+        }
         Returns: {
           ingresos_netos: number
           pct_pedidos_con_descuento: number
@@ -470,7 +476,12 @@ export type Database = {
         }[]
       }
       reporte_kpis_periodo_anterior: {
-        Args: { dias_atras: number; p_canal?: string; p_location_id?: string }
+        Args: {
+          dias_atras: number
+          p_canal?: string
+          p_location_id?: string
+          p_zona?: string
+        }
         Returns: {
           ingresos_netos: number
           pct_pedidos_con_descuento: number
@@ -509,7 +520,12 @@ export type Database = {
         }[]
       }
       reporte_pct_ventas_por_tipo: {
-        Args: { dias_atras: number; p_canal?: string; p_location_id?: string }
+        Args: {
+          dias_atras: number
+          p_canal?: string
+          p_location_id?: string
+          p_zona?: string
+        }
         Returns: {
           ingresos_desc_promo: number
           ingresos_full_price: number
