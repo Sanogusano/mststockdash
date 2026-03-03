@@ -135,56 +135,58 @@ export function LogisticsTransfers({ days }: Props) {
     fetchStock();
   }, []);
 
-  // Categories from product_catalog
+  // Categories + Product → category mapping scoped to current reporte rows
   const [categories, setCategories] = useState<string[]>([]);
-  useEffect(() => {
-    async function fetchCats() {
-      const unique = new Set<string>();
-      let from = 0;
-      const pageSize = 1000;
-      while (true) {
-        const { data: cats } = await supabase
-          .from("product_catalog")
-          .select("category")
-          .not("category", "is", null)
-          .range(from, from + pageSize - 1);
-        if (!cats || cats.length === 0) break;
-        cats.forEach((c: any) => {
-          const cat = (c.category || "").toUpperCase();
-          if (cat && !["BOLSA", "INSUMOS"].includes(cat)) unique.add(cat);
-        });
-        if (cats.length < pageSize) break;
-        from += pageSize;
-      }
-      setCategories(Array.from(unique).sort());
-    }
-    fetchCats();
-  }, []);
-
-  // Product → category mapping
   const [productCategoryMap, setProductCategoryMap] = useState<Record<string, string>>({});
+
   useEffect(() => {
-    async function fetchMap() {
+    async function fetchCategoryMapForCurrentData() {
+      const productIds = Array.from(
+        new Set(data.map((r) => r.product_id).filter((id): id is string => !!id))
+      );
+
+      if (!productIds.length) {
+        setProductCategoryMap({});
+        setCategories([]);
+        return;
+      }
+
+      const chunkSize = 500;
       const map: Record<string, string> = {};
-      let from = 0;
-      const pageSize = 1000;
-      while (true) {
+
+      for (let i = 0; i < productIds.length; i += chunkSize) {
+        const chunk = productIds.slice(i, i + chunkSize);
         const { data: catalog } = await supabase
           .from("product_catalog")
           .select("product_id, category")
-          .not("category", "is", null)
-          .range(from, from + pageSize - 1);
-        if (!catalog || catalog.length === 0) break;
+          .in("product_id", chunk)
+          .not("category", "is", null);
+
+        if (!catalog) continue;
         catalog.forEach((c: any) => {
-          if (c.product_id && c.category) map[c.product_id] = c.category.toUpperCase();
+          if (c.product_id && c.category) {
+            map[c.product_id] = String(c.category).toUpperCase();
+          }
         });
-        if (catalog.length < pageSize) break;
-        from += pageSize;
       }
+
+      const categorySet = new Set<string>();
+      Object.values(map).forEach((cat) => {
+        if (cat && !["BOLSA", "INSUMOS"].includes(cat)) categorySet.add(cat);
+      });
+
       setProductCategoryMap(map);
+      setCategories(Array.from(categorySet).sort());
     }
-    fetchMap();
-  }, []);
+
+    fetchCategoryMapForCurrentData();
+  }, [data]);
+
+  useEffect(() => {
+    if (categoryFilter !== "all" && !categories.includes(categoryFilter)) {
+      setCategoryFilter("all");
+    }
+  }, [categoryFilter, categories]);
 
   const { origenes, destinos } = useMemo(() => {
     const orig = new Set<string>();
