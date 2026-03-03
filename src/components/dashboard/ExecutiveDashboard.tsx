@@ -1518,6 +1518,7 @@ function ZonePanel({ days, locationFilter }: { days: number; locationFilter: "ti
   const [channelM2, setChannelM2] = useState(0);
   const [topProducts, setTopProducts] = useState<ProductRow[]>([]);
   const [bottomProducts, setBottomProducts] = useState<ProductRow[]>([]);
+  const [zoneMetrics, setZoneMetrics] = useState<ExtraMetrics | null>(null);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
@@ -1553,7 +1554,7 @@ function ZonePanel({ days, locationFilter }: { days: number; locationFilter: "ti
       const locParam = selectedLocation !== "all" ? selectedLocation : null;
       const zonaParam = selectedZone !== "all" ? selectedZone : null;
 
-      const [kpiRes, prevKpiRes, rankRes, topRes, bottomRes, m2Res] = await Promise.all([
+      const [kpiRes, prevKpiRes, rankRes, topRes, bottomRes, m2Res, zoneMetricsRes] = await Promise.all([
         supabase.rpc("reporte_kpis_comerciales" as any, {
           dias_atras: effectiveDays, p_canal: canal, p_location_id: locParam, p_zona: zonaParam,
         }),
@@ -1570,6 +1571,9 @@ function ZonePanel({ days, locationFilter }: { days: number; locationFilter: "ti
         locParam
           ? supabase.from("locations").select("dimension_m2").eq("location_id", locParam)
           : supabase.from("locations").select("dimension_m2, location_id, tipo_tienda, zona").eq("is_active", true).not("dimension_m2", "is", null),
+        locParam
+          ? supabase.rpc("reporte_metricas_tienda_individual" as any, { dias_atras: effectiveDays, p_location_id: locParam })
+          : supabase.rpc("reporte_metricas_zona" as any, { dias_atras: effectiveDays, p_canal: canal, p_zona: zonaParam }),
       ]);
 
       const emptyKpi = normalizeKpiData({});
@@ -1590,6 +1594,12 @@ function ZonePanel({ days, locationFilter }: { days: number; locationFilter: "ti
           return l.location_id !== CEDI_ID;
         });
         setChannelM2(relevant.reduce((s: number, r: any) => s + (r.dimension_m2 ?? 0), 0));
+      }
+
+      if (zoneMetricsRes.data && (zoneMetricsRes.data as any[]).length > 0) {
+        setZoneMetrics((zoneMetricsRes.data as any[])[0] as ExtraMetrics);
+      } else {
+        setZoneMetrics(null);
       }
 
       const mapProduct = (r: any): ProductRow => ({
@@ -1689,7 +1699,7 @@ function ZonePanel({ days, locationFilter }: { days: number; locationFilter: "ti
         </div>
       </div>
 
-      {/* Desempeño Comercial por Zona — always visible */}
+      {/* Desempeño Comercial por Zona — always visible when no store selected */}
       {!(selectedLocation !== "all" && selectedLoc) && (
         <div className="glass-card p-5">
           <div className="flex items-center gap-3 mb-5">
@@ -1697,45 +1707,43 @@ function ZonePanel({ days, locationFilter }: { days: number; locationFilter: "ti
             <h3 className="text-sm font-semibold text-foreground">Desempeño Comercial {selectedZone !== "all" ? `— ${selectedZone}` : "— Todas las Zonas"}</h3>
           </div>
           <div className="space-y-5">
-            {/* Row 1: Key period comparisons */}
+            {/* Row 1: Mejor/Peor Día + Weekday/Weekend */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-              <div className="p-3 rounded-lg bg-muted/30 border border-border">
-                <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Ventas Netas</p>
-                <p className="text-base font-semibold text-foreground">{fmtCurrency(kpis?.ingresos_netos ?? 0)}</p>
-                <ComparisonIndicator actual={kpis?.ingresos_netos ?? 0} anterior={prevKpis?.ingresos_netos ?? 0} label="vs ant." />
+              <div className="p-3 rounded-lg bg-emerald-500/5 border border-emerald-500/20">
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">🟢 Mejor Día</p>
+                <p className="text-sm font-semibold text-foreground">{translateDay(zoneMetrics?.mejor_dia_semana ?? "N/A")}</p>
+                <p className="text-xs text-muted-foreground">{fmtCurrency(zoneMetrics?.venta_mejor_dia ?? 0)}</p>
               </div>
-              <div className="p-3 rounded-lg bg-muted/30 border border-border">
-                <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Pedidos</p>
-                <p className="text-base font-semibold text-foreground">{(kpis?.total_pedidos ?? 0).toLocaleString()}</p>
-                <ComparisonIndicator actual={kpis?.total_pedidos ?? 0} anterior={prevKpis?.total_pedidos ?? 0} label="vs ant." />
+              <div className="p-3 rounded-lg bg-destructive/5 border border-destructive/20">
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">🔴 Peor Día</p>
+                <p className="text-sm font-semibold text-foreground">{translateDay(zoneMetrics?.peor_dia_semana ?? "N/A")}</p>
+                <p className="text-xs text-muted-foreground">{fmtCurrency(zoneMetrics?.venta_peor_dia ?? 0)}</p>
               </div>
-              <div className="p-3 rounded-lg bg-muted/30 border border-border">
-                <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Uds Vendidas</p>
-                <p className="text-base font-semibold text-foreground">{(kpis?.unidades_vendidas ?? 0).toLocaleString()}</p>
-                <ComparisonIndicator actual={kpis?.unidades_vendidas ?? 0} anterior={prevKpis?.unidades_vendidas ?? 0} label="vs ant." />
+              <div className="p-3 rounded-lg bg-muted/40 border border-border">
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Prom. Lun-Vie</p>
+                <p className="text-sm font-semibold text-foreground">{fmtCurrency(zoneMetrics?.venta_promedio_semana ?? 0)}</p>
               </div>
-              <div className="p-3 rounded-lg bg-muted/30 border border-border">
-                <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Ticket Promedio</p>
-                <p className="text-base font-semibold text-foreground">{fmtCurrency(kpis?.ticket_promedio ?? 0)}</p>
-                <ComparisonIndicator actual={kpis?.ticket_promedio ?? 0} anterior={prevKpis?.ticket_promedio ?? 0} label="vs ant." />
+              <div className="p-3 rounded-lg bg-muted/40 border border-border">
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Prom. Sáb-Dom</p>
+                <p className="text-sm font-semibold text-foreground">{fmtCurrency(zoneMetrics?.venta_promedio_finde ?? 0)}</p>
               </div>
             </div>
-            {/* Row 2: UPT, Venta/m², % Full Price */}
+            {/* Row 2: Daily averages with comparison */}
             <div className="grid grid-cols-3 gap-4">
               <div className="p-3 rounded-lg bg-muted/30 border border-border">
-                <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">UPT</p>
-                <p className="text-base font-semibold text-foreground">{(kpis?.upt ?? 0).toFixed(2)}</p>
-                <ComparisonIndicator actual={kpis?.upt ?? 0} anterior={prevKpis?.upt ?? 0} label="vs ant." />
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Venta Prom/Día</p>
+                <p className="text-base font-semibold text-foreground">{fmtCurrency(zoneMetrics?.venta_promedio_diaria_actual ?? 0)}</p>
+                <ComparisonIndicator actual={zoneMetrics?.venta_promedio_diaria_actual ?? 0} anterior={zoneMetrics?.venta_promedio_diaria_anterior ?? 0} label="vs ant." />
               </div>
               <div className="p-3 rounded-lg bg-muted/30 border border-border">
-                <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Venta / m²</p>
-                <p className="text-base font-semibold text-foreground">{fmtCurrency(ventaM2)}</p>
-                <ComparisonIndicator actual={ventaM2} anterior={prevVentaM2} label="vs ant." />
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Pedidos Prom/Día</p>
+                <p className="text-base font-semibold text-foreground">{(zoneMetrics?.pedidos_promedio_diario_actual ?? 0).toFixed(1)}</p>
+                <ComparisonIndicator actual={zoneMetrics?.pedidos_promedio_diario_actual ?? 0} anterior={zoneMetrics?.pedidos_promedio_diario_anterior ?? 0} label="vs ant." />
               </div>
               <div className="p-3 rounded-lg bg-muted/30 border border-border">
-                <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">% Full Price</p>
-                <p className="text-base font-semibold text-foreground">{(kpis?.pct_pedidos_full_price ?? 0).toFixed(1)}%</p>
-                <ComparisonIndicator actual={kpis?.pct_pedidos_full_price ?? 0} anterior={prevKpis?.pct_pedidos_full_price ?? 0} label="vs ant." />
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Uds Prom/Día</p>
+                <p className="text-base font-semibold text-foreground">{(zoneMetrics?.unidades_promedio_diario_actual ?? 0).toFixed(1)}</p>
+                <ComparisonIndicator actual={zoneMetrics?.unidades_promedio_diario_actual ?? 0} anterior={zoneMetrics?.unidades_promedio_diario_anterior ?? 0} label="vs ant." />
               </div>
             </div>
           </div>
