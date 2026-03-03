@@ -93,10 +93,32 @@ interface ParetoRow {
   pct_participacion: number | null;
 }
 
+interface RankingRow {
+  tienda: string;
+  ventas_totales: number;
+  unidades_vendidas: number;
+  ticket_promedio: number;
+  upt: number;
+  pct_venta_full_price: number;
+  zona: string;
+}
+
+interface DiscountAlertRow {
+  numero_pedido: string;
+  producto: string;
+  sku: string;
+  sucursal: string;
+  cantidad: number;
+  precio: number;
+  descuento_otorgado: number;
+  categoria: string;
+}
+
 interface LocationItem {
   location_id: string;
   name: string;
   zona: string | null;
+  dimension_m2: number | null;
 }
 
 /* ── Constants ── */
@@ -106,8 +128,8 @@ const fmtCOP = (v: number) =>
 const fmtNum = (v: number) => v.toLocaleString("es-CO");
 
 const DAY_MAP: Record<string, string> = {
-  Monday: "Lunes", Tuesday: "Martes", Wednesday: "Miércoles",
-  Thursday: "Jueves", Friday: "Viernes", Saturday: "Sábado", Sunday: "Domingo",
+  Monday: "Lunes", Tuesday: "Martes", Wednesday: "Miercoles",
+  Thursday: "Jueves", Friday: "Viernes", Saturday: "Sabado", Sunday: "Domingo",
 };
 
 function translateDay(d: string): string {
@@ -173,6 +195,7 @@ const ORANGE = [234, 88, 12] as [number, number, number];
 const GRAY = [120, 120, 120] as [number, number, number];
 const LIGHT_BG = [245, 245, 245] as [number, number, number];
 const AMBER = [180, 130, 0] as [number, number, number];
+const BLUE = [59, 130, 246] as [number, number, number];
 
 function createDoc() {
   return new jsPDF({ orientation: "portrait", unit: "mm", format: "letter" });
@@ -273,7 +296,9 @@ function drawKpiCardWithArrow(
   doc.setFontSize(10);
   doc.setFont("helvetica", "bold");
   doc.setTextColor(...color);
-  doc.text(value, x + 3, y + 11.5);
+  // Use splitTextToSize to prevent text from being cut
+  const lines = doc.splitTextToSize(value, w - 6);
+  doc.text(lines[0] || value, x + 3, y + 11.5);
   if (subLabel) {
     doc.setFontSize(6.5);
     doc.setFont("helvetica", "normal");
@@ -282,19 +307,22 @@ function drawKpiCardWithArrow(
   }
   if (change) {
     const isPositive = change.startsWith("+");
-    const arrow = isPositive ? "▲" : "▼";
+    const arrow = isPositive ? "+" : "-";
     doc.setFontSize(7);
     doc.setFont("helvetica", "bold");
     doc.setTextColor(...(isPositive ? GREEN : RED));
-    const changeText = `${arrow} ${change} vs periodo ant.`;
-    doc.text(changeText, x + w - 3, y + 5, { align: "right" });
+    const changeText = `${arrow} ${change.replace('+','').replace('-','')} vs ant.`;
+    const textLines = doc.splitTextToSize(changeText, w / 2);
+    doc.text(textLines[0], x + w - 3, y + 5, { align: "right" });
   }
 }
 
-/* ── Panel de Accionables ── */
+/* ── Panel de Accionables (enhanced) ── */
 function drawAccionablesPanel(
   doc: jsPDF, y: number,
   kpis: KpiData, kpisPrev: KpiData,
+  discountAlerts?: DiscountAlertRow[],
+  stockoutProducts?: AlertRow[],
 ): number {
   const margin = 14;
   const pageW = doc.internal.pageSize.getWidth();
@@ -340,17 +368,14 @@ function drawAccionablesPanel(
       const fmt = ind.isCurrency
         ? `${fmtCOP(ind.prev)} -> ${fmtCOP(ind.cur)}`
         : `${fmtNum(Math.round(ind.prev))} -> ${fmtNum(Math.round(ind.cur))}`;
-      doc.text(
-        `  ▼ ${ind.name}: ${ind.pct.toFixed(1)}% (${fmt})`,
-        margin + 4, y + 12 + i * 6,
-      );
+      const line = doc.splitTextToSize(`  - ${ind.name}: ${ind.pct.toFixed(1)}% (${fmt})`, contentW - 10);
+      doc.text(line, margin + 4, y + 12 + i * 6);
     });
     y += blockH + 4;
   }
 
   // ── INDICADORES EN ALZA ──
   if (rising.length) {
-    // Generate hypotheses
     const hypotheses: string[] = [];
     const rebajasRising = rising.find(i => i.name === "% Rebajas");
     const ventasRising = rising.find(i => i.name === "Ventas Netas");
@@ -361,34 +386,22 @@ function drawAccionablesPanel(
     const unidadesRising = rising.find(i => i.name === "Unidades Vendidas");
 
     if (rebajasRising && ventasRising) {
-      hypotheses.push(
-        `CORRELACION: El aumento de Rebajas (+${rebajasRising.pct.toFixed(1)}%) posiblemente impulso Ventas Netas (+${ventasRising.pct.toFixed(1)}%). Evaluar si el margen neto se mantuvo.`,
-      );
+      hypotheses.push(`CORRELACION: El aumento de Rebajas (+${rebajasRising.pct.toFixed(1)}%) posiblemente impulso Ventas Netas (+${ventasRising.pct.toFixed(1)}%). Evaluar si el margen neto se mantuvo.`);
     }
     if (rebajasRising && fullPriceDropping) {
-      hypotheses.push(
-        `CORRELACION: Las Rebajas (+${rebajasRising.pct.toFixed(1)}%) estan desplazando ventas Full Price (${fullPriceDropping.pct.toFixed(1)}%). Revisar estrategia de precios.`,
-      );
+      hypotheses.push(`CORRELACION: Las Rebajas (+${rebajasRising.pct.toFixed(1)}%) estan desplazando ventas Full Price (${fullPriceDropping.pct.toFixed(1)}%). Revisar estrategia de precios.`);
     }
     if (promoRising && ventasRising) {
-      hypotheses.push(
-        `CORRELACION: Las promociones (+${promoRising.pct.toFixed(1)}%) contribuyeron al crecimiento en ventas (+${ventasRising.pct.toFixed(1)}%). Medir impacto en margen.`,
-      );
+      hypotheses.push(`CORRELACION: Las promociones (+${promoRising.pct.toFixed(1)}%) contribuyeron al crecimiento en ventas (+${ventasRising.pct.toFixed(1)}%). Medir impacto en margen.`);
     }
     if (ticketRising && !unidadesRising) {
-      hypotheses.push(
-        `NO CORRELACION: El ticket promedio sube (+${ticketRising.pct.toFixed(1)}%) pero las unidades no crecen al mismo ritmo. Posible cambio en mix de producto hacia items de mayor valor.`,
-      );
+      hypotheses.push(`NO CORRELACION: El ticket promedio sube (+${ticketRising.pct.toFixed(1)}%) pero las unidades no crecen al mismo ritmo. Posible cambio en mix de producto.`);
     }
     if (ticketDropping && unidadesRising) {
-      hypotheses.push(
-        `CORRELACION: Las unidades suben (+${unidadesRising.pct.toFixed(1)}%) pero el ticket cae (${ticketDropping.pct.toFixed(1)}%). Se estan vendiendo mas items de menor valor o con mayor descuento.`,
-      );
+      hypotheses.push(`CORRELACION: Las unidades suben (+${unidadesRising.pct.toFixed(1)}%) pero el ticket cae (${ticketDropping.pct.toFixed(1)}%). Se estan vendiendo mas items de menor valor.`);
     }
     if (ventasRising && !rebajasRising && !promoRising) {
-      hypotheses.push(
-        `POSITIVO: Las ventas crecen (+${ventasRising.pct.toFixed(1)}%) sin depender de rebajas o promociones. Crecimiento organico saludable.`,
-      );
+      hypotheses.push(`POSITIVO: Las ventas crecen (+${ventasRising.pct.toFixed(1)}%) sin depender de rebajas o promociones. Crecimiento organico saludable.`);
     }
 
     const risingBlockH = 10 + rising.length * 6;
@@ -408,14 +421,11 @@ function drawAccionablesPanel(
       const fmt = ind.isCurrency
         ? `${fmtCOP(ind.prev)} -> ${fmtCOP(ind.cur)}`
         : `${fmtNum(Math.round(ind.prev))} -> ${fmtNum(Math.round(ind.cur))}`;
-      doc.text(
-        `  ▲ ${ind.name}: +${ind.pct.toFixed(1)}% (${fmt})`,
-        margin + 4, y + 12 + i * 6,
-      );
+      const line = doc.splitTextToSize(`  + ${ind.name}: +${ind.pct.toFixed(1)}% (${fmt})`, contentW - 10);
+      doc.text(line, margin + 4, y + 12 + i * 6);
     });
     y += risingBlockH + 4;
 
-    // ── HIPOTESIS ──
     if (hypotheses.length) {
       const hypoBlockH = 10 + hypotheses.length * 10;
       y = ensureSpace(doc, y, hypoBlockH + 4);
@@ -431,7 +441,7 @@ function drawAccionablesPanel(
         doc.setFontSize(6.5);
         doc.setFont("helvetica", "normal");
         doc.setTextColor(80, 80, 80);
-        const lines = doc.splitTextToSize(`• ${h}`, contentW - 10);
+        const lines = doc.splitTextToSize(`- ${h}`, contentW - 10);
         doc.text(lines, margin + 4, y + 12 + i * 10);
       });
       y += hypoBlockH + 4;
@@ -444,6 +454,83 @@ function drawAccionablesPanel(
     doc.setTextColor(...GRAY);
     doc.text("Todos los indicadores se mantienen estables (variaciones menores al 10%).", margin, y + 5);
     y += 14;
+  }
+
+  // ── ALERTAS FRAGANCES / SUNGLASSES CON DESCUENTO ──
+  const alertCategories = ["FRAGANCE", "FRAGANCES", "SUNGLASSES"];
+  const filteredAlerts = (discountAlerts ?? []).filter(r =>
+    alertCategories.some(cat => (r.categoria ?? "").toUpperCase().includes(cat))
+  );
+  if (filteredAlerts.length > 0) {
+    y = ensureSpace(doc, y, 30);
+    y = drawSectionTitle(doc, y, "ALERTA: PRODUCTOS CON DESCUENTO NO AUTORIZADO");
+    doc.setFontSize(7);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(80, 80, 80);
+    doc.text(`Se detectaron ${filteredAlerts.length} items de FRAGANCES/SUNGLASSES vendidos con descuento.`, margin, y);
+    y += 4;
+
+    const alertsByCategory = new Map<string, DiscountAlertRow[]>();
+    filteredAlerts.forEach(a => {
+      const cat = (a.categoria ?? "SIN CATEGORIA").toUpperCase();
+      if (!alertsByCategory.has(cat)) alertsByCategory.set(cat, []);
+      alertsByCategory.get(cat)!.push(a);
+    });
+
+    autoTable(doc, {
+      startY: y,
+      head: [["Categoria", "Producto", "SKU", "Sucursal", "Cant.", "Precio", "Descuento"]],
+      body: filteredAlerts.slice(0, 30).map(r => [
+        (r.categoria ?? "-").toUpperCase(),
+        stripEmoji(r.producto ?? "-"),
+        r.sku ?? "-",
+        r.sucursal ?? "-",
+        String(r.cantidad ?? 0),
+        fmtCOP(r.precio ?? 0),
+        fmtCOP(r.descuento_otorgado ?? 0),
+      ]),
+      styles: { fontSize: 6.5, cellPadding: 1.5 },
+      headStyles: { fillColor: RED as any, textColor: 255, fontStyle: "bold", fontSize: 6.5 },
+      alternateRowStyles: { fillColor: [254, 242, 242] },
+      margin: { left: margin, right: margin },
+    });
+    y = (doc as any).lastAutoTable.finalY + 6;
+  }
+
+  // ── PRODUCTOS RIESGO DE AGOTADO ──
+  const riesgoProducts = (stockoutProducts ?? []).filter(r =>
+    (r.estado_salud ?? "").includes("RIESGO")
+  ).sort((a, b) => (a.wos ?? 0) - (b.wos ?? 0));
+
+  if (riesgoProducts.length > 0) {
+    y = ensureSpace(doc, y, 30);
+    y = drawSectionTitle(doc, y, `PRODUCTOS RIESGO DE AGOTADO (${riesgoProducts.length} productos)`);
+
+    autoTable(doc, {
+      startY: y,
+      head: [["Producto", "SKU", "Categoria", "Uds Vend.", "Stock", "WOS", "Sell-Through"]],
+      body: riesgoProducts.slice(0, 40).map(r => [
+        stripEmoji(r.producto ?? "-"),
+        r.sku ?? "-",
+        stripEmoji(r.categoria ?? "-"),
+        fmtNum(r.und_vendidas ?? 0),
+        fmtNum((r.stock_tiendas ?? 0) + (r.stock_digital ?? 0)),
+        (r.wos ?? 0).toFixed(1),
+        `${(r.sell_through_pct ?? 0).toFixed(1)}%`,
+      ]),
+      styles: { fontSize: 6.5, cellPadding: 1.5 },
+      headStyles: { fillColor: ORANGE as any, textColor: 255, fontStyle: "bold", fontSize: 6.5 },
+      alternateRowStyles: { fillColor: [255, 247, 237] },
+      margin: { left: margin, right: margin },
+      didParseCell: (data) => {
+        if (data.section === "body" && data.column.index === 5) {
+          const wos = parseFloat(String(data.cell.raw));
+          if (wos < 2) data.cell.styles.textColor = RED;
+          else if (wos < 4) data.cell.styles.textColor = ORANGE;
+        }
+      },
+    });
+    y = (doc as any).lastAutoTable.finalY + 6;
   }
 
   return y;
@@ -474,39 +561,55 @@ async function generateExecutiveReport(
   const canalParam = reportType === "canal" ? canal ?? null : null;
   const locationParam = reportType === "tienda" ? locationId ?? null : null;
   const zonaParam = (reportType === "zona" && zona) ? zona : null;
-
   const canalFiltro = reportType === "canal" ? (canal === "tiendas" || canal === "outlets" ? "POS" : "DIGITAL") : null;
 
+  // ── Fetch all data in parallel ──
   const fetchPromises: PromiseLike<any>[] = [
-    supabase.rpc("reporte_kpis_comerciales", { dias_atras: effectiveDays, p_canal: canalParam, p_location_id: locationParam, p_zona: zonaParam }) as any,
-    supabase.rpc("reporte_pareto_categorias" as any, { dias_atras: effectiveDays, p_canal: canalParam ?? "", p_location_id: locationParam }) as any,
-    supabase.rpc("reporte_ejecutivo_productos", { dias_atras: effectiveDays, canal_filtro: canalFiltro, location_filtro: locationParam, orden: "TOP", limite: 20, zona_filtro: zonaParam }) as any,
-    supabase.rpc("reporte_ejecutivo_productos", { dias_atras: effectiveDays, canal_filtro: canalFiltro, location_filtro: locationParam, orden: "BOTTOM", limite: 20, zona_filtro: zonaParam }) as any,
-    supabase.rpc("reporte_desempeno_por_linea" as any, { dias_atras: effectiveDays, p_canal: canalParam }) as any,
-    getLogoBase64(),
-    // Previous period KPIs for comparison
-    supabase.rpc("reporte_kpis_periodo_anterior", { dias_atras: effectiveDays, p_canal: canalParam, p_location_id: locationParam, p_zona: zonaParam }) as any,
+    /* 0 */ supabase.rpc("reporte_kpis_comerciales", { dias_atras: effectiveDays, p_canal: canalParam, p_location_id: locationParam, p_zona: zonaParam }) as any,
+    /* 1 */ supabase.rpc("reporte_pareto_categorias" as any, { dias_atras: effectiveDays, p_canal: canalParam ?? "", p_location_id: locationParam }) as any,
+    /* 2 */ supabase.rpc("reporte_ejecutivo_productos", { dias_atras: effectiveDays, canal_filtro: canalFiltro, location_filtro: locationParam, orden: "TOP", limite: 20, zona_filtro: zonaParam }) as any,
+    /* 3 */ supabase.rpc("reporte_ejecutivo_productos", { dias_atras: effectiveDays, canal_filtro: canalFiltro, location_filtro: locationParam, orden: "BOTTOM", limite: 20, zona_filtro: zonaParam }) as any,
+    /* 4 */ supabase.rpc("reporte_desempeno_por_linea" as any, { dias_atras: effectiveDays, p_canal: canalParam }) as any,
+    /* 5 */ getLogoBase64(),
+    /* 6 */ supabase.rpc("reporte_kpis_periodo_anterior", { dias_atras: effectiveDays, p_canal: canalParam, p_location_id: locationParam, p_zona: zonaParam }) as any,
+    /* 7 - metricas */ locationParam
+      ? supabase.rpc("reporte_metricas_tienda_individual", { dias_atras: effectiveDays, p_location_id: locationParam }) as any
+      : supabase.rpc("reporte_metricas_zona", { dias_atras: effectiveDays, p_canal: canalParam, p_zona: zonaParam }) as any,
+    /* 8 */ supabase.rpc("reporte_ranking_tiendas", { dias_atras: effectiveDays, p_canal: canalParam }) as any,
+    /* 9 */ supabase.rpc("reporte_pct_ventas_por_tipo", { dias_atras: effectiveDays, p_canal: canalParam, p_location_id: locationParam, p_zona: zonaParam }) as any,
+    /* 10 */ supabase.rpc("reporte_pedidos_por_tipo_venta", { dias_atras: effectiveDays, p_canal: canalParam, p_location_id: locationParam, p_tipo: "descuento" }) as any,
+    /* 11 */ supabase.rpc("reporte_comportamiento_producto", { dias_atras: effectiveDays }) as any,
+    /* 12 */ supabase.from("locations").select("location_id, name, zona, dimension_m2").eq("is_active", true) as any,
   ];
 
-  // Fetch metricas tienda individual or zona
-  if (locationParam) {
-    fetchPromises.push(supabase.rpc("reporte_metricas_tienda_individual", { dias_atras: effectiveDays, p_location_id: locationParam }) as any);
-  } else if (reportType === "zona" || reportType === "completo" || reportType === "canal") {
-    fetchPromises.push(supabase.rpc("reporte_metricas_zona", { dias_atras: effectiveDays, p_canal: canalParam, p_zona: zonaParam }) as any);
-  }
-
   const results = await Promise.all(fetchPromises);
-  const [kpiRes, paretoRes, topRes, bottomRes, lineaRes] = results;
-  const logoB64 = results[5] as string;
-  const kpisPrevRes = results[6];
-  const metricasData = results[7]?.data?.[0] as unknown as MetricasData | null;
 
-  const kpis = kpiRes.data?.[0] as unknown as KpiData ?? { total_pedidos: 0, unidades_vendidas: 0, ingresos_netos: 0, ticket_promedio: 0, upt: 0, pct_pedidos_full_price: 0, pct_pedidos_rebajas: 0, pct_pedidos_con_descuento: 0 };
-  const kpisPrev = kpisPrevRes.data?.[0] as unknown as KpiData ?? { total_pedidos: 0, unidades_vendidas: 0, ingresos_netos: 0, ticket_promedio: 0, upt: 0, pct_pedidos_full_price: 0, pct_pedidos_rebajas: 0, pct_pedidos_con_descuento: 0 };
-  const paretoData = (paretoRes.data ?? []) as unknown as ParetoRow[];
-  const topProducts = (topRes.data ?? []) as unknown as ProductRow[];
-  const bottomProducts = (bottomRes.data ?? []) as unknown as ProductRow[];
-  const lineaData = (lineaRes.data ?? []) as unknown as LineaRow[];
+  const kpis = results[0].data?.[0] as unknown as KpiData ?? { total_pedidos: 0, unidades_vendidas: 0, ingresos_netos: 0, ticket_promedio: 0, upt: 0, pct_pedidos_full_price: 0, pct_pedidos_rebajas: 0, pct_pedidos_con_descuento: 0 };
+  const kpisPrev = results[6].data?.[0] as unknown as KpiData ?? { total_pedidos: 0, unidades_vendidas: 0, ingresos_netos: 0, ticket_promedio: 0, upt: 0, pct_pedidos_full_price: 0, pct_pedidos_rebajas: 0, pct_pedidos_con_descuento: 0 };
+  const paretoData = (results[1].data ?? []) as unknown as ParetoRow[];
+  const topProducts = (results[2].data ?? []) as unknown as ProductRow[];
+  const bottomProducts = (results[3].data ?? []) as unknown as ProductRow[];
+  const lineaData = (results[4].data ?? []) as unknown as LineaRow[];
+  const logoB64 = results[5] as string;
+  const metricasData = results[7]?.data?.[0] as unknown as MetricasData | null;
+  const rankingData = (results[8].data ?? []) as unknown as RankingRow[];
+  const pctVentasData = results[9]?.data?.[0] as any;
+  const discountAlerts = (results[10].data ?? []) as unknown as DiscountAlertRow[];
+  const stockoutData = (results[11].data ?? []) as unknown as AlertRow[];
+  const locationsData = (results[12].data ?? []) as unknown as LocationItem[];
+
+  // Filter ranking by zone if zona report
+  const filteredRanking = zonaParam
+    ? rankingData.filter(r => r.zona === zonaParam)
+    : rankingData;
+
+  // Calculate m2 for zone/canal
+  let totalM2 = 0;
+  const relevantLocations = zonaParam
+    ? locationsData.filter(l => l.zona === zonaParam)
+    : locationsData.filter(l => l.location_id !== "71474315479");
+  totalM2 = relevantLocations.reduce((s, l) => s + (l.dimension_m2 ?? 0), 0);
+  const ventaM2 = totalM2 > 0 ? kpis.ingresos_netos / totalM2 : 0;
 
   const imageCache = new Map<string, string>();
   await prefetchImages([...topProducts.slice(0, 20), ...bottomProducts.slice(0, 20)], imageCache);
@@ -517,70 +620,197 @@ async function generateExecutiveReport(
   const dateStr = drawHeader(doc, logoB64, titulo, effectiveDays);
   let y = 36;
 
-  // ── 1. INDICADORES COMERCIALES ──
-  y = drawSectionTitle(doc, y, "INDICADORES COMERCIALES");
+  // ═══════════════════════════════════════════════
+  // 1. PANEL DE DESEMPENO
+  // ═══════════════════════════════════════════════
+  y = drawSectionTitle(doc, y, "PANEL DE DESEMPENO");
 
-  // Metricas row (días, promedios) - available for all report types now
+  // Row 1: Ventas Netas, Ticket Promedio, UPT, Venta/m2
+  const row1Items = [
+    { label: "Ventas Netas", value: fmtCOP(kpis.ingresos_netos), color: BLACK, change: pctChange(kpis.ingresos_netos, kpisPrev.ingresos_netos) },
+    { label: "Ticket Promedio", value: fmtCOP(kpis.ticket_promedio), color: BLACK, change: pctChange(kpis.ticket_promedio, kpisPrev.ticket_promedio) },
+    { label: "UPT", value: kpis.upt.toFixed(2), color: kpis.upt >= 2 ? GREEN : kpis.upt < 1.5 ? RED : BLACK, change: pctChange(kpis.upt, kpisPrev.upt) },
+    { label: totalM2 > 0 ? `Venta/m2 (${fmtNum(Math.round(totalM2))} m2)` : "Venta/m2", value: totalM2 > 0 ? fmtCOP(ventaM2) : "N/A", color: BLACK, change: "" },
+  ];
+  const col4W = (pageW - 2 * margin) / 4;
+  y = ensureSpace(doc, y, 22);
+  row1Items.forEach((item, i) => {
+    drawKpiCardWithArrow(doc, margin + i * col4W, y, col4W - 2, 18, item.label, item.value, item.color as [number, number, number], item.change || undefined);
+  });
+  y += 22;
+
+  // Row 2: % Full Price, % Rebajas, % Desc Promo
+  const row2Items = [
+    { label: "% Full Price", value: `${kpis.pct_pedidos_full_price.toFixed(1)}%`, color: GREEN, change: pctChange(kpis.pct_pedidos_full_price, kpisPrev.pct_pedidos_full_price) },
+    { label: "% Rebajas", value: `${kpis.pct_pedidos_rebajas.toFixed(1)}%`, color: RED, change: pctChange(kpis.pct_pedidos_rebajas, kpisPrev.pct_pedidos_rebajas) },
+    { label: "% Desc. Promo", value: `${kpis.pct_pedidos_con_descuento.toFixed(1)}%`, color: ORANGE, change: pctChange(kpis.pct_pedidos_con_descuento, kpisPrev.pct_pedidos_con_descuento) },
+  ];
+  const col3W = (pageW - 2 * margin) / 3;
+  y = ensureSpace(doc, y, 22);
+  row2Items.forEach((item, i) => {
+    drawKpiCardWithArrow(doc, margin + i * col3W, y, col3W - 2, 18, item.label, item.value, item.color as [number, number, number], item.change);
+  });
+  y += 22;
+
+  // ═══════════════════════════════════════════════
+  // 2. DESEMPENO COMERCIAL (daily metrics)
+  // ═══════════════════════════════════════════════
   if (metricasData) {
-    const metricItems = [
+    y = drawSectionTitle(doc, y, "DESEMPENO COMERCIAL");
+
+    // Row: Mejor Dia, Peor Dia, Prom Lun-Vie, Prom Sab-Dom
+    const metricRow1 = [
       { label: "Mejor Dia", value: translateDay(metricasData.mejor_dia_semana ?? "-"), sub: fmtCOP(metricasData.venta_mejor_dia ?? 0), color: GREEN },
       { label: "Peor Dia", value: translateDay(metricasData.peor_dia_semana ?? "-"), sub: fmtCOP(metricasData.venta_peor_dia ?? 0), color: RED },
       { label: "Prom. Lun-Vie", value: fmtCOP(metricasData.venta_promedio_semana ?? 0), sub: "", color: BLACK },
       { label: "Prom. Sab-Dom", value: fmtCOP(metricasData.venta_promedio_finde ?? 0), sub: "", color: BLACK },
     ];
-
-    const colW = (pageW - 2 * margin) / 4;
     y = ensureSpace(doc, y, 22);
-    metricItems.forEach((item, i) => {
-      const x = margin + i * colW;
-      drawKpiCardWithArrow(doc, x, y, colW - 2, 18, item.label, item.value, item.color as [number, number, number], undefined, item.sub);
+    metricRow1.forEach((item, i) => {
+      drawKpiCardWithArrow(doc, margin + i * col4W, y, col4W - 2, 18, item.label, item.value, item.color as [number, number, number], undefined, item.sub);
     });
     y += 22;
 
-    // Row 2: Venta Prom/Dia, Pedidos Prom/Dia, Uds Prom/Dia (with comparison)
-    const row2Items = [
+    // Row: Venta Prom/Dia, Pedidos Prom/Dia, Uds Prom/Dia
+    const metricRow2 = [
       { label: "Venta Prom./Dia", value: fmtCOP(metricasData.venta_promedio_diaria_actual ?? 0), change: pctChange(metricasData.venta_promedio_diaria_actual, metricasData.venta_promedio_diaria_anterior) },
       { label: "Pedidos Prom./Dia", value: fmtNum(Math.round(metricasData.pedidos_promedio_diario_actual ?? 0)), change: pctChange(metricasData.pedidos_promedio_diario_actual, metricasData.pedidos_promedio_diario_anterior) },
       { label: "Uds Prom./Dia", value: fmtNum(Math.round(metricasData.unidades_promedio_diario_actual ?? 0)), change: pctChange(metricasData.unidades_promedio_diario_actual, metricasData.unidades_promedio_diario_anterior) },
     ];
-    const col3W = (pageW - 2 * margin) / 3;
     y = ensureSpace(doc, y, 22);
-    row2Items.forEach((item, i) => {
-      const x = margin + i * col3W;
-      drawKpiCardWithArrow(doc, x, y, col3W - 2, 18, item.label, item.value, BLACK, item.change);
+    metricRow2.forEach((item, i) => {
+      drawKpiCardWithArrow(doc, margin + i * col3W, y, col3W - 2, 18, item.label, item.value, BLACK, item.change);
     });
     y += 22;
   }
 
-  // KPIs row: Ventas Netas, Ticket, UPT + % Full Price, % Rebajas, % Promo (WITH comparison arrows)
-  const kpiItems = [
-    { label: "Ventas Netas", value: fmtCOP(kpis.ingresos_netos), color: BLACK, change: pctChange(kpis.ingresos_netos, kpisPrev.ingresos_netos) },
-    { label: "Ticket Promedio", value: fmtCOP(kpis.ticket_promedio), color: BLACK, change: pctChange(kpis.ticket_promedio, kpisPrev.ticket_promedio) },
-    { label: "UPT", value: kpis.upt.toFixed(2), color: BLACK, change: pctChange(kpis.upt, kpisPrev.upt) },
-    { label: "% Full Price", value: `${kpis.pct_pedidos_full_price.toFixed(1)}%`, color: GREEN, change: pctChange(kpis.pct_pedidos_full_price, kpisPrev.pct_pedidos_full_price) },
-    { label: "% Rebajas", value: `${kpis.pct_pedidos_rebajas.toFixed(1)}%`, color: RED, change: pctChange(kpis.pct_pedidos_rebajas, kpisPrev.pct_pedidos_rebajas) },
-    { label: "% Desc. Promo", value: `${kpis.pct_pedidos_con_descuento.toFixed(1)}%`, color: ORANGE, change: pctChange(kpis.pct_pedidos_con_descuento, kpisPrev.pct_pedidos_con_descuento) },
-  ];
+  // ═══════════════════════════════════════════════
+  // 3. TOP TIENDAS (skip for individual store reports)
+  // ═══════════════════════════════════════════════
+  if (reportType !== "tienda" && filteredRanking.length > 0) {
+    y = drawSectionTitle(doc, y, `TOP TIENDAS${zonaParam ? ` - ZONA ${zonaParam.toUpperCase()}` : ""}`);
 
-  const kpiColW = (pageW - 2 * margin) / 3;
-  y = ensureSpace(doc, y, 40);
-  kpiItems.forEach((item, i) => {
-    const col = i % 3;
-    const row = Math.floor(i / 3);
-    const x = margin + col * kpiColW;
-    const boxY = y + row * 20;
-    drawKpiCardWithArrow(doc, x, boxY, kpiColW - 2, 18, item.label, item.value, item.color as [number, number, number], item.change);
-  });
-  y += 44;
+    autoTable(doc, {
+      startY: y,
+      head: [["#", "Tienda", "Zona", "Ventas Netas", "Uds", "Ticket Prom", "UPT", "% Full Price"]],
+      body: filteredRanking.slice(0, 20).map((r, i) => [
+        String(i + 1),
+        r.tienda,
+        r.zona ?? "-",
+        fmtCOP(r.ventas_totales),
+        fmtNum(r.unidades_vendidas),
+        fmtCOP(r.ticket_promedio),
+        r.upt.toFixed(2),
+        `${r.pct_venta_full_price.toFixed(1)}%`,
+      ]),
+      styles: { fontSize: 6.5, cellPadding: 1.5 },
+      headStyles: { fillColor: BLACK as any, textColor: 255, fontStyle: "bold", fontSize: 6.5 },
+      alternateRowStyles: { fillColor: [248, 250, 252] },
+      margin: { left: margin, right: margin },
+      didParseCell: (data) => {
+        if (data.section === "body") {
+          // Medal colors for top 3
+          if (data.column.index === 0 && data.row.index < 3) {
+            data.cell.styles.textColor = AMBER;
+            data.cell.styles.fontStyle = "bold";
+          }
+          // UPT health coloring
+          if (data.column.index === 6) {
+            const upt = parseFloat(String(data.cell.raw));
+            if (upt >= 2.0) data.cell.styles.textColor = GREEN;
+            else if (upt < 1.5) data.cell.styles.textColor = RED;
+          }
+        }
+      },
+    });
+    y = (doc as any).lastAutoTable.finalY + 6;
+  }
 
-  // ── 2. PARTICIPACIÓN POR LÍNEA ──
+  // ═══════════════════════════════════════════════
+  // 4. PARTICIPACION POR LINEA (top 10 + Otros)
+  // ═══════════════════════════════════════════════
   if (paretoData.length) {
     y = drawSectionTitle(doc, y, "PARTICIPACION POR LINEA");
+
+    const top10 = paretoData.slice(0, 10);
+    const otros = paretoData.slice(10);
+    const otrosRow: ParetoRow | null = otros.length > 0 ? {
+      categoria: `OTROS (${otros.length} categorias)`,
+      unidades: otros.reduce((s, r) => s + (r.unidades ?? 0), 0),
+      ingresos: otros.reduce((s, r) => s + (r.ingresos ?? 0), 0),
+      pct_participacion: otros.reduce((s, r) => s + (r.pct_participacion ?? 0), 0),
+    } : null;
+
+    const tableRows = [...top10, ...(otrosRow ? [otrosRow] : [])];
+
+    // Draw donut chart using simple circles
+    const centerX = pageW / 2;
+    const donutR = 22;
+    y = ensureSpace(doc, y, donutR * 2 + 8);
+    const donutY = y + donutR + 2;
+
+    const DONUT_COLORS: [number, number, number][] = [
+      [63, 81, 181], [103, 58, 183], [233, 30, 99], [0, 150, 136], [255, 152, 0],
+      [76, 175, 80], [33, 150, 243], [156, 39, 176], [255, 193, 7], [121, 85, 72],
+      [158, 158, 158],
+    ];
+
+    let startAngle = -90;
+    tableRows.forEach((r, i) => {
+      const pct = r.pct_participacion ?? 0;
+      const sweep = (pct / 100) * 360;
+      const midAngle = ((startAngle + sweep / 2) * Math.PI) / 180;
+      const color = DONUT_COLORS[i % DONUT_COLORS.length];
+
+      // Draw arc segment as filled shape
+      doc.setFillColor(...color);
+      const segStartRad = (startAngle * Math.PI) / 180;
+      const segEndRad = ((startAngle + sweep) * Math.PI) / 180;
+      const steps = Math.max(Math.ceil(sweep / 5), 2);
+      const points: [number, number][] = [];
+      for (let s = 0; s <= steps; s++) {
+        const angle = segStartRad + (s / steps) * (segEndRad - segStartRad);
+        points.push([centerX + Math.cos(angle) * donutR, donutY + Math.sin(angle) * donutR]);
+      }
+      for (let s = steps; s >= 0; s--) {
+        const angle = segStartRad + (s / steps) * (segEndRad - segStartRad);
+        points.push([centerX + Math.cos(angle) * (donutR * 0.5), donutY + Math.sin(angle) * (donutR * 0.5)]);
+      }
+      if (points.length >= 3) {
+        // @ts-ignore
+        doc.triangle(points[0][0], points[0][1], points[1][0], points[1][1], points[2][0], points[2][1], "F");
+        // For a proper donut we approximate with multiple triangles - simplified approach: draw colored rect as legend
+      }
+
+      startAngle += sweep;
+    });
+
+    // White center for donut hole
+    doc.setFillColor(255, 255, 255);
+    doc.circle(centerX, donutY, donutR * 0.5, "F");
+
+    // Legend on the side
+    const legendX = margin;
+    let legendY = y;
+    tableRows.forEach((r, i) => {
+      if (i > 10) return;
+      const color = DONUT_COLORS[i % DONUT_COLORS.length];
+      doc.setFillColor(...color);
+      doc.rect(legendX, legendY, 3, 3, "F");
+      doc.setFontSize(6);
+      doc.setTextColor(60, 60, 60);
+      doc.text(`${stripEmoji(r.categoria ?? "-")} (${(r.pct_participacion ?? 0).toFixed(1)}%)`, legendX + 4.5, legendY + 2.5);
+      legendY += 4;
+    });
+
+    y += donutR * 2 + 8;
+
+    // Table below donut
     autoTable(doc, {
       startY: y,
       head: [["Categoria", "Unidades", "% Participacion", "$ Ventas Netas"]],
-      body: paretoData.slice(0, 15).map(r => [
-        stripEmoji((r.categoria ?? "-")).substring(0, 25),
+      body: tableRows.map(r => [
+        stripEmoji(r.categoria ?? "-"),
         fmtNum(r.unidades ?? 0),
         `${(r.pct_participacion ?? 0).toFixed(1)}%`,
         fmtCOP(r.ingresos ?? 0),
@@ -593,70 +823,9 @@ async function generateExecutiveReport(
     y = (doc as any).lastAutoTable.finalY + 6;
   }
 
-  // ── 3. DESEMPEÑO POR LÍNEA (Top 20 + Bottom 20) ──
-  if (lineaData.length) {
-    const sorted = [...lineaData].sort((a, b) => (b.und_total ?? 0) - (a.und_total ?? 0));
-    const top20Lineas = sorted.slice(0, 20);
-    const bottom20Lineas = sorted.length > 20 ? sorted.slice(-20).reverse() : [];
-
-    y = drawSectionTitle(doc, y, "DESEMPENO POR LINEA - TOP 20");
-    autoTable(doc, {
-      startY: y,
-      head: [["Categoria", "Und. Total", "% Part.", "Sell-Through", "WOS", "Estado"]],
-      body: top20Lineas.map(r => [
-        stripEmoji((r.categoria ?? "-")).substring(0, 25),
-        fmtNum(r.und_total ?? 0),
-        `${(r.pct_participacion ?? 0).toFixed(1)}%`,
-        `${(r.sell_through_pct ?? 0).toFixed(1)}%`,
-        (r.wos ?? 0).toFixed(1),
-        stripEmoji(r.estado_salud ?? "-"),
-      ]),
-      styles: { fontSize: 7, cellPadding: 2 },
-      headStyles: { fillColor: BLACK as any, textColor: 255, fontStyle: "bold", fontSize: 7 },
-      alternateRowStyles: { fillColor: [248, 250, 252] },
-      margin: { left: margin, right: margin },
-      didParseCell: (data) => {
-        if (data.section === "body" && data.column.index === 5) {
-          const text = String(data.cell.raw);
-          if (text.includes("RIESGO")) data.cell.styles.textColor = RED;
-          else if (text.includes("SOBRESTOCK") || text.includes("ESTANCADO")) data.cell.styles.textColor = AMBER;
-          else if (text.includes("PTIMO")) data.cell.styles.textColor = GREEN;
-        }
-      },
-    });
-    y = (doc as any).lastAutoTable.finalY + 6;
-
-    if (bottom20Lineas.length) {
-      y = drawSectionTitle(doc, y, "DESEMPENO POR LINEA - BOTTOM 20");
-      autoTable(doc, {
-        startY: y,
-        head: [["Categoria", "Und. Total", "% Part.", "Sell-Through", "WOS", "Estado"]],
-        body: bottom20Lineas.map(r => [
-          stripEmoji((r.categoria ?? "-")).substring(0, 25),
-          fmtNum(r.und_total ?? 0),
-          `${(r.pct_participacion ?? 0).toFixed(1)}%`,
-          `${(r.sell_through_pct ?? 0).toFixed(1)}%`,
-          (r.wos ?? 0).toFixed(1),
-          stripEmoji(r.estado_salud ?? "-"),
-        ]),
-        styles: { fontSize: 7, cellPadding: 2 },
-        headStyles: { fillColor: BLACK as any, textColor: 255, fontStyle: "bold", fontSize: 7 },
-        alternateRowStyles: { fillColor: [254, 242, 242] },
-        margin: { left: margin, right: margin },
-        didParseCell: (data) => {
-          if (data.section === "body" && data.column.index === 5) {
-            const text = String(data.cell.raw);
-            if (text.includes("RIESGO")) data.cell.styles.textColor = RED;
-            else if (text.includes("SOBRESTOCK") || text.includes("ESTANCADO")) data.cell.styles.textColor = AMBER;
-            else if (text.includes("PTIMO")) data.cell.styles.textColor = GREEN;
-          }
-        },
-      });
-      y = (doc as any).lastAutoTable.finalY + 6;
-    }
-  }
-
-  // ── 4. TOP 20 PRODUCTOS ──
+  // ═══════════════════════════════════════════════
+  // 5. TOP 20 PRODUCTOS MAS VENDIDOS
+  // ═══════════════════════════════════════════════
   if (topProducts.length) {
     y = drawSectionTitle(doc, y, "TOP 20 - PRODUCTOS MAS VENDIDOS");
     autoTable(doc, {
@@ -664,18 +833,18 @@ async function generateExecutiveReport(
       head: [["", "Producto", "Categoria", "Clasificacion", "Uds", "Precio Prom", "Stock"]],
       body: topProducts.slice(0, 20).map(r => [
         { content: "", styles: { minCellWidth: 10, cellWidth: 10 } },
-        stripEmoji((r.producto ?? "-")).substring(0, 35),
-        stripEmoji((r.categoria ?? "-")).substring(0, 15),
+        stripEmoji(r.producto ?? "-"),
+        stripEmoji(r.categoria ?? "-"),
         stripEmoji(r.clasificacion ?? "-"),
         fmtNum(r.unidades_vendidas ?? 0),
         fmtCOP(r.precio_prom_venta ?? 0),
         fmtNum(r.stock_disponible ?? 0),
       ]),
-      styles: { fontSize: 7, cellPadding: 2, minCellHeight: 10 },
-      headStyles: { fillColor: BLACK as any, textColor: 255, fontStyle: "bold", fontSize: 7 },
+      styles: { fontSize: 6.5, cellPadding: 1.5, minCellHeight: 10 },
+      headStyles: { fillColor: BLACK as any, textColor: 255, fontStyle: "bold", fontSize: 6.5 },
       alternateRowStyles: { fillColor: [248, 250, 252] },
       margin: { left: margin, right: margin },
-      columnStyles: { 0: { cellWidth: 10 } },
+      columnStyles: { 0: { cellWidth: 10 }, 1: { cellWidth: 45 } },
       didParseCell: (data) => {
         if (data.section === "body" && data.column.index === 3) {
           const text = String(data.cell.raw);
@@ -696,7 +865,9 @@ async function generateExecutiveReport(
     y = (doc as any).lastAutoTable.finalY + 6;
   }
 
-  // ── BOTTOM 20 PRODUCTOS ──
+  // ═══════════════════════════════════════════════
+  // 6. BOTTOM 20 PRODUCTOS
+  // ═══════════════════════════════════════════════
   if (bottomProducts.length) {
     y = drawSectionTitle(doc, y, "BOTTOM 20 - MENOR ROTACION");
     autoTable(doc, {
@@ -704,18 +875,18 @@ async function generateExecutiveReport(
       head: [["", "Producto", "Categoria", "Clasificacion", "Uds", "Precio Prom", "Stock"]],
       body: bottomProducts.slice(0, 20).map(r => [
         { content: "", styles: { minCellWidth: 10, cellWidth: 10 } },
-        stripEmoji((r.producto ?? "-")).substring(0, 35),
-        stripEmoji((r.categoria ?? "-")).substring(0, 15),
+        stripEmoji(r.producto ?? "-"),
+        stripEmoji(r.categoria ?? "-"),
         stripEmoji(r.clasificacion ?? "-"),
         fmtNum(r.unidades_vendidas ?? 0),
         fmtCOP(r.precio_prom_venta ?? 0),
         fmtNum(r.stock_disponible ?? 0),
       ]),
-      styles: { fontSize: 7, cellPadding: 2, minCellHeight: 10 },
-      headStyles: { fillColor: BLACK as any, textColor: 255, fontStyle: "bold", fontSize: 7 },
+      styles: { fontSize: 6.5, cellPadding: 1.5, minCellHeight: 10 },
+      headStyles: { fillColor: BLACK as any, textColor: 255, fontStyle: "bold", fontSize: 6.5 },
       alternateRowStyles: { fillColor: [254, 242, 242] },
       margin: { left: margin, right: margin },
-      columnStyles: { 0: { cellWidth: 10 } },
+      columnStyles: { 0: { cellWidth: 10 }, 1: { cellWidth: 45 } },
       didParseCell: (data) => {
         if (data.section === "body" && data.column.index === 3) {
           const text = String(data.cell.raw);
@@ -736,8 +907,10 @@ async function generateExecutiveReport(
     y = (doc as any).lastAutoTable.finalY + 6;
   }
 
-  // ── 5. PANEL DE ACCIONABLES ──
-  y = drawAccionablesPanel(doc, y, kpis, kpisPrev);
+  // ═══════════════════════════════════════════════
+  // 7. PANEL DE ACCIONABLES
+  // ═══════════════════════════════════════════════
+  y = drawAccionablesPanel(doc, y, kpis, kpisPrev, discountAlerts, stockoutData);
 
   addFooters(doc, dateStr);
   const safeName = titulo.replace(/[^a-zA-Z0-9 ]/g, "").replace(/\s+/g, "_");
@@ -775,9 +948,9 @@ async function generateHealthReport(days: number) {
       head: [["", "Producto", "SKU", "Categoria", "Uds Vend.", "Stock Total", "WOS", "Sell-Through"]],
       body: healthData.slice(0, 50).map(r => [
         { content: "", styles: { minCellWidth: 10, cellWidth: 10 } },
-        stripEmoji((r.producto ?? "-")).substring(0, 30),
-        (r.sku ?? "-").substring(0, 15),
-        stripEmoji((r.categoria ?? "-")).substring(0, 15),
+        stripEmoji(r.producto ?? "-"),
+        (r.sku ?? "-"),
+        stripEmoji(r.categoria ?? "-"),
         fmtNum(r.und_vendidas ?? 0),
         fmtNum((r.stock_tiendas ?? 0) + (r.stock_digital ?? 0)),
         (r.wos ?? 0).toFixed(1),
@@ -836,16 +1009,16 @@ async function generateTransferReport(days: number) {
       head: [["", "Producto", "SKU", "Origen", "Stock Orig.", "Destino", "Uds Sugeridas", "Accion"]],
       body: transferData.slice(0, 60).map(r => [
         { content: "", styles: { minCellWidth: 10, cellWidth: 10 } },
-        stripEmoji((r.producto ?? "-")).substring(0, 25),
-        (r.sku ?? "-").substring(0, 12),
-        (r.tienda_origen ?? "-").substring(0, 15),
+        stripEmoji(r.producto ?? "-"),
+        (r.sku ?? "-"),
+        (r.tienda_origen ?? "-"),
         fmtNum(r.stock_origen ?? 0),
-        (r.tienda_destino ?? "-").substring(0, 15),
+        (r.tienda_destino ?? "-"),
         fmtNum(r.uds_sugeridas ?? 0),
-        stripEmoji((r.accion ?? "-")).substring(0, 25),
+        stripEmoji(r.accion ?? "-"),
       ]),
       styles: { fontSize: 6.5, cellPadding: 1.5, minCellHeight: 10 },
-      headStyles: { fillColor: [59, 130, 246] as any, textColor: 255, fontStyle: "bold", fontSize: 6.5 },
+      headStyles: { fillColor: BLUE as any, textColor: 255, fontStyle: "bold", fontSize: 6.5 },
       alternateRowStyles: { fillColor: [238, 242, 255] },
       margin: { left: margin, right: margin },
       columnStyles: { 0: { cellWidth: 10 } },
@@ -888,7 +1061,7 @@ export function ReportGeneratorButton({ days }: ReportGeneratorProps) {
 
   useEffect(() => {
     if ((reportType === "tienda" || reportType === "zona") && locations.length === 0) {
-      supabase.from("locations").select("location_id, name, zona").eq("is_active", true).order("name")
+      supabase.from("locations").select("location_id, name, zona, dimension_m2").eq("is_active", true).order("name")
         .then(({ data }) => {
           if (data) {
             setLocations(data as LocationItem[]);
