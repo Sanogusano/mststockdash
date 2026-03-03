@@ -361,7 +361,7 @@ interface VentasTipoData {
   pct_desc_promo: number;
 }
 
-function VentasTipoCards({ days, canal, locationId }: { days: number; canal?: string | null; locationId?: string | null }) {
+function VentasTipoCards({ days, canal, locationId, zona }: { days: number; canal?: string | null; locationId?: string | null; zona?: string | null }) {
   const [data, setData] = useState<VentasTipoData | null>(null);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
@@ -375,6 +375,7 @@ function VentasTipoCards({ days, canal, locationId }: { days: number; canal?: st
         dias_atras: effectiveDays,
         p_canal: canal || null,
         p_location_id: locationId || null,
+        p_zona: zona || null,
       });
       if (rows && (rows as any[]).length > 0) {
         const r = (rows as any[])[0];
@@ -389,7 +390,7 @@ function VentasTipoCards({ days, canal, locationId }: { days: number; canal?: st
       setLoading(false);
     }
     fetch();
-  }, [days, canal, locationId]);
+  }, [days, canal, locationId, zona]);
 
   if (loading) return <LoadingState rows={1} />;
 
@@ -1550,28 +1551,29 @@ function ZonePanel({ days, locationFilter }: { days: number; locationFilter: "ti
       setLoading(true);
       const effectiveDays = resolveDays(days);
       const locParam = selectedLocation !== "all" ? selectedLocation : null;
+      const zonaParam = selectedZone !== "all" ? selectedZone : null;
 
       const [kpiRes, prevKpiRes, rankRes, topRes, bottomRes, m2Res] = await Promise.all([
-        supabase.rpc("reporte_kpis_comerciales", {
-          dias_atras: effectiveDays, p_canal: canal, p_location_id: locParam,
+        supabase.rpc("reporte_kpis_comerciales" as any, {
+          dias_atras: effectiveDays, p_canal: canal, p_location_id: locParam, p_zona: zonaParam,
         }),
         supabase.rpc("reporte_kpis_periodo_anterior" as any, {
-          dias_atras: effectiveDays, p_canal: canal, p_location_id: locParam,
+          dias_atras: effectiveDays, p_canal: canal, p_location_id: locParam, p_zona: zonaParam,
         }),
         supabase.rpc("reporte_ranking_tiendas", { dias_atras: effectiveDays, p_canal: canal }),
-        supabase.rpc("reporte_ejecutivo_productos", {
-          dias_atras: effectiveDays, canal_filtro: canalFiltro, location_filtro: locParam, orden: "TOP", limite: 20,
+        supabase.rpc("reporte_ejecutivo_productos" as any, {
+          dias_atras: effectiveDays, canal_filtro: canalFiltro, location_filtro: locParam, orden: "TOP", limite: 20, zona_filtro: zonaParam,
         }),
-        supabase.rpc("reporte_ejecutivo_productos", {
-          dias_atras: effectiveDays, canal_filtro: canalFiltro, location_filtro: locParam, orden: "BOTTOM", limite: 20,
+        supabase.rpc("reporte_ejecutivo_productos" as any, {
+          dias_atras: effectiveDays, canal_filtro: canalFiltro, location_filtro: locParam, orden: "BOTTOM", limite: 20, zona_filtro: zonaParam,
         }),
         locParam
           ? supabase.from("locations").select("dimension_m2").eq("location_id", locParam)
-          : supabase.from("locations").select("dimension_m2, location_id, tipo_tienda").eq("is_active", true).not("dimension_m2", "is", null),
+          : supabase.from("locations").select("dimension_m2, location_id, tipo_tienda, zona").eq("is_active", true).not("dimension_m2", "is", null),
       ]);
 
       const emptyKpi = normalizeKpiData({});
-      if (kpiRes.data && kpiRes.data.length > 0) setKpis(normalizeKpiData(kpiRes.data[0]));
+      if (kpiRes.data && (kpiRes.data as any[]).length > 0) setKpis(normalizeKpiData((kpiRes.data as any[])[0]));
       else setKpis(emptyKpi);
       if (prevKpiRes.data && (prevKpiRes.data as any[]).length > 0) setPrevKpis(normalizeKpiData((prevKpiRes.data as any[])[0]));
       else setPrevKpis(emptyKpi);
@@ -1581,6 +1583,8 @@ function ZonePanel({ days, locationFilter }: { days: number; locationFilter: "ti
       if (m2Res.data) {
         const relevant = (m2Res.data as any[]).filter((l: any) => {
           if (locParam) return true;
+          // Filter m² by zone if selected
+          if (zonaParam) return l.zona === zonaParam;
           if (locationFilter === "tiendas") return l.location_id !== CEDI_ID && ((l.tipo_tienda ?? '').toUpperCase() !== 'OUTLET');
           if (locationFilter === "outlets") return (l.tipo_tienda ?? '').toUpperCase() === 'OUTLET';
           return l.location_id !== CEDI_ID;
@@ -1599,11 +1603,12 @@ function ZonePanel({ days, locationFilter }: { days: number; locationFilter: "ti
       setLoading(false);
     }
     fetchAll();
-  }, [days, canal, selectedLocation]);
+  }, [days, canal, selectedLocation, selectedZone]);
 
   if (loading) return <LoadingState rows={6} />;
 
   const locParam = selectedLocation !== "all" ? selectedLocation : null;
+  const zonaParam = selectedZone !== "all" ? selectedZone : null;
   const allRanking = ranking;
   const zoneRanking = selectedZone === "all"
     ? allRanking
@@ -1614,6 +1619,8 @@ function ZonePanel({ days, locationFilter }: { days: number; locationFilter: "ti
 
   const ventaM2 = channelM2 > 0 ? (kpis?.ingresos_netos ?? 0) / channelM2 : 0;
   const prevVentaM2 = channelM2 > 0 ? (prevKpis?.ingresos_netos ?? 0) / channelM2 : 0;
+
+  const selectedLoc = selectedLocation !== "all" ? locations.find(l => l.location_id === selectedLocation) : null;
 
   return (
     <div className="space-y-6">
@@ -1676,75 +1683,88 @@ function ZonePanel({ days, locationFilter }: { days: number; locationFilter: "ti
             ventaM2Status={channelM2 > 0 ? getVentaM2Status(ventaM2, ventaM2) : undefined}
             onClick={() => navigate(`/venta-m2?days=${resolveDays(days)}&canal=${canal}`)} />
         </div>
-        {/* Row 3 */}
+        {/* Row 3: % Full Price, % Rebajas, % Desc. Promo */}
         <div className="mt-4">
-          <VentasTipoCards days={days} canal={canal} locationId={locParam} />
+          <VentasTipoCards days={days} canal={canal} locationId={locParam} zona={zonaParam} />
         </div>
       </div>
 
-      {/* Top Tiendas */}
-      <div className="glass-card overflow-hidden">
-        <div className="flex items-center justify-between px-5 py-4 border-b border-border">
-          <div className="flex items-center gap-3">
-            <Trophy className="h-5 w-5 text-primary" />
-            <h3 className="text-sm font-semibold text-foreground">Top Tiendas</h3>
+      {/* Desempeño Comercial: StoreRankCard when store selected, StoreLeaderboard otherwise */}
+      {selectedLocation !== "all" && selectedLoc ? (
+        <ZoneStoreRankCard
+          days={days}
+          canal={canal}
+          locationId={selectedLocation}
+          locationName={selectedLoc.name}
+          allRanking={allRanking}
+          zoneRanking={zoneRanking}
+          zoneName={selectedZone}
+        />
+      ) : (
+        /* Top Tiendas Table */
+        <div className="glass-card overflow-hidden">
+          <div className="flex items-center justify-between px-5 py-4 border-b border-border">
+            <div className="flex items-center gap-3">
+              <Trophy className="h-5 w-5 text-primary" />
+              <h3 className="text-sm font-semibold text-foreground">Top Tiendas</h3>
+            </div>
+            <ExportButtons
+              data={zoneRanking.map((r, i) => ({
+                "# Zona": i + 1,
+                "# País": allRanking.findIndex(a => a.tienda === r.tienda) + 1,
+                Tienda: r.tienda,
+                "Ventas Netas": r.ventas_totales,
+                "Uds Vendidas": r.unidades_vendidas,
+                "Ticket Prom": r.ticket_promedio,
+                UPT: r.upt,
+                "% Full Price": r.pct_venta_full_price,
+              }))}
+              filename={`top_tiendas_zona_${days}d`}
+              title="Top Tiendas por Zona"
+            />
           </div>
-          <ExportButtons
-            data={zoneRanking.map((r, i) => ({
-              "# Zona": i + 1,
-              "# País": allRanking.findIndex(a => a.tienda === r.tienda) + 1,
-              Tienda: r.tienda,
-              "Ventas Netas": r.ventas_totales,
-              "Uds Vendidas": r.unidades_vendidas,
-              "Ticket Prom": r.ticket_promedio,
-              UPT: r.upt,
-              "% Full Price": r.pct_venta_full_price,
-            }))}
-            filename={`top_tiendas_zona_${days}d`}
-            title="Top Tiendas por Zona"
-          />
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm min-w-[800px]">
+              <thead>
+                <tr className="border-b border-border bg-muted/30">
+                  <th className="px-3 py-3 text-center text-xs font-medium text-muted-foreground"># Zona</th>
+                  <th className="px-3 py-3 text-center text-xs font-medium text-muted-foreground"># País</th>
+                  <th className="px-3 py-3 text-left text-xs font-medium text-muted-foreground">Tienda</th>
+                  <th className="px-3 py-3 text-right text-xs font-medium text-muted-foreground">Ventas Netas</th>
+                  <th className="px-3 py-3 text-right text-xs font-medium text-muted-foreground">Uds Vendidas</th>
+                  <th className="px-3 py-3 text-right text-xs font-medium text-muted-foreground">Ticket Prom</th>
+                  <th className="px-3 py-3 text-right text-xs font-medium text-muted-foreground">UPT</th>
+                  <th className="px-3 py-3 text-right text-xs font-medium text-muted-foreground">% Full Price</th>
+                </tr>
+              </thead>
+              <tbody>
+                {zoneRanking.map((row, i) => {
+                  const countryIdx = allRanking.findIndex(r => r.tienda === row.tienda);
+                  return (
+                    <tr key={row.tienda} className="border-b border-border/50 hover:bg-muted/20 transition-colors">
+                      <td className="px-3 py-3 text-center font-bold text-primary">{i + 1}</td>
+                      <td className="px-3 py-3 text-center font-bold text-muted-foreground">{countryIdx + 1}</td>
+                      <td className="px-3 py-3 font-medium text-foreground">{row.tienda}</td>
+                      <td className="px-3 py-3 text-right font-semibold">{fmtCurrency(row.ventas_totales)}</td>
+                      <td className="px-3 py-3 text-right">{(row.unidades_vendidas ?? 0).toLocaleString()}</td>
+                      <td className="px-3 py-3 text-right">{fmtCurrency(row.ticket_promedio)}</td>
+                      <td className="px-3 py-3 text-right">{(row.upt ?? 0).toFixed(2)}</td>
+                      <td className="px-3 py-3 text-right">
+                        <span className={cn("font-medium", (row.pct_venta_full_price ?? 0) >= 60 ? "text-emerald-600" : "text-amber-500")}>
+                          {(row.pct_venta_full_price ?? 0).toFixed(1)}%
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })}
+                {zoneRanking.length === 0 && (
+                  <tr><td colSpan={8} className="px-4 py-8 text-center text-muted-foreground text-sm">Sin datos para esta zona</td></tr>
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm min-w-[800px]">
-            <thead>
-              <tr className="border-b border-border bg-muted/30">
-                <th className="px-3 py-3 text-center text-xs font-medium text-muted-foreground"># Zona</th>
-                <th className="px-3 py-3 text-center text-xs font-medium text-muted-foreground"># País</th>
-                <th className="px-3 py-3 text-left text-xs font-medium text-muted-foreground">Tienda</th>
-                <th className="px-3 py-3 text-right text-xs font-medium text-muted-foreground">Ventas Netas</th>
-                <th className="px-3 py-3 text-right text-xs font-medium text-muted-foreground">Uds Vendidas</th>
-                <th className="px-3 py-3 text-right text-xs font-medium text-muted-foreground">Ticket Prom</th>
-                <th className="px-3 py-3 text-right text-xs font-medium text-muted-foreground">UPT</th>
-                <th className="px-3 py-3 text-right text-xs font-medium text-muted-foreground">% Full Price</th>
-              </tr>
-            </thead>
-            <tbody>
-              {zoneRanking.map((row, i) => {
-                const countryIdx = allRanking.findIndex(r => r.tienda === row.tienda);
-                return (
-                  <tr key={row.tienda} className="border-b border-border/50 hover:bg-muted/20 transition-colors">
-                    <td className="px-3 py-3 text-center font-bold text-primary">{i + 1}</td>
-                    <td className="px-3 py-3 text-center font-bold text-muted-foreground">{countryIdx + 1}</td>
-                    <td className="px-3 py-3 font-medium text-foreground">{row.tienda}</td>
-                    <td className="px-3 py-3 text-right font-semibold">{fmtCurrency(row.ventas_totales)}</td>
-                    <td className="px-3 py-3 text-right">{(row.unidades_vendidas ?? 0).toLocaleString()}</td>
-                    <td className="px-3 py-3 text-right">{fmtCurrency(row.ticket_promedio)}</td>
-                    <td className="px-3 py-3 text-right">{(row.upt ?? 0).toFixed(2)}</td>
-                    <td className="px-3 py-3 text-right">
-                      <span className={cn("font-medium", (row.pct_venta_full_price ?? 0) >= 60 ? "text-emerald-600" : "text-amber-500")}>
-                        {(row.pct_venta_full_price ?? 0).toFixed(1)}%
-                      </span>
-                    </td>
-                  </tr>
-                );
-              })}
-              {zoneRanking.length === 0 && (
-                <tr><td colSpan={8} className="px-4 py-8 text-center text-muted-foreground text-sm">Sin datos para esta zona</td></tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
+      )}
 
       {/* Pareto */}
       <div className="cursor-pointer hover:ring-2 hover:ring-primary/30 transition-all" onClick={() => navigate(`/lineas?canal=${canal}&days=${days}`)}>
@@ -1756,6 +1776,146 @@ function ZonePanel({ days, locationFilter }: { days: number; locationFilter: "ti
         days={days} canalFiltro={canalFiltro} locationFiltro={locParam} />
       <ProductTable data={bottomProducts} title="Bottom 20 — Menor Rotación (con stock)" exportFilename={`bottom20_zona_${canal}_${days}d`}
         days={days} canalFiltro={canalFiltro} locationFiltro={locParam} />
+    </div>
+  );
+}
+
+/* ── Zone Store Rank Card (with zone + national ranking) ── */
+function ZoneStoreRankCard({ days, canal, locationId, locationName, allRanking, zoneRanking, zoneName }: {
+  days: number; canal: string; locationId: string; locationName: string;
+  allRanking: RankingRow[]; zoneRanking: RankingRow[]; zoneName: string;
+}) {
+  const [extraMetrics, setExtraMetrics] = useState<ExtraMetrics | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  const nationalIdx = allRanking.findIndex(r => r.tienda === locationName);
+  const zoneIdx = zoneRanking.findIndex(r => r.tienda === locationName);
+  const nationalRank = nationalIdx >= 0 ? nationalIdx + 1 : null;
+  const zoneRank = zoneIdx >= 0 ? zoneIdx + 1 : null;
+  const ventasNetas = nationalIdx >= 0 ? allRanking[nationalIdx].ventas_totales : 0;
+
+  const effectiveDays = resolveDays(days);
+  const allDailySales = allRanking.map(r => r.ventas_totales / effectiveDays);
+  const storeDailySales = nationalIdx >= 0 ? allRanking[nationalIdx].ventas_totales / effectiveDays : 0;
+  const perfClassNational = getPerformanceClass(storeDailySales, allDailySales);
+
+  const zoneDailySales = zoneRanking.map(r => r.ventas_totales / effectiveDays);
+  const perfClassZone = getPerformanceClass(storeDailySales, zoneDailySales);
+
+  useEffect(() => {
+    async function fetch() {
+      if (!isValidDays(days)) return;
+      setLoading(true);
+      const { data: metricsData } = await supabase.rpc("reporte_metricas_tienda_individual" as any, {
+        dias_atras: effectiveDays, p_location_id: locationId,
+      });
+      if (metricsData && (metricsData as any[]).length > 0) {
+        setExtraMetrics((metricsData as any[])[0] as ExtraMetrics);
+      }
+      setLoading(false);
+    }
+    fetch();
+  }, [days, locationId]);
+
+  if (loading) return <LoadingState rows={2} />;
+
+  const ALERT_THRESHOLD = 60_000_000;
+  const showAlert = ventasNetas < ALERT_THRESHOLD;
+
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-1 lg:grid-cols-[320px_1fr] gap-4">
+        {/* Card 1: Posición en Ranking (Zone + National) */}
+        <div className="glass-card p-5">
+          <div className="flex items-center gap-3 mb-4">
+            <Trophy className="h-5 w-5 text-primary" />
+            <h3 className="text-sm font-semibold text-foreground">Posición en Ranking</h3>
+          </div>
+          <div className="space-y-4">
+            {/* National Position */}
+            <div className="flex flex-col items-center gap-1.5 p-3 rounded-lg bg-muted/30 border border-border">
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">Posición General</p>
+              <div className="h-14 w-14 rounded-xl bg-primary/10 flex items-center justify-center">
+                <span className="text-2xl font-bold text-primary">#{nationalRank ?? "—"}</span>
+              </div>
+              <p className="text-xs text-muted-foreground">de {allRanking.length} sucursales</p>
+              <span className={cn("text-xs font-semibold", perfClassNational.color)}>{perfClassNational.label}</span>
+            </div>
+            {/* Zone Position */}
+            <div className="flex flex-col items-center gap-1.5 p-3 rounded-lg bg-primary/5 border border-primary/20">
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">Posición en Zona ({zoneName})</p>
+              <div className="h-14 w-14 rounded-xl bg-primary/10 flex items-center justify-center">
+                <span className="text-2xl font-bold text-primary">#{zoneRank ?? "—"}</span>
+              </div>
+              <p className="text-xs text-muted-foreground">de {zoneRanking.length} sucursales</p>
+              <span className={cn("text-xs font-semibold", perfClassZone.color)}>{perfClassZone.label}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Card 2: Desempeño Comercial */}
+        <div className="glass-card p-5">
+          <div className="flex items-center gap-3 mb-5">
+            <CalendarDays className="h-5 w-5 text-primary" />
+            <h3 className="text-sm font-semibold text-foreground">Desempeño Comercial</h3>
+          </div>
+          <div className="space-y-5">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              <div className="p-3 rounded-lg bg-emerald-500/5 border border-emerald-500/20">
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">🟢 Mejor Día</p>
+                <p className="text-sm font-semibold text-foreground">{translateDay(extraMetrics?.mejor_dia_semana ?? "N/A")}</p>
+                <p className="text-xs text-muted-foreground">{fmtCurrency(extraMetrics?.venta_mejor_dia ?? 0)}</p>
+              </div>
+              <div className="p-3 rounded-lg bg-destructive/5 border border-destructive/20">
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">🔴 Peor Día</p>
+                <p className="text-sm font-semibold text-foreground">{translateDay(extraMetrics?.peor_dia_semana ?? "N/A")}</p>
+                <p className="text-xs text-muted-foreground">{fmtCurrency(extraMetrics?.venta_peor_dia ?? 0)}</p>
+              </div>
+              <div className="p-3 rounded-lg bg-muted/40 border border-border">
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Prom. Lun-Vie</p>
+                <p className="text-sm font-semibold text-foreground">{fmtCurrency(extraMetrics?.venta_promedio_semana ?? 0)}</p>
+              </div>
+              <div className="p-3 rounded-lg bg-muted/40 border border-border">
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Prom. Sáb-Dom</p>
+                <p className="text-sm font-semibold text-foreground">{fmtCurrency(extraMetrics?.venta_promedio_finde ?? 0)}</p>
+              </div>
+            </div>
+            <div className="grid grid-cols-3 gap-4">
+              <div className="p-3 rounded-lg bg-muted/30 border border-border">
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Venta Prom/Día</p>
+                <p className="text-base font-semibold text-foreground">{fmtCurrency(extraMetrics?.venta_promedio_diaria_actual ?? 0)}</p>
+                <ComparisonIndicator actual={extraMetrics?.venta_promedio_diaria_actual ?? 0} anterior={extraMetrics?.venta_promedio_diaria_anterior ?? 0} label="vs ant." />
+              </div>
+              <div className="p-3 rounded-lg bg-muted/30 border border-border">
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Pedidos Prom/Día</p>
+                <p className="text-base font-semibold text-foreground">{(extraMetrics?.pedidos_promedio_diario_actual ?? 0).toFixed(1)}</p>
+                <ComparisonIndicator actual={extraMetrics?.pedidos_promedio_diario_actual ?? 0} anterior={extraMetrics?.pedidos_promedio_diario_anterior ?? 0} label="vs ant." />
+              </div>
+              <div className="p-3 rounded-lg bg-muted/30 border border-border">
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Uds Prom/Día</p>
+                <p className="text-base font-semibold text-foreground">{(extraMetrics?.unidades_promedio_diario_actual ?? 0).toFixed(1)}</p>
+                <ComparisonIndicator actual={extraMetrics?.unidades_promedio_diario_actual ?? 0} anterior={extraMetrics?.unidades_promedio_diario_anterior ?? 0} label="vs ant." />
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {showAlert && (
+        <div className="glass-card p-5 border-2 border-destructive/50 bg-destructive/5">
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-10 rounded-lg bg-destructive/10 flex items-center justify-center shrink-0">
+              <span className="text-xl">🚨</span>
+            </div>
+            <div>
+              <p className="text-sm font-bold text-destructive">ACTIVAR ACCIONES COMERCIALES</p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Las ventas netas ({fmtCurrency(ventasNetas)}) están por debajo del umbral de {fmtCurrency(ALERT_THRESHOLD)}.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
