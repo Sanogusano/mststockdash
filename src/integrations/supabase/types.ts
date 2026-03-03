@@ -382,7 +382,10 @@ export type Database = {
           stock_digital: number
           stock_tiendas: number
           und_digital: number
+          und_full_price: number
           und_outlets: number
+          und_promo: number
+          und_rebajas: number
           und_tiendas: number
           und_total: number
           wos: number
