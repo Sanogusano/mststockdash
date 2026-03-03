@@ -160,7 +160,8 @@ export function LogisticsTransfers({ days }: Props) {
           .from("product_catalog")
           .select("product_id, category")
           .in("product_id", chunk)
-          .not("category", "is", null);
+          .not("category", "is", null)
+          .limit(5000);
 
         if (!catalog) continue;
         catalog.forEach((c: any) => {
