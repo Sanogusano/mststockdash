@@ -1161,9 +1161,6 @@ function ChannelPanel({ days, canal, showLocationFilter, locationFilter }: {
             </Select>
             {selectedLocation !== "all" && selectedLoc && (
               <div className="flex items-center gap-2 ml-0 sm:ml-2 flex-wrap">
-                <span className="text-sm font-bold text-foreground">
-                  DATOS PARA <span className="text-primary">{selectedLoc.name}</span>
-                </span>
                 {tipoLabel && (
                   <span className={cn("inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold border", tipoColor)}>
                     Tipo {tipoLabel}
