@@ -1689,7 +1689,60 @@ function ZonePanel({ days, locationFilter }: { days: number; locationFilter: "ti
         </div>
       </div>
 
-      {/* Desempeño Comercial: StoreRankCard when store selected, StoreLeaderboard otherwise */}
+      {/* Desempeño Comercial por Zona — always visible */}
+      {!(selectedLocation !== "all" && selectedLoc) && (
+        <div className="glass-card p-5">
+          <div className="flex items-center gap-3 mb-5">
+            <CalendarDays className="h-5 w-5 text-primary" />
+            <h3 className="text-sm font-semibold text-foreground">Desempeño Comercial {selectedZone !== "all" ? `— ${selectedZone}` : "— Todas las Zonas"}</h3>
+          </div>
+          <div className="space-y-5">
+            {/* Row 1: Key period comparisons */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              <div className="p-3 rounded-lg bg-muted/30 border border-border">
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Ventas Netas</p>
+                <p className="text-base font-semibold text-foreground">{fmtCurrency(kpis?.ingresos_netos ?? 0)}</p>
+                <ComparisonIndicator actual={kpis?.ingresos_netos ?? 0} anterior={prevKpis?.ingresos_netos ?? 0} label="vs ant." />
+              </div>
+              <div className="p-3 rounded-lg bg-muted/30 border border-border">
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Pedidos</p>
+                <p className="text-base font-semibold text-foreground">{(kpis?.total_pedidos ?? 0).toLocaleString()}</p>
+                <ComparisonIndicator actual={kpis?.total_pedidos ?? 0} anterior={prevKpis?.total_pedidos ?? 0} label="vs ant." />
+              </div>
+              <div className="p-3 rounded-lg bg-muted/30 border border-border">
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Uds Vendidas</p>
+                <p className="text-base font-semibold text-foreground">{(kpis?.unidades_vendidas ?? 0).toLocaleString()}</p>
+                <ComparisonIndicator actual={kpis?.unidades_vendidas ?? 0} anterior={prevKpis?.unidades_vendidas ?? 0} label="vs ant." />
+              </div>
+              <div className="p-3 rounded-lg bg-muted/30 border border-border">
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Ticket Promedio</p>
+                <p className="text-base font-semibold text-foreground">{fmtCurrency(kpis?.ticket_promedio ?? 0)}</p>
+                <ComparisonIndicator actual={kpis?.ticket_promedio ?? 0} anterior={prevKpis?.ticket_promedio ?? 0} label="vs ant." />
+              </div>
+            </div>
+            {/* Row 2: UPT, Venta/m², % Full Price */}
+            <div className="grid grid-cols-3 gap-4">
+              <div className="p-3 rounded-lg bg-muted/30 border border-border">
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">UPT</p>
+                <p className="text-base font-semibold text-foreground">{(kpis?.upt ?? 0).toFixed(2)}</p>
+                <ComparisonIndicator actual={kpis?.upt ?? 0} anterior={prevKpis?.upt ?? 0} label="vs ant." />
+              </div>
+              <div className="p-3 rounded-lg bg-muted/30 border border-border">
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Venta / m²</p>
+                <p className="text-base font-semibold text-foreground">{fmtCurrency(ventaM2)}</p>
+                <ComparisonIndicator actual={ventaM2} anterior={prevVentaM2} label="vs ant." />
+              </div>
+              <div className="p-3 rounded-lg bg-muted/30 border border-border">
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">% Full Price</p>
+                <p className="text-base font-semibold text-foreground">{(kpis?.pct_pedidos_full_price ?? 0).toFixed(1)}%</p>
+                <ComparisonIndicator actual={kpis?.pct_pedidos_full_price ?? 0} anterior={prevKpis?.pct_pedidos_full_price ?? 0} label="vs ant." />
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Store-specific rank + commercial card */}
       {selectedLocation !== "all" && selectedLoc ? (
         <ZoneStoreRankCard
           days={days}
@@ -1700,8 +1753,10 @@ function ZonePanel({ days, locationFilter }: { days: number; locationFilter: "ti
           zoneRanking={zoneRanking}
           zoneName={selectedZone}
         />
-      ) : (
-        /* Top Tiendas Table */
+      ) : null}
+
+      {/* Top Tiendas Table */}
+      {!(selectedLocation !== "all" && selectedLoc) && (
         <div className="glass-card overflow-hidden">
           <div className="flex items-center justify-between px-5 py-4 border-b border-border">
             <div className="flex items-center gap-3">
