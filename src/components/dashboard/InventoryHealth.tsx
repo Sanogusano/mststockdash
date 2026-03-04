@@ -166,19 +166,27 @@ export function InventoryHealth({ days }: Props) {
       setLoading(true);
       const effectiveDays = resolveDays(days);
 
-      const [healthRes, locsRes] = await Promise.all([
-        supabase.rpc("reporte_salud_inventario", { dias_atras: effectiveDays }),
-        supabase.from("locations").select("location_id, name").eq("is_active", true),
-      ]);
+      try {
+        const [healthRes, locsRes] = await Promise.all([
+          supabase.rpc("reporte_salud_inventario", { dias_atras: effectiveDays }),
+          supabase.from("locations").select("location_id, name").eq("is_active", true),
+        ]);
 
-      if (healthRes.data) setData(healthRes.data as HealthRow[]);
+        if (healthRes.error) {
+          console.error("Error fetching inventory health:", healthRes.error);
+        } else if (healthRes.data) {
+          setData(healthRes.data as HealthRow[]);
+        }
 
-      if (locsRes.data) {
-        const map: Record<string, string> = {};
-        locsRes.data.forEach((l) => {
-          map[l.name] = l.location_id;
-        });
-        setLocationMap(map);
+        if (locsRes.data) {
+          const map: Record<string, string> = {};
+          locsRes.data.forEach((l) => {
+            map[l.name] = l.location_id;
+          });
+          setLocationMap(map);
+        }
+      } catch (err) {
+        console.error("Unexpected error:", err);
       }
 
       setLoading(false);
