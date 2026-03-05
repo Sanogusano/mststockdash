@@ -1141,7 +1141,7 @@ function ChannelPanel({ days, canal, showLocationFilter, locationFilter, compari
       setLoading(false);
     }
     fetchAll();
-  }, [days, canal, selectedLocation]);
+  }, [days, canal, selectedLocation, comparisonPeriod]);
 
   if (loading) return <LoadingState rows={6} />;
 
