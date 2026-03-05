@@ -2,7 +2,7 @@ import { useEffect, useState, Fragment } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { isValidDays } from "@/lib/validation";
-import { resolveDays } from "@/components/dashboard/TimeFilter";
+import { resolveDays, resolveComparisonRange, getDateRange, CUSTOM_SENTINEL, type ComparisonPeriod } from "@/components/dashboard/TimeFilter";
 import { exportToCSV } from "@/lib/csv-export";
 import { cn } from "@/lib/utils";
 import { exportToPDF } from "@/lib/pdf-export";
