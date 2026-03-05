@@ -12,6 +12,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Store, Globe, Download, FileText, DollarSign, ShoppingBag, Receipt, Star, Percent, Tag, Trophy, TrendingDown, TrendingUp, CalendarDays, Package, AlertTriangle, Ruler, Crown, ShieldAlert, MapPin } from "lucide-react";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid } from "recharts";
 import { StoreLeaderboard } from "./StoreLeaderboard";
+import { CollectionBadge } from "./CollectionBadge";
+import { CollectionCompositionCard } from "./CollectionCompositionCard";
 
 /* ── Constants ── */
 const CEDI_ID = "71474315479";
