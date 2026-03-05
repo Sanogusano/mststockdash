@@ -8,6 +8,7 @@ import { CategoryProductsDrawer } from "./CategoryProductsDrawer";
 import { exportToCSV } from "@/lib/csv-export";
 import { exportToPDF } from "@/lib/pdf-export";
 import { Filter, Star, Tag, Package, Download, FileText } from "lucide-react";
+import { CollectionInventoryCard } from "./CollectionInventoryCard";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
