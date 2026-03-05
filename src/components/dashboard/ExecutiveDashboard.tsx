@@ -1106,6 +1106,7 @@ function ChannelPanel({ days, canal, showLocationFilter, locationFilter }: {
             unidades_vendidas: r.unidades_vendidas ?? 0, precio_promedio: r.precio_prom_venta ?? 0,
             stock_disponible: r.stock_disponible ?? 0,
             sell_through_pct: r.sell_through_pct ?? 0, wos: r.wos ?? 0,
+            coleccion: r.coleccion ?? "Otros",
           } as ProductRow)));
         }
 
