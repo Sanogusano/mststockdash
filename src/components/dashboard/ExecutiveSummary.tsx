@@ -13,6 +13,7 @@ interface ExecutiveRow {
   precio_prom_venta: number | null;
   pct_contribucion: number | null;
   perfil_ejecutivo: string | null;
+  coleccion: string | null;
 }
 
 interface Props {

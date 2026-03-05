@@ -1850,6 +1850,8 @@ function ZonePanel({ days, locationFilter }: { days: number; locationFilter: "ti
         <ParetoChart days={days} canal={canal} locationId={locParam} />
       </div>
 
+      <CollectionCompositionCard days={days} canal={canal} locationId={locParam} zona={zonaParam} />
+
       {/* Top/Bottom Products */}
       <ProductTable data={topProducts} title="Top 20 — Más Vendidos" exportFilename={`top20_zona_${canal}_${days}d`}
         days={days} canalFiltro={canalFiltro} locationFiltro={locParam} />
