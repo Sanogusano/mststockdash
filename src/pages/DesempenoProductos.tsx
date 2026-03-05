@@ -238,6 +238,7 @@ export default function DesempenoProductosPage() {
                             </div>
                           </TableCell>
                           <TableCell className="text-xs text-muted-foreground">{row.categoria}</TableCell>
+                          <TableCell><CollectionBadge coleccion={row.coleccion} /></TableCell>
                           <TableCell className="text-right text-sm">{(row.und_tiendas ?? 0).toLocaleString()}</TableCell>
                           <TableCell className="text-right text-sm">{(row.und_outlets ?? 0).toLocaleString()}</TableCell>
                           <TableCell className="text-right text-sm">{(row.und_digital ?? 0).toLocaleString()}</TableCell>
