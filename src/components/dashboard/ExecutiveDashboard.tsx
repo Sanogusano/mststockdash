@@ -1310,7 +1310,10 @@ function BrandTopBottomProducts({ days }: { days: number }) {
             )}
             <div className="min-w-0 flex-1">
               <p className="text-xs font-medium text-foreground truncate">{item.producto ?? "—"}</p>
-              <p className="text-[10px] text-muted-foreground">{item.categoria ?? "—"}</p>
+              <div className="flex items-center gap-1.5">
+                <p className="text-[10px] text-muted-foreground">{item.categoria ?? "—"}</p>
+                <CollectionBadge coleccion={item.coleccion} />
+              </div>
             </div>
             <div className="text-right shrink-0">
               <p className="text-xs font-semibold text-foreground">{(item.und_total ?? 0).toLocaleString()} uds</p>
