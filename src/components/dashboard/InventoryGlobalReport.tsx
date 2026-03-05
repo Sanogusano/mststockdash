@@ -227,6 +227,9 @@ export function InventoryGlobalReport({ open, onOpenChange, days }: Props) {
                 </button>
               </div>
 
+              {/* Collection Inventory Composition */}
+              <CollectionInventoryCard />
+
               {/* Filters */}
               <div className="flex flex-wrap items-center gap-2">
                 <Filter className="h-3.5 w-3.5 text-muted-foreground" />
