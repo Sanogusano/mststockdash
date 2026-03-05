@@ -19,6 +19,7 @@ interface Props {
   days: number;
   locationId?: string | null;
   canal?: string | null;
+  storeName?: string;
   onClose: () => void;
 }
 
@@ -35,7 +36,7 @@ const getWosColor = (wos: number) => {
   return "text-success";
 };
 
-export function CategoryProductsDrawer({ categoria, days, locationId, canal, onClose }: Props) {
+export function CategoryProductsDrawer({ categoria, days, locationId, canal, storeName, onClose }: Props) {
   const [selectedProduct, setSelectedProduct] = useState<{ product_id: string; producto: string; foto?: string } | null>(null);
   const effectiveDays = resolveDays(days);
 
@@ -55,12 +56,18 @@ export function CategoryProductsDrawer({ categoria, days, locationId, canal, onC
     return stock > 0 || ventas > 0;
   });
 
+  const isStoreView = !!locationId;
+  const stockColumnLabel = isStoreView ? "Stock en tienda" : "Stock";
+  const drawerTitle = isStoreView && storeName
+    ? `Inventario ${storeName} — ${categoria}`
+    : `Productos — ${categoria}`;
+
   const handleExportCSV = () => {
     if (!rows.length) return;
     exportToCSV(
       rows.map((r) => ({
         Producto: r.producto,
-        "Stock Total": r.stock_total,
+        [stockColumnLabel]: r.stock_total,
         "Venta Prom/Sem": r.venta_prom_semanal,
         WOS: r.wos,
         Estado: r.estado_salud,
@@ -90,7 +97,7 @@ export function CategoryProductsDrawer({ categoria, days, locationId, canal, onC
         Clasif: r.clasificacion,
       })),
       `productos_${categoria}`,
-      `Productos: ${categoria}`
+      drawerTitle
     );
   };
 
@@ -102,7 +109,7 @@ export function CategoryProductsDrawer({ categoria, days, locationId, canal, onC
             <>
               <SheetHeader className="p-6 pb-4 border-b border-border">
                 <SheetTitle className="text-base font-semibold text-foreground">
-                  Productos — {categoria}
+                  {drawerTitle}
                 </SheetTitle>
                 <p className="text-xs text-muted-foreground">Click en un producto para ver detalle por SKU/Talla</p>
               </SheetHeader>
@@ -129,7 +136,7 @@ export function CategoryProductsDrawer({ categoria, days, locationId, canal, onC
                         <TableHeader>
                           <TableRow className="bg-muted/30">
                             <TableHead className="min-w-[200px]">Producto</TableHead>
-                            <TableHead className="text-right">Stock</TableHead>
+                            <TableHead className="text-right">{stockColumnLabel}</TableHead>
                             <TableHead className="text-right">Vta/Sem</TableHead>
                             <TableHead className="text-right">WOS</TableHead>
                             <TableHead>Estado</TableHead>
@@ -193,6 +200,7 @@ export function CategoryProductsDrawer({ categoria, days, locationId, canal, onC
       <ProductSkuDrawer
         product={selectedProduct}
         days={days}
+        locationId={locationId}
         onClose={() => setSelectedProduct(null)}
       />
     </>
