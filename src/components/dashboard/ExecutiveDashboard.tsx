@@ -199,6 +199,7 @@ function ProductTable({ data, title, exportFilename, days, canalFiltro, location
       "#": i + 1,
       Línea: r.categoria ?? "",
       Nombre: name,
+      Colección: r.coleccion ?? "Otros",
       "Stock Total": r.stock_disponible ?? 0,
       "Unidades Vendidas": r.unidades_vendidas ?? 0,
       Clasificación: r.clasificacion ?? "",
