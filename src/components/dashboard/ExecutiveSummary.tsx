@@ -107,6 +107,7 @@ export function ExecutiveSummary({ days }: Props) {
                     </div>
                   </div>
                 </td>
+                <td className="px-4 py-3"><CollectionBadge coleccion={row.coleccion} /></td>
                 <td className="px-4 py-3 text-right text-sm font-medium">
                   {(row.unidades_vendidas ?? 0).toLocaleString()}
                 </td>
