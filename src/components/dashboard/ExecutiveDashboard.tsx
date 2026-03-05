@@ -2008,7 +2008,7 @@ function ZoneStoreRankCard({ days, canal, locationId, locationName, allRanking, 
 }
 
 /* ── Main Component ── */
-export function ExecutiveDashboard({ days }: Props) {
+export function ExecutiveDashboard({ days, comparisonPeriod = "previous" }: Props) {
   return (
     <Tabs defaultValue="venta-directa" className="w-full">
       <TabsList className="w-full grid grid-cols-3 bg-muted/50 rounded-xl p-1 h-auto border border-border mb-6">
@@ -2030,7 +2030,7 @@ export function ExecutiveDashboard({ days }: Props) {
       </TabsList>
 
       <TabsContent value="venta-directa">
-        <BrandOverviewPanel days={days} />
+        <BrandOverviewPanel days={days} comparisonPeriod={comparisonPeriod} />
         <BrandParetoPreview days={days} />
       </TabsContent>
 
@@ -2049,10 +2049,10 @@ export function ExecutiveDashboard({ days }: Props) {
           </TabsList>
 
           <TabsContent value="tiendas" className="mt-6">
-            <ZonePanel days={days} locationFilter="tiendas" />
+            <ZonePanel days={days} locationFilter="tiendas" comparisonPeriod={comparisonPeriod} />
           </TabsContent>
           <TabsContent value="outlets" className="mt-6">
-            <ZonePanel days={days} locationFilter="outlets" />
+            <ZonePanel days={days} locationFilter="outlets" comparisonPeriod={comparisonPeriod} />
           </TabsContent>
         </Tabs>
       </TabsContent>
@@ -2076,13 +2076,13 @@ export function ExecutiveDashboard({ days }: Props) {
           </TabsList>
 
           <TabsContent value="tiendas" className="mt-6">
-            <ChannelPanel days={days} canal="tiendas" showLocationFilter={true} locationFilter="tiendas" />
+            <ChannelPanel days={days} canal="tiendas" showLocationFilter={true} locationFilter="tiendas" comparisonPeriod={comparisonPeriod} />
           </TabsContent>
           <TabsContent value="outlets" className="mt-6">
-            <ChannelPanel days={days} canal="outlets" showLocationFilter={true} locationFilter="outlets" />
+            <ChannelPanel days={days} canal="outlets" showLocationFilter={true} locationFilter="outlets" comparisonPeriod={comparisonPeriod} />
           </TabsContent>
           <TabsContent value="digital" className="mt-6">
-            <ChannelPanel days={days} canal="digital" showLocationFilter={false} />
+            <ChannelPanel days={days} canal="digital" showLocationFilter={false} comparisonPeriod={comparisonPeriod} />
           </TabsContent>
         </Tabs>
       </TabsContent>
