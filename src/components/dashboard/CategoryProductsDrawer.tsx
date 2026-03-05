@@ -172,7 +172,10 @@ export function CategoryProductsDrawer({ categoria, days, locationId, canal, onC
                                   ) : (
                                     <div className="h-8 w-8 rounded bg-muted/50 shrink-0" />
                                   )}
-                                  <span className="text-sm font-medium text-foreground line-clamp-2">{row.producto}</span>
+                                  <div className="min-w-0">
+                                    <span className="text-sm font-medium text-foreground line-clamp-2">{row.producto}</span>
+                                    <CollectionBadge coleccion={row.coleccion} />
+                                  </div>
                                 </div>
                               </TableCell>
                               <TableCell className="text-right text-sm font-semibold">{(row.stock_total ?? 0).toLocaleString()}</TableCell>
