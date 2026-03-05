@@ -13,21 +13,6 @@ import { CollectionBadge } from "./CollectionBadge";
 import { resolveDays } from "./TimeFilter";
 import { fetchCategoryProducts, type ProductRow } from "./categoryProductsData";
 
-interface ProductRow {
-  foto: string;
-  producto: string;
-  product_id: string;
-  stock_total: number;
-  venta_prom_semanal: number;
-  wos: number;
-  estado_salud: string;
-  und_full_price: number;
-  und_rebajas: number;
-  und_promo: number;
-  und_total: number;
-  clasificacion: string;
-  coleccion: string;
-}
 
 interface Props {
   categoria: string | null;
