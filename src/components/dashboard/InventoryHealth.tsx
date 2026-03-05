@@ -66,6 +66,7 @@ function InventorySection({
   const isPrendas = tipo === "PRENDAS";
 
   const handleStoreClick = (storeName: string) => {
+    if (!isPrendas) return; // Only navigate for Prendas
     const locId = locationMap[storeName];
     if (locId) navigate(`/tienda/${locId}`);
   };
