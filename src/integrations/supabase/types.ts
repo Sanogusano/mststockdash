@@ -369,7 +369,7 @@ export type Database = {
         }[]
       }
       reporte_curva_traslados: {
-        Args: { dias_atras: number; p_destino?: string; p_origen?: string }
+        Args: { dias_atras?: number; p_destino?: string; p_origen?: string }
         Returns: {
           color: string
           foto: string
