@@ -366,7 +366,10 @@ export function ProductBehaviorTable({ days, initialWosFilter, initialLocationId
                           )}
                           <div className="min-w-0">
                             <p className="text-sm font-medium text-foreground truncate">{row.producto}</p>
-                            <p className="text-xs text-muted-foreground">{row.categoria}</p>
+                            <div className="flex items-center gap-1.5">
+                              <p className="text-xs text-muted-foreground">{row.categoria}</p>
+                              <CollectionBadge coleccion={row.coleccion} />
+                            </div>
                           </div>
                         </div>
                       </TableCell>
