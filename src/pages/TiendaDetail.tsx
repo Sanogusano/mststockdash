@@ -8,6 +8,7 @@ import { LoadingState, EmptyState } from "@/components/dashboard/LoadingState";
 import { StatusBadge } from "@/components/dashboard/StatusBadge";
 import { MultiSelectFilter } from "@/components/dashboard/MultiSelectFilter";
 import { ArrowLeft, DollarSign, Receipt, ShoppingBag, Star, Percent, Package, Filter, Tag } from "lucide-react";
+import { CollectionInventoryCard } from "@/components/dashboard/CollectionInventoryCard";
 import { isValidDays } from "@/lib/validation";
 import { resolveDays } from "@/components/dashboard/TimeFilter";
 import { cn } from "@/lib/utils";
