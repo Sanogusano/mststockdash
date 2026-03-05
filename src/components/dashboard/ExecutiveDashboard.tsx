@@ -1005,9 +1005,9 @@ interface RankingRow {
 }
 
 /* ── Channel Panel ── */
-function ChannelPanel({ days, canal, showLocationFilter, locationFilter }: {
+function ChannelPanel({ days, canal, showLocationFilter, locationFilter, comparisonPeriod = "previous" }: {
   days: number; canal: string; showLocationFilter: boolean;
-  locationFilter?: "tiendas" | "outlets";
+  locationFilter?: "tiendas" | "outlets"; comparisonPeriod?: ComparisonPeriod;
 }) {
   const [kpis, setKpis] = useState<KpiData | null>(null);
   const [prevKpis, setPrevKpis] = useState<KpiData | null>(null);
