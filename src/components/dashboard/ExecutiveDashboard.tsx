@@ -55,6 +55,7 @@ interface ProductRow {
   stock_disponible: number | null;
   sell_through_pct: number | null;
   wos: number | null;
+  coleccion: string | null;
 }
 
 const toNumber = (value: unknown): number => {
