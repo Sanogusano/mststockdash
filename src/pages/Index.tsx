@@ -44,7 +44,7 @@ export default function ExecutivePage() {
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <TimeFilter value={days} onChange={setDays} />
+              <TimeFilter value={days} onChange={setDays} comparisonPeriod={comparisonPeriod} onComparisonChange={setComparisonPeriod} />
               <ReportGeneratorButton days={days} />
             </div>
           </header>
