@@ -72,6 +72,7 @@ export function ExecutiveSummary({ days }: Props) {
           <thead>
             <tr className="border-b border-border text-left">
               <th className="px-4 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">Producto</th>
+              <th className="px-4 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">Colección</th>
               <th className="px-4 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wider text-right">Uds</th>
               <th className="px-4 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wider text-right">Precio Prom</th>
               <th className="px-4 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wider text-right">Contribución</th>
