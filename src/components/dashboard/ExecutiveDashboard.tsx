@@ -95,6 +95,12 @@ interface Location {
 
 interface Props {
   days: number;
+  comparisonPeriod?: ComparisonPeriod;
+}
+
+/** Format a Date as "YYYY-MM-DD" for RPC date params */
+function toDateStr(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
 /* ── Export Buttons ── */
