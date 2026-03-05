@@ -243,7 +243,7 @@ function ProductTable({ data, title, exportFilename, days, canalFiltro, location
               <th className="px-3 py-3 text-left text-xs font-medium text-muted-foreground">Colección</th>
               <th className="px-3 py-3 text-right text-xs font-medium text-muted-foreground">Stock</th>
               <th className="px-3 py-3 text-right text-xs font-medium text-muted-foreground">Unidades Vendidas</th>
-              <th className="px-3 py-3 text-left text-xs font-medium text-muted-foreground">Clasif.</th>
+              <th className="px-3 py-3 text-left text-xs font-medium text-muted-foreground min-w-[120px]">Clasif.</th>
               <th className="px-3 py-3 text-center text-xs font-medium text-muted-foreground w-32">ST%</th>
               <th className="px-3 py-3 text-right text-xs font-medium text-muted-foreground">WOS</th>
             </tr>
