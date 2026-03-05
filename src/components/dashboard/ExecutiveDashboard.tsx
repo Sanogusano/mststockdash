@@ -1533,7 +1533,7 @@ function BrandParetoPreview({ days }: { days: number }) {
 }
 
 /* ── Zone Panel ── */
-function ZonePanel({ days, locationFilter }: { days: number; locationFilter: "tiendas" | "outlets" }) {
+function ZonePanel({ days, locationFilter, comparisonPeriod = "previous" }: { days: number; locationFilter: "tiendas" | "outlets"; comparisonPeriod?: ComparisonPeriod }) {
   const [locations, setLocations] = useState<Location[]>([]);
   const [selectedZone, setSelectedZone] = useState("all");
   const [selectedLocation, setSelectedLocation] = useState("all");
