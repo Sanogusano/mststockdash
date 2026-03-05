@@ -272,6 +272,8 @@ export function LogisticsTransfers({ days }: Props) {
     });
 
     map.forEach((group) => {
+      group.total_uds = group.tallas.reduce((acc, talla) => acc + talla.uds_sugeridas, 0);
+
       const allOrig = new Set<string>();
       group.tallas.forEach((t) => t.origenes.forEach((o) => allOrig.add(o.tienda)));
       group.origenes_unicos = Array.from(allOrig);
