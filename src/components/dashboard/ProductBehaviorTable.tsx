@@ -40,6 +40,7 @@ interface ProductRow {
   und_full_price: number;
   und_rebajas: number;
   und_promo: number;
+  coleccion: string;
 }
 
 const WOS_FILTERS = [
