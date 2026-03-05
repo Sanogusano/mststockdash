@@ -1583,9 +1583,7 @@ function ZonePanel({ days, locationFilter, comparisonPeriod = "previous" }: { da
         supabase.rpc("reporte_kpis_comerciales" as any, {
           dias_atras: effectiveDays, p_canal: canal, p_location_id: locParam, p_zona: zonaParam,
         }),
-        supabase.rpc("reporte_kpis_periodo_anterior" as any, {
-          dias_atras: effectiveDays, p_canal: canal, p_location_id: locParam, p_zona: zonaParam,
-        }),
+        (() => { const cr = resolveComparisonRange(days, comparisonPeriod); return supabase.rpc("reporte_kpis_por_rango" as any, { p_desde: toDateStr(cr.from), p_hasta: toDateStr(cr.to), p_canal: canal, p_location_id: locParam, p_zona: zonaParam }); })(),
         supabase.rpc("reporte_ranking_tiendas", { dias_atras: effectiveDays, p_canal: canal }),
         supabase.rpc("reporte_ejecutivo_productos" as any, {
           dias_atras: effectiveDays, canal_filtro: canalFiltro, location_filtro: locParam, orden: "TOP", limite: 20, zona_filtro: zonaParam,
