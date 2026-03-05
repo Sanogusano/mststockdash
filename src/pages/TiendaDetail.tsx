@@ -100,10 +100,9 @@ export default function TiendaDetailPage() {
         supabase.rpc("reporte_wos_categoria_tienda", { dias_atras: effectiveDays, p_location_id: id }),
         supabase.rpc("reporte_kpis_comerciales", { dias_atras: effectiveDays, p_location_id: id }),
         supabase
-          .from("inventory_snapshot")
-          .select("sku, available, product_catalog!inner(title, category)")
-          .eq("location_id", id)
-          .or("category.ilike.%bolsa%,category.ilike.%insumo%", { referencedTable: "product_catalog" }),
+          .from("product_catalog")
+          .select("sku, title, category, variant_id")
+          .or("category.ilike.%bolsa%,category.ilike.%insumo%"),
         supabase.rpc("reporte_wos_categoria_global", { dias_atras: effectiveDays, p_location_ids: [id] }),
       ]);
 
@@ -114,21 +113,32 @@ export default function TiendaDetailPage() {
       }
       if (wosCatRes.data) setWosCatData(wosCatRes.data as unknown as WosCatGlobalRow[]);
       
-      if (supplyRes.data) {
-        const mapped = (supplyRes.data as any[]).map((r) => ({
-          sku: r.sku,
-          title: (r.product_catalog as any)?.title ?? r.sku,
-          available: r.available ?? 0,
-        }));
-        const aggregated: Record<string, SupplyStockRow> = {};
-        mapped.forEach((r) => {
-          if (aggregated[r.sku]) {
-            aggregated[r.sku].available += r.available;
-          } else {
-            aggregated[r.sku] = { ...r };
-          }
+      // Get supply SKUs from catalog, then fetch their inventory for this location
+      if (supplyRes.data && supplyRes.data.length > 0) {
+        const supplySkus = (supplyRes.data as any[]).map((r: any) => r.sku);
+        const supplyTitleMap: Record<string, string> = {};
+        (supplyRes.data as any[]).forEach((r: any) => {
+          supplyTitleMap[r.sku] = r.title ?? r.sku;
         });
-        setSupplyStock(Object.values(aggregated).sort((a, b) => b.available - a.available));
+        // Fetch inventory for these SKUs at this location
+        const { data: invData } = await supabase
+          .from("inventory_snapshot")
+          .select("sku, available")
+          .eq("location_id", id)
+          .in("sku", supplySkus);
+        if (invData) {
+          const aggregated: Record<string, SupplyStockRow> = {};
+          (invData as any[]).forEach((r: any) => {
+            const sku = r.sku;
+            const available = r.available ?? 0;
+            if (aggregated[sku]) {
+              aggregated[sku].available += available;
+            } else {
+              aggregated[sku] = { sku, title: supplyTitleMap[sku] ?? sku, available };
+            }
+          });
+          setSupplyStock(Object.values(aggregated).sort((a, b) => b.available - a.available));
+        }
       }
       setLoading(false);
     }
