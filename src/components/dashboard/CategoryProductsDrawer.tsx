@@ -25,6 +25,7 @@ interface ProductRow {
   und_promo: number;
   und_total: number;
   clasificacion: string;
+  coleccion: string;
 }
 
 interface Props {
