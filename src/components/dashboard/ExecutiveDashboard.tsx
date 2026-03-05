@@ -243,7 +243,7 @@ function ProductTable({ data, title, exportFilename, days, canalFiltro, location
               <th className="px-3 py-3 text-left text-xs font-medium text-muted-foreground">Colección</th>
               <th className="px-3 py-3 text-right text-xs font-medium text-muted-foreground">Stock</th>
               <th className="px-3 py-3 text-right text-xs font-medium text-muted-foreground">Unidades Vendidas</th>
-              <th className="px-3 py-3 text-left text-xs font-medium text-muted-foreground">Clasif.</th>
+              <th className="px-3 py-3 text-left text-xs font-medium text-muted-foreground min-w-[120px]">Clasif.</th>
               <th className="px-3 py-3 text-center text-xs font-medium text-muted-foreground w-32">ST%</th>
               <th className="px-3 py-3 text-right text-xs font-medium text-muted-foreground">WOS</th>
             </tr>
@@ -275,8 +275,8 @@ function ProductTable({ data, title, exportFilename, days, canalFiltro, location
                     <td className="px-3 py-3"><CollectionBadge coleccion={row.coleccion} /></td>
                     <td className="px-3 py-3 text-right font-medium">{(row.stock_disponible ?? 0).toLocaleString()}</td>
                     <td className="px-3 py-3 text-right font-semibold">{(row.unidades_vendidas ?? 0).toLocaleString()}</td>
-                    <td className="px-3 py-3">
-                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium ${
+                    <td className="px-3 py-3 min-w-[120px]">
+                      <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-semibold whitespace-nowrap ${
                         row.clasificacion?.includes("Full Price") ? "bg-emerald-500/10 text-emerald-600"
                         : row.clasificacion?.includes("Rebajas") ? "bg-destructive/10 text-destructive"
                         : "bg-warning/10 text-warning"

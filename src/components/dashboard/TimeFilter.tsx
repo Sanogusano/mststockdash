@@ -1,7 +1,7 @@
 import { useState } from "react";
-import { format, differenceInCalendarDays, startOfMonth, subMonths, endOfMonth } from "date-fns";
+import { format, differenceInCalendarDays, startOfMonth, subMonths, endOfMonth, subDays, subWeeks } from "date-fns";
 import { es } from "date-fns/locale";
-import { CalendarIcon, ChevronDown } from "lucide-react";
+import { CalendarIcon, ChevronDown, GitCompareArrows } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Calendar } from "@/components/ui/calendar";
 import {
@@ -14,9 +14,14 @@ export const THIS_MONTH_SENTINEL = -1;
 export const CUSTOM_SENTINEL = -2;
 export const PREV_MONTH_SENTINEL = -3;
 
+/** Helper: format a Date as "YYYY-MM-DD" using LOCAL components (avoids UTC shift). */
+function localDateStr(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
 export function resolveDays(value: number): number {
   if (value === THIS_MONTH_SENTINEL) {
-    return Math.max(new Date().getDate(), 1);
+    return Math.max(new Date().getDate() - 1, 1); // days since the 1st of current month
   }
   if (value === PREV_MONTH_SENTINEL) {
     const now = new Date();
@@ -28,6 +33,86 @@ export function resolveDays(value: number): number {
     return 30;
   }
   return value;
+}
+
+/** Returns the actual date range for a given filter value */
+export function getDateRange(value: number, customFrom?: Date): { from: Date; to: Date } {
+  const now = new Date();
+
+  if (value === CUSTOM_SENTINEL && customFrom) {
+    return { from: customFrom, to: now };
+  }
+
+  if (value === THIS_MONTH_SENTINEL) {
+    // Use startOfMonth to avoid any timezone shifts
+    const from = startOfMonth(now);
+    return { from, to: now };
+  }
+
+  if (value === PREV_MONTH_SENTINEL) {
+    const prevStart = startOfMonth(subMonths(now, 1));
+    const prevEnd = endOfMonth(subMonths(now, 1));
+    return { from: prevStart, to: prevEnd };
+  }
+
+  const effectiveDays = value;
+  const from = new Date(now.getFullYear(), now.getMonth(), now.getDate() - effectiveDays);
+  return { from, to: now };
+}
+
+/** Comparison period types */
+export type ComparisonPeriod = "previous" | "day" | "week" | "month";
+
+export const COMPARISON_OPTIONS: { value: ComparisonPeriod; label: string }[] = [
+  { value: "previous", label: "Periodo Anterior" },
+  { value: "day", label: "Día Anterior" },
+  { value: "week", label: "Semana Anterior" },
+  { value: "month", label: "Mes Anterior" },
+];
+
+/** Resolves the comparison date range based on the current selection and comparison period */
+export function resolveComparisonRange(
+  filterValue: number,
+  comparisonPeriod: ComparisonPeriod,
+  customFrom?: Date
+): { from: Date; to: Date } {
+  const { from: currentFrom, to: currentTo } = getDateRange(filterValue, customFrom);
+  const rangeDays = differenceInCalendarDays(currentTo, currentFrom);
+
+  if (comparisonPeriod === "previous") {
+    // Same length period immediately before
+    const compTo = new Date(currentFrom.getFullYear(), currentFrom.getMonth(), currentFrom.getDate() - 1);
+    const compFrom = new Date(compTo.getFullYear(), compTo.getMonth(), compTo.getDate() - rangeDays);
+    return { from: compFrom, to: compTo };
+  }
+
+  if (comparisonPeriod === "day") {
+    const compTo = subDays(currentTo, 1);
+    const compFrom = subDays(currentFrom, 1);
+    return { from: compFrom, to: compTo };
+  }
+
+  if (comparisonPeriod === "week") {
+    const compTo = subWeeks(currentTo, 1);
+    const compFrom = subWeeks(currentFrom, 1);
+    return { from: compFrom, to: compTo };
+  }
+
+  // month
+  const compTo = subMonths(currentTo, 1);
+  const compFrom = subMonths(currentFrom, 1);
+  return { from: compFrom, to: compTo };
+}
+
+/** Resolves comparison days for the backend RPC (dias_atras for comparison period) */
+export function resolveComparisonDays(
+  filterValue: number,
+  comparisonPeriod: ComparisonPeriod,
+  customFrom?: Date
+): number {
+  const { from } = resolveComparisonRange(filterValue, comparisonPeriod, customFrom);
+  const now = new Date();
+  return Math.max(differenceInCalendarDays(now, from), 1);
 }
 
 interface Preset {
@@ -45,25 +130,6 @@ const presets: Preset[] = [
   { label: "180 Días", value: 180 },
 ];
 
-function getDateRange(value: number, customFrom?: Date): { from: Date; to: Date } {
-  const now = new Date();
-
-  if (value === CUSTOM_SENTINEL && customFrom) {
-    return { from: customFrom, to: now };
-  }
-
-  if (value === PREV_MONTH_SENTINEL) {
-    const prevStart = startOfMonth(subMonths(now, 1));
-    const prevEnd = endOfMonth(subMonths(now, 1));
-    return { from: prevStart, to: prevEnd };
-  }
-
-  const effectiveDays = resolveDays(value);
-  const from = new Date(now);
-  from.setDate(from.getDate() - effectiveDays);
-  return { from, to: now };
-}
-
 function formatRange(from: Date, to: Date): string {
   const fmt = (d: Date) => format(d, "d MMM", { locale: es });
   return `${fmt(from)} – ${fmt(to)}`;
@@ -76,12 +142,15 @@ function getPresetLabel(value: number): string | undefined {
 interface TimeFilterProps {
   value: number;
   onChange: (days: number) => void;
+  comparisonPeriod?: ComparisonPeriod;
+  onComparisonChange?: (period: ComparisonPeriod) => void;
 }
 
-export function TimeFilter({ value, onChange }: TimeFilterProps) {
+export function TimeFilter({ value, onChange, comparisonPeriod, onComparisonChange }: TimeFilterProps) {
   const [customFrom, setCustomFrom] = useState<Date | undefined>();
   const [menuOpen, setMenuOpen] = useState(false);
   const [showCalendar, setShowCalendar] = useState(false);
+  const [compOpen, setCompOpen] = useState(false);
 
   const isCustom = !!customFrom;
   const presetLabel = !isCustom ? getPresetLabel(value) : undefined;
@@ -116,8 +185,18 @@ export function TimeFilter({ value, onChange }: TimeFilterProps) {
     ? format(customFrom!, "d MMM", { locale: es }) + " – Hoy"
     : presetLabel || "Seleccionar";
 
+  const compLabel = comparisonPeriod
+    ? COMPARISON_OPTIONS.find(o => o.value === comparisonPeriod)?.label ?? "vs Anterior"
+    : "vs Anterior";
+
+  // Comparison range for display
+  const compRange = comparisonPeriod
+    ? resolveComparisonRange(isCustom ? CUSTOM_SENTINEL : value, comparisonPeriod, customFrom)
+    : null;
+
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex items-center gap-2 flex-wrap">
+      {/* Main date selector */}
       <Popover open={menuOpen} onOpenChange={handleOpenChange}>
         <PopoverTrigger asChild>
           <button
@@ -183,9 +262,54 @@ export function TimeFilter({ value, onChange }: TimeFilterProps) {
           )}
         </PopoverContent>
       </Popover>
-      <span className="text-[10px] sm:text-xs text-muted-foreground whitespace-nowrap">
-        {formatRange(from, to)}
-      </span>
+
+      {/* Comparison period selector */}
+      {onComparisonChange && (
+        <Popover open={compOpen} onOpenChange={setCompOpen}>
+          <PopoverTrigger asChild>
+            <button
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-muted-foreground/20 bg-muted/30 hover:bg-muted/50 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <GitCompareArrows className="h-3 w-3" />
+              <span>{compLabel}</span>
+              <ChevronDown className="h-3 w-3" />
+            </button>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-0" align="end">
+            <div className="py-1 min-w-[180px]">
+              {COMPARISON_OPTIONS.map((opt) => (
+                <button
+                  key={opt.value}
+                  onClick={() => {
+                    onComparisonChange(opt.value);
+                    setCompOpen(false);
+                  }}
+                  className={cn(
+                    "w-full text-left px-4 py-2 text-sm transition-colors",
+                    comparisonPeriod === opt.value
+                      ? "bg-primary/10 text-primary font-medium"
+                      : "text-foreground hover:bg-muted"
+                  )}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          </PopoverContent>
+        </Popover>
+      )}
+
+      {/* Date range display */}
+      <div className="flex flex-col">
+        <span className="text-[10px] sm:text-xs text-muted-foreground whitespace-nowrap">
+          {formatRange(from, to)}
+        </span>
+        {compRange && (
+          <span className="text-[9px] sm:text-[10px] text-muted-foreground/60 whitespace-nowrap">
+            vs {formatRange(compRange.from, compRange.to)}
+          </span>
+        )}
+      </div>
     </div>
   );
 }

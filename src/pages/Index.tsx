@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
-import { TimeFilter, THIS_MONTH_SENTINEL } from "@/components/dashboard/TimeFilter";
+import { TimeFilter, THIS_MONTH_SENTINEL, type ComparisonPeriod } from "@/components/dashboard/TimeFilter";
 import { ExecutiveDashboard } from "@/components/dashboard/ExecutiveDashboard";
 import { ReportGeneratorButton } from "@/components/dashboard/ReportGenerator";
 
@@ -25,6 +25,7 @@ function ColombiaDateTime() {
 
 export default function ExecutivePage() {
   const [days, setDays] = useState(THIS_MONTH_SENTINEL);
+  const [comparisonPeriod, setComparisonPeriod] = useState<ComparisonPeriod>("previous");
 
   return (
     <SidebarProvider>
@@ -43,7 +44,7 @@ export default function ExecutivePage() {
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <TimeFilter value={days} onChange={setDays} />
+              <TimeFilter value={days} onChange={setDays} comparisonPeriod={comparisonPeriod} onComparisonChange={setComparisonPeriod} />
               <ReportGeneratorButton days={days} />
             </div>
           </header>

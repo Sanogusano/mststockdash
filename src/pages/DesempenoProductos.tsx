@@ -256,8 +256,8 @@ export default function DesempenoProductosPage() {
                               {row.pct_descuento ?? 0}%
                             </span>
                           </TableCell>
-                          <TableCell>
-                            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+                          <TableCell className="min-w-[120px]">
+                            <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-semibold whitespace-nowrap ${
                               row.clasificacion?.includes("Full Price")
                                 ? "bg-emerald-500/10 text-emerald-600"
                                 : row.clasificacion?.includes("Rebajas")
