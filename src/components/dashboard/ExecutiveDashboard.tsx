@@ -1055,11 +1055,15 @@ function ChannelPanel({ days, canal, showLocationFilter, locationFilter, compari
             p_canal: canal,
             p_location_id: locParam,
           }),
-          supabase.rpc("reporte_kpis_periodo_anterior" as any, {
-            dias_atras: effectiveDays,
-            p_canal: canal,
-            p_location_id: locParam,
-          }),
+          (() => {
+            const compRange = resolveComparisonRange(days, comparisonPeriod);
+            return supabase.rpc("reporte_kpis_por_rango" as any, {
+              p_desde: toDateStr(compRange.from),
+              p_hasta: toDateStr(compRange.to),
+              p_canal: canal,
+              p_location_id: locParam,
+            });
+          })(),
           supabase.rpc("reporte_ejecutivo_productos", {
             dias_atras: effectiveDays,
             canal_filtro: canalFiltro,
