@@ -25,6 +25,7 @@ function ColombiaDateTime() {
 
 export default function ExecutivePage() {
   const [days, setDays] = useState(THIS_MONTH_SENTINEL);
+  const [comparisonPeriod, setComparisonPeriod] = useState<ComparisonPeriod>("previous");
 
   return (
     <SidebarProvider>
