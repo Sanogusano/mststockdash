@@ -1501,6 +1501,7 @@ function BrandOverviewPanel({ days }: { days: number }) {
         {/* Channel Contribution Chart */}
         <ChannelContributionChart channelData={channelData} />
       </div>
+      <CollectionCompositionCard days={days} />
       <BrandTopBottomProducts days={days} />
     </div>
   );
