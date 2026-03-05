@@ -467,6 +467,7 @@ export default function LineasProductoPage() {
       <CategoryProductsDrawer
         categoria={selectedCategoria}
         days={days}
+        locationId={locationId === "all" ? null : locationId}
         canal={canalRpcParam}
         onClose={() => setSelectedCategoria(null)}
       />
