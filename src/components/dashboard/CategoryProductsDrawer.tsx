@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import { LoadingState, EmptyState } from "./LoadingState";
 import { StatusBadge } from "./StatusBadge";
 import { Button } from "@/components/ui/button";
@@ -12,22 +11,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { ProductSkuDrawer } from "./ProductSkuDrawer";
 import { CollectionBadge } from "./CollectionBadge";
 import { resolveDays } from "./TimeFilter";
+import { fetchCategoryProducts, type ProductRow } from "./categoryProductsData";
 
-interface ProductRow {
-  foto: string;
-  producto: string;
-  product_id: string;
-  stock_total: number;
-  venta_prom_semanal: number;
-  wos: number;
-  estado_salud: string;
-  und_full_price: number;
-  und_rebajas: number;
-  und_promo: number;
-  und_total: number;
-  clasificacion: string;
-  coleccion: string;
-}
 
 interface Props {
   categoria: string | null;
@@ -58,14 +43,7 @@ export function CategoryProductsDrawer({ categoria, days, locationId, canal, onC
     queryKey: ["category-products", categoria, effectiveDays, locationId, canal],
     queryFn: async () => {
       if (!categoria) return [];
-      const { data, error } = await supabase.rpc("reporte_productos_por_categoria" as any, {
-        dias_atras: effectiveDays,
-        p_categoria: categoria,
-        p_location_id: locationId || null,
-        p_canal: canal || null,
-      });
-      if (error) throw new Error(error.message);
-      return (data ?? []) as unknown as ProductRow[];
+      return fetchCategoryProducts({ categoria, effectiveDays, locationId, canal });
     },
     enabled: !!categoria,
   });
