@@ -347,6 +347,19 @@ export type Database = {
           unidades: number
         }[]
       }
+      reporte_composicion_coleccion_linea: {
+        Args: {
+          dias_atras: number
+          p_canal?: string
+          p_location_id?: string
+          p_zona?: string
+        }
+        Returns: {
+          categoria: string
+          coleccion: string
+          unidades: number
+        }[]
+      }
       reporte_curva_traslados: {
         Args: { dias_atras: number; p_destino?: string; p_origen?: string }
         Returns: {
