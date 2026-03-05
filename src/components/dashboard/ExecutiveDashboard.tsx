@@ -1637,7 +1637,7 @@ function ZonePanel({ days, locationFilter, comparisonPeriod = "previous" }: { da
       setLoading(false);
     }
     fetchAll();
-  }, [days, canal, selectedLocation, selectedZone]);
+  }, [days, canal, selectedLocation, selectedZone, comparisonPeriod]);
 
   if (loading) return <LoadingState rows={6} />;
 
