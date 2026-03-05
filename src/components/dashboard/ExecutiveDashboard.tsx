@@ -296,7 +296,7 @@ function ProductTable({ data, title, exportFilename, days, canalFiltro, location
                   </tr>
                   {isExpanded && (
                     <tr>
-                      <td colSpan={8} className="p-0">
+                     <td colSpan={9} className="p-0">
                         <div className="bg-muted/20 border-b border-border px-6 py-3">
                           <p className="text-xs font-semibold text-muted-foreground mb-2">📦 Desglose por SKU</p>
                           {skuLoading ? (
