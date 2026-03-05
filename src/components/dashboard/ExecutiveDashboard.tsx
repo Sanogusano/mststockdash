@@ -1266,6 +1266,7 @@ interface GlobalProductRow {
   categoria: string | null;
   und_total: number;
   clasificacion: string | null;
+  coleccion: string | null;
 }
 
 function BrandTopBottomProducts({ days }: { days: number }) {
