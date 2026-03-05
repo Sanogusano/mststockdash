@@ -4,7 +4,7 @@ import { isValidDays } from "@/lib/validation";
 import { resolveDays } from "./TimeFilter";
 import { LoadingState } from "./LoadingState";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
-import { Layers } from "lucide-react";
+import { Layers, ChevronDown, ChevronRight } from "lucide-react";
 
 const COLORS = [
   "hsl(220,70%,55%)", "hsl(160,55%,45%)", "hsl(330,65%,55%)",
@@ -13,10 +13,14 @@ const COLORS = [
   "hsl(220,10%,65%)",
 ];
 
-interface Row {
-  coleccion: string;
-  unidades: number;
-}
+const SUB_COLORS = [
+  "hsl(220,50%,70%)", "hsl(160,40%,60%)", "hsl(330,45%,70%)",
+  "hsl(38,65%,70%)", "hsl(260,40%,70%)", "hsl(0,45%,70%)",
+  "hsl(190,40%,60%)", "hsl(280,35%,70%)", "hsl(45,60%,65%)", "hsl(300,30%,70%)",
+];
+
+interface Row { coleccion: string; unidades: number; }
+interface DetailRow { coleccion: string; categoria: string; unidades: number; }
 
 interface Props {
   days: number;
@@ -27,20 +31,27 @@ interface Props {
 
 export function CollectionCompositionCard({ days, canal, locationId, zona }: Props) {
   const [data, setData] = useState<Row[]>([]);
+  const [detail, setDetail] = useState<DetailRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [expanded, setExpanded] = useState<string | null>(null);
 
   useEffect(() => {
     async function fetch() {
       if (!isValidDays(days)) return;
       setLoading(true);
       const effectiveDays = resolveDays(days);
-      const { data: rows } = await supabase.rpc("reporte_composicion_coleccion" as any, {
+      const params = {
         dias_atras: effectiveDays,
         p_canal: canal || null,
         p_location_id: locationId || null,
         p_zona: zona || null,
-      });
-      if (rows) setData(rows as unknown as Row[]);
+      };
+      const [res1, res2] = await Promise.all([
+        supabase.rpc("reporte_composicion_coleccion" as any, params),
+        supabase.rpc("reporte_composicion_coleccion_linea" as any, params),
+      ]);
+      if (res1.data) setData(res1.data as unknown as Row[]);
+      if (res2.data) setDetail(res2.data as unknown as DetailRow[]);
       setLoading(false);
     }
     fetch();
@@ -56,6 +67,17 @@ export function CollectionCompositionCard({ days, canal, locationId, zona }: Pro
     pct: total > 0 ? ((r.unidades ?? 0) / total) * 100 : 0,
   }));
 
+  const detailByCollection = detail.reduce<Record<string, { categoria: string; unidades: number }[]>>((acc, r) => {
+    const key = r.coleccion ?? "Otros";
+    if (!acc[key]) acc[key] = [];
+    acc[key].push({ categoria: r.categoria, unidades: r.unidades });
+    return acc;
+  }, {});
+
+  const toggleExpand = (name: string) => {
+    setExpanded(expanded === name ? null : name);
+  };
+
   return (
     <div className="glass-card p-5">
       <div className="flex items-center gap-2 mb-4">
@@ -63,7 +85,7 @@ export function CollectionCompositionCard({ days, canal, locationId, zona }: Pro
         <h3 className="text-sm font-semibold text-foreground">Composición por Colección</h3>
         <span className="text-xs text-muted-foreground ml-auto">{total.toLocaleString()} uds totales</span>
       </div>
-      <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-6">
+      <div className="flex flex-col sm:flex-row items-start gap-4 sm:gap-6">
         <ResponsiveContainer width={140} height={140} className="shrink-0">
           <PieChart>
             <Pie data={chartItems} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={40} outerRadius={70} paddingAngle={2} strokeWidth={0}>
@@ -74,19 +96,56 @@ export function CollectionCompositionCard({ days, canal, locationId, zona }: Pro
             <Tooltip formatter={(v: number, name: string) => [`${v.toLocaleString()} uds (${((v / total) * 100).toFixed(1)}%)`, name]} />
           </PieChart>
         </ResponsiveContainer>
-        <div className="flex-1 space-y-1.5 max-h-[200px] overflow-y-auto w-full">
-          {chartItems.map((r, i) => (
-            <div key={i} className="flex items-center justify-between text-xs gap-2">
-              <div className="flex items-center gap-2 min-w-0">
-                <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: COLORS[i % COLORS.length] }} />
-                <span className="text-foreground font-medium truncate max-w-[160px]">{r.name}</span>
+        <div className="flex-1 space-y-0.5 max-h-[280px] overflow-y-auto w-full">
+          {chartItems.map((r, i) => {
+            const isOpen = expanded === r.name;
+            const subs = detailByCollection[r.name];
+            const hasSubs = subs && subs.length > 0;
+
+            return (
+              <div key={i}>
+                <button
+                  onClick={() => hasSubs && toggleExpand(r.name)}
+                  className={`flex items-center justify-between text-xs gap-2 w-full py-1.5 px-1 rounded transition-colors ${
+                    hasSubs ? "hover:bg-muted/40 cursor-pointer" : "cursor-default"
+                  } ${isOpen ? "bg-muted/30" : ""}`}
+                >
+                  <div className="flex items-center gap-2 min-w-0">
+                    {hasSubs ? (
+                      isOpen ? <ChevronDown className="h-3 w-3 text-muted-foreground shrink-0" /> : <ChevronRight className="h-3 w-3 text-muted-foreground shrink-0" />
+                    ) : (
+                      <span className="w-3 shrink-0" />
+                    )}
+                    <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: COLORS[i % COLORS.length] }} />
+                    <span className="text-foreground font-medium truncate max-w-[140px]">{r.name}</span>
+                  </div>
+                  <div className="flex items-center gap-3 shrink-0">
+                    <span className="text-muted-foreground">{r.value.toLocaleString()} uds</span>
+                    <span className="text-foreground font-mono font-semibold w-14 text-right">{r.pct.toFixed(1)}%</span>
+                  </div>
+                </button>
+                {isOpen && subs && (
+                  <div className="ml-8 border-l border-border/50 pl-3 py-1 space-y-1">
+                    {subs.map((sub, j) => {
+                      const subPct = r.value > 0 ? (sub.unidades / r.value) * 100 : 0;
+                      return (
+                        <div key={j} className="flex items-center justify-between text-xs gap-2">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <span className="w-2 h-2 rounded-sm shrink-0" style={{ background: SUB_COLORS[j % SUB_COLORS.length] }} />
+                            <span className="text-muted-foreground truncate max-w-[120px]">{sub.categoria}</span>
+                          </div>
+                          <div className="flex items-center gap-3 shrink-0">
+                            <span className="text-muted-foreground">{sub.unidades.toLocaleString()}</span>
+                            <span className="text-foreground font-mono text-[11px] w-14 text-right">{subPct.toFixed(1)}%</span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
-              <div className="flex items-center gap-3 shrink-0">
-                <span className="text-muted-foreground">{r.value.toLocaleString()} uds</span>
-                <span className="text-foreground font-mono font-semibold">{r.pct.toFixed(1)}%</span>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
     </div>
