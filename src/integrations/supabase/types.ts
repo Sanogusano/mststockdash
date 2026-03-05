@@ -320,6 +320,7 @@ export type Database = {
         Returns: {
           categoria: string
           clasificacion: string
+          coleccion: string
           estado_salud: string
           foto: string
           producto: string
@@ -332,6 +333,18 @@ export type Database = {
           und_rebajas: number
           und_vendidas: number
           wos: number
+        }[]
+      }
+      reporte_composicion_coleccion: {
+        Args: {
+          dias_atras: number
+          p_canal?: string
+          p_location_id?: string
+          p_zona?: string
+        }
+        Returns: {
+          coleccion: string
+          unidades: number
         }[]
       }
       reporte_curva_traslados: {
@@ -355,6 +368,7 @@ export type Database = {
       reporte_desempeño_comercial: {
         Args: { dias_atras: number }
         Returns: {
+          coleccion: string
           foto: string
           pct_contribucion: number
           perfil_ejecutivo: string
@@ -447,6 +461,7 @@ export type Database = {
         Returns: {
           categoria: string
           clasificacion: string
+          coleccion: string
           foto: string
           precio_prom_venta: number
           producto: string
@@ -583,6 +598,7 @@ export type Database = {
         }
         Returns: {
           clasificacion: string
+          coleccion: string
           estado_salud: string
           foto: string
           product_id: string
@@ -704,6 +720,7 @@ export type Database = {
         Returns: {
           categoria: string
           clasificacion: string
+          coleccion: string
           foto: string
           pct_descuento: number
           pct_full_price: number
