@@ -120,7 +120,7 @@ function InventorySection({
         {data.map((row, i) => (
           <div
             key={i}
-            className="glass-card rounded-xl p-4 space-y-3 cursor-pointer hover:ring-2 hover:ring-primary/30 transition-all"
+            className={`glass-card rounded-xl p-4 space-y-3 transition-all ${isPrendas ? "cursor-pointer hover:ring-2 hover:ring-primary/30" : ""}`}
             onClick={() => handleStoreClick(row.tienda ?? "")}
           >
             <div className="flex items-start justify-between gap-2">

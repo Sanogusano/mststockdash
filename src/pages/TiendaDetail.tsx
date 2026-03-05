@@ -100,10 +100,9 @@ export default function TiendaDetailPage() {
         supabase.rpc("reporte_wos_categoria_tienda", { dias_atras: effectiveDays, p_location_id: id }),
         supabase.rpc("reporte_kpis_comerciales", { dias_atras: effectiveDays, p_location_id: id }),
         supabase
-          .from("inventory_snapshot")
-          .select("sku, available, product_catalog!inner(title, category)")
-          .eq("location_id", id)
-          .or("category.ilike.%bolsa%,category.ilike.%insumo%", { referencedTable: "product_catalog" }),
+          .from("product_catalog")
+          .select("sku, title, category, variant_id")
+          .or("category.ilike.%bolsa%,category.ilike.%insumo%"),
         supabase.rpc("reporte_wos_categoria_global", { dias_atras: effectiveDays, p_location_ids: [id] }),
       ]);
 
