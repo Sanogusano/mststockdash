@@ -8,6 +8,7 @@ import { LoadingState, EmptyState } from "@/components/dashboard/LoadingState";
 import { StatusBadge } from "@/components/dashboard/StatusBadge";
 import { MultiSelectFilter } from "@/components/dashboard/MultiSelectFilter";
 import { ArrowLeft, DollarSign, Receipt, ShoppingBag, Star, Percent, Package, Filter, Tag } from "lucide-react";
+import { CollectionInventoryCard } from "@/components/dashboard/CollectionInventoryCard";
 import { isValidDays } from "@/lib/validation";
 import { resolveDays } from "@/components/dashboard/TimeFilter";
 import { cn } from "@/lib/utils";
@@ -255,39 +256,9 @@ export default function TiendaDetailPage() {
                   )}
                 </div>
 
-                {/* Bolsas & Empaques Stock */}
-                {supplyStock.length > 0 && (
-                  <div className="glass-card overflow-hidden">
-                    <div className="px-5 py-4 border-b border-border flex items-center gap-2">
-                      <Package className="h-4 w-4 text-primary" />
-                      <h3 className="text-sm font-semibold text-foreground">
-                        Bolsas & Empaques — Stock Total: {supplyTotal.toLocaleString()} uds
-                      </h3>
-                    </div>
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-sm">
-                        <thead>
-                          <tr className="border-b border-border bg-muted/30">
-                            <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">SKU</th>
-                            <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">Insumo</th>
-                            <th className="px-4 py-3 text-right text-xs font-medium text-muted-foreground">Disponible</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {supplyStock.map((row) => (
-                            <tr key={row.sku} className="border-b border-border/50 hover:bg-muted/20 transition-colors">
-                              <td className="px-4 py-2.5 font-mono text-xs text-muted-foreground">{row.sku}</td>
-                              <td className="px-4 py-2.5 font-medium text-foreground text-xs">{row.title}</td>
-                              <td className="px-4 py-2.5 text-right font-semibold text-foreground">
-                                {row.available.toLocaleString()}
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                )}
+
+                {/* Collection Inventory Composition */}
+                <CollectionInventoryCard locationId={id} />
 
                 {/* WOS by Category with multi-select filters */}
                 {wosCatData.length > 0 && (
@@ -344,6 +315,40 @@ export default function TiendaDetailPage() {
                               </tr>
                             ))
                           )}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+
+                {/* Bolsas & Empaques Stock - moved after WOS */}
+                {supplyStock.length > 0 && (
+                  <div className="glass-card overflow-hidden">
+                    <div className="px-5 py-4 border-b border-border flex items-center gap-2">
+                      <Package className="h-4 w-4 text-primary" />
+                      <h3 className="text-sm font-semibold text-foreground">
+                        Bolsas & Empaques — Stock Total: {supplyTotal.toLocaleString()} uds
+                      </h3>
+                    </div>
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="border-b border-border bg-muted/30">
+                            <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">SKU</th>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">Insumo</th>
+                            <th className="px-4 py-3 text-right text-xs font-medium text-muted-foreground">Disponible</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {supplyStock.map((row) => (
+                            <tr key={row.sku} className="border-b border-border/50 hover:bg-muted/20 transition-colors">
+                              <td className="px-4 py-2.5 font-mono text-xs text-muted-foreground">{row.sku}</td>
+                              <td className="px-4 py-2.5 font-medium text-foreground text-xs">{row.title}</td>
+                              <td className="px-4 py-2.5 text-right font-semibold text-foreground">
+                                {row.available.toLocaleString()}
+                              </td>
+                            </tr>
+                          ))}
                         </tbody>
                       </table>
                     </div>

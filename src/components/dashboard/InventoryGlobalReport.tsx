@@ -8,6 +8,7 @@ import { CategoryProductsDrawer } from "./CategoryProductsDrawer";
 import { exportToCSV } from "@/lib/csv-export";
 import { exportToPDF } from "@/lib/pdf-export";
 import { Filter, Star, Tag, Package, Download, FileText } from "lucide-react";
+import { CollectionInventoryCard } from "./CollectionInventoryCard";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
@@ -225,6 +226,9 @@ export function InventoryGlobalReport({ open, onOpenChange, days }: Props) {
                   <p className="text-sm text-primary font-medium">{supplyStock.length} SKUs</p>
                 </button>
               </div>
+
+              {/* Collection Inventory Composition */}
+              <CollectionInventoryCard />
 
               {/* Filters */}
               <div className="flex flex-wrap items-center gap-2">

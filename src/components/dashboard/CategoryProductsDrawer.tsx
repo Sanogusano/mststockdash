@@ -70,7 +70,8 @@ export function CategoryProductsDrawer({ categoria, days, locationId, canal, onC
     enabled: !!categoria,
   });
 
-  const rows = data ?? [];
+  // Filter out products with no stock and no sales
+  const rows = (data ?? []).filter(r => (r.stock_total ?? 0) > 0 || (r.und_total ?? 0) > 0);
 
   const handleExportCSV = () => {
     if (!rows.length) return;
