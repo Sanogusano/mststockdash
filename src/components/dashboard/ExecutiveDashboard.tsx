@@ -1612,6 +1612,7 @@ function ZonePanel({ days, locationFilter }: { days: number; locationFilter: "ti
         categoria: r.categoria ?? null, clasificacion: r.clasificacion ?? null,
         unidades_vendidas: r.unidades_vendidas ?? 0, precio_promedio: r.precio_prom_venta ?? 0,
         stock_disponible: r.stock_disponible ?? 0, sell_through_pct: r.sell_through_pct ?? 0, wos: r.wos ?? 0,
+        coleccion: r.coleccion ?? "Otros",
       });
       if (topRes.data) setTopProducts((topRes.data as any[]).map(mapProduct));
       if (bottomRes.data) setBottomProducts((bottomRes.data as any[]).map(mapProduct));
