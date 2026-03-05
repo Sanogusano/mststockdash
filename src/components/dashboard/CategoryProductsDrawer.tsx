@@ -10,6 +10,7 @@ import { Download, FileText, ChevronRight } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ProductSkuDrawer } from "./ProductSkuDrawer";
+import { CollectionBadge } from "./CollectionBadge";
 import { resolveDays } from "./TimeFilter";
 
 interface ProductRow {
