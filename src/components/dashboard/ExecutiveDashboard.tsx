@@ -1474,7 +1474,7 @@ function BrandOverviewPanel({ days, comparisonPeriod = "previous" }: { days: num
       setLoading(false);
     }
     fetch();
-  }, [days]);
+  }, [days, comparisonPeriod]);
 
   if (loading) return <LoadingState rows={4} />;
 
