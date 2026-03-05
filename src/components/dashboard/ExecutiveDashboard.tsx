@@ -272,6 +272,7 @@ function ProductTable({ data, title, exportFilename, days, canalFiltro, location
                       </div>
                     </td>
                     <td className="px-3 py-3 text-xs text-muted-foreground">{row.categoria ?? "—"}</td>
+                    <td className="px-3 py-3"><CollectionBadge coleccion={row.coleccion} /></td>
                     <td className="px-3 py-3 text-right font-medium">{(row.stock_disponible ?? 0).toLocaleString()}</td>
                     <td className="px-3 py-3 text-right font-semibold">{(row.unidades_vendidas ?? 0).toLocaleString()}</td>
                     <td className="px-3 py-3">
