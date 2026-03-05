@@ -31,6 +31,7 @@ interface ProductRow {
   pct_rebajas: number;
   pct_descuento: number;
   clasificacion: string;
+  coleccion: string;
 }
 
 const CANAL_OPTIONS = [
