@@ -211,8 +211,9 @@ export default function DesempenoProductosPage() {
                   <Table className="min-w-[1000px]">
                     <TableHeader>
                       <TableRow className="bg-muted/30">
-                        <TableHead className="min-w-[220px]">Producto</TableHead>
+                         <TableHead className="min-w-[220px]">Producto</TableHead>
                         <TableHead className="min-w-[100px]">Categoría</TableHead>
+                        <TableHead className="min-w-[100px]">Colección</TableHead>
                         <TableHead className="text-right">Tiendas</TableHead>
                         <TableHead className="text-right">Outlets</TableHead>
                         <TableHead className="text-right">Digital</TableHead>
