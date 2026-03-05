@@ -1417,7 +1417,7 @@ function ChannelContributionChart({ channelData }: {
 }
 
 /* ── Brand-wide KPI Panel ── */
-function BrandOverviewPanel({ days }: { days: number }) {
+function BrandOverviewPanel({ days, comparisonPeriod = "previous" }: { days: number; comparisonPeriod?: ComparisonPeriod }) {
   const [kpis, setKpis] = useState<KpiData | null>(null);
   const [prevKpis, setPrevKpis] = useState<KpiData | null>(null);
   const [storeVentas, setStoreVentas] = useState(0);
