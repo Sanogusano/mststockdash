@@ -364,6 +364,7 @@ export default function TiendaDetailPage() {
         categoria={selectedCategoria}
         days={days}
         locationId={id}
+        storeName={storeName}
         onClose={() => setSelectedCategoria(null)}
       />
     </SidebarProvider>
