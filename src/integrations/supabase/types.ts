@@ -360,6 +360,14 @@ export type Database = {
           unidades: number
         }[]
       }
+      reporte_composicion_inventario_coleccion: {
+        Args: { p_location_id?: string }
+        Returns: {
+          coleccion: string
+          pct: number
+          unidades: number
+        }[]
+      }
       reporte_curva_traslados: {
         Args: { dias_atras: number; p_destino?: string; p_origen?: string }
         Returns: {
