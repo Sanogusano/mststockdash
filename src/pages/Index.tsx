@@ -49,7 +49,7 @@ export default function ExecutivePage() {
             </div>
           </header>
           <div className="flex-1 px-4 sm:px-6 py-4 sm:py-6">
-            <ExecutiveDashboard days={days} />
+            <ExecutiveDashboard days={days} comparisonPeriod={comparisonPeriod} />
           </div>
         </main>
       </div>

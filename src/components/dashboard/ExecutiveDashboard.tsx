@@ -2,7 +2,7 @@ import { useEffect, useState, Fragment } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { isValidDays } from "@/lib/validation";
-import { resolveDays } from "@/components/dashboard/TimeFilter";
+import { resolveDays, resolveComparisonRange, getDateRange, CUSTOM_SENTINEL, type ComparisonPeriod } from "@/components/dashboard/TimeFilter";
 import { exportToCSV } from "@/lib/csv-export";
 import { cn } from "@/lib/utils";
 import { exportToPDF } from "@/lib/pdf-export";
@@ -95,6 +95,12 @@ interface Location {
 
 interface Props {
   days: number;
+  comparisonPeriod?: ComparisonPeriod;
+}
+
+/** Format a Date as "YYYY-MM-DD" for RPC date params */
+function toDateStr(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
 /* ── Export Buttons ── */
@@ -999,9 +1005,9 @@ interface RankingRow {
 }
 
 /* ── Channel Panel ── */
-function ChannelPanel({ days, canal, showLocationFilter, locationFilter }: {
+function ChannelPanel({ days, canal, showLocationFilter, locationFilter, comparisonPeriod = "previous" }: {
   days: number; canal: string; showLocationFilter: boolean;
-  locationFilter?: "tiendas" | "outlets";
+  locationFilter?: "tiendas" | "outlets"; comparisonPeriod?: ComparisonPeriod;
 }) {
   const [kpis, setKpis] = useState<KpiData | null>(null);
   const [prevKpis, setPrevKpis] = useState<KpiData | null>(null);
@@ -1049,11 +1055,15 @@ function ChannelPanel({ days, canal, showLocationFilter, locationFilter }: {
             p_canal: canal,
             p_location_id: locParam,
           }),
-          supabase.rpc("reporte_kpis_periodo_anterior" as any, {
-            dias_atras: effectiveDays,
-            p_canal: canal,
-            p_location_id: locParam,
-          }),
+          (() => {
+            const compRange = resolveComparisonRange(days, comparisonPeriod);
+            return supabase.rpc("reporte_kpis_por_rango" as any, {
+              p_desde: toDateStr(compRange.from),
+              p_hasta: toDateStr(compRange.to),
+              p_canal: canal,
+              p_location_id: locParam,
+            });
+          })(),
           supabase.rpc("reporte_ejecutivo_productos", {
             dias_atras: effectiveDays,
             canal_filtro: canalFiltro,
@@ -1131,7 +1141,7 @@ function ChannelPanel({ days, canal, showLocationFilter, locationFilter }: {
       setLoading(false);
     }
     fetchAll();
-  }, [days, canal, selectedLocation]);
+  }, [days, canal, selectedLocation, comparisonPeriod]);
 
   if (loading) return <LoadingState rows={6} />;
 
@@ -1407,7 +1417,7 @@ function ChannelContributionChart({ channelData }: {
 }
 
 /* ── Brand-wide KPI Panel ── */
-function BrandOverviewPanel({ days }: { days: number }) {
+function BrandOverviewPanel({ days, comparisonPeriod = "previous" }: { days: number; comparisonPeriod?: ComparisonPeriod }) {
   const [kpis, setKpis] = useState<KpiData | null>(null);
   const [prevKpis, setPrevKpis] = useState<KpiData | null>(null);
   const [storeVentas, setStoreVentas] = useState(0);
@@ -1424,13 +1434,13 @@ function BrandOverviewPanel({ days }: { days: number }) {
       const effectiveDays = resolveDays(days);
       const [currentRes, prevRes, kpiTiendasRes, kpiOutletsRes, kpiDigitalRes, prevTiendasRes, prevOutletsRes, prevDigitalRes, m2Res] = await Promise.all([
         supabase.rpc("reporte_kpis_comerciales", { dias_atras: effectiveDays, p_canal: null, p_location_id: null }),
-        supabase.rpc("reporte_kpis_periodo_anterior" as any, { dias_atras: effectiveDays, p_canal: null, p_location_id: null }),
+        (() => { const cr = resolveComparisonRange(days, comparisonPeriod); return supabase.rpc("reporte_kpis_por_rango" as any, { p_desde: toDateStr(cr.from), p_hasta: toDateStr(cr.to), p_canal: null, p_location_id: null }); })(),
         supabase.rpc("reporte_kpis_comerciales", { dias_atras: effectiveDays, p_canal: "tiendas", p_location_id: null }),
         supabase.rpc("reporte_kpis_comerciales", { dias_atras: effectiveDays, p_canal: "outlets", p_location_id: null }),
         supabase.rpc("reporte_kpis_comerciales", { dias_atras: effectiveDays, p_canal: "digital", p_location_id: null }),
-        supabase.rpc("reporte_kpis_periodo_anterior" as any, { dias_atras: effectiveDays, p_canal: "tiendas", p_location_id: null }),
-        supabase.rpc("reporte_kpis_periodo_anterior" as any, { dias_atras: effectiveDays, p_canal: "outlets", p_location_id: null }),
-        supabase.rpc("reporte_kpis_periodo_anterior" as any, { dias_atras: effectiveDays, p_canal: "digital", p_location_id: null }),
+        (() => { const cr = resolveComparisonRange(days, comparisonPeriod); return supabase.rpc("reporte_kpis_por_rango" as any, { p_desde: toDateStr(cr.from), p_hasta: toDateStr(cr.to), p_canal: "tiendas", p_location_id: null }); })(),
+        (() => { const cr = resolveComparisonRange(days, comparisonPeriod); return supabase.rpc("reporte_kpis_por_rango" as any, { p_desde: toDateStr(cr.from), p_hasta: toDateStr(cr.to), p_canal: "outlets", p_location_id: null }); })(),
+        (() => { const cr = resolveComparisonRange(days, comparisonPeriod); return supabase.rpc("reporte_kpis_por_rango" as any, { p_desde: toDateStr(cr.from), p_hasta: toDateStr(cr.to), p_canal: "digital", p_location_id: null }); })(),
         supabase.from("locations").select("dimension_m2, name, location_id").eq("is_active", true).not("dimension_m2", "is", null),
       ]);
 
@@ -1464,7 +1474,7 @@ function BrandOverviewPanel({ days }: { days: number }) {
       setLoading(false);
     }
     fetch();
-  }, [days]);
+  }, [days, comparisonPeriod]);
 
   if (loading) return <LoadingState rows={4} />;
 
@@ -1523,7 +1533,7 @@ function BrandParetoPreview({ days }: { days: number }) {
 }
 
 /* ── Zone Panel ── */
-function ZonePanel({ days, locationFilter }: { days: number; locationFilter: "tiendas" | "outlets" }) {
+function ZonePanel({ days, locationFilter, comparisonPeriod = "previous" }: { days: number; locationFilter: "tiendas" | "outlets"; comparisonPeriod?: ComparisonPeriod }) {
   const [locations, setLocations] = useState<Location[]>([]);
   const [selectedZone, setSelectedZone] = useState("all");
   const [selectedLocation, setSelectedLocation] = useState("all");
@@ -1573,9 +1583,7 @@ function ZonePanel({ days, locationFilter }: { days: number; locationFilter: "ti
         supabase.rpc("reporte_kpis_comerciales" as any, {
           dias_atras: effectiveDays, p_canal: canal, p_location_id: locParam, p_zona: zonaParam,
         }),
-        supabase.rpc("reporte_kpis_periodo_anterior" as any, {
-          dias_atras: effectiveDays, p_canal: canal, p_location_id: locParam, p_zona: zonaParam,
-        }),
+        (() => { const cr = resolveComparisonRange(days, comparisonPeriod); return supabase.rpc("reporte_kpis_por_rango" as any, { p_desde: toDateStr(cr.from), p_hasta: toDateStr(cr.to), p_canal: canal, p_location_id: locParam, p_zona: zonaParam }); })(),
         supabase.rpc("reporte_ranking_tiendas", { dias_atras: effectiveDays, p_canal: canal }),
         supabase.rpc("reporte_ejecutivo_productos" as any, {
           dias_atras: effectiveDays, canal_filtro: canalFiltro, location_filtro: locParam, orden: "TOP", limite: 20, zona_filtro: zonaParam,
@@ -1629,7 +1637,7 @@ function ZonePanel({ days, locationFilter }: { days: number; locationFilter: "ti
       setLoading(false);
     }
     fetchAll();
-  }, [days, canal, selectedLocation, selectedZone]);
+  }, [days, canal, selectedLocation, selectedZone, comparisonPeriod]);
 
   if (loading) return <LoadingState rows={6} />;
 
@@ -2002,7 +2010,7 @@ function ZoneStoreRankCard({ days, canal, locationId, locationName, allRanking, 
 }
 
 /* ── Main Component ── */
-export function ExecutiveDashboard({ days }: Props) {
+export function ExecutiveDashboard({ days, comparisonPeriod = "previous" }: Props) {
   return (
     <Tabs defaultValue="venta-directa" className="w-full">
       <TabsList className="w-full grid grid-cols-3 bg-muted/50 rounded-xl p-1 h-auto border border-border mb-6">
@@ -2024,7 +2032,7 @@ export function ExecutiveDashboard({ days }: Props) {
       </TabsList>
 
       <TabsContent value="venta-directa">
-        <BrandOverviewPanel days={days} />
+        <BrandOverviewPanel days={days} comparisonPeriod={comparisonPeriod} />
         <BrandParetoPreview days={days} />
       </TabsContent>
 
@@ -2043,10 +2051,10 @@ export function ExecutiveDashboard({ days }: Props) {
           </TabsList>
 
           <TabsContent value="tiendas" className="mt-6">
-            <ZonePanel days={days} locationFilter="tiendas" />
+            <ZonePanel days={days} locationFilter="tiendas" comparisonPeriod={comparisonPeriod} />
           </TabsContent>
           <TabsContent value="outlets" className="mt-6">
-            <ZonePanel days={days} locationFilter="outlets" />
+            <ZonePanel days={days} locationFilter="outlets" comparisonPeriod={comparisonPeriod} />
           </TabsContent>
         </Tabs>
       </TabsContent>
@@ -2070,13 +2078,13 @@ export function ExecutiveDashboard({ days }: Props) {
           </TabsList>
 
           <TabsContent value="tiendas" className="mt-6">
-            <ChannelPanel days={days} canal="tiendas" showLocationFilter={true} locationFilter="tiendas" />
+            <ChannelPanel days={days} canal="tiendas" showLocationFilter={true} locationFilter="tiendas" comparisonPeriod={comparisonPeriod} />
           </TabsContent>
           <TabsContent value="outlets" className="mt-6">
-            <ChannelPanel days={days} canal="outlets" showLocationFilter={true} locationFilter="outlets" />
+            <ChannelPanel days={days} canal="outlets" showLocationFilter={true} locationFilter="outlets" comparisonPeriod={comparisonPeriod} />
           </TabsContent>
           <TabsContent value="digital" className="mt-6">
-            <ChannelPanel days={days} canal="digital" showLocationFilter={false} />
+            <ChannelPanel days={days} canal="digital" showLocationFilter={false} comparisonPeriod={comparisonPeriod} />
           </TabsContent>
         </Tabs>
       </TabsContent>
