@@ -236,10 +236,11 @@ function ProductTable({ data, title, exportFilename, days, canalFiltro, location
       <div className="overflow-x-auto">
         <table className="w-full text-sm min-w-[800px]">
           <thead>
-            <tr className="border-b border-border bg-muted/30">
+             <tr className="border-b border-border bg-muted/30">
               <th className="px-3 py-3 text-center text-xs font-medium text-muted-foreground w-10">#</th>
               <th className="px-3 py-3 text-left text-xs font-medium text-muted-foreground">Producto</th>
               <th className="px-3 py-3 text-left text-xs font-medium text-muted-foreground">Línea</th>
+              <th className="px-3 py-3 text-left text-xs font-medium text-muted-foreground">Colección</th>
               <th className="px-3 py-3 text-right text-xs font-medium text-muted-foreground">Stock</th>
               <th className="px-3 py-3 text-right text-xs font-medium text-muted-foreground">Unidades Vendidas</th>
               <th className="px-3 py-3 text-left text-xs font-medium text-muted-foreground">Clasif.</th>
