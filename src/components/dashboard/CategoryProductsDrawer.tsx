@@ -10,6 +10,7 @@ import { Download, FileText, ChevronRight } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ProductSkuDrawer } from "./ProductSkuDrawer";
+import { CollectionBadge } from "./CollectionBadge";
 import { resolveDays } from "./TimeFilter";
 
 interface ProductRow {
@@ -25,6 +26,7 @@ interface ProductRow {
   und_promo: number;
   und_total: number;
   clasificacion: string;
+  coleccion: string;
 }
 
 interface Props {
@@ -170,7 +172,10 @@ export function CategoryProductsDrawer({ categoria, days, locationId, canal, onC
                                   ) : (
                                     <div className="h-8 w-8 rounded bg-muted/50 shrink-0" />
                                   )}
-                                  <span className="text-sm font-medium text-foreground line-clamp-2">{row.producto}</span>
+                                  <div className="min-w-0">
+                                    <span className="text-sm font-medium text-foreground line-clamp-2">{row.producto}</span>
+                                    <CollectionBadge coleccion={row.coleccion} />
+                                  </div>
                                 </div>
                               </TableCell>
                               <TableCell className="text-right text-sm font-semibold">{(row.stock_total ?? 0).toLocaleString()}</TableCell>

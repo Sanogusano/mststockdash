@@ -12,6 +12,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Store, Globe, Download, FileText, DollarSign, ShoppingBag, Receipt, Star, Percent, Tag, Trophy, TrendingDown, TrendingUp, CalendarDays, Package, AlertTriangle, Ruler, Crown, ShieldAlert, MapPin } from "lucide-react";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid } from "recharts";
 import { StoreLeaderboard } from "./StoreLeaderboard";
+import { CollectionBadge } from "./CollectionBadge";
+import { CollectionCompositionCard } from "./CollectionCompositionCard";
 
 /* ── Constants ── */
 const CEDI_ID = "71474315479";
@@ -55,6 +57,7 @@ interface ProductRow {
   stock_disponible: number | null;
   sell_through_pct: number | null;
   wos: number | null;
+  coleccion: string | null;
 }
 
 const toNumber = (value: unknown): number => {
@@ -196,6 +199,7 @@ function ProductTable({ data, title, exportFilename, days, canalFiltro, location
       "#": i + 1,
       Línea: r.categoria ?? "",
       Nombre: name,
+      Colección: r.coleccion ?? "Otros",
       "Stock Total": r.stock_disponible ?? 0,
       "Unidades Vendidas": r.unidades_vendidas ?? 0,
       Clasificación: r.clasificacion ?? "",
@@ -232,10 +236,11 @@ function ProductTable({ data, title, exportFilename, days, canalFiltro, location
       <div className="overflow-x-auto">
         <table className="w-full text-sm min-w-[800px]">
           <thead>
-            <tr className="border-b border-border bg-muted/30">
+             <tr className="border-b border-border bg-muted/30">
               <th className="px-3 py-3 text-center text-xs font-medium text-muted-foreground w-10">#</th>
               <th className="px-3 py-3 text-left text-xs font-medium text-muted-foreground">Producto</th>
               <th className="px-3 py-3 text-left text-xs font-medium text-muted-foreground">Línea</th>
+              <th className="px-3 py-3 text-left text-xs font-medium text-muted-foreground">Colección</th>
               <th className="px-3 py-3 text-right text-xs font-medium text-muted-foreground">Stock</th>
               <th className="px-3 py-3 text-right text-xs font-medium text-muted-foreground">Unidades Vendidas</th>
               <th className="px-3 py-3 text-left text-xs font-medium text-muted-foreground">Clasif.</th>
@@ -267,6 +272,7 @@ function ProductTable({ data, title, exportFilename, days, canalFiltro, location
                       </div>
                     </td>
                     <td className="px-3 py-3 text-xs text-muted-foreground">{row.categoria ?? "—"}</td>
+                    <td className="px-3 py-3"><CollectionBadge coleccion={row.coleccion} /></td>
                     <td className="px-3 py-3 text-right font-medium">{(row.stock_disponible ?? 0).toLocaleString()}</td>
                     <td className="px-3 py-3 text-right font-semibold">{(row.unidades_vendidas ?? 0).toLocaleString()}</td>
                     <td className="px-3 py-3">
@@ -290,7 +296,7 @@ function ProductTable({ data, title, exportFilename, days, canalFiltro, location
                   </tr>
                   {isExpanded && (
                     <tr>
-                      <td colSpan={8} className="p-0">
+                     <td colSpan={9} className="p-0">
                         <div className="bg-muted/20 border-b border-border px-6 py-3">
                           <p className="text-xs font-semibold text-muted-foreground mb-2">📦 Desglose por SKU</p>
                           {skuLoading ? (
@@ -1103,6 +1109,7 @@ function ChannelPanel({ days, canal, showLocationFilter, locationFilter }: {
             unidades_vendidas: r.unidades_vendidas ?? 0, precio_promedio: r.precio_prom_venta ?? 0,
             stock_disponible: r.stock_disponible ?? 0,
             sell_through_pct: r.sell_through_pct ?? 0, wos: r.wos ?? 0,
+            coleccion: r.coleccion ?? "Otros",
           } as ProductRow)));
         }
 
@@ -1114,6 +1121,7 @@ function ChannelPanel({ days, canal, showLocationFilter, locationFilter }: {
             unidades_vendidas: r.unidades_vendidas ?? 0, precio_promedio: r.precio_prom_venta ?? 0,
             stock_disponible: r.stock_disponible ?? 0,
             sell_through_pct: r.sell_through_pct ?? 0, wos: r.wos ?? 0,
+            coleccion: r.coleccion ?? "Otros",
           } as ProductRow)));
         }
       } catch (err) {
@@ -1226,6 +1234,8 @@ function ChannelPanel({ days, canal, showLocationFilter, locationFilter }: {
         <ParetoChart days={days} canal={canal} locationId={locParam} />
       </div>
 
+      <CollectionCompositionCard days={days} canal={canal} locationId={locParam} />
+
       <WorstLinesRecommendation days={days} canal={canal} locationId={locParam} />
 
       <StockOutAlerts days={days} locationId={locParam} />
@@ -1258,6 +1268,7 @@ interface GlobalProductRow {
   categoria: string | null;
   und_total: number;
   clasificacion: string | null;
+  coleccion: string | null;
 }
 
 function BrandTopBottomProducts({ days }: { days: number }) {
@@ -1301,7 +1312,10 @@ function BrandTopBottomProducts({ days }: { days: number }) {
             )}
             <div className="min-w-0 flex-1">
               <p className="text-xs font-medium text-foreground truncate">{item.producto ?? "—"}</p>
-              <p className="text-[10px] text-muted-foreground">{item.categoria ?? "—"}</p>
+              <div className="flex items-center gap-1.5">
+                <p className="text-[10px] text-muted-foreground">{item.categoria ?? "—"}</p>
+                <CollectionBadge coleccion={item.coleccion} />
+              </div>
             </div>
             <div className="text-right shrink-0">
               <p className="text-xs font-semibold text-foreground">{(item.und_total ?? 0).toLocaleString()} uds</p>
@@ -1489,6 +1503,7 @@ function BrandOverviewPanel({ days }: { days: number }) {
         {/* Channel Contribution Chart */}
         <ChannelContributionChart channelData={channelData} />
       </div>
+      <CollectionCompositionCard days={days} />
       <BrandTopBottomProducts days={days} />
     </div>
   );
@@ -1607,6 +1622,7 @@ function ZonePanel({ days, locationFilter }: { days: number; locationFilter: "ti
         categoria: r.categoria ?? null, clasificacion: r.clasificacion ?? null,
         unidades_vendidas: r.unidades_vendidas ?? 0, precio_promedio: r.precio_prom_venta ?? 0,
         stock_disponible: r.stock_disponible ?? 0, sell_through_pct: r.sell_through_pct ?? 0, wos: r.wos ?? 0,
+        coleccion: r.coleccion ?? "Otros",
       });
       if (topRes.data) setTopProducts((topRes.data as any[]).map(mapProduct));
       if (bottomRes.data) setBottomProducts((bottomRes.data as any[]).map(mapProduct));
@@ -1833,6 +1849,8 @@ function ZonePanel({ days, locationFilter }: { days: number; locationFilter: "ti
       <div className="cursor-pointer hover:ring-2 hover:ring-primary/30 transition-all" onClick={() => navigate(`/lineas?canal=${canal}&days=${days}`)}>
         <ParetoChart days={days} canal={canal} locationId={locParam} />
       </div>
+
+      <CollectionCompositionCard days={days} canal={canal} locationId={locParam} zona={zonaParam} />
 
       {/* Top/Bottom Products */}
       <ProductTable data={topProducts} title="Top 20 — Más Vendidos" exportFilename={`top20_zona_${canal}_${days}d`}

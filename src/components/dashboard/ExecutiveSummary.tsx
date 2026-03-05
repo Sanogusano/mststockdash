@@ -4,6 +4,7 @@ import { LoadingState, EmptyState } from "./LoadingState";
 import { isValidDays } from "@/lib/validation";
 import { resolveDays } from "@/components/dashboard/TimeFilter";
 import { StatusBadge } from "./StatusBadge";
+import { CollectionBadge } from "./CollectionBadge";
 
 interface ExecutiveRow {
   foto: string | null;
@@ -13,6 +14,7 @@ interface ExecutiveRow {
   precio_prom_venta: number | null;
   pct_contribucion: number | null;
   perfil_ejecutivo: string | null;
+  coleccion: string | null;
 }
 
 interface Props {
@@ -70,6 +72,7 @@ export function ExecutiveSummary({ days }: Props) {
           <thead>
             <tr className="border-b border-border text-left">
               <th className="px-4 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">Producto</th>
+              <th className="px-4 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">Colección</th>
               <th className="px-4 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wider text-right">Uds</th>
               <th className="px-4 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wider text-right">Precio Prom</th>
               <th className="px-4 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wider text-right">Contribución</th>
@@ -104,6 +107,7 @@ export function ExecutiveSummary({ days }: Props) {
                     </div>
                   </div>
                 </td>
+                <td className="px-4 py-3"><CollectionBadge coleccion={row.coleccion} /></td>
                 <td className="px-4 py-3 text-right text-sm font-medium">
                   {(row.unidades_vendidas ?? 0).toLocaleString()}
                 </td>

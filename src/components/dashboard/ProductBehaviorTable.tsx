@@ -8,6 +8,7 @@ import { ProductDetailDrawer } from "./ProductDetailDrawer";
 import { exportToCSV } from "@/lib/csv-export";
 import { exportToPDF } from "@/lib/pdf-export";
 import { Search, Download, FileText, Tag } from "lucide-react";
+import { CollectionBadge } from "./CollectionBadge";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -39,6 +40,7 @@ interface ProductRow {
   und_full_price: number;
   und_rebajas: number;
   und_promo: number;
+  coleccion: string;
 }
 
 const WOS_FILTERS = [
@@ -364,7 +366,10 @@ export function ProductBehaviorTable({ days, initialWosFilter, initialLocationId
                           )}
                           <div className="min-w-0">
                             <p className="text-sm font-medium text-foreground truncate">{row.producto}</p>
-                            <p className="text-xs text-muted-foreground">{row.categoria}</p>
+                            <div className="flex items-center gap-1.5">
+                              <p className="text-xs text-muted-foreground">{row.categoria}</p>
+                              <CollectionBadge coleccion={row.coleccion} />
+                            </div>
                           </div>
                         </div>
                       </TableCell>

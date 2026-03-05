@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { Download, FileText, Search, ArrowLeft } from "lucide-react";
+import { CollectionBadge } from "@/components/dashboard/CollectionBadge";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
@@ -31,6 +32,7 @@ interface ProductRow {
   pct_rebajas: number;
   pct_descuento: number;
   clasificacion: string;
+  coleccion: string;
 }
 
 const CANAL_OPTIONS = [
@@ -209,8 +211,9 @@ export default function DesempenoProductosPage() {
                   <Table className="min-w-[1000px]">
                     <TableHeader>
                       <TableRow className="bg-muted/30">
-                        <TableHead className="min-w-[220px]">Producto</TableHead>
+                         <TableHead className="min-w-[220px]">Producto</TableHead>
                         <TableHead className="min-w-[100px]">Categoría</TableHead>
+                        <TableHead className="min-w-[100px]">Colección</TableHead>
                         <TableHead className="text-right">Tiendas</TableHead>
                         <TableHead className="text-right">Outlets</TableHead>
                         <TableHead className="text-right">Digital</TableHead>
@@ -235,6 +238,7 @@ export default function DesempenoProductosPage() {
                             </div>
                           </TableCell>
                           <TableCell className="text-xs text-muted-foreground">{row.categoria}</TableCell>
+                          <TableCell><CollectionBadge coleccion={row.coleccion} /></TableCell>
                           <TableCell className="text-right text-sm">{(row.und_tiendas ?? 0).toLocaleString()}</TableCell>
                           <TableCell className="text-right text-sm">{(row.und_outlets ?? 0).toLocaleString()}</TableCell>
                           <TableCell className="text-right text-sm">{(row.und_digital ?? 0).toLocaleString()}</TableCell>
