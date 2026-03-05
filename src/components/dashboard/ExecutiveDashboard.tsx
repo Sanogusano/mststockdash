@@ -1234,6 +1234,8 @@ function ChannelPanel({ days, canal, showLocationFilter, locationFilter }: {
         <ParetoChart days={days} canal={canal} locationId={locParam} />
       </div>
 
+      <CollectionCompositionCard days={days} canal={canal} locationId={locParam} />
+
       <WorstLinesRecommendation days={days} canal={canal} locationId={locParam} />
 
       <StockOutAlerts days={days} locationId={locParam} />
