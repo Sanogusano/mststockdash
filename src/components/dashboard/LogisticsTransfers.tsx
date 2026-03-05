@@ -259,9 +259,9 @@ export function LogisticsTransfers({ days }: Props) {
         group.tallas.push(tallaEntry);
       }
 
-      if ((row.prioridad ?? 1) === 1) {
-        tallaEntry.uds_sugeridas = row.uds_sugeridas ?? 0;
-        group.total_uds += row.uds_sugeridas ?? 0;
+      const udsSugeridas = Number(row.uds_sugeridas ?? 0);
+      if (udsSugeridas > tallaEntry.uds_sugeridas) {
+        tallaEntry.uds_sugeridas = udsSugeridas;
       }
 
       tallaEntry.origenes.push({
