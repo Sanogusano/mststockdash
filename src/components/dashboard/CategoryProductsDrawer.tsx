@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import { LoadingState, EmptyState } from "./LoadingState";
 import { StatusBadge } from "./StatusBadge";
 import { Button } from "@/components/ui/button";
@@ -12,6 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { ProductSkuDrawer } from "./ProductSkuDrawer";
 import { CollectionBadge } from "./CollectionBadge";
 import { resolveDays } from "./TimeFilter";
+import { fetchCategoryProducts, type ProductRow } from "./categoryProductsData";
 
 interface ProductRow {
   foto: string;
