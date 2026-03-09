@@ -1,9 +1,6 @@
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 
-// Monastery logo as base64 (black version for print)
-const MONASTERY_LOGO_B64 = ""; // Will load from URL
-
 interface ProductRow {
   foto: string;
   producto: string;
@@ -34,25 +31,23 @@ function formatDate(): string {
 }
 
 async function loadImageAsBase64(url: string): Promise<string | null> {
+  if (!url) return null;
   try {
-    const response = await fetch(url, { mode: "cors" });
-    const blob = await response.blob();
+    const img = new Image();
+    img.crossOrigin = "anonymous";
     return new Promise((resolve) => {
-      const reader = new FileReader();
-      reader.onloadend = () => resolve(reader.result as string);
-      reader.onerror = () => resolve(null);
-      reader.readAsDataURL(blob);
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        canvas.width = 40;
+        canvas.height = 40;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) { resolve(null); return; }
+        ctx.drawImage(img, 0, 0, 40, 40);
+        resolve(canvas.toDataURL("image/jpeg", 0.7));
+      };
+      img.onerror = () => resolve(null);
+      img.src = url;
     });
-  } catch {
-    return null;
-  }
-}
-
-async function loadLogoAsBase64(): Promise<string | null> {
-  try {
-    // Use the SVG logo from assets - convert to a simple text-based approach
-    // Instead, we'll draw "MONASTERY" text in the PDF header
-    return null;
   } catch {
     return null;
   }
@@ -61,39 +56,45 @@ async function loadLogoAsBase64(): Promise<string | null> {
 export async function exportDesempenoPDF(data: ProductRow[], days: number) {
   if (!data.length) return;
 
+  // Pre-load all product images in parallel
+  const imagePromises = data.map(r => loadImageAsBase64(r.foto));
+  const images = await Promise.all(imagePromises);
+
   const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
   const pageW = doc.internal.pageSize.getWidth();
 
-  // Header background
-  doc.setFillColor(15, 15, 15);
-  doc.rect(0, 0, pageW, 28, "F");
+  // Header - dark strip
+  doc.setFillColor(20, 20, 20);
+  doc.rect(0, 0, pageW, 24, "F");
 
-  // Logo text (MONASTERY)
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(18);
+  doc.setFontSize(16);
   doc.setTextColor(255, 255, 255);
-  doc.text("MONASTERY", 14, 14);
+  doc.text("MONASTERY", 14, 12);
 
-  // Subtitle
-  doc.setFontSize(9);
-  doc.setFont("helvetica", "normal");
-  doc.setTextColor(180, 180, 180);
-  doc.text("Top Productos - Venta Directa", 14, 21);
-
-  // Date right-aligned
   doc.setFontSize(8);
-  doc.setTextColor(150, 150, 150);
-  doc.text(`Informe generado: ${formatDate()}  |  Periodo: ultimos ${days} dias`, pageW - 14, 14, { align: "right" });
-  doc.text(`Total productos: ${data.length}`, pageW - 14, 21, { align: "right" });
+  doc.setFont("helvetica", "normal");
+  doc.setTextColor(200, 200, 200);
+  doc.text("Top Productos - Venta Directa", 14, 19);
+
+  doc.setFontSize(8);
+  doc.setTextColor(180, 180, 180);
+  doc.text(`Informe: ${formatDate()}  |  Periodo: ultimos ${days} dias  |  ${data.length} productos`, pageW - 14, 12, { align: "right" });
+
+  // Separator line
+  doc.setDrawColor(200, 200, 200);
+  doc.setLineWidth(0.3);
+  doc.line(10, 26, pageW - 10, 26);
 
   const headers = [
-    "#", "Producto", "Categoria", "Coleccion",
-    "Tiendas", "Outlets", "Digital", "Total Uds",
+    "#", "", "Producto", "Categoria", "Coleccion",
+    "Tiendas", "Outlets", "Digital", "Total",
     "FP%", "Reb%", "Promo%", "Clasificacion", "Stock VD"
   ];
 
   const body = data.map((r, i) => [
     String(i + 1),
+    "", // photo placeholder
     r.producto || "",
     r.categoria || "",
     r.coleccion || "Otros",
@@ -109,50 +110,70 @@ export async function exportDesempenoPDF(data: ProductRow[], days: number) {
   ]);
 
   autoTable(doc, {
-    startY: 32,
+    startY: 29,
     head: [headers],
     body,
     styles: {
       fontSize: 7,
-      cellPadding: 1.5,
-      lineColor: [40, 40, 40],
-      lineWidth: 0.1,
-      textColor: [220, 220, 220],
-      fillColor: [25, 25, 25],
+      cellPadding: { top: 2, bottom: 2, left: 1.5, right: 1.5 },
+      lineColor: [220, 220, 220],
+      lineWidth: 0.15,
+      textColor: [40, 40, 40],
+      fillColor: [255, 255, 255],
+      minCellHeight: 8,
     },
     headStyles: {
-      fillColor: [35, 35, 35],
+      fillColor: [55, 55, 55],
       textColor: [255, 255, 255],
       fontStyle: "bold",
-      fontSize: 7,
+      fontSize: 6.5,
+      cellPadding: { top: 2, bottom: 2, left: 1.5, right: 1.5 },
     },
     alternateRowStyles: {
-      fillColor: [30, 30, 30],
+      fillColor: [245, 245, 250],
     },
     columnStyles: {
-      0: { halign: "center", cellWidth: 8 },
-      1: { cellWidth: 45 },
-      2: { cellWidth: 22 },
-      3: { cellWidth: 22 },
-      4: { halign: "right", cellWidth: 16 },
-      5: { halign: "right", cellWidth: 16 },
-      6: { halign: "right", cellWidth: 16 },
-      7: { halign: "right", cellWidth: 18, fontStyle: "bold" },
-      8: { halign: "right", cellWidth: 14 },
-      9: { halign: "right", cellWidth: 14 },
-      10: { halign: "right", cellWidth: 14 },
-      11: { cellWidth: 30 },
-      12: { halign: "right", cellWidth: 18 },
+      0: { halign: "center", cellWidth: 7 },
+      1: { cellWidth: 9 }, // photo
+      2: { cellWidth: 40 },
+      3: { cellWidth: 20 },
+      4: { cellWidth: 20 },
+      5: { halign: "right", cellWidth: 14 },
+      6: { halign: "right", cellWidth: 14 },
+      7: { halign: "right", cellWidth: 14 },
+      8: { halign: "right", cellWidth: 14, fontStyle: "bold" },
+      9: { halign: "right", cellWidth: 12 },
+      10: { halign: "right", cellWidth: 12 },
+      11: { halign: "right", cellWidth: 12 },
+      12: { cellWidth: 28 },
+      13: { halign: "right", cellWidth: 16 },
     },
-    didParseCell: (data) => {
-      // Color the percentage columns
-      if (data.section === "body") {
-        if (data.column.index === 8) {
-          data.cell.styles.textColor = [52, 211, 153]; // emerald
-        } else if (data.column.index === 9) {
-          data.cell.styles.textColor = [59, 130, 246]; // blue
-        } else if (data.column.index === 10) {
-          data.cell.styles.textColor = [249, 115, 22]; // orange
+    didParseCell: (hookData) => {
+      if (hookData.section === "body") {
+        // Color percentage columns
+        if (hookData.column.index === 9) {
+          hookData.cell.styles.textColor = [16, 150, 90]; // green
+        } else if (hookData.column.index === 10) {
+          hookData.cell.styles.textColor = [37, 99, 235]; // blue
+        } else if (hookData.column.index === 11) {
+          hookData.cell.styles.textColor = [220, 80, 10]; // orange
+        }
+      }
+    },
+    didDrawCell: (hookData) => {
+      // Draw product photo in column 1
+      if (hookData.section === "body" && hookData.column.index === 1) {
+        const rowIdx = hookData.row.index;
+        const imgData = images[rowIdx];
+        if (imgData) {
+          try {
+            const x = hookData.cell.x + 0.5;
+            const y = hookData.cell.y + 0.8;
+            const size = Math.min(hookData.cell.height - 1.6, 7);
+            doc.addImage(imgData, "JPEG", x, y, size, size);
+          } catch {
+            // Skip if image fails
+          }
         }
       }
     },
@@ -165,7 +186,7 @@ export async function exportDesempenoPDF(data: ProductRow[], days: number) {
     doc.setPage(i);
     const pageH = doc.internal.pageSize.getHeight();
     doc.setFontSize(7);
-    doc.setTextColor(100, 100, 100);
+    doc.setTextColor(130, 130, 130);
     doc.text(`MONASTERY - Informe Confidencial  |  Pagina ${i} de ${pageCount}`, pageW / 2, pageH - 5, { align: "center" });
   }
 
