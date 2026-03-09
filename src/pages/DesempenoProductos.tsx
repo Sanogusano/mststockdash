@@ -5,11 +5,8 @@ import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { TimeFilter, THIS_MONTH_SENTINEL, resolveDays } from "@/components/dashboard/TimeFilter";
 import { LoadingState, EmptyState } from "@/components/dashboard/LoadingState";
-import { exportToCSV } from "@/lib/csv-export";
-import { exportToPDF } from "@/lib/pdf-export";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Progress } from "@/components/ui/progress";
 import { Download, FileText, Search, ArrowLeft } from "lucide-react";
 import { CollectionBadge } from "@/components/dashboard/CollectionBadge";
 import {
@@ -18,6 +15,8 @@ import {
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
+import { exportDesempenoPDF } from "@/lib/desempeno-pdf-export";
+import { exportToCSV } from "@/lib/csv-export";
 
 interface ProductRow {
   foto: string;
@@ -33,6 +32,7 @@ interface ProductRow {
   pct_descuento: number;
   clasificacion: string;
   coleccion: string;
+  stock_venta_directa: number;
 }
 
 const CANAL_OPTIONS = [
@@ -41,6 +41,35 @@ const CANAL_OPTIONS = [
   { value: "outlets", label: "Outlets" },
   { value: "digital", label: "Digital" },
 ];
+
+function cleanClasificacion(c: string) {
+  return (c || "").replace(/[🏆🏷️🧲]/g, "").trim();
+}
+
+function PriceTypeBars({ fp, reb, promo }: { fp: number; reb: number; promo: number }) {
+  return (
+    <div className="flex flex-col gap-1 min-w-[140px]">
+      <div className="flex items-center gap-1.5">
+        <div className="w-[60px] h-2 rounded-full bg-muted/40 overflow-hidden">
+          <div className="h-full rounded-full bg-emerald-500" style={{ width: `${fp}%` }} />
+        </div>
+        <span className="text-[10px] font-medium text-emerald-600 w-[36px] text-right">{fp}%</span>
+      </div>
+      <div className="flex items-center gap-1.5">
+        <div className="w-[60px] h-2 rounded-full bg-muted/40 overflow-hidden">
+          <div className="h-full rounded-full bg-blue-500" style={{ width: `${reb}%` }} />
+        </div>
+        <span className="text-[10px] font-medium text-blue-500 w-[36px] text-right">{reb}%</span>
+      </div>
+      <div className="flex items-center gap-1.5">
+        <div className="w-[60px] h-2 rounded-full bg-muted/40 overflow-hidden">
+          <div className="h-full rounded-full bg-orange-500" style={{ width: `${promo}%` }} />
+        </div>
+        <span className="text-[10px] font-medium text-orange-500 w-[36px] text-right">{promo}%</span>
+      </div>
+    </div>
+  );
+}
 
 export default function DesempenoProductosPage() {
   const [searchParams] = useSearchParams();
@@ -80,10 +109,8 @@ export default function DesempenoProductosPage() {
     fetch();
   }, [days, canal, catFilter]);
 
-  // Extract unique categories for filter
   const categories = useMemo(() => {
-    const cats = [...new Set(data.map(r => r.categoria).filter(Boolean))].sort();
-    return cats;
+    return [...new Set(data.map(r => r.categoria).filter(Boolean))].sort();
   }, [data]);
 
   const filtered = useMemo(() => {
@@ -97,40 +124,28 @@ export default function DesempenoProductosPage() {
   const handleExportCSV = () => {
     if (!filtered.length) return;
     exportToCSV(
-      filtered.map(r => ({
+      filtered.map((r, i) => ({
+        Posicion: i + 1,
         Producto: r.producto,
-        Categoría: r.categoria,
+        Categoria: r.categoria,
+        Coleccion: r.coleccion || "Otros",
         "Uds Tiendas": r.und_tiendas,
         "Uds Outlets": r.und_outlets,
         "Uds Digital": r.und_digital,
         "Total Uds": r.und_total,
-        "% Full Price": r.pct_full_price,
-        "% Rebajas": r.pct_rebajas,
-        "% Desc Promo": r.pct_descuento,
-        Clasificación: r.clasificacion,
+        "Full Price %": r.pct_full_price,
+        "Rebajas %": r.pct_rebajas,
+        "Desc Promo %": r.pct_descuento,
+        Clasificacion: cleanClasificacion(r.clasificacion),
+        "Stock Venta Directa": r.stock_venta_directa ?? 0,
       })),
-      "desempeno_productos_global"
+      `desempeno_productos_${new Date().toISOString().slice(0, 10)}`
     );
   };
 
   const handleExportPDF = () => {
     if (!filtered.length) return;
-    exportToPDF(
-      filtered.map(r => ({
-        Producto: r.producto,
-        Categoría: r.categoria,
-        Tiendas: r.und_tiendas,
-        Outlets: r.und_outlets,
-        Digital: r.und_digital,
-        Total: r.und_total,
-        "%FP": r.pct_full_price,
-        "%Reb": r.pct_rebajas,
-        "%Promo": r.pct_descuento,
-        Clasif: r.clasificacion,
-      })),
-      "desempeno_productos_global",
-      "Desempeño de Productos — Todos los Canales"
-    );
+    exportDesempenoPDF(filtered, resolveDays(days));
   };
 
   return (
@@ -146,7 +161,7 @@ export default function DesempenoProductosPage() {
               </Button>
               <div>
                 <h1 className="text-base sm:text-lg font-semibold text-foreground">Top Productos — Venta Directa</h1>
-                <p className="text-[10px] sm:text-xs text-muted-foreground">Unidades por canal, % Full Price vs Descuento y clasificación global</p>
+                <p className="text-[10px] sm:text-xs text-muted-foreground">Ranking por unidades vendidas, mezcla de precios y stock actualizado</p>
               </div>
             </div>
             <TimeFilter value={days} onChange={setDays} />
@@ -194,6 +209,13 @@ export default function DesempenoProductosPage() {
               </div>
             </div>
 
+            {/* Legend */}
+            <div className="flex items-center gap-4 text-[10px] text-muted-foreground">
+              <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block" /> Full Price</span>
+              <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-blue-500 inline-block" /> Rebajas</span>
+              <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-orange-500 inline-block" /> Desc Promo</span>
+            </div>
+
             {/* Table */}
             <div className="glass-card overflow-hidden">
               {loading ? (
@@ -208,64 +230,58 @@ export default function DesempenoProductosPage() {
                 <EmptyState message="No se encontraron productos para estos filtros." />
               ) : (
                 <div className="overflow-x-auto">
-                  <Table className="min-w-[1000px]">
+                  <Table className="min-w-[1100px]">
                     <TableHeader>
                       <TableRow className="bg-muted/30">
-                         <TableHead className="min-w-[220px]">Producto</TableHead>
+                        <TableHead className="w-[50px] text-center">#</TableHead>
+                        <TableHead className="min-w-[240px]">Producto</TableHead>
                         <TableHead className="min-w-[100px]">Categoría</TableHead>
                         <TableHead className="min-w-[100px]">Colección</TableHead>
                         <TableHead className="text-right">Tiendas</TableHead>
                         <TableHead className="text-right">Outlets</TableHead>
                         <TableHead className="text-right">Digital</TableHead>
-                        <TableHead className="text-right font-semibold">Total</TableHead>
-                        <TableHead className="text-right">% Full Price</TableHead>
-                        <TableHead className="text-right">% Rebajas</TableHead>
-                        <TableHead className="text-right">% Desc Promo</TableHead>
-                        <TableHead>Clasificación</TableHead>
+                        <TableHead className="text-right font-semibold">Total Uds</TableHead>
+                        <TableHead className="min-w-[140px]">Mezcla de Precios</TableHead>
+                        <TableHead className="min-w-[130px]">Clasificación</TableHead>
+                        <TableHead className="text-right">Stock VD</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {filtered.map((row, i) => (
-                        <TableRow key={`${row.producto}-${i}`}>
+                        <TableRow key={`${row.producto}-${i}`} className="hover:bg-muted/20">
+                          <TableCell className="text-center text-sm font-bold text-muted-foreground">{i + 1}</TableCell>
                           <TableCell>
                             <div className="flex items-center gap-3">
                               {row.foto ? (
-                                <img src={row.foto} alt="" className="w-10 h-10 rounded-lg object-cover bg-muted shrink-0" onError={e => { e.currentTarget.style.display = "none"; }} />
+                                <img src={row.foto} alt="" className="w-12 h-12 rounded-lg object-cover bg-muted shrink-0" onError={e => { e.currentTarget.style.display = "none"; }} />
                               ) : (
-                                <div className="w-10 h-10 rounded-lg bg-muted/50 flex items-center justify-center text-sm shrink-0">👗</div>
+                                <div className="w-12 h-12 rounded-lg bg-muted/50 flex items-center justify-center text-lg shrink-0">📦</div>
                               )}
-                              <span className="text-sm font-medium text-foreground line-clamp-2 max-w-[180px]">{row.producto}</span>
+                              <span className="text-sm font-medium text-foreground line-clamp-2 max-w-[200px]">{row.producto}</span>
                             </div>
                           </TableCell>
                           <TableCell className="text-xs text-muted-foreground">{row.categoria}</TableCell>
                           <TableCell><CollectionBadge coleccion={row.coleccion} /></TableCell>
-                          <TableCell className="text-right text-sm">{(row.und_tiendas ?? 0).toLocaleString()}</TableCell>
-                          <TableCell className="text-right text-sm">{(row.und_outlets ?? 0).toLocaleString()}</TableCell>
-                          <TableCell className="text-right text-sm">{(row.und_digital ?? 0).toLocaleString()}</TableCell>
-                          <TableCell className="text-right text-sm font-semibold">{(row.und_total ?? 0).toLocaleString()}</TableCell>
-                          <TableCell className="text-right">
-                            <span className="text-sm font-medium text-emerald-600">{row.pct_full_price ?? 0}%</span>
+                          <TableCell className="text-right text-sm tabular-nums">{(row.und_tiendas ?? 0).toLocaleString()}</TableCell>
+                          <TableCell className="text-right text-sm tabular-nums">{(row.und_outlets ?? 0).toLocaleString()}</TableCell>
+                          <TableCell className="text-right text-sm tabular-nums">{(row.und_digital ?? 0).toLocaleString()}</TableCell>
+                          <TableCell className="text-right text-sm font-bold tabular-nums">{(row.und_total ?? 0).toLocaleString()}</TableCell>
+                          <TableCell>
+                            <PriceTypeBars fp={row.pct_full_price ?? 0} reb={row.pct_rebajas ?? 0} promo={row.pct_descuento ?? 0} />
                           </TableCell>
-                          <TableCell className="text-right">
-                            <span className="text-sm font-medium text-blue-500">{row.pct_rebajas ?? 0}%</span>
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <span className="text-sm font-medium text-orange-500 cursor-pointer hover:underline"
-                              onClick={() => navigate(`/pedidos?tipo=descuento&days=${resolveDays(days)}`)}
-                            >
-                              {row.pct_descuento ?? 0}%
-                            </span>
-                          </TableCell>
-                          <TableCell className="min-w-[120px]">
+                          <TableCell>
                             <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-semibold whitespace-nowrap ${
                               row.clasificacion?.includes("Full Price")
                                 ? "bg-emerald-500/10 text-emerald-600"
                                 : row.clasificacion?.includes("Rebajas")
-                                ? "bg-destructive/10 text-destructive"
-                                : "bg-warning/10 text-warning"
+                                ? "bg-blue-500/10 text-blue-600"
+                                : "bg-orange-500/10 text-orange-600"
                             }`}>
-                              {row.clasificacion}
+                              {cleanClasificacion(row.clasificacion)}
                             </span>
+                          </TableCell>
+                          <TableCell className="text-right text-sm font-semibold tabular-nums">
+                            {(row.stock_venta_directa ?? 0).toLocaleString()}
                           </TableCell>
                         </TableRow>
                       ))}
