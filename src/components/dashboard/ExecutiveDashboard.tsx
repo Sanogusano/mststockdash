@@ -14,6 +14,7 @@ import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis
 import { StoreLeaderboard } from "./StoreLeaderboard";
 import { CollectionBadge } from "./CollectionBadge";
 import { CollectionCompositionCard } from "./CollectionCompositionCard";
+import { MultiSelectFilter } from "./MultiSelectFilter";
 
 /* ── Constants ── */
 const CEDI_ID = "71474315479";
