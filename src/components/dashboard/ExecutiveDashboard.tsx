@@ -14,6 +14,7 @@ import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis
 import { StoreLeaderboard } from "./StoreLeaderboard";
 import { CollectionBadge } from "./CollectionBadge";
 import { CollectionCompositionCard } from "./CollectionCompositionCard";
+import { MultiSelectFilter } from "./MultiSelectFilter";
 
 /* ── Constants ── */
 const CEDI_ID = "71474315479";
@@ -1416,14 +1417,43 @@ function ChannelContributionChart({ channelData }: {
   );
 }
 
+/* ── Channel Keys ── */
+const CHANNEL_KEYS = ["tiendas", "outlets", "digital"] as const;
+const CHANNEL_LABELS: Record<string, string> = { tiendas: "Tiendas", outlets: "Outlets", digital: "Digital" };
+
+function aggregateKpis(kpiMap: Record<string, KpiData>, selected: string[]): KpiData {
+  const keys = selected.length === 0 ? [...CHANNEL_KEYS] : selected;
+  let totalPedidos = 0, totalUnidades = 0, totalIngresos = 0;
+  let sumFP = 0, sumReb = 0, sumDesc = 0;
+  for (const k of keys) {
+    const d = kpiMap[k];
+    if (!d) continue;
+    totalPedidos += d.total_pedidos;
+    totalUnidades += d.unidades_vendidas;
+    totalIngresos += d.ingresos_netos;
+    sumFP += d.pct_pedidos_full_price * d.total_pedidos;
+    sumReb += d.pct_pedidos_rebajas * d.total_pedidos;
+    sumDesc += d.pct_pedidos_con_descuento * d.total_pedidos;
+  }
+  return {
+    total_pedidos: totalPedidos,
+    unidades_vendidas: totalUnidades,
+    ingresos_netos: totalIngresos,
+    ticket_promedio: totalPedidos > 0 ? totalIngresos / totalPedidos : 0,
+    upt: totalPedidos > 0 ? totalUnidades / totalPedidos : 0,
+    pct_pedidos_full_price: totalPedidos > 0 ? sumFP / totalPedidos : 0,
+    pct_pedidos_rebajas: totalPedidos > 0 ? sumReb / totalPedidos : 0,
+    pct_pedidos_con_descuento: totalPedidos > 0 ? sumDesc / totalPedidos : 0,
+  };
+}
+
 /* ── Brand-wide KPI Panel ── */
 function BrandOverviewPanel({ days, comparisonPeriod = "previous" }: { days: number; comparisonPeriod?: ComparisonPeriod }) {
-  const [kpis, setKpis] = useState<KpiData | null>(null);
-  const [prevKpis, setPrevKpis] = useState<KpiData | null>(null);
-  const [storeVentas, setStoreVentas] = useState(0);
-  const [prevStoreVentas, setPrevStoreVentas] = useState(0);
+  const [channelKpis, setChannelKpis] = useState<Record<string, KpiData>>({});
+  const [prevChannelKpis, setPrevChannelKpis] = useState<Record<string, KpiData>>({});
   const [totalM2, setTotalM2] = useState<number>(0);
-  const [channelData, setChannelData] = useState<{ name: string; actual: number; anterior: number }[]>([]);
+  const [channelData, setChannelData] = useState<{ name: string; key: string; actual: number; anterior: number }[]>([]);
+  const [selectedChannels, setSelectedChannels] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
@@ -1432,39 +1462,38 @@ function BrandOverviewPanel({ days, comparisonPeriod = "previous" }: { days: num
       if (!isValidDays(days)) return;
       setLoading(true);
       const effectiveDays = resolveDays(days);
-      const [currentRes, prevRes, kpiTiendasRes, kpiOutletsRes, kpiDigitalRes, prevTiendasRes, prevOutletsRes, prevDigitalRes, m2Res] = await Promise.all([
-        supabase.rpc("reporte_kpis_comerciales", { dias_atras: effectiveDays, p_canal: null, p_location_id: null }),
-        (() => { const cr = resolveComparisonRange(days, comparisonPeriod); return supabase.rpc("reporte_kpis_por_rango" as any, { p_desde: toDateStr(cr.from), p_hasta: toDateStr(cr.to), p_canal: null, p_location_id: null }); })(),
+      const cr = resolveComparisonRange(days, comparisonPeriod);
+      const [kpiTiendasRes, kpiOutletsRes, kpiDigitalRes, prevTiendasRes, prevOutletsRes, prevDigitalRes, m2Res] = await Promise.all([
         supabase.rpc("reporte_kpis_comerciales", { dias_atras: effectiveDays, p_canal: "tiendas", p_location_id: null }),
         supabase.rpc("reporte_kpis_comerciales", { dias_atras: effectiveDays, p_canal: "outlets", p_location_id: null }),
         supabase.rpc("reporte_kpis_comerciales", { dias_atras: effectiveDays, p_canal: "digital", p_location_id: null }),
-        (() => { const cr = resolveComparisonRange(days, comparisonPeriod); return supabase.rpc("reporte_kpis_por_rango" as any, { p_desde: toDateStr(cr.from), p_hasta: toDateStr(cr.to), p_canal: "tiendas", p_location_id: null }); })(),
-        (() => { const cr = resolveComparisonRange(days, comparisonPeriod); return supabase.rpc("reporte_kpis_por_rango" as any, { p_desde: toDateStr(cr.from), p_hasta: toDateStr(cr.to), p_canal: "outlets", p_location_id: null }); })(),
-        (() => { const cr = resolveComparisonRange(days, comparisonPeriod); return supabase.rpc("reporte_kpis_por_rango" as any, { p_desde: toDateStr(cr.from), p_hasta: toDateStr(cr.to), p_canal: "digital", p_location_id: null }); })(),
+        supabase.rpc("reporte_kpis_por_rango" as any, { p_desde: toDateStr(cr.from), p_hasta: toDateStr(cr.to), p_canal: "tiendas", p_location_id: null }),
+        supabase.rpc("reporte_kpis_por_rango" as any, { p_desde: toDateStr(cr.from), p_hasta: toDateStr(cr.to), p_canal: "outlets", p_location_id: null }),
+        supabase.rpc("reporte_kpis_por_rango" as any, { p_desde: toDateStr(cr.from), p_hasta: toDateStr(cr.to), p_canal: "digital", p_location_id: null }),
         supabase.from("locations").select("dimension_m2, name, location_id").eq("is_active", true).not("dimension_m2", "is", null),
       ]);
 
       const emptyKpi = normalizeKpiData({});
-      if (currentRes.data && currentRes.data.length > 0) setKpis(normalizeKpiData(currentRes.data[0]));
-      else setKpis(emptyKpi);
-      if (prevRes.data && (prevRes.data as any[]).length > 0) setPrevKpis(normalizeKpiData((prevRes.data as any[])[0]));
-      else setPrevKpis(emptyKpi);
+      const extract = (res: any) => res.data && (res.data as any[]).length > 0 ? normalizeKpiData((res.data as any[])[0]) : emptyKpi;
 
-      // Sum tiendas + outlets ventas for m² calc
-      const vTiendas = (kpiTiendasRes.data && kpiTiendasRes.data.length > 0) ? (kpiTiendasRes.data[0] as any).ingresos_netos ?? 0 : 0;
-      const vOutlets = (kpiOutletsRes.data && kpiOutletsRes.data.length > 0) ? (kpiOutletsRes.data[0] as any).ingresos_netos ?? 0 : 0;
-      const vDigital = (kpiDigitalRes.data && kpiDigitalRes.data.length > 0) ? (kpiDigitalRes.data[0] as any).ingresos_netos ?? 0 : 0;
-      setStoreVentas(vTiendas + vOutlets);
+      const chKpis: Record<string, KpiData> = {
+        tiendas: extract(kpiTiendasRes),
+        outlets: extract(kpiOutletsRes),
+        digital: extract(kpiDigitalRes),
+      };
+      setChannelKpis(chKpis);
 
-      const pvTiendas = (prevTiendasRes.data && (prevTiendasRes.data as any[]).length > 0) ? (prevTiendasRes.data as any[])[0].ingresos_netos ?? 0 : 0;
-      const pvOutlets = (prevOutletsRes.data && (prevOutletsRes.data as any[]).length > 0) ? (prevOutletsRes.data as any[])[0].ingresos_netos ?? 0 : 0;
-      const pvDigital = (prevDigitalRes.data && (prevDigitalRes.data as any[]).length > 0) ? (prevDigitalRes.data as any[])[0].ingresos_netos ?? 0 : 0;
-      setPrevStoreVentas(pvTiendas + pvOutlets);
+      const prevChKpis: Record<string, KpiData> = {
+        tiendas: extract(prevTiendasRes),
+        outlets: extract(prevOutletsRes),
+        digital: extract(prevDigitalRes),
+      };
+      setPrevChannelKpis(prevChKpis);
 
       setChannelData([
-        { name: "Tiendas", actual: vTiendas, anterior: pvTiendas },
-        { name: "Outlets", actual: vOutlets, anterior: pvOutlets },
-        { name: "Digital", actual: vDigital, anterior: pvDigital },
+        { name: "Tiendas", key: "tiendas", actual: chKpis.tiendas.ingresos_netos, anterior: prevChKpis.tiendas.ingresos_netos },
+        { name: "Outlets", key: "outlets", actual: chKpis.outlets.ingresos_netos, anterior: prevChKpis.outlets.ingresos_netos },
+        { name: "Digital", key: "digital", actual: chKpis.digital.ingresos_netos, anterior: prevChKpis.digital.ingresos_netos },
       ]);
 
       if (m2Res.data) {
@@ -1478,42 +1507,64 @@ function BrandOverviewPanel({ days, comparisonPeriod = "previous" }: { days: num
 
   if (loading) return <LoadingState rows={4} />;
 
+  const kpis = aggregateKpis(channelKpis, selectedChannels);
+  const prevKpis = aggregateKpis(prevChannelKpis, selectedChannels);
+
+  const activeChannels = selectedChannels.length === 0 ? [...CHANNEL_KEYS] : selectedChannels;
+  const storeVentas = activeChannels.filter(c => c !== "digital").reduce((s, c) => s + (channelKpis[c]?.ingresos_netos ?? 0), 0);
+  const prevStoreVentas = activeChannels.filter(c => c !== "digital").reduce((s, c) => s + (prevChannelKpis[c]?.ingresos_netos ?? 0), 0);
   const ventaM2 = totalM2 > 0 ? storeVentas / totalM2 : 0;
   const prevVentaM2 = totalM2 > 0 ? prevStoreVentas / totalM2 : 0;
+  const showM2 = activeChannels.some(c => c !== "digital") && totalM2 > 0;
+
+  // For sub-components: pass single canal when 1 selected, null otherwise
+  const singleCanal = selectedChannels.length === 1 ? selectedChannels[0] : null;
+
+  const filteredChannelData = channelData.filter(ch => activeChannels.includes(ch.key));
 
   return (
     <div className="space-y-4 mb-6">
       <div className="glass-card p-5">
-        <div className="flex items-center gap-3 mb-4">
-          <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-            <Package className="h-4 w-4 text-primary" />
+        <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
+          <div className="flex items-center gap-3">
+            <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+              <Package className="h-4 w-4 text-primary" />
+            </div>
+            <h3 className="text-sm font-semibold text-foreground">📊 DESEMPEÑO COMERCIAL VENTA DIRECTA</h3>
           </div>
-          <h3 className="text-sm font-semibold text-foreground">📊 DESEMPEÑO COMERCIAL VENTA DIRECTA</h3>
+          <MultiSelectFilter
+            label="Canal"
+            options={CHANNEL_KEYS.map(k => CHANNEL_LABELS[k])}
+            selected={selectedChannels.map(k => CHANNEL_LABELS[k])}
+            onChange={(labels) => setSelectedChannels(labels.map(l => Object.entries(CHANNEL_LABELS).find(([, v]) => v === l)?.[0] ?? "").filter(Boolean))}
+          />
         </div>
         {/* Row 1: Ventas Netas + Ticket */}
         <div className="grid grid-cols-2 gap-4">
-          <KpiCard label="Ventas Netas" value={fmtCurrency(kpis?.ingresos_netos ?? 0)} icon={DollarSign}
-            actual={kpis?.ingresos_netos ?? 0} anterior={prevKpis?.ingresos_netos ?? 0} />
-          <KpiCard label="Ticket Promedio" value={fmtCurrency(kpis?.ticket_promedio ?? 0)} icon={Receipt}
-            actual={kpis?.ticket_promedio ?? 0} anterior={prevKpis?.ticket_promedio ?? 0} />
+          <KpiCard label="Ventas Netas" value={fmtCurrency(kpis.ingresos_netos)} icon={DollarSign}
+            actual={kpis.ingresos_netos} anterior={prevKpis.ingresos_netos} />
+          <KpiCard label="Ticket Promedio" value={fmtCurrency(kpis.ticket_promedio)} icon={Receipt}
+            actual={kpis.ticket_promedio} anterior={prevKpis.ticket_promedio} />
         </div>
         {/* Row 2: UPT + Venta m² Tienda */}
-        <div className="grid grid-cols-2 gap-4 mt-4">
-          <KpiCard label="UPT" value={(kpis?.upt ?? 0).toFixed(2)} icon={ShoppingBag}
-            actual={kpis?.upt ?? 0} anterior={prevKpis?.upt ?? 0} />
-          <KpiCard label="Venta m² Tienda" value={fmtCurrency(ventaM2)} icon={Ruler}
-            actual={ventaM2} anterior={prevVentaM2}
-            ventaM2Status={totalM2 > 0 ? getVentaM2Status(ventaM2, ventaM2) : undefined}
-            onClick={() => navigate(`/venta-m2?days=${resolveDays(days)}`)} />
+        <div className={cn("grid gap-4 mt-4", showM2 ? "grid-cols-2" : "grid-cols-1")}>
+          <KpiCard label="UPT" value={kpis.upt.toFixed(2)} icon={ShoppingBag}
+            actual={kpis.upt} anterior={prevKpis.upt} />
+          {showM2 && (
+            <KpiCard label="Venta m² Tienda" value={fmtCurrency(ventaM2)} icon={Ruler}
+              actual={ventaM2} anterior={prevVentaM2}
+              ventaM2Status={totalM2 > 0 ? getVentaM2Status(ventaM2, ventaM2) : undefined}
+              onClick={() => navigate(`/venta-m2?days=${resolveDays(days)}`)} />
+          )}
         </div>
         {/* Row 3: % Full Price, % Rebajas, % Desc. Promo (line-item level) */}
         <div className="mt-4">
-          <VentasTipoCards days={days} />
+          <VentasTipoCards days={days} canal={singleCanal} />
         </div>
         {/* Channel Contribution Chart */}
-        <ChannelContributionChart channelData={channelData} />
+        <ChannelContributionChart channelData={filteredChannelData} />
       </div>
-      <CollectionCompositionCard days={days} />
+      <CollectionCompositionCard days={days} canal={singleCanal ?? undefined} />
       <BrandTopBottomProducts days={days} />
     </div>
   );
