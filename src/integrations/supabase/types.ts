@@ -767,6 +767,7 @@ export type Database = {
           pct_rebajas: number
           producto: string
           sku: string
+          stock_venta_directa: number
           und_digital: number
           und_outlets: number
           und_tiendas: number
