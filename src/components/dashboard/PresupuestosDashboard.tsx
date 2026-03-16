@@ -63,8 +63,8 @@ export function PresupuestosDashboard() {
 
           let channel = "POS";
           if (o.location_id === "71474315479" || o.source_name !== "pos") {
-            channel = o.source_name === "pos" ? "Web" : (o.source_name === "web" ? "Web" : "WhatsApp");
-            if (o.source_name === "pos" && o.location_id === "71474315479") channel = "Web";
+            channel = o.source_name === "web" ? "Tienda Online" : "Personal Shopper";
+            if (o.source_name === "pos" && o.location_id === "71474315479") channel = "Tienda Online";
           }
           byChannel[channel] = (byChannel[channel] || 0) + Number(o.total_price || 0);
         });
