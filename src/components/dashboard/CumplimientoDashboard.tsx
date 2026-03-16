@@ -75,7 +75,7 @@ export function CumplimientoDashboard() {
     let from = 0;
     let hasMore = true;
     while (hasMore) {
-      const query = filters(supabase.from(tableName).select(select));
+      const query = filters((supabase.from as any)(tableName).select(select));
       const { data, error } = await query.range(from, from + pageSize - 1);
       if (error || !data || data.length === 0) { hasMore = false; break; }
       allData = allData.concat(data as T[]);
