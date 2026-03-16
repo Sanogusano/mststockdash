@@ -50,6 +50,12 @@ const navItems = [
     icon: Package,
     description: "CEDI & reorden",
   },
+  {
+    title: "Presupuestos",
+    url: "/presupuestos",
+    icon: Target,
+    description: "Metas de venta",
+  },
 ];
 
 export function AppSidebar() {
