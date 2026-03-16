@@ -45,7 +45,7 @@ function clearState() {
   localStorage.removeItem(STORAGE_KEY);
 }
 
-export function PresupuestosWizard() {
+export function PresupuestosWizard({ onSaved }: { onSaved?: () => void }) {
   const saved = loadState();
   const [step, setStep] = useState(saved?.step ?? 0);
   const [anio, setAnio] = useState<number | null>(saved?.anio ?? null);
