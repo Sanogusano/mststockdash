@@ -415,13 +415,9 @@ export function CumplimientoDashboard() {
           size="sm"
           className="gap-2"
           onClick={() => exportCumplimientoPDF(
+            "cumplimiento-dashboard-content",
             MONTHS[mes - 1],
-            anio,
-            { globalPct, pctToDate, totalVentaNeta, totalBudget, budgetToDate, daysElapsed, totalUnidades, ticketPromedio, numDaysInMonth },
-            dailyData,
-            currentDay,
-            tableRows,
-            dailyTarget
+            anio
           )}
         >
           <FileDown className="h-4 w-4" />
