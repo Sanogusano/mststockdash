@@ -213,6 +213,19 @@ export function CumplimientoDashboard() {
     .filter(([ch]) => ch !== "POS")
     .reduce((s, [, v]) => s + v.ventaNeta, 0);
 
+  // Cumplimiento a la fecha: presupuesto prorrateado
+  const numDaysInMonth = daysInMonth(anio, mes);
+  const todayRef = new Date();
+  const isCurrentMonthRef = todayRef.getFullYear() === anio && todayRef.getMonth() + 1 === mes;
+  const daysElapsed = isCurrentMonthRef ? todayRef.getDate() : numDaysInMonth;
+  const budgetToDate = totalBudget > 0 ? (totalBudget / numDaysInMonth) * daysElapsed : 0;
+  const pctToDate = budgetToDate > 0 ? (totalVentaNeta / budgetToDate) * 100 : 0;
+
+  // Total Tiendas aggregation
+  const totalVentaTiendas = storeConfigs.reduce((s, c) => s + (salesByStore[c.nombre_identificador]?.ventaNeta || 0), 0);
+  const totalPedidosTiendas = storeConfigs.reduce((s, c) => s + (salesByStore[c.nombre_identificador]?.pedidos || 0), 0);
+  const totalUnidadesTiendas = storeConfigs.reduce((s, c) => s + (salesByStore[c.nombre_identificador]?.unidades || 0), 0);
+
   // Daily chart data
   const numDays = daysInMonth(anio, mes);
   const dailyTarget = totalBudget > 0 ? totalBudget / numDays : 0;
