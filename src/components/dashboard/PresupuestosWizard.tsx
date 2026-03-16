@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Check, ChevronRight, ChevronLeft, Save, Store, Globe, BarChart3, MapPin, AlertTriangle } from "lucide-react";
+import { Check, ChevronRight, ChevronLeft, Save, Store, Globe, BarChart3, MapPin, AlertTriangle, Pencil } from "lucide-react";
 import { toast } from "sonner";
 
 const MONTHS = [
