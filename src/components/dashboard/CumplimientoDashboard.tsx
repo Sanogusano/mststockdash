@@ -599,7 +599,6 @@ export function CumplimientoDashboard() {
                     {globalPct.toFixed(1)}%
                   </Badge>
                 </TableCell>
-                <TableCell className="text-right font-bold">100%</TableCell>
                 <TableCell className="text-right">
                   <Badge variant={pctBadgeVariant(pctToDate)} className="text-xs font-bold">
                     {pctToDate.toFixed(1)}%
