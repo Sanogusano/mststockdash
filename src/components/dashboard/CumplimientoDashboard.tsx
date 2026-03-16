@@ -213,6 +213,19 @@ export function CumplimientoDashboard() {
     .filter(([ch]) => ch !== "POS")
     .reduce((s, [, v]) => s + v.ventaNeta, 0);
 
+  // Cumplimiento a la fecha: presupuesto prorrateado
+  const numDaysInMonth = daysInMonth(anio, mes);
+  const todayRef = new Date();
+  const isCurrentMonthRef = todayRef.getFullYear() === anio && todayRef.getMonth() + 1 === mes;
+  const daysElapsed = isCurrentMonthRef ? todayRef.getDate() : numDaysInMonth;
+  const budgetToDate = totalBudget > 0 ? (totalBudget / numDaysInMonth) * daysElapsed : 0;
+  const pctToDate = budgetToDate > 0 ? (totalVentaNeta / budgetToDate) * 100 : 0;
+
+  // Total Tiendas aggregation
+  const totalVentaTiendas = storeConfigs.reduce((s, c) => s + (salesByStore[c.nombre_identificador]?.ventaNeta || 0), 0);
+  const totalPedidosTiendas = storeConfigs.reduce((s, c) => s + (salesByStore[c.nombre_identificador]?.pedidos || 0), 0);
+  const totalUnidadesTiendas = storeConfigs.reduce((s, c) => s + (salesByStore[c.nombre_identificador]?.unidades || 0), 0);
+
   // Daily chart data
   const numDays = daysInMonth(anio, mes);
   const dailyTarget = totalBudget > 0 ? totalBudget / numDays : 0;
@@ -231,14 +244,22 @@ export function CumplimientoDashboard() {
   // Hierarchical table rows
   const tableRows = useMemo(() => {
     const rows: Array<{
-      level: "group" | "subgroup" | "item";
+      level: "group" | "subgroup" | "item" | "total-tiendas";
       label: string;
       budget: number;
       ventaNeta: number;
       pct: number;
+      pctGeneral: number;
+      pctToDate: number;
       unidades: number;
       ticket: number;
     }> = [];
+
+    const calcPctGeneral = (venta: number) => totalVentaNeta > 0 ? (venta / totalVentaNeta) * 100 : 0;
+    const calcPctToDate = (budget: number, venta: number) => {
+      const bToDate = budget > 0 ? (budget / numDaysInMonth) * daysElapsed : 0;
+      return bToDate > 0 ? (venta / bToDate) * 100 : 0;
+    };
 
     // ── Digital ──
     const digitalVenta = channelConfigs.reduce((s, c) => {
@@ -260,6 +281,8 @@ export function CumplimientoDashboard() {
       budget: totalBudgetCanales,
       ventaNeta: digitalVenta,
       pct: totalBudgetCanales > 0 ? (digitalVenta / totalBudgetCanales) * 100 : 0,
+      pctGeneral: calcPctGeneral(digitalVenta),
+      pctToDate: calcPctToDate(totalBudgetCanales, digitalVenta),
       unidades: digitalUnidades,
       ticket: digitalPedidos > 0 ? digitalVenta / digitalPedidos : 0,
     });
@@ -272,9 +295,24 @@ export function CumplimientoDashboard() {
         budget: Number(c.monto),
         ventaNeta: ch.ventaNeta,
         pct: Number(c.monto) > 0 ? (ch.ventaNeta / Number(c.monto)) * 100 : 0,
+        pctGeneral: calcPctGeneral(ch.ventaNeta),
+        pctToDate: calcPctToDate(Number(c.monto), ch.ventaNeta),
         unidades: ch.unidades,
         ticket: ch.pedidos > 0 ? ch.ventaNeta / ch.pedidos : 0,
       });
+    });
+
+    // ── Total Tiendas ──
+    rows.push({
+      level: "total-tiendas",
+      label: "🏪 TOTAL TIENDAS",
+      budget: totalBudgetTiendas,
+      ventaNeta: totalVentaTiendas,
+      pct: totalBudgetTiendas > 0 ? (totalVentaTiendas / totalBudgetTiendas) * 100 : 0,
+      pctGeneral: calcPctGeneral(totalVentaTiendas),
+      pctToDate: calcPctToDate(totalBudgetTiendas, totalVentaTiendas),
+      unidades: totalUnidadesTiendas,
+      ticket: totalPedidosTiendas > 0 ? totalVentaTiendas / totalPedidosTiendas : 0,
     });
 
     // ── Tiendas by Zona ──
@@ -300,6 +338,8 @@ export function CumplimientoDashboard() {
           budget: zonaBudget,
           ventaNeta: zonaVenta,
           pct: zonaBudget > 0 ? (zonaVenta / zonaBudget) * 100 : 0,
+          pctGeneral: calcPctGeneral(zonaVenta),
+          pctToDate: calcPctToDate(zonaBudget, zonaVenta),
           unidades: zonaUnidades,
           ticket: zonaPedidos > 0 ? zonaVenta / zonaPedidos : 0,
         });
@@ -314,6 +354,8 @@ export function CumplimientoDashboard() {
               budget: Number(c.monto),
               ventaNeta: st.ventaNeta,
               pct: Number(c.monto) > 0 ? (st.ventaNeta / Number(c.monto)) * 100 : 0,
+              pctGeneral: calcPctGeneral(st.ventaNeta),
+              pctToDate: calcPctToDate(Number(c.monto), st.ventaNeta),
               unidades: st.unidades,
               ticket: st.pedidos > 0 ? st.ventaNeta / st.pedidos : 0,
             });
@@ -321,7 +363,7 @@ export function CumplimientoDashboard() {
       });
 
     return rows;
-  }, [configs, salesByStore, salesByChannel, locations, storeConfigs, channelConfigs, totalBudgetCanales]);
+  }, [configs, salesByStore, salesByChannel, locations, storeConfigs, channelConfigs, totalBudgetCanales, totalBudgetTiendas, totalVentaTiendas, totalPedidosTiendas, totalUnidadesTiendas, totalVentaNeta, numDaysInMonth, daysElapsed]);
 
   // Today index for daily chart
   const today = new Date();
@@ -366,7 +408,7 @@ export function CumplimientoDashboard() {
       </div>
 
       {/* ── Master KPI ── */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
         <Card className="md:col-span-2">
           <CardContent className="py-6">
             <div className="flex items-center justify-between mb-3">
@@ -385,6 +427,16 @@ export function CumplimientoDashboard() {
               <span>Venta Neta: {fmtCOP(totalVentaNeta)}</span>
               <span>Meta: {fmtCOP(totalBudget)}</span>
             </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="py-6 text-center">
+            <p className="text-xs text-muted-foreground mb-1">Cumplimiento a la Fecha</p>
+            <p className={`text-2xl font-bold ${pctColor(pctToDate)}`}>{pctToDate.toFixed(1)}%</p>
+            <p className="text-[10px] text-muted-foreground mt-1">
+              Meta al día {daysElapsed}: {fmtCOP(budgetToDate)}
+            </p>
           </CardContent>
         </Card>
 
@@ -418,7 +470,7 @@ export function CumplimientoDashboard() {
             {dailyData.slice(0, currentDay).map((d) => {
               const heightPct = maxDailyValue > 0 ? (d.ventaNeta / maxDailyValue) * 100 : 0;
               const barColor = d.pct >= 100
-                ? "bg-[hsl(142,76%,46%)]" // green neon
+                ? "bg-[hsl(142,76%,46%)]"
                 : d.pct >= 80
                 ? "bg-[hsl(var(--warning))]"
                 : "bg-[hsl(var(--danger))]";
@@ -432,7 +484,6 @@ export function CumplimientoDashboard() {
                     style={{ height: `${Math.max(heightPct, 1.5)}%` }}
                   />
                   <span className="text-[8px] text-muted-foreground mt-0.5">{d.day}</span>
-                  {/* Tooltip */}
                   <div className="absolute bottom-full mb-1 hidden group-hover:block z-10 bg-popover border border-border rounded-md px-2 py-1 shadow-md whitespace-nowrap">
                     <p className="text-[10px] font-semibold text-foreground">{d.day} {MONTHS[mes - 1]}</p>
                     <p className="text-[10px] text-muted-foreground">Venta: {fmtCOP(d.ventaNeta)}</p>
@@ -441,10 +492,6 @@ export function CumplimientoDashboard() {
                 </div>
               );
             })}
-          </div>
-          {/* Daily target line reference */}
-          <div className="relative h-0 -mt-[calc(theme(spacing.32)*var(--target-pct,0.5))]">
-            {/* We skip the absolute line for simplicity, tooltip covers it */}
           </div>
         </CardContent>
       </Card>
@@ -456,7 +503,7 @@ export function CumplimientoDashboard() {
             <Store className="h-4 w-4" /> Tabla de Cumplimiento
           </CardTitle>
         </CardHeader>
-        <CardContent className="p-0">
+        <CardContent className="p-0 overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow className="bg-muted/50">
@@ -464,6 +511,8 @@ export function CumplimientoDashboard() {
                 <TableHead className="text-right font-semibold">Presupuesto</TableHead>
                 <TableHead className="text-right font-semibold">Venta Neta</TableHead>
                 <TableHead className="text-right font-semibold">% Cumpl.</TableHead>
+                <TableHead className="text-right font-semibold">% General</TableHead>
+                <TableHead className="text-right font-semibold">% Cumpl. Fecha</TableHead>
                 <TableHead className="text-right font-semibold">Uds.</TableHead>
                 <TableHead className="text-right font-semibold">Ticket Prom.</TableHead>
               </TableRow>
@@ -471,14 +520,18 @@ export function CumplimientoDashboard() {
             <TableBody>
               {/* Grand total row */}
               <TableRow className="bg-primary/5 font-bold border-b-2 border-primary/20">
-                <TableCell className="font-bold text-foreground">
-                  🏆 VENTA DIRECTA
-                </TableCell>
+                <TableCell className="font-bold text-foreground">🏆 VENTA DIRECTA</TableCell>
                 <TableCell className="text-right font-bold">{fmtCOP(totalBudget)}</TableCell>
                 <TableCell className="text-right font-bold">{fmtCOP(totalVentaNeta)}</TableCell>
                 <TableCell className="text-right">
                   <Badge variant={pctBadgeVariant(globalPct)} className="text-xs font-bold">
                     {globalPct.toFixed(1)}%
+                  </Badge>
+                </TableCell>
+                <TableCell className="text-right font-bold">100%</TableCell>
+                <TableCell className="text-right">
+                  <Badge variant={pctBadgeVariant(pctToDate)} className="text-xs font-bold">
+                    {pctToDate.toFixed(1)}%
                   </Badge>
                 </TableCell>
                 <TableCell className="text-right font-bold">{totalUnidades.toLocaleString("es-CO")}</TableCell>
@@ -489,6 +542,7 @@ export function CumplimientoDashboard() {
                 const isGroup = row.level === "group";
                 const isSubgroup = row.level === "subgroup";
                 const isItem = row.level === "item";
+                const isTotalTiendas = row.level === "total-tiendas";
                 const zebraClass = isItem && idx % 2 === 0 ? "bg-muted/20" : "";
 
                 return (
@@ -496,12 +550,14 @@ export function CumplimientoDashboard() {
                     key={`${row.label}-${idx}`}
                     className={`
                       ${isGroup ? "bg-muted/40 font-semibold border-t-2 border-border" : ""}
+                      ${isTotalTiendas ? "bg-accent/10 font-bold border-t-2 border-border" : ""}
                       ${isSubgroup ? "bg-muted/25 font-medium border-t border-border" : ""}
                       ${zebraClass}
                     `}
                   >
                     <TableCell className={`
                       ${isGroup ? "font-semibold text-foreground" : ""}
+                      ${isTotalTiendas ? "font-bold text-foreground" : ""}
                       ${isSubgroup ? "font-medium text-foreground pl-6" : ""}
                       ${isItem ? "pl-10 text-sm text-muted-foreground" : ""}
                     `}>
@@ -512,6 +568,12 @@ export function CumplimientoDashboard() {
                     <TableCell className="text-right">
                       <Badge variant={pctBadgeVariant(row.pct)} className="text-xs">
                         {row.pct.toFixed(1)}%
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-right text-sm">{row.pctGeneral.toFixed(1)}%</TableCell>
+                    <TableCell className="text-right">
+                      <Badge variant={pctBadgeVariant(row.pctToDate)} className="text-xs">
+                        {row.pctToDate.toFixed(1)}%
                       </Badge>
                     </TableCell>
                     <TableCell className="text-right text-sm">{row.unidades.toLocaleString("es-CO")}</TableCell>
