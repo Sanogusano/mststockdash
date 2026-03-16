@@ -38,15 +38,21 @@ function fmtCOP(n: number): string {
 }
 
 function pctColorRGB(pct: number): [number, number, number] {
-  if (pct >= 100) return [34, 197, 94];   // green
-  if (pct >= 80) return [234, 179, 8];    // yellow
-  return [239, 68, 68];                    // red
+  if (pct >= 100) return [22, 163, 74];    // green-600
+  if (pct >= 80) return [202, 138, 4];     // yellow-600
+  return [220, 38, 38];                     // red-600
+}
+
+function pctBgRGB(pct: number): [number, number, number] {
+  if (pct >= 100) return [220, 252, 231];  // green-100
+  if (pct >= 80) return [254, 249, 195];   // yellow-100
+  return [254, 226, 226];                   // red-100
 }
 
 function cleanText(s: string): string {
   return (s || "")
     .replace(/[\u{1F300}-\u{1F9FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{1FA00}-\u{1FA6F}\u{1FA70}-\u{1FAFF}]/gu, "")
-    .replace(/[🏆🏪🌐📍🧲📦👗⚠️🔴🟡🟢🚚🔥📈📊⏳]/g, "")
+    .replace(/[🏆🏪🌐📍🧲📦👗⚠️🔴🟡🟢🚚🔥📈📊⏳🐢🐇🚀]/g, "")
     .trim();
 }
 
@@ -64,12 +70,29 @@ async function loadLogoBase64(): Promise<string | null> {
         const ctx = canvas.getContext("2d");
         if (!ctx) { resolve(null); return; }
         ctx.drawImage(img, 0, 0);
-        resolve(canvas.toDataURL("image/jpeg", 0.9));
+        resolve(canvas.toDataURL("image/png", 0.9));
       };
       img.onerror = () => { clearTimeout(timeout); resolve(null); };
-      img.src = new URL("/src/assets/monastery-logo-white.jpg", window.location.origin).href;
+      img.src = new URL("/src/assets/monastery-logo.png", window.location.origin).href;
     });
   } catch { return null; }
+}
+
+// Draw a rounded badge with colored background and text
+function drawBadge(doc: jsPDF, x: number, y: number, text: string, pct: number, align: "right" | "left" = "right") {
+  const [tr, tg, tb] = pctColorRGB(pct);
+  const [br, bg, bb] = pctBgRGB(pct);
+  const textW = doc.getTextWidth(text);
+  const badgeW = textW + 4;
+  const badgeH = 4.5;
+  const bx = align === "right" ? x - badgeW : x;
+  const by = y - badgeH + 0.8;
+
+  doc.setFillColor(br, bg, bb);
+  doc.roundedRect(bx, by, badgeW, badgeH, 1.5, 1.5, "F");
+  doc.setTextColor(tr, tg, tb);
+  doc.setFont("helvetica", "bold");
+  doc.text(text, bx + 2, y - 0.5);
 }
 
 // ── Main export function ──
@@ -88,14 +111,14 @@ export async function exportCumplimientoPDF(
   const margin = 12;
   let y = margin;
 
-  // ── Background ──
-  doc.setFillColor(15, 15, 20);
+  // ── White Background ──
+  doc.setFillColor(255, 255, 255);
   doc.rect(0, 0, pageW, pageH, "F");
 
   // ── Header: Logo + Title + Date ──
   const logo = await loadLogoBase64();
   if (logo) {
-    doc.addImage(logo, "JPEG", margin, y, 35, 12);
+    doc.addImage(logo, "PNG", margin, y, 35, 12);
   }
 
   const now = new Date();
@@ -103,14 +126,14 @@ export async function exportCumplimientoPDF(
   const dateStr = `${now.getDate()} de ${months[now.getMonth()]} de ${now.getFullYear()}`;
   const timeStr = now.toLocaleTimeString("es-CO", { hour: "2-digit", minute: "2-digit" });
 
-  doc.setTextColor(255, 255, 255);
+  doc.setTextColor(30, 30, 30);
   doc.setFontSize(16);
   doc.setFont("helvetica", "bold");
   doc.text(`Reporte de Cumplimiento — ${monthName} ${year}`, margin + 40, y + 5);
 
   doc.setFontSize(8);
   doc.setFont("helvetica", "normal");
-  doc.setTextColor(160, 160, 170);
+  doc.setTextColor(120, 120, 130);
   doc.text(`Generado: ${dateStr} a las ${timeStr}`, margin + 40, y + 11);
 
   y += 20;
@@ -127,32 +150,34 @@ export async function exportCumplimientoPDF(
 
   cards.forEach((card, i) => {
     const x = margin + i * (cardW + 4);
-    // Card bg
-    doc.setFillColor(30, 30, 38);
-    doc.roundedRect(x, y, cardW, cardH, 3, 3, "F");
+    // Card bg - light gray
+    doc.setFillColor(248, 249, 250);
+    doc.setDrawColor(230, 230, 235);
+    doc.setLineWidth(0.3);
+    doc.roundedRect(x, y, cardW, cardH, 3, 3, "FD");
 
     // Title
     doc.setFontSize(7);
     doc.setFont("helvetica", "normal");
-    doc.setTextColor(140, 140, 155);
+    doc.setTextColor(100, 100, 115);
     doc.text(card.title, x + 4, y + 6);
 
     // Value
-    doc.setFontSize(16);
+    doc.setFontSize(18);
     doc.setFont("helvetica", "bold");
     if (card.pct >= 0) {
       const [r, g, b] = pctColorRGB(card.pct);
       doc.setTextColor(r, g, b);
     } else {
-      doc.setTextColor(255, 255, 255);
+      doc.setTextColor(30, 30, 30);
     }
-    doc.text(card.value, x + 4, y + 15);
+    doc.text(card.value, x + 4, y + 16);
 
     // Progress bar for first two
     if (card.pct >= 0) {
-      const barY = y + 18;
+      const barY = y + 19;
       const barW = cardW - 8;
-      doc.setFillColor(50, 50, 60);
+      doc.setFillColor(230, 230, 235);
       doc.roundedRect(x + 4, barY, barW, 2.5, 1, 1, "F");
       const [r, g, b] = pctColorRGB(card.pct);
       doc.setFillColor(r, g, b);
@@ -161,9 +186,9 @@ export async function exportCumplimientoPDF(
 
     // Sub text
     if (card.sub) {
-      doc.setFontSize(6);
+      doc.setFontSize(5.5);
       doc.setFont("helvetica", "normal");
-      doc.setTextColor(120, 120, 135);
+      doc.setTextColor(130, 130, 145);
       doc.text(card.sub, x + 4, y + 25);
     }
   });
@@ -173,13 +198,15 @@ export async function exportCumplimientoPDF(
   // ── Daily Chart ──
   const chartH = 35;
   const chartW = pageW - margin * 2;
-  doc.setFillColor(30, 30, 38);
-  doc.roundedRect(margin, y, chartW, chartH + 14, 3, 3, "F");
+  doc.setFillColor(248, 249, 250);
+  doc.setDrawColor(230, 230, 235);
+  doc.setLineWidth(0.3);
+  doc.roundedRect(margin, y, chartW, chartH + 14, 3, 3, "FD");
 
   // Chart title
   doc.setFontSize(8);
   doc.setFont("helvetica", "bold");
-  doc.setTextColor(255, 255, 255);
+  doc.setTextColor(30, 30, 30);
   doc.text("Historial Diario", margin + 4, y + 5);
 
   // Average pct
@@ -188,10 +215,12 @@ export async function exportCumplimientoPDF(
   const [ar, ag, ab] = pctColorRGB(avgPct);
   doc.setTextColor(ar, ag, ab);
   doc.setFontSize(7);
+  doc.setFont("helvetica", "bold");
   doc.text(`Promedio diario: ${avgPct.toFixed(1)}%`, margin + chartW - 50, y + 5);
 
   doc.setFontSize(6);
-  doc.setTextColor(120, 120, 135);
+  doc.setFont("helvetica", "normal");
+  doc.setTextColor(130, 130, 145);
   doc.text(`Objetivo diario: ${fmtCOP(dailyTarget)}`, margin + 4, y + 10);
 
   // Draw bars
@@ -206,7 +235,7 @@ export async function exportCumplimientoPDF(
 
   // Daily target line
   const targetLineY = barAreaY + barAreaH - (dailyTarget / maxVal) * barAreaH;
-  doc.setDrawColor(100, 100, 120);
+  doc.setDrawColor(180, 180, 190);
   doc.setLineDashPattern([1, 1], 0);
   doc.setLineWidth(0.3);
   doc.line(barAreaX, targetLineY, barAreaX + barAreaW, targetLineY);
@@ -222,13 +251,14 @@ export async function exportCumplimientoPDF(
 
     // Day label
     doc.setFontSize(4);
-    doc.setTextColor(120, 120, 135);
+    doc.setTextColor(130, 130, 145);
     doc.text(String(d.day), bx + barW / 2, barAreaY + barAreaH + 4, { align: "center" });
   });
 
   y += chartH + 18;
 
   // ── Compliance Table ──
+  // Build rows with VENTA DIRECTA as first row
   const allRows: TableRowData[] = [
     {
       level: "group",
@@ -244,20 +274,25 @@ export async function exportCumplimientoPDF(
     ...tableRows,
   ];
 
+  // Only 2 % columns: Cumplimiento General (pctGeneral mapped to pct for display), % a la Fecha
   const tableHead = [
-    "Canal / Tienda", "Presupuesto", "Venta Neta", "% Cumpl.", "% General", "% Cumpl. Fecha", "Uds.", "Ticket Prom."
+    "Canal / Tienda", "Presupuesto", "Venta Neta", "Cumpl. General %", "% a la Fecha", "Uds.", "Ticket Prom."
   ];
 
-  const tableBody = allRows.map((row) => [
-    cleanText(row.label),
-    fmtCOP(row.budget),
-    fmtCOP(row.ventaNeta),
-    `${row.pct.toFixed(1)}%`,
-    `${row.pctGeneral.toFixed(1)}%`,
-    `${row.pctToDate.toFixed(1)}%`,
-    row.unidades.toLocaleString("es-CO"),
-    fmtCOP(row.ticket),
-  ]);
+  const tableBody = allRows.map((row) => {
+    const label = cleanText(row.label);
+    // Add turtle indicator for items with pctToDate < 100
+    const turtlePrefix = (row.level === "item" && row.pctToDate < 100) ? "🐢 " : "";
+    return [
+      turtlePrefix + label,
+      fmtCOP(row.budget),
+      fmtCOP(row.ventaNeta),
+      `${row.pct.toFixed(1)}%`,
+      `${row.pctToDate.toFixed(1)}%`,
+      row.unidades.toLocaleString("es-CO"),
+      fmtCOP(row.ticket),
+    ];
+  });
 
   autoTable(doc, {
     startY: y,
@@ -266,26 +301,25 @@ export async function exportCumplimientoPDF(
     theme: "plain",
     styles: {
       fontSize: 6.5,
-      cellPadding: { top: 1.5, bottom: 1.5, left: 2, right: 2 },
-      textColor: [220, 220, 230],
-      lineColor: [50, 50, 60],
+      cellPadding: { top: 2, bottom: 2, left: 2, right: 2 },
+      textColor: [50, 50, 60],
+      lineColor: [220, 220, 230],
       lineWidth: 0.2,
     },
     headStyles: {
-      fillColor: [40, 40, 55],
-      textColor: [200, 200, 215],
+      fillColor: [240, 240, 245],
+      textColor: [60, 60, 75],
       fontStyle: "bold",
       fontSize: 6.5,
     },
     columnStyles: {
-      0: { cellWidth: 55 },
+      0: { cellWidth: 60 },
       1: { halign: "right" },
       2: { halign: "right" },
       3: { halign: "right" },
       4: { halign: "right" },
       5: { halign: "right" },
       6: { halign: "right" },
-      7: { halign: "right" },
     },
     didParseCell: (data: any) => {
       if (data.section !== "body") return;
@@ -294,27 +328,30 @@ export async function exportCumplimientoPDF(
 
       // Style by level
       if (row.level === "group" || row.label === "VENTA DIRECTA") {
-        data.cell.styles.fillColor = [25, 25, 40];
+        data.cell.styles.fillColor = [235, 237, 245];
         data.cell.styles.fontStyle = "bold";
-        data.cell.styles.textColor = [255, 255, 255];
+        data.cell.styles.textColor = [25, 25, 35];
       } else if (row.level === "total-tiendas") {
-        data.cell.styles.fillColor = [30, 35, 50];
+        data.cell.styles.fillColor = [230, 235, 248];
         data.cell.styles.fontStyle = "bold";
-        data.cell.styles.textColor = [255, 255, 255];
+        data.cell.styles.textColor = [25, 25, 35];
       } else if (row.level === "subgroup") {
-        data.cell.styles.fillColor = [28, 28, 42];
+        data.cell.styles.fillColor = [242, 243, 248];
         data.cell.styles.fontStyle = "bold";
-        data.cell.styles.textColor = [200, 200, 215];
+        data.cell.styles.textColor = [40, 40, 55];
       } else {
-        data.cell.styles.fillColor = data.row.index % 2 === 0 ? [22, 22, 32] : [18, 18, 28];
-        data.cell.styles.textColor = [170, 170, 185];
+        data.cell.styles.fillColor = data.row.index % 2 === 0 ? [255, 255, 255] : [250, 250, 253];
+        data.cell.styles.textColor = [70, 70, 85];
       }
 
-      // Color % columns
-      if (data.column.index === 3 || data.column.index === 5) {
-        const pct = row.level === "group" && data.column.index === 3 ? row.pct : 
-                    data.column.index === 3 ? row.pct : row.pctToDate;
-        const [r, g, b] = pctColorRGB(pct);
+      // Color % columns (index 3 = Cumpl. General, index 4 = % a la Fecha)
+      if (data.column.index === 3) {
+        const [r, g, b] = pctColorRGB(row.pct);
+        data.cell.styles.textColor = [r, g, b];
+        data.cell.styles.fontStyle = "bold";
+      }
+      if (data.column.index === 4) {
+        const [r, g, b] = pctColorRGB(row.pctToDate);
         data.cell.styles.textColor = [r, g, b];
         data.cell.styles.fontStyle = "bold";
       }
@@ -327,7 +364,7 @@ export async function exportCumplimientoPDF(
   for (let p = 1; p <= totalPages; p++) {
     doc.setPage(p);
     doc.setFontSize(6);
-    doc.setTextColor(100, 100, 115);
+    doc.setTextColor(150, 150, 165);
     doc.text(`Monastery — Reporte Cumplimiento ${monthName} ${year}`, margin, pageH - 5);
     doc.text(`Página ${p} de ${totalPages}`, pageW - margin, pageH - 5, { align: "right" });
   }
