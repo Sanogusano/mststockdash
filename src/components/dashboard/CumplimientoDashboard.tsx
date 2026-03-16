@@ -170,9 +170,10 @@ export function CumplimientoDashboard() {
 
         // By channel
         let channel = "POS";
-        if (o.location_id === "71474315479" || o.source_name !== "pos") {
-          channel = o.source_name === "web" ? "Tienda Online" : "Personal Shopper";
-          if (o.source_name === "pos" && o.location_id === "71474315479") channel = "Tienda Online";
+        if (o.source_name === "shopify_draft_order") {
+          channel = "Personal Shopper";
+        } else if (o.location_id === "71474315479" || o.source_name !== "pos") {
+          channel = "Tienda Online";
         }
         if (!byChannel[channel]) byChannel[channel] = { ventaNeta: 0, pedidos: 0, unidades: 0 };
         byChannel[channel].ventaNeta += netSale;
