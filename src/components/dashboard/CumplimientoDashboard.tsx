@@ -582,9 +582,8 @@ export function CumplimientoDashboard() {
                 <TableHead className="font-semibold">Canal / Tienda</TableHead>
                 <TableHead className="text-right font-semibold">Presupuesto</TableHead>
                 <TableHead className="text-right font-semibold">Venta Neta</TableHead>
-                <TableHead className="text-right font-semibold">% Cumpl.</TableHead>
-                <TableHead className="text-right font-semibold">% General</TableHead>
-                <TableHead className="text-right font-semibold">% Cumpl. Fecha</TableHead>
+                <TableHead className="text-right font-semibold">Cumpl. General %</TableHead>
+                <TableHead className="text-right font-semibold">% a la Fecha</TableHead>
                 <TableHead className="text-right font-semibold">Uds.</TableHead>
                 <TableHead className="text-right font-semibold">Ticket Prom.</TableHead>
               </TableRow>
