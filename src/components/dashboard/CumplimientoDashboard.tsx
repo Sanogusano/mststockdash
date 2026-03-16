@@ -408,21 +408,40 @@ export function CumplimientoDashboard() {
       </div>
 
       {/* ── Master KPI ── */}
-      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-        <Card className="md:col-span-2">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        {/* Cumplimiento Mes */}
+        <Card className="md:col-span-1">
           <CardContent className="py-6">
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
                 <TrendingUp className="h-5 w-5 text-primary" />
-                <span className="font-semibold text-foreground">Cumplimiento Venta Directa</span>
+                <span className="font-semibold text-foreground">Cumplimiento Mes</span>
+                <FlagTriangleRight className="h-4 w-4 text-muted-foreground" />
               </div>
               <span className={`text-3xl font-bold ${pctColor(globalPct)}`}>{globalPct.toFixed(1)}%</span>
             </div>
-            <Progress
-              value={Math.min(globalPct, 100)}
-              className="h-3"
-              indicatorClassName={pctBg(globalPct)}
-            />
+            <div className="relative">
+              <Progress
+                value={Math.min(globalPct, 100)}
+                className="h-3"
+                indicatorClassName={pctBg(globalPct)}
+              />
+              {/* Pace icon on progress bar */}
+              {(() => {
+                const expectedPct = (daysElapsed / numDaysInMonth) * 100;
+                const diff = globalPct - expectedPct;
+                const PaceIcon = diff >= 10 ? Rocket : diff >= 0 ? Rabbit : Turtle;
+                const paceColor = diff >= 10 ? "text-[hsl(var(--success))]" : diff >= 0 ? "text-[hsl(var(--warning))]" : "text-[hsl(var(--danger))]";
+                const paceLabel = diff >= 0 ? `+${diff.toFixed(1)}%` : `${diff.toFixed(1)}%`;
+                const position = Math.min(Math.max(globalPct, 5), 95);
+                return (
+                  <div className="absolute flex flex-col items-center" style={{ left: `${position}%`, bottom: '100%', transform: 'translateX(-50%)' }}>
+                    <PaceIcon className={`h-5 w-5 ${paceColor}`} />
+                    <span className={`text-[9px] font-bold ${paceColor}`}>{paceLabel}</span>
+                  </div>
+                );
+              })()}
+            </div>
             <div className="flex justify-between mt-2 text-xs text-muted-foreground">
               <span>Venta Neta: {fmtCOP(totalVentaNeta)}</span>
               <span>Meta: {fmtCOP(totalBudget)}</span>
@@ -430,13 +449,25 @@ export function CumplimientoDashboard() {
           </CardContent>
         </Card>
 
-        <Card>
-          <CardContent className="py-6 text-center">
-            <p className="text-xs text-muted-foreground mb-1">Cumplimiento a la Fecha</p>
-            <p className={`text-2xl font-bold ${pctColor(pctToDate)}`}>{pctToDate.toFixed(1)}%</p>
-            <p className="text-[10px] text-muted-foreground mt-1">
-              Meta al día {daysElapsed}: {fmtCOP(budgetToDate)}
-            </p>
+        {/* Cumplimiento a la Fecha - same style */}
+        <Card className="md:col-span-1">
+          <CardContent className="py-6">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <Calendar className="h-5 w-5 text-primary" />
+                <span className="font-semibold text-foreground">Cumplimiento a la Fecha</span>
+              </div>
+              <span className={`text-3xl font-bold ${pctColor(pctToDate)}`}>{pctToDate.toFixed(1)}%</span>
+            </div>
+            <Progress
+              value={Math.min(pctToDate, 100)}
+              className="h-3"
+              indicatorClassName={pctBg(pctToDate)}
+            />
+            <div className="flex justify-between mt-2 text-xs text-muted-foreground">
+              <span>Venta: {fmtCOP(totalVentaNeta)}</span>
+              <span>Meta día {daysElapsed}: {fmtCOP(budgetToDate)}</span>
+            </div>
           </CardContent>
         </Card>
 
