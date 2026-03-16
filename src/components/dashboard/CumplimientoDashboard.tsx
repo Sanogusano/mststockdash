@@ -640,7 +640,6 @@ export function CumplimientoDashboard() {
                         {row.pct.toFixed(1)}%
                       </Badge>
                     </TableCell>
-                    <TableCell className="text-right text-sm">{row.pctGeneral.toFixed(1)}%</TableCell>
                     <TableCell className="text-right">
                       <Badge variant={pctBadgeVariant(row.pctToDate)} className="text-xs">
                         {row.pctToDate.toFixed(1)}%
