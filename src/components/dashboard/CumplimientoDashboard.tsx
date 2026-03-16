@@ -319,6 +319,7 @@ export function CumplimientoDashboard() {
       pct: totalBudgetTiendas > 0 ? (totalVentaTiendas / totalBudgetTiendas) * 100 : 0,
       pctGeneral: calcPctGeneral(totalVentaTiendas),
       pctToDate: calcPctToDate(totalBudgetTiendas, totalVentaTiendas),
+      budgetToDate: calcBudgetToDate(totalBudgetTiendas),
       unidades: totalUnidadesTiendas,
       ticket: totalPedidosTiendas > 0 ? totalVentaTiendas / totalPedidosTiendas : 0,
     });
