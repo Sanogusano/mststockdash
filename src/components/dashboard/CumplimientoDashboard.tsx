@@ -638,7 +638,6 @@ export function CumplimientoDashboard() {
                         {row.label}
                       </span>
                     </TableCell>
-                    </TableCell>
                     <TableCell className="text-right text-sm">{fmtCOP(row.budget)}</TableCell>
                     <TableCell className="text-right text-sm">{fmtCOP(row.ventaNeta)}</TableCell>
                     <TableCell className="text-right">
