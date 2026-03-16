@@ -5,7 +5,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { TrendingUp, Target, Calendar, Store, Globe, MapPin } from "lucide-react";
+import { TrendingUp, Target, Calendar, Store, Globe, MapPin, FlagTriangleRight, Turtle, Rabbit, Rocket } from "lucide-react";
 
 const MONTHS = [
   "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
