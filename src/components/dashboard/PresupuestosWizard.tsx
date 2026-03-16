@@ -45,7 +45,7 @@ function clearState() {
   localStorage.removeItem(STORAGE_KEY);
 }
 
-export function PresupuestosWizard() {
+export function PresupuestosWizard({ onSaved }: { onSaved?: () => void }) {
   const saved = loadState();
   const [step, setStep] = useState(saved?.step ?? 0);
   const [anio, setAnio] = useState<number | null>(saved?.anio ?? null);
@@ -126,6 +126,7 @@ export function PresupuestosWizard() {
       if (error) throw error;
       clearState();
       toast.success("Presupuestos guardados exitosamente");
+      onSaved?.();
     } catch (e: any) {
       toast.error("Error al guardar: " + e.message);
     } finally {

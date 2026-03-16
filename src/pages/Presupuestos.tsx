@@ -1,11 +1,14 @@
+import { useState } from "react";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { useUserRole } from "@/hooks/useUserRole";
 import { PresupuestosWizard } from "@/components/dashboard/PresupuestosWizard";
 import { PresupuestosDashboard } from "@/components/dashboard/PresupuestosDashboard";
+import { PresupuestosGuardados } from "@/components/dashboard/PresupuestosGuardados";
 
 export default function PresupuestosPage() {
   const { isAdmin, loading } = useUserRole();
+  const [refreshKey, setRefreshKey] = useState(0);
 
   if (loading) return null;
 
@@ -19,7 +22,14 @@ export default function PresupuestosPage() {
             <p className="text-sm text-muted-foreground mb-8">
               {isAdmin ? "Configura las metas de venta mensuales" : "Seguimiento de metas de venta"}
             </p>
-            {isAdmin ? <PresupuestosWizard /> : <PresupuestosDashboard />}
+            {isAdmin ? (
+              <div className="space-y-8">
+                <PresupuestosWizard onSaved={() => setRefreshKey(k => k + 1)} />
+                <PresupuestosGuardados refreshKey={refreshKey} />
+              </div>
+            ) : (
+              <PresupuestosDashboard />
+            )}
           </div>
         </main>
       </div>
