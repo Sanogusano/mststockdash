@@ -363,20 +363,11 @@ export async function exportCumplimientoPDF(
   const totalPages = (doc as any).internal.getNumberOfPages();
   for (let p = 1; p <= totalPages; p++) {
     doc.setPage(p);
-    // White bg on every page
-    doc.setFillColor(255, 255, 255);
-    doc.rect(0, 0, pageW, pageH, "F");
-
     doc.setFontSize(6);
     doc.setTextColor(150, 150, 165);
     doc.text(`Monastery — Reporte Cumplimiento ${monthName} ${year}`, margin, pageH - 5);
     doc.text(`Página ${p} de ${totalPages}`, pageW - margin, pageH - 5, { align: "right" });
   }
-
-  // Re-render content on page 1 is not needed since autoTable handles pagination.
-  // The footer bg rect might overlay content on multi-page — let's fix by only drawing footer text
-  // Actually we need to remove the bg rect in footer loop — it will cover table on page 2+
-  // Let me fix: redraw approach doesn't work with autoTable. Remove the bg fill from footer.
 
   doc.save(`Cumplimiento_${monthName}_${year}.pdf`);
 }
