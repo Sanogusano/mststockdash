@@ -349,6 +349,7 @@ export function CumplimientoDashboard() {
           pct: zonaBudget > 0 ? (zonaVenta / zonaBudget) * 100 : 0,
           pctGeneral: calcPctGeneral(zonaVenta),
           pctToDate: calcPctToDate(zonaBudget, zonaVenta),
+          budgetToDate: calcBudgetToDate(zonaBudget),
           unidades: zonaUnidades,
           ticket: zonaPedidos > 0 ? zonaVenta / zonaPedidos : 0,
         });
