@@ -14,6 +14,73 @@ export type Database = {
   }
   public: {
     Tables: {
+      budget_expenses: {
+        Row: {
+          category: string
+          created_at: string | null
+          estimated_amount: number
+          id: string
+          location_id: string | null
+          month_year: string
+        }
+        Insert: {
+          category: string
+          created_at?: string | null
+          estimated_amount: number
+          id?: string
+          location_id?: string | null
+          month_year: string
+        }
+        Update: {
+          category?: string
+          created_at?: string | null
+          estimated_amount?: number
+          id?: string
+          location_id?: string | null
+          month_year?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "budget_expenses_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["location_id"]
+          },
+        ]
+      }
+      budget_goals: {
+        Row: {
+          created_at: string | null
+          goal_amount: number
+          id: string
+          location_id: string | null
+          month_year: string
+        }
+        Insert: {
+          created_at?: string | null
+          goal_amount: number
+          id?: string
+          location_id?: string | null
+          month_year: string
+        }
+        Update: {
+          created_at?: string | null
+          goal_amount?: number
+          id?: string
+          location_id?: string | null
+          month_year?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "budget_goals_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["location_id"]
+          },
+        ]
+      }
       inventory_snapshot: {
         Row: {
           available: number | null
@@ -286,6 +353,17 @@ export type Database = {
           target_daily_rate: number | null
           target_location: string | null
           variant_id: string | null
+        }
+        Relationships: []
+      }
+      reporte_cumplimiento_presupuesto: {
+        Row: {
+          diferencia_faltante: number | null
+          meta_venta: number | null
+          periodo: string | null
+          porc_cumplimiento: number | null
+          sucursal: string | null
+          venta_actual: number | null
         }
         Relationships: []
       }
