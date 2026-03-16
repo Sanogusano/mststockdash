@@ -289,6 +289,7 @@ export function CumplimientoDashboard() {
       pct: totalBudgetCanales > 0 ? (digitalVenta / totalBudgetCanales) * 100 : 0,
       pctGeneral: calcPctGeneral(digitalVenta),
       pctToDate: calcPctToDate(totalBudgetCanales, digitalVenta),
+      budgetToDate: calcBudgetToDate(totalBudgetCanales),
       unidades: digitalUnidades,
       ticket: digitalPedidos > 0 ? digitalVenta / digitalPedidos : 0,
     });
