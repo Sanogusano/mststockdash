@@ -477,6 +477,3 @@ export function PresupuestosWizard({ onSaved, editPeriod }: WizardProps) {
     </div>
   );
 }
-
-// Re-export Pencil for the editing banner
-import { Pencil } from "lucide-react";
