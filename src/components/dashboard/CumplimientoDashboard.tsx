@@ -656,6 +656,7 @@ export function CumplimientoDashboard() {
           </Table>
         </CardContent>
       </Card>
+      </div>
     </div>
   );
 }
