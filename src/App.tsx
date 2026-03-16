@@ -17,6 +17,7 @@ import NotFound from "./pages/NotFound";
 import PedidosDetallePage from "./pages/PedidosDetalle";
 import TiendaDetailPage from "./pages/TiendaDetail";
 import VentaM2Page from "./pages/VentaM2";
+import PresupuestosPage from "./pages/Presupuestos";
 
 const queryClient = new QueryClient();
 
