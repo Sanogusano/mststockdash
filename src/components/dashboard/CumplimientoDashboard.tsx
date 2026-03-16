@@ -415,13 +415,9 @@ export function CumplimientoDashboard() {
           size="sm"
           className="gap-2"
           onClick={() => exportCumplimientoPDF(
+            "cumplimiento-dashboard-content",
             MONTHS[mes - 1],
-            anio,
-            { globalPct, pctToDate, totalVentaNeta, totalBudget, budgetToDate, daysElapsed, totalUnidades, ticketPromedio, numDaysInMonth },
-            dailyData,
-            currentDay,
-            tableRows,
-            dailyTarget
+            anio
           )}
         >
           <FileDown className="h-4 w-4" />
@@ -429,6 +425,7 @@ export function CumplimientoDashboard() {
         </Button>
       </div>
 
+      <div id="cumplimiento-dashboard-content" className="space-y-6 bg-background">
       {/* ── Master KPI ── */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Cumplimiento Mes */}
@@ -631,7 +628,12 @@ export function CumplimientoDashboard() {
                       ${isSubgroup ? "font-medium text-foreground pl-6" : ""}
                       ${isItem ? "pl-10 text-sm text-muted-foreground" : ""}
                     `}>
-                      {row.label}
+                      <span className="flex items-center gap-1">
+                        {(row.level === "item" || row.level === "subgroup" || row.level === "total-tiendas") && row.pctToDate < 100 && (
+                          <Turtle className="h-3.5 w-3.5 text-[hsl(var(--danger))] shrink-0" />
+                        )}
+                        {row.label}
+                      </span>
                     </TableCell>
                     <TableCell className="text-right text-sm">{fmtCOP(row.budget)}</TableCell>
                     <TableCell className="text-right text-sm">{fmtCOP(row.ventaNeta)}</TableCell>
@@ -654,6 +656,7 @@ export function CumplimientoDashboard() {
           </Table>
         </CardContent>
       </Card>
+      </div>
     </div>
   );
 }
