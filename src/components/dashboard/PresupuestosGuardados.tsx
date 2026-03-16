@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ChevronDown, ChevronUp, Calendar, MapPin, Globe, Trash2 } from "lucide-react";
+import { ChevronDown, ChevronUp, Calendar, MapPin, Globe, Trash2, Pencil } from "lucide-react";
 import { toast } from "sonner";
 
 const MONTHS = [
@@ -30,7 +30,13 @@ type PeriodGroup = {
   total: number;
 };
 
-export function PresupuestosGuardados({ refreshKey }: { refreshKey?: number }) {
+interface Props {
+  refreshKey?: number;
+  onEdit?: (anio: number, mes: number) => void;
+  onDeleted?: () => void;
+}
+
+export function PresupuestosGuardados({ refreshKey, onEdit, onDeleted }: Props) {
   const [periods, setPeriods] = useState<PeriodGroup[]>([]);
   const [expanded, setExpanded] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -53,7 +59,6 @@ export function PresupuestosGuardados({ refreshKey }: { refreshKey?: number }) {
       return;
     }
 
-    // Group by period
     const grouped: Record<string, ConfigRow[]> = {};
     (data || []).forEach((row) => {
       const key = `${row.anio}-${row.mes}`;
@@ -96,6 +101,7 @@ export function PresupuestosGuardados({ refreshKey }: { refreshKey?: number }) {
     } else {
       toast.success("Presupuesto eliminado");
       loadData();
+      onDeleted?.();
     }
   };
 
@@ -117,7 +123,7 @@ export function PresupuestosGuardados({ refreshKey }: { refreshKey?: number }) {
     return (
       <Card>
         <CardContent className="py-8 text-center text-sm text-muted-foreground">
-          No hay presupuestos configurados aún.
+          No hay presupuestos configurados aún. Ve a "Crear Presupuesto" para comenzar.
         </CardContent>
       </Card>
     );
@@ -162,7 +168,6 @@ export function PresupuestosGuardados({ refreshKey }: { refreshKey?: number }) {
 
               {isOpen && (
                 <div className="border-t border-border px-4 py-3 space-y-4 bg-muted/20">
-                  {/* Tiendas */}
                   {period.tiendas.length > 0 && (
                     <div>
                       <h4 className="text-xs font-semibold text-muted-foreground mb-2 flex items-center gap-1.5">
@@ -185,7 +190,6 @@ export function PresupuestosGuardados({ refreshKey }: { refreshKey?: number }) {
                     </div>
                   )}
 
-                  {/* Digital */}
                   {period.canales.length > 0 && (
                     <div>
                       <h4 className="text-xs font-semibold text-muted-foreground mb-2 flex items-center gap-1.5">
@@ -206,20 +210,28 @@ export function PresupuestosGuardados({ refreshKey }: { refreshKey?: number }) {
                     </div>
                   )}
 
-                  {/* Gran Total + Delete */}
                   <div className="flex items-center justify-between pt-2 border-t border-border">
                     <div className="flex items-center gap-2">
                       <span className="text-sm font-bold text-foreground">Total</span>
                       <span className="text-sm font-bold text-foreground">${period.total.toLocaleString("es-CO")}</span>
                     </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                      onClick={() => handleDelete(period.anio, period.mes)}
-                    >
-                      <Trash2 className="h-3.5 w-3.5 mr-1" /> Eliminar
-                    </Button>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => onEdit?.(period.anio, period.mes)}
+                      >
+                        <Pencil className="h-3.5 w-3.5 mr-1" /> Modificar
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                        onClick={() => handleDelete(period.anio, period.mes)}
+                      >
+                        <Trash2 className="h-3.5 w-3.5 mr-1" /> Eliminar
+                      </Button>
+                    </div>
                   </div>
                 </div>
               )}
