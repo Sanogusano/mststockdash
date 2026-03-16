@@ -418,19 +418,44 @@ export function CumplimientoDashboard() {
             </SelectContent>
           </Select>
         </div>
-        <Button
-          variant="outline"
-          size="sm"
-          className="gap-2"
-          onClick={() => exportCumplimientoPDF(
-            "cumplimiento-dashboard-content",
-            MONTHS[mes - 1],
-            anio
-          )}
-        >
-          <FileDown className="h-4 w-4" />
-          Generar PDF
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-2"
+            onClick={() => exportCumplimientoXLS(
+              tableRows,
+              {
+                label: "TOTAL COMPAÑÍA",
+                budget: totalBudget,
+                ventaNeta: totalVentaNeta,
+                pct: globalPct,
+                pctToDate,
+                budgetToDate,
+                unidades: totalUnidades,
+                ticket: ticketPromedio,
+              },
+              MONTHS[mes - 1],
+              anio
+            )}
+          >
+            <FileSpreadsheet className="h-4 w-4" />
+            Generar Excel
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-2"
+            onClick={() => exportCumplimientoPDF(
+              "cumplimiento-dashboard-content",
+              MONTHS[mes - 1],
+              anio
+            )}
+          >
+            <FileDown className="h-4 w-4" />
+            Generar PDF
+          </Button>
+        </div>
       </div>
 
       <div id="cumplimiento-dashboard-content" className="space-y-6 bg-background">
