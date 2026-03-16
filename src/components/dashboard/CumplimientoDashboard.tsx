@@ -425,6 +425,7 @@ export function CumplimientoDashboard() {
         </Button>
       </div>
 
+      <div id="cumplimiento-dashboard-content" className="space-y-6 bg-background">
       {/* ── Master KPI ── */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Cumplimiento Mes */}
