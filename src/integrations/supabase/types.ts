@@ -226,6 +226,39 @@ export type Database = {
           },
         ]
       }
+      presupuestos_config: {
+        Row: {
+          anio: number
+          created_at: string | null
+          id: string
+          mes: number
+          monto: number
+          nombre_identificador: string
+          tipo: string
+          updated_at: string | null
+        }
+        Insert: {
+          anio: number
+          created_at?: string | null
+          id?: string
+          mes: number
+          monto?: number
+          nombre_identificador: string
+          tipo: string
+          updated_at?: string | null
+        }
+        Update: {
+          anio?: number
+          created_at?: string | null
+          id?: string
+          mes?: number
+          monto?: number
+          nombre_identificador?: string
+          tipo?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       product_catalog: {
         Row: {
           category: string | null
