@@ -5,9 +5,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { TrendingUp, Target, Calendar, Store, Globe, MapPin, FlagTriangleRight, Turtle, Rabbit, Rocket, FileDown } from "lucide-react";
+import { TrendingUp, Target, Calendar, Store, Globe, MapPin, FlagTriangleRight, Turtle, Rabbit, Rocket, FileDown, FileSpreadsheet } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { exportCumplimientoPDF } from "@/lib/cumplimiento-pdf-export";
+import { exportCumplimientoXLS } from "@/lib/cumplimiento-xls-export";
 
 const MONTHS = [
   "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
@@ -254,13 +255,15 @@ export function CumplimientoDashboard() {
       pct: number;
       pctGeneral: number;
       pctToDate: number;
+      budgetToDate: number;
       unidades: number;
       ticket: number;
     }> = [];
 
     const calcPctGeneral = (venta: number) => totalVentaNeta > 0 ? (venta / totalVentaNeta) * 100 : 0;
+    const calcBudgetToDate = (budget: number) => budget > 0 ? (budget / numDaysInMonth) * daysElapsed : 0;
     const calcPctToDate = (budget: number, venta: number) => {
-      const bToDate = budget > 0 ? (budget / numDaysInMonth) * daysElapsed : 0;
+      const bToDate = calcBudgetToDate(budget);
       return bToDate > 0 ? (venta / bToDate) * 100 : 0;
     };
 
@@ -286,6 +289,7 @@ export function CumplimientoDashboard() {
       pct: totalBudgetCanales > 0 ? (digitalVenta / totalBudgetCanales) * 100 : 0,
       pctGeneral: calcPctGeneral(digitalVenta),
       pctToDate: calcPctToDate(totalBudgetCanales, digitalVenta),
+      budgetToDate: calcBudgetToDate(totalBudgetCanales),
       unidades: digitalUnidades,
       ticket: digitalPedidos > 0 ? digitalVenta / digitalPedidos : 0,
     });
@@ -300,6 +304,7 @@ export function CumplimientoDashboard() {
         pct: Number(c.monto) > 0 ? (ch.ventaNeta / Number(c.monto)) * 100 : 0,
         pctGeneral: calcPctGeneral(ch.ventaNeta),
         pctToDate: calcPctToDate(Number(c.monto), ch.ventaNeta),
+        budgetToDate: calcBudgetToDate(Number(c.monto)),
         unidades: ch.unidades,
         ticket: ch.pedidos > 0 ? ch.ventaNeta / ch.pedidos : 0,
       });
@@ -314,6 +319,7 @@ export function CumplimientoDashboard() {
       pct: totalBudgetTiendas > 0 ? (totalVentaTiendas / totalBudgetTiendas) * 100 : 0,
       pctGeneral: calcPctGeneral(totalVentaTiendas),
       pctToDate: calcPctToDate(totalBudgetTiendas, totalVentaTiendas),
+      budgetToDate: calcBudgetToDate(totalBudgetTiendas),
       unidades: totalUnidadesTiendas,
       ticket: totalPedidosTiendas > 0 ? totalVentaTiendas / totalPedidosTiendas : 0,
     });
@@ -343,6 +349,7 @@ export function CumplimientoDashboard() {
           pct: zonaBudget > 0 ? (zonaVenta / zonaBudget) * 100 : 0,
           pctGeneral: calcPctGeneral(zonaVenta),
           pctToDate: calcPctToDate(zonaBudget, zonaVenta),
+          budgetToDate: calcBudgetToDate(zonaBudget),
           unidades: zonaUnidades,
           ticket: zonaPedidos > 0 ? zonaVenta / zonaPedidos : 0,
         });
@@ -359,6 +366,7 @@ export function CumplimientoDashboard() {
               pct: Number(c.monto) > 0 ? (st.ventaNeta / Number(c.monto)) * 100 : 0,
               pctGeneral: calcPctGeneral(st.ventaNeta),
               pctToDate: calcPctToDate(Number(c.monto), st.ventaNeta),
+              budgetToDate: calcBudgetToDate(Number(c.monto)),
               unidades: st.unidades,
               ticket: st.pedidos > 0 ? st.ventaNeta / st.pedidos : 0,
             });
@@ -410,19 +418,44 @@ export function CumplimientoDashboard() {
             </SelectContent>
           </Select>
         </div>
-        <Button
-          variant="outline"
-          size="sm"
-          className="gap-2"
-          onClick={() => exportCumplimientoPDF(
-            "cumplimiento-dashboard-content",
-            MONTHS[mes - 1],
-            anio
-          )}
-        >
-          <FileDown className="h-4 w-4" />
-          Generar PDF
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-2"
+            onClick={() => exportCumplimientoXLS(
+              tableRows,
+              {
+                label: "TOTAL COMPAÑÍA",
+                budget: totalBudget,
+                ventaNeta: totalVentaNeta,
+                pct: globalPct,
+                pctToDate,
+                budgetToDate,
+                unidades: totalUnidades,
+                ticket: ticketPromedio,
+              },
+              MONTHS[mes - 1],
+              anio
+            )}
+          >
+            <FileSpreadsheet className="h-4 w-4" />
+            Generar Excel
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-2"
+            onClick={() => exportCumplimientoPDF(
+              "cumplimiento-dashboard-content",
+              MONTHS[mes - 1],
+              anio
+            )}
+          >
+            <FileDown className="h-4 w-4" />
+            Generar PDF
+          </Button>
+        </div>
       </div>
 
       <div id="cumplimiento-dashboard-content" className="space-y-6 bg-background">
