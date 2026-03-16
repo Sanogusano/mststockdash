@@ -136,13 +136,10 @@ export function CumplimientoDashboard() {
       const itemResults = await Promise.all(itemPromises);
       items = itemResults.flat();
 
-      const orders = ordersRes.data || [];
-      const items = itemsRes.data || [];
-
       // Build location map
       const locMap: Record<string, string> = {};
       const locZonaMap: Record<string, string> = {};
-      (locsRes.data || []).forEach((l) => {
+      locs.forEach((l: any) => {
         locMap[l.location_id] = l.name;
         locZonaMap[l.location_id] = l.zona || "Sin Zona";
       });
