@@ -5,7 +5,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { TrendingUp, Target, Calendar, Store, Globe, MapPin, FlagTriangleRight, Turtle, Rabbit, Rocket } from "lucide-react";
+import { TrendingUp, Target, Calendar, Store, Globe, MapPin, FlagTriangleRight, Turtle, Rabbit, Rocket, FileDown } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { exportCumplimientoPDF } from "@/lib/cumplimiento-pdf-export";
 
 const MONTHS = [
   "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
@@ -392,20 +394,39 @@ export function CumplimientoDashboard() {
   return (
     <div className="space-y-6">
       {/* Period Selector */}
-      <div className="flex items-center gap-3">
-        <Calendar className="h-5 w-5 text-muted-foreground" />
-        <Select value={anio.toString()} onValueChange={(v) => setAnio(Number(v))}>
-          <SelectTrigger className="w-28"><SelectValue /></SelectTrigger>
-          <SelectContent>
-            {YEARS.map(y => <SelectItem key={y} value={y.toString()}>{y}</SelectItem>)}
-          </SelectContent>
-        </Select>
-        <Select value={mes.toString()} onValueChange={(v) => setMes(Number(v))}>
-          <SelectTrigger className="w-36"><SelectValue /></SelectTrigger>
-          <SelectContent>
-            {MONTHS.map((m, i) => <SelectItem key={i} value={(i + 1).toString()}>{m}</SelectItem>)}
-          </SelectContent>
-        </Select>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <Calendar className="h-5 w-5 text-muted-foreground" />
+          <Select value={anio.toString()} onValueChange={(v) => setAnio(Number(v))}>
+            <SelectTrigger className="w-28"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              {YEARS.map(y => <SelectItem key={y} value={y.toString()}>{y}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          <Select value={mes.toString()} onValueChange={(v) => setMes(Number(v))}>
+            <SelectTrigger className="w-36"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              {MONTHS.map((m, i) => <SelectItem key={i} value={(i + 1).toString()}>{m}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          className="gap-2"
+          onClick={() => exportCumplimientoPDF(
+            MONTHS[mes - 1],
+            anio,
+            { globalPct, pctToDate, totalVentaNeta, totalBudget, budgetToDate, daysElapsed, totalUnidades, ticketPromedio, numDaysInMonth },
+            dailyData,
+            currentDay,
+            tableRows,
+            dailyTarget
+          )}
+        >
+          <FileDown className="h-4 w-4" />
+          Generar PDF
+        </Button>
       </div>
 
       {/* ── Master KPI ── */}
