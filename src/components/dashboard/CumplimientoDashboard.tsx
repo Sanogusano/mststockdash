@@ -489,15 +489,26 @@ export function CumplimientoDashboard() {
       {/* ── Daily Gamified History ── */}
       <Card>
         <CardHeader className="pb-2">
-          <CardTitle className="text-base flex items-center gap-2">
-            <Target className="h-4 w-4" /> Historial Diario
-          </CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-base flex items-center gap-2">
+              <Target className="h-4 w-4" /> Historial Diario
+            </CardTitle>
+            {(() => {
+              const daysWithSales = dailyData.slice(0, currentDay).filter(d => d.ventaNeta > 0);
+              const avgPct = daysWithSales.length > 0 ? daysWithSales.reduce((s, d) => s + d.pct, 0) / daysWithSales.length : 0;
+              return (
+                <span className={`text-sm font-bold ${pctColor(avgPct)}`}>
+                  Promedio diario: {avgPct.toFixed(1)}%
+                </span>
+              );
+            })()}
+          </div>
           <p className="text-xs text-muted-foreground">
             Objetivo diario: {fmtCOP(dailyTarget)}
           </p>
         </CardHeader>
         <CardContent>
-          <div className="flex items-end gap-[2px] h-32">
+          <div className="flex items-end gap-[2px] h-40">
             {dailyData.slice(0, currentDay).map((d) => {
               const heightPct = maxDailyValue > 0 ? (d.ventaNeta / maxDailyValue) * 100 : 0;
               const barColor = d.pct >= 100
@@ -514,7 +525,6 @@ export function CumplimientoDashboard() {
                     className={`w-full rounded-t-sm ${barColor} transition-all min-h-[2px]`}
                     style={{ height: `${Math.max(heightPct, 1.5)}%` }}
                   />
-                  <span className="text-[8px] text-muted-foreground mt-0.5">{d.day}</span>
                   <div className="absolute bottom-full mb-1 hidden group-hover:block z-10 bg-popover border border-border rounded-md px-2 py-1 shadow-md whitespace-nowrap">
                     <p className="text-[10px] font-semibold text-foreground">{d.day} {MONTHS[mes - 1]}</p>
                     <p className="text-[10px] text-muted-foreground">Venta: {fmtCOP(d.ventaNeta)}</p>
@@ -523,6 +533,14 @@ export function CumplimientoDashboard() {
                 </div>
               );
             })}
+          </div>
+          {/* Day legend below */}
+          <div className="flex gap-[2px] mt-1">
+            {dailyData.slice(0, currentDay).map((d) => (
+              <div key={d.day} className="flex-1 text-center">
+                <span className="text-[8px] text-muted-foreground">{d.day}</span>
+              </div>
+            ))}
           </div>
         </CardContent>
       </Card>
