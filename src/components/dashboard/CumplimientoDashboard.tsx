@@ -454,34 +454,6 @@ export function CumplimientoDashboard() {
           </CardContent>
         </Card>
       </div>
-              <span className={`text-3xl font-bold ${pctColor(globalPct)}`}>{globalPct.toFixed(1)}%</span>
-            </div>
-            <Progress
-              value={Math.min(globalPct, 100)}
-              className="h-3"
-              indicatorClassName={pctBg(globalPct)}
-            />
-            <div className="flex justify-between mt-2 text-xs text-muted-foreground">
-              <span>Venta Neta: {fmtCOP(totalVentaNeta)}</span>
-              <span>Meta: {fmtCOP(totalBudget)}</span>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="py-6 text-center">
-            <p className="text-xs text-muted-foreground mb-1">Unidades Vendidas</p>
-            <p className="text-2xl font-bold text-foreground">{totalUnidades.toLocaleString("es-CO")}</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="py-6 text-center">
-            <p className="text-xs text-muted-foreground mb-1">Ticket Promedio</p>
-            <p className="text-2xl font-bold text-foreground">{fmtCOP(ticketPromedio)}</p>
-          </CardContent>
-        </Card>
-      </div>
 
       {/* ── Daily Gamified History ── */}
       <Card>
@@ -498,7 +470,7 @@ export function CumplimientoDashboard() {
             {dailyData.slice(0, currentDay).map((d) => {
               const heightPct = maxDailyValue > 0 ? (d.ventaNeta / maxDailyValue) * 100 : 0;
               const barColor = d.pct >= 100
-                ? "bg-[hsl(142,76%,46%)]" // green neon
+                ? "bg-[hsl(142,76%,46%)]"
                 : d.pct >= 80
                 ? "bg-[hsl(var(--warning))]"
                 : "bg-[hsl(var(--danger))]";
@@ -512,7 +484,6 @@ export function CumplimientoDashboard() {
                     style={{ height: `${Math.max(heightPct, 1.5)}%` }}
                   />
                   <span className="text-[8px] text-muted-foreground mt-0.5">{d.day}</span>
-                  {/* Tooltip */}
                   <div className="absolute bottom-full mb-1 hidden group-hover:block z-10 bg-popover border border-border rounded-md px-2 py-1 shadow-md whitespace-nowrap">
                     <p className="text-[10px] font-semibold text-foreground">{d.day} {MONTHS[mes - 1]}</p>
                     <p className="text-[10px] text-muted-foreground">Venta: {fmtCOP(d.ventaNeta)}</p>
@@ -521,10 +492,6 @@ export function CumplimientoDashboard() {
                 </div>
               );
             })}
-          </div>
-          {/* Daily target line reference */}
-          <div className="relative h-0 -mt-[calc(theme(spacing.32)*var(--target-pct,0.5))]">
-            {/* We skip the absolute line for simplicity, tooltip covers it */}
           </div>
         </CardContent>
       </Card>
@@ -536,7 +503,7 @@ export function CumplimientoDashboard() {
             <Store className="h-4 w-4" /> Tabla de Cumplimiento
           </CardTitle>
         </CardHeader>
-        <CardContent className="p-0">
+        <CardContent className="p-0 overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow className="bg-muted/50">
@@ -544,6 +511,8 @@ export function CumplimientoDashboard() {
                 <TableHead className="text-right font-semibold">Presupuesto</TableHead>
                 <TableHead className="text-right font-semibold">Venta Neta</TableHead>
                 <TableHead className="text-right font-semibold">% Cumpl.</TableHead>
+                <TableHead className="text-right font-semibold">% General</TableHead>
+                <TableHead className="text-right font-semibold">% Cumpl. Fecha</TableHead>
                 <TableHead className="text-right font-semibold">Uds.</TableHead>
                 <TableHead className="text-right font-semibold">Ticket Prom.</TableHead>
               </TableRow>
@@ -551,14 +520,18 @@ export function CumplimientoDashboard() {
             <TableBody>
               {/* Grand total row */}
               <TableRow className="bg-primary/5 font-bold border-b-2 border-primary/20">
-                <TableCell className="font-bold text-foreground">
-                  🏆 VENTA DIRECTA
-                </TableCell>
+                <TableCell className="font-bold text-foreground">🏆 VENTA DIRECTA</TableCell>
                 <TableCell className="text-right font-bold">{fmtCOP(totalBudget)}</TableCell>
                 <TableCell className="text-right font-bold">{fmtCOP(totalVentaNeta)}</TableCell>
                 <TableCell className="text-right">
                   <Badge variant={pctBadgeVariant(globalPct)} className="text-xs font-bold">
                     {globalPct.toFixed(1)}%
+                  </Badge>
+                </TableCell>
+                <TableCell className="text-right font-bold">100%</TableCell>
+                <TableCell className="text-right">
+                  <Badge variant={pctBadgeVariant(pctToDate)} className="text-xs font-bold">
+                    {pctToDate.toFixed(1)}%
                   </Badge>
                 </TableCell>
                 <TableCell className="text-right font-bold">{totalUnidades.toLocaleString("es-CO")}</TableCell>
@@ -569,6 +542,7 @@ export function CumplimientoDashboard() {
                 const isGroup = row.level === "group";
                 const isSubgroup = row.level === "subgroup";
                 const isItem = row.level === "item";
+                const isTotalTiendas = row.level === "total-tiendas";
                 const zebraClass = isItem && idx % 2 === 0 ? "bg-muted/20" : "";
 
                 return (
@@ -576,12 +550,14 @@ export function CumplimientoDashboard() {
                     key={`${row.label}-${idx}`}
                     className={`
                       ${isGroup ? "bg-muted/40 font-semibold border-t-2 border-border" : ""}
+                      ${isTotalTiendas ? "bg-accent/10 font-bold border-t-2 border-border" : ""}
                       ${isSubgroup ? "bg-muted/25 font-medium border-t border-border" : ""}
                       ${zebraClass}
                     `}
                   >
                     <TableCell className={`
                       ${isGroup ? "font-semibold text-foreground" : ""}
+                      ${isTotalTiendas ? "font-bold text-foreground" : ""}
                       ${isSubgroup ? "font-medium text-foreground pl-6" : ""}
                       ${isItem ? "pl-10 text-sm text-muted-foreground" : ""}
                     `}>
@@ -592,6 +568,12 @@ export function CumplimientoDashboard() {
                     <TableCell className="text-right">
                       <Badge variant={pctBadgeVariant(row.pct)} className="text-xs">
                         {row.pct.toFixed(1)}%
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-right text-sm">{row.pctGeneral.toFixed(1)}%</TableCell>
+                    <TableCell className="text-right">
+                      <Badge variant={pctBadgeVariant(row.pctToDate)} className="text-xs">
+                        {row.pctToDate.toFixed(1)}%
                       </Badge>
                     </TableCell>
                     <TableCell className="text-right text-sm">{row.unidades.toLocaleString("es-CO")}</TableCell>
