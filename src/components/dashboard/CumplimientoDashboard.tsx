@@ -408,7 +408,7 @@ export function CumplimientoDashboard() {
       </div>
 
       {/* ── Master KPI ── */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
         <Card className="md:col-span-2">
           <CardContent className="py-6">
             <div className="flex items-center justify-between mb-3">
@@ -416,6 +416,44 @@ export function CumplimientoDashboard() {
                 <TrendingUp className="h-5 w-5 text-primary" />
                 <span className="font-semibold text-foreground">Cumplimiento Venta Directa</span>
               </div>
+              <span className={`text-3xl font-bold ${pctColor(globalPct)}`}>{globalPct.toFixed(1)}%</span>
+            </div>
+            <Progress
+              value={Math.min(globalPct, 100)}
+              className="h-3"
+              indicatorClassName={pctBg(globalPct)}
+            />
+            <div className="flex justify-between mt-2 text-xs text-muted-foreground">
+              <span>Venta Neta: {fmtCOP(totalVentaNeta)}</span>
+              <span>Meta: {fmtCOP(totalBudget)}</span>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="py-6 text-center">
+            <p className="text-xs text-muted-foreground mb-1">Cumplimiento a la Fecha</p>
+            <p className={`text-2xl font-bold ${pctColor(pctToDate)}`}>{pctToDate.toFixed(1)}%</p>
+            <p className="text-[10px] text-muted-foreground mt-1">
+              Meta al día {daysElapsed}: {fmtCOP(budgetToDate)}
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="py-6 text-center">
+            <p className="text-xs text-muted-foreground mb-1">Unidades Vendidas</p>
+            <p className="text-2xl font-bold text-foreground">{totalUnidades.toLocaleString("es-CO")}</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="py-6 text-center">
+            <p className="text-xs text-muted-foreground mb-1">Ticket Promedio</p>
+            <p className="text-2xl font-bold text-foreground">{fmtCOP(ticketPromedio)}</p>
+          </CardContent>
+        </Card>
+      </div>
               <span className={`text-3xl font-bold ${pctColor(globalPct)}`}>{globalPct.toFixed(1)}%</span>
             </div>
             <Progress
