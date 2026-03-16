@@ -261,8 +261,9 @@ export function CumplimientoDashboard() {
     }> = [];
 
     const calcPctGeneral = (venta: number) => totalVentaNeta > 0 ? (venta / totalVentaNeta) * 100 : 0;
+    const calcBudgetToDate = (budget: number) => budget > 0 ? (budget / numDaysInMonth) * daysElapsed : 0;
     const calcPctToDate = (budget: number, venta: number) => {
-      const bToDate = budget > 0 ? (budget / numDaysInMonth) * daysElapsed : 0;
+      const bToDate = calcBudgetToDate(budget);
       return bToDate > 0 ? (venta / bToDate) * 100 : 0;
     };
 
