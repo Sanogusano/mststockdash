@@ -126,6 +126,7 @@ export function PresupuestosWizard({ onSaved }: { onSaved?: () => void }) {
       if (error) throw error;
       clearState();
       toast.success("Presupuestos guardados exitosamente");
+      onSaved?.();
     } catch (e: any) {
       toast.error("Error al guardar: " + e.message);
     } finally {
