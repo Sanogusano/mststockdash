@@ -408,9 +408,9 @@ export function CumplimientoDashboard() {
       </div>
 
       {/* ── Master KPI ── */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Cumplimiento Mes */}
-        <Card className="md:col-span-1">
+        <Card>
           <CardContent className="py-6">
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
@@ -420,13 +420,12 @@ export function CumplimientoDashboard() {
               </div>
               <span className={`text-3xl font-bold ${pctColor(globalPct)}`}>{globalPct.toFixed(1)}%</span>
             </div>
-            <div className="relative">
+            <div className="relative mt-6">
               <Progress
                 value={Math.min(globalPct, 100)}
                 className="h-3"
                 indicatorClassName={pctBg(globalPct)}
               />
-              {/* Pace icon on progress bar */}
               {(() => {
                 const expectedPct = (daysElapsed / numDaysInMonth) * 100;
                 const diff = globalPct - expectedPct;
@@ -449,8 +448,8 @@ export function CumplimientoDashboard() {
           </CardContent>
         </Card>
 
-        {/* Cumplimiento a la Fecha - same style */}
-        <Card className="md:col-span-1">
+        {/* Cumplimiento a la Fecha */}
+        <Card>
           <CardContent className="py-6">
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
@@ -470,18 +469,20 @@ export function CumplimientoDashboard() {
             </div>
           </CardContent>
         </Card>
+      </div>
 
+      {/* Secondary KPIs */}
+      <div className="grid grid-cols-2 md:grid-cols-2 gap-4">
         <Card>
-          <CardContent className="py-6 text-center">
+          <CardContent className="py-4 text-center">
             <p className="text-xs text-muted-foreground mb-1">Unidades Vendidas</p>
-            <p className="text-2xl font-bold text-foreground">{totalUnidades.toLocaleString("es-CO")}</p>
+            <p className="text-xl font-bold text-foreground">{totalUnidades.toLocaleString("es-CO")}</p>
           </CardContent>
         </Card>
-
         <Card>
-          <CardContent className="py-6 text-center">
+          <CardContent className="py-4 text-center">
             <p className="text-xs text-muted-foreground mb-1">Ticket Promedio</p>
-            <p className="text-2xl font-bold text-foreground">{fmtCOP(ticketPromedio)}</p>
+            <p className="text-xl font-bold text-foreground">{fmtCOP(ticketPromedio)}</p>
           </CardContent>
         </Card>
       </div>
