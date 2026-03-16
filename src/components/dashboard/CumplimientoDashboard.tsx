@@ -244,14 +244,22 @@ export function CumplimientoDashboard() {
   // Hierarchical table rows
   const tableRows = useMemo(() => {
     const rows: Array<{
-      level: "group" | "subgroup" | "item";
+      level: "group" | "subgroup" | "item" | "total-tiendas";
       label: string;
       budget: number;
       ventaNeta: number;
       pct: number;
+      pctGeneral: number;
+      pctToDate: number;
       unidades: number;
       ticket: number;
     }> = [];
+
+    const calcPctGeneral = (venta: number) => totalVentaNeta > 0 ? (venta / totalVentaNeta) * 100 : 0;
+    const calcPctToDate = (budget: number, venta: number) => {
+      const bToDate = budget > 0 ? (budget / numDaysInMonth) * daysElapsed : 0;
+      return bToDate > 0 ? (venta / bToDate) * 100 : 0;
+    };
 
     // ── Digital ──
     const digitalVenta = channelConfigs.reduce((s, c) => {
@@ -273,6 +281,8 @@ export function CumplimientoDashboard() {
       budget: totalBudgetCanales,
       ventaNeta: digitalVenta,
       pct: totalBudgetCanales > 0 ? (digitalVenta / totalBudgetCanales) * 100 : 0,
+      pctGeneral: calcPctGeneral(digitalVenta),
+      pctToDate: calcPctToDate(totalBudgetCanales, digitalVenta),
       unidades: digitalUnidades,
       ticket: digitalPedidos > 0 ? digitalVenta / digitalPedidos : 0,
     });
@@ -285,9 +295,24 @@ export function CumplimientoDashboard() {
         budget: Number(c.monto),
         ventaNeta: ch.ventaNeta,
         pct: Number(c.monto) > 0 ? (ch.ventaNeta / Number(c.monto)) * 100 : 0,
+        pctGeneral: calcPctGeneral(ch.ventaNeta),
+        pctToDate: calcPctToDate(Number(c.monto), ch.ventaNeta),
         unidades: ch.unidades,
         ticket: ch.pedidos > 0 ? ch.ventaNeta / ch.pedidos : 0,
       });
+    });
+
+    // ── Total Tiendas ──
+    rows.push({
+      level: "total-tiendas",
+      label: "🏪 TOTAL TIENDAS",
+      budget: totalBudgetTiendas,
+      ventaNeta: totalVentaTiendas,
+      pct: totalBudgetTiendas > 0 ? (totalVentaTiendas / totalBudgetTiendas) * 100 : 0,
+      pctGeneral: calcPctGeneral(totalVentaTiendas),
+      pctToDate: calcPctToDate(totalBudgetTiendas, totalVentaTiendas),
+      unidades: totalUnidadesTiendas,
+      ticket: totalPedidosTiendas > 0 ? totalVentaTiendas / totalPedidosTiendas : 0,
     });
 
     // ── Tiendas by Zona ──
@@ -313,6 +338,8 @@ export function CumplimientoDashboard() {
           budget: zonaBudget,
           ventaNeta: zonaVenta,
           pct: zonaBudget > 0 ? (zonaVenta / zonaBudget) * 100 : 0,
+          pctGeneral: calcPctGeneral(zonaVenta),
+          pctToDate: calcPctToDate(zonaBudget, zonaVenta),
           unidades: zonaUnidades,
           ticket: zonaPedidos > 0 ? zonaVenta / zonaPedidos : 0,
         });
@@ -327,6 +354,8 @@ export function CumplimientoDashboard() {
               budget: Number(c.monto),
               ventaNeta: st.ventaNeta,
               pct: Number(c.monto) > 0 ? (st.ventaNeta / Number(c.monto)) * 100 : 0,
+              pctGeneral: calcPctGeneral(st.ventaNeta),
+              pctToDate: calcPctToDate(Number(c.monto), st.ventaNeta),
               unidades: st.unidades,
               ticket: st.pedidos > 0 ? st.ventaNeta / st.pedidos : 0,
             });
@@ -334,7 +363,7 @@ export function CumplimientoDashboard() {
       });
 
     return rows;
-  }, [configs, salesByStore, salesByChannel, locations, storeConfigs, channelConfigs, totalBudgetCanales]);
+  }, [configs, salesByStore, salesByChannel, locations, storeConfigs, channelConfigs, totalBudgetCanales, totalBudgetTiendas, totalVentaTiendas, totalPedidosTiendas, totalUnidadesTiendas, totalVentaNeta, numDaysInMonth, daysElapsed]);
 
   // Today index for daily chart
   const today = new Date();
