@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Check, ChevronRight, ChevronLeft, Save, Store, Globe, BarChart3, MapPin } from "lucide-react";
+import { Check, ChevronRight, ChevronLeft, Save, Store, Globe, BarChart3, MapPin, AlertTriangle, Pencil } from "lucide-react";
 import { toast } from "sonner";
 
 const MONTHS = [
@@ -25,6 +25,7 @@ type WizardState = {
   mes: number | null;
   storeBudgets: Record<string, number>;
   channelBudgets: Record<string, number>;
+  isEditing: boolean;
 };
 
 function loadState(): WizardState | null {
@@ -45,7 +46,12 @@ function clearState() {
   localStorage.removeItem(STORAGE_KEY);
 }
 
-export function PresupuestosWizard({ onSaved }: { onSaved?: () => void }) {
+interface WizardProps {
+  onSaved?: () => void;
+  editPeriod?: { anio: number; mes: number } | null;
+}
+
+export function PresupuestosWizard({ onSaved, editPeriod }: WizardProps) {
   const saved = loadState();
   const [step, setStep] = useState(saved?.step ?? 0);
   const [anio, setAnio] = useState<number | null>(saved?.anio ?? null);
@@ -55,13 +61,16 @@ export function PresupuestosWizard({ onSaved }: { onSaved?: () => void }) {
   const [channelBudgets, setChannelBudgets] = useState<Record<string, number>>(saved?.channelBudgets ?? {});
   const [saving, setSaving] = useState(false);
   const [loadedPeriod, setLoadedPeriod] = useState<string | null>(null);
+  const [isEditing, setIsEditing] = useState(saved?.isEditing ?? false);
+  const [existingPeriods, setExistingPeriods] = useState<Set<string>>(new Set());
+  const [duplicateWarning, setDuplicateWarning] = useState(false);
 
   // Persist state on every change
   useEffect(() => {
-    saveState({ step, anio, mes, storeBudgets, channelBudgets });
-  }, [step, anio, mes, storeBudgets, channelBudgets]);
+    saveState({ step, anio, mes, storeBudgets, channelBudgets, isEditing });
+  }, [step, anio, mes, storeBudgets, channelBudgets, isEditing]);
 
-  // Load locations (exclude CEDI Guayabal — assigned to digital, not physical stores)
+  // Load locations
   useEffect(() => {
     supabase.from("locations").select("location_id, name, zona").eq("is_active", true).neq("name", "CEDI Guayabal").order("name")
       .then(({ data }) => {
@@ -69,18 +78,53 @@ export function PresupuestosWizard({ onSaved }: { onSaved?: () => void }) {
       });
   }, []);
 
+  // Load existing periods to prevent duplicates
+  useEffect(() => {
+    supabase.from("presupuestos_config")
+      .select("anio, mes")
+      .then(({ data }) => {
+        if (data) {
+          const set = new Set<string>();
+          data.forEach((r: any) => set.add(`${r.anio}-${r.mes}`));
+          setExistingPeriods(set);
+        }
+      });
+  }, []);
+
+  // Handle edit mode from parent
+  useEffect(() => {
+    if (editPeriod) {
+      setAnio(editPeriod.anio);
+      setMes(editPeriod.mes);
+      setIsEditing(true);
+      setLoadedPeriod(null);
+      setStep(0);
+      setDuplicateWarning(false);
+    }
+  }, [editPeriod]);
+
+  // Check for duplicate when period changes
+  useEffect(() => {
+    if (anio && mes && !isEditing) {
+      const key = `${anio}-${mes}`;
+      setDuplicateWarning(existingPeriods.has(key));
+    } else {
+      setDuplicateWarning(false);
+    }
+  }, [anio, mes, isEditing, existingPeriods]);
+
   // Load existing config when period changes
   const loadExisting = useCallback(async () => {
     if (!anio || !mes) return;
     const periodKey = `${anio}-${mes}`;
     if (periodKey === loadedPeriod) return;
-    
+
     const { data } = await supabase
       .from("presupuestos_config")
       .select("nombre_identificador, monto, tipo")
       .eq("anio", anio)
       .eq("mes", mes);
-    
+
     if (data && data.length > 0) {
       const sb: Record<string, number> = {};
       const cb: Record<string, number> = {};
@@ -88,16 +132,23 @@ export function PresupuestosWizard({ onSaved }: { onSaved?: () => void }) {
         if (r.tipo === "tienda") sb[r.nombre_identificador] = Number(r.monto);
         if (r.tipo === "canal") cb[r.nombre_identificador] = Number(r.monto);
       });
-      setStoreBudgets(prev => ({ ...prev, ...sb }));
-      setChannelBudgets(prev => ({ ...prev, ...cb }));
+      setStoreBudgets(sb);
+      setChannelBudgets(cb);
+    } else if (!isEditing) {
+      setStoreBudgets({});
+      setChannelBudgets({});
     }
     setLoadedPeriod(periodKey);
-  }, [anio, mes, loadedPeriod]);
+  }, [anio, mes, loadedPeriod, isEditing]);
 
   useEffect(() => { loadExisting(); }, [loadExisting]);
 
   const canNext = () => {
-    if (step === 0) return anio !== null && mes !== null;
+    if (step === 0) {
+      if (anio === null || mes === null) return false;
+      if (duplicateWarning) return false;
+      return true;
+    }
     return true;
   };
 
@@ -125,7 +176,14 @@ export function PresupuestosWizard({ onSaved }: { onSaved?: () => void }) {
 
       if (error) throw error;
       clearState();
-      toast.success("Presupuestos guardados exitosamente");
+      setIsEditing(false);
+      setStep(0);
+      setAnio(null);
+      setMes(null);
+      setStoreBudgets({});
+      setChannelBudgets({});
+      setLoadedPeriod(null);
+      toast.success(isEditing ? "Presupuesto actualizado exitosamente" : "Presupuestos guardados exitosamente");
       onSaved?.();
     } catch (e: any) {
       toast.error("Error al guardar: " + e.message);
@@ -157,6 +215,16 @@ export function PresupuestosWizard({ onSaved }: { onSaved?: () => void }) {
 
   return (
     <div className="space-y-6">
+      {/* Editing Banner */}
+      {isEditing && anio && mes && (
+        <div className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-primary/10 border border-primary/20">
+          <Pencil className="h-4 w-4 text-primary" />
+          <span className="text-sm font-medium text-primary">
+            Editando presupuesto de {MONTHS[(mes || 1) - 1]} {anio}
+          </span>
+        </div>
+      )}
+
       {/* Stepper */}
       <div className="flex items-center gap-2">
         {stepLabels.map((label, i) => {
@@ -188,30 +256,48 @@ export function PresupuestosWizard({ onSaved }: { onSaved?: () => void }) {
       {step === 0 && (
         <Card>
           <CardHeader><CardTitle className="text-lg">Selecciona el periodo</CardTitle></CardHeader>
-          <CardContent className="flex gap-4">
-            <div className="w-40">
-              <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Año</label>
-              <Select value={anio?.toString() || ""} onValueChange={(v) => { setAnio(Number(v)); setLoadedPeriod(null); }}>
-                <SelectTrigger><SelectValue placeholder="Año" /></SelectTrigger>
-                <SelectContent>
-                  {YEARS.map(y => <SelectItem key={y} value={y.toString()}>{y}</SelectItem>)}
-                </SelectContent>
-              </Select>
+          <CardContent className="space-y-4">
+            <div className="flex gap-4">
+              <div className="w-40">
+                <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Año</label>
+                <Select
+                  value={anio?.toString() || ""}
+                  onValueChange={(v) => { setAnio(Number(v)); setLoadedPeriod(null); }}
+                  disabled={isEditing}
+                >
+                  <SelectTrigger><SelectValue placeholder="Año" /></SelectTrigger>
+                  <SelectContent>
+                    {YEARS.map(y => <SelectItem key={y} value={y.toString()}>{y}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex-1">
+                <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Mes</label>
+                <Select
+                  value={mes?.toString() || ""}
+                  onValueChange={(v) => { setMes(Number(v)); setLoadedPeriod(null); }}
+                  disabled={isEditing}
+                >
+                  <SelectTrigger><SelectValue placeholder="Mes" /></SelectTrigger>
+                  <SelectContent>
+                    {MONTHS.map((m, i) => <SelectItem key={i} value={(i + 1).toString()}>{m}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
-            <div className="flex-1">
-              <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Mes</label>
-              <Select value={mes?.toString() || ""} onValueChange={(v) => { setMes(Number(v)); setLoadedPeriod(null); }}>
-                <SelectTrigger><SelectValue placeholder="Mes" /></SelectTrigger>
-                <SelectContent>
-                  {MONTHS.map((m, i) => <SelectItem key={i} value={(i + 1).toString()}>{m}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
+            {duplicateWarning && (
+              <div className="flex items-center gap-2 px-3 py-2.5 rounded-lg bg-destructive/10 border border-destructive/20">
+                <AlertTriangle className="h-4 w-4 text-destructive" />
+                <span className="text-sm text-destructive">
+                  Ya existe un presupuesto para {MONTHS[(mes || 1) - 1]} {anio}. Usa "Modificar" desde el panel de Visualización.
+                </span>
+              </div>
+            )}
           </CardContent>
         </Card>
       )}
 
-      {/* Step 1: Digital (Tienda Online + Personal Shopper) */}
+      {/* Step 1: Digital */}
       {step === 1 && (
         <Card>
           <CardHeader>
@@ -311,7 +397,6 @@ export function PresupuestosWizard({ onSaved }: { onSaved?: () => void }) {
               <CardTitle className="text-lg">Resumen — {MONTHS[(mes || 1) - 1]} {anio}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
-              {/* Por Zonas */}
               <div>
                 <h3 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
                   <MapPin className="h-4 w-4" /> Presupuesto por Zona
@@ -345,7 +430,6 @@ export function PresupuestosWizard({ onSaved }: { onSaved?: () => void }) {
                 </div>
               </div>
 
-              {/* Digital */}
               <div>
                 <h3 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
                   <Globe className="h-4 w-4" /> Presupuesto Digital
@@ -366,7 +450,6 @@ export function PresupuestosWizard({ onSaved }: { onSaved?: () => void }) {
                 </div>
               </div>
 
-              {/* Gran Total */}
               <div className="flex justify-between items-center px-4 py-3 rounded-xl bg-primary text-primary-foreground">
                 <span className="font-semibold">PRESUPUESTO TOTAL</span>
                 <span className="text-xl font-bold">${totalGeneral.toLocaleString("es-CO")}</span>
@@ -387,7 +470,7 @@ export function PresupuestosWizard({ onSaved }: { onSaved?: () => void }) {
           </Button>
         ) : (
           <Button onClick={handleSave} disabled={saving}>
-            <Save className="h-4 w-4 mr-1" /> {saving ? "Guardando..." : "Guardar Presupuestos"}
+            <Save className="h-4 w-4 mr-1" /> {saving ? "Guardando..." : isEditing ? "Actualizar Presupuesto" : "Guardar Presupuestos"}
           </Button>
         )}
       </div>
