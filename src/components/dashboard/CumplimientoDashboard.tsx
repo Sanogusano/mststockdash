@@ -582,9 +582,8 @@ export function CumplimientoDashboard() {
                 <TableHead className="font-semibold">Canal / Tienda</TableHead>
                 <TableHead className="text-right font-semibold">Presupuesto</TableHead>
                 <TableHead className="text-right font-semibold">Venta Neta</TableHead>
-                <TableHead className="text-right font-semibold">% Cumpl.</TableHead>
-                <TableHead className="text-right font-semibold">% General</TableHead>
-                <TableHead className="text-right font-semibold">% Cumpl. Fecha</TableHead>
+                <TableHead className="text-right font-semibold">Cumpl. General %</TableHead>
+                <TableHead className="text-right font-semibold">% a la Fecha</TableHead>
                 <TableHead className="text-right font-semibold">Uds.</TableHead>
                 <TableHead className="text-right font-semibold">Ticket Prom.</TableHead>
               </TableRow>
@@ -600,7 +599,6 @@ export function CumplimientoDashboard() {
                     {globalPct.toFixed(1)}%
                   </Badge>
                 </TableCell>
-                <TableCell className="text-right font-bold">100%</TableCell>
                 <TableCell className="text-right">
                   <Badge variant={pctBadgeVariant(pctToDate)} className="text-xs font-bold">
                     {pctToDate.toFixed(1)}%
@@ -642,7 +640,6 @@ export function CumplimientoDashboard() {
                         {row.pct.toFixed(1)}%
                       </Badge>
                     </TableCell>
-                    <TableCell className="text-right text-sm">{row.pctGeneral.toFixed(1)}%</TableCell>
                     <TableCell className="text-right">
                       <Badge variant={pctBadgeVariant(row.pctToDate)} className="text-xs">
                         {row.pctToDate.toFixed(1)}%
