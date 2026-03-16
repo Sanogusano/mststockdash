@@ -64,6 +64,27 @@ export function CumplimientoDashboard() {
   const [dailySales, setDailySales] = useState<DailySales>({});
   const [loading, setLoading] = useState(true);
 
+  // Helper to fetch all rows with pagination (bypasses 1000-row limit)
+  async function fetchAll<T>(
+    tableName: string,
+    select: string,
+    filters: (q: any) => any,
+    pageSize = 1000
+  ): Promise<T[]> {
+    let allData: T[] = [];
+    let from = 0;
+    let hasMore = true;
+    while (hasMore) {
+      const query = filters(supabase.from(tableName).select(select));
+      const { data, error } = await query.range(from, from + pageSize - 1);
+      if (error || !data || data.length === 0) { hasMore = false; break; }
+      allData = allData.concat(data as T[]);
+      if (data.length < pageSize) hasMore = false;
+      from += pageSize;
+    }
+    return allData;
+  }
+
   useEffect(() => {
     const load = async () => {
       setLoading(true);
@@ -74,29 +95,46 @@ export function CumplimientoDashboard() {
       const endDate = `${endYear}-${String(endMonth).padStart(2, "0")}-01`;
 
       // Parallel fetches
-      const [cfgRes, ordersRes, locsRes, itemsRes] = await Promise.all([
+      const [cfgs, orders, locs] = await Promise.all([
         supabase
           .from("presupuestos_config")
           .select("nombre_identificador, monto, tipo")
           .eq("anio", anio)
-          .eq("mes", mes),
-        supabase
-          .from("orders")
-          .select("shopify_order_id, location_id, total_price, source_name, created_at")
-          .gte("created_at", startDate)
-          .lt("created_at", endDate),
+          .eq("mes", mes)
+          .then(r => r.data || []),
+        fetchAll<any>(
+          "orders",
+          "shopify_order_id, location_id, total_price, source_name, created_at",
+          (q: any) => q.gte("created_at", startDate).lt("created_at", endDate)
+        ),
         supabase
           .from("locations")
           .select("location_id, name, zona")
-          .eq("is_active", true),
-        supabase
-          .from("order_items")
-          .select("shopify_order_id, quantity")
-          .gte("shopify_order_id", "0"), // we'll filter by order ids in memory
+          .eq("is_active", true)
+          .then(r => r.data || []),
       ]);
 
-      setConfigs(cfgRes.data || []);
-      setLocations(locsRes.data || []);
+      setConfigs(cfgs);
+      setLocations(locs);
+
+      // Fetch order_items for these orders (paginated)
+      const orderIds = orders.map((o: any) => o.shopify_order_id).filter(Boolean);
+      let items: any[] = [];
+      // Batch order_items queries in chunks of 200 IDs
+      const chunkSize = 200;
+      const itemPromises = [];
+      for (let i = 0; i < orderIds.length; i += chunkSize) {
+        const chunk = orderIds.slice(i, i + chunkSize);
+        itemPromises.push(
+          fetchAll<any>(
+            "order_items",
+            "shopify_order_id, quantity",
+            (q: any) => q.in("shopify_order_id", chunk)
+          )
+        );
+      }
+      const itemResults = await Promise.all(itemPromises);
+      items = itemResults.flat();
 
       const orders = ordersRes.data || [];
       const items = itemsRes.data || [];
