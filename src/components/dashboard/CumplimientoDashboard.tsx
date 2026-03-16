@@ -304,6 +304,7 @@ export function CumplimientoDashboard() {
         pct: Number(c.monto) > 0 ? (ch.ventaNeta / Number(c.monto)) * 100 : 0,
         pctGeneral: calcPctGeneral(ch.ventaNeta),
         pctToDate: calcPctToDate(Number(c.monto), ch.ventaNeta),
+        budgetToDate: calcBudgetToDate(Number(c.monto)),
         unidades: ch.unidades,
         ticket: ch.pedidos > 0 ? ch.ventaNeta / ch.pedidos : 0,
       });
