@@ -61,9 +61,9 @@ export function PresupuestosWizard() {
     saveState({ step, anio, mes, storeBudgets, channelBudgets });
   }, [step, anio, mes, storeBudgets, channelBudgets]);
 
-  // Load locations
+  // Load locations (exclude CEDI Guayabal — assigned to digital, not physical stores)
   useEffect(() => {
-    supabase.from("locations").select("location_id, name, zona").eq("is_active", true).order("name")
+    supabase.from("locations").select("location_id, name, zona").eq("is_active", true).neq("name", "CEDI Guayabal").order("name")
       .then(({ data }) => {
         if (data) setLocations(data);
       });
