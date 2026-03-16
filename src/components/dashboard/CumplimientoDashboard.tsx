@@ -255,6 +255,7 @@ export function CumplimientoDashboard() {
       pct: number;
       pctGeneral: number;
       pctToDate: number;
+      budgetToDate: number;
       unidades: number;
       ticket: number;
     }> = [];
