@@ -540,7 +540,7 @@ export function CumplimientoDashboard() {
       </div>
 
       {/* Secondary KPIs */}
-      <div className="grid grid-cols-2 md:grid-cols-2 gap-4">
+      <div data-pdf-section className="grid grid-cols-2 md:grid-cols-2 gap-4">
         <Card>
           <CardContent className="py-4 text-center">
             <p className="text-xs text-muted-foreground mb-1">Unidades Vendidas</p>
