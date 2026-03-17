@@ -75,7 +75,22 @@ export default function PresupuestosPage() {
                 </TabsContent>
               </Tabs>
             ) : (
-              <CumplimientoDashboard />
+              <Tabs value={activeTab} onValueChange={setActiveTab}>
+                <TabsList className="mb-6 bg-muted/50 p-1">
+                  <TabsTrigger value="cumplimiento" className="gap-1.5 data-[state=active]:bg-emerald-600 data-[state=active]:text-white">
+                    <BarChart3 className="h-4 w-4" /> Cumplimiento
+                  </TabsTrigger>
+                  <TabsTrigger value="proyeccion" className="gap-1.5 data-[state=active]:bg-emerald-600 data-[state=active]:text-white">
+                    <TrendingUp className="h-4 w-4" /> Proyección Cierre
+                  </TabsTrigger>
+                </TabsList>
+                <TabsContent value="cumplimiento">
+                  <CumplimientoDashboard />
+                </TabsContent>
+                <TabsContent value="proyeccion">
+                  <ProyeccionCierreDashboard />
+                </TabsContent>
+              </Tabs>
             )}
           </div>
         </main>
