@@ -423,6 +423,23 @@ export type Database = {
     }
     Functions: {
       _col_date_boundary: { Args: { dias: number }; Returns: string }
+      calcular_proyecciones_y_cumplimiento: {
+        Args: { p_anio: number; p_mes: number }
+        Returns: {
+          cierre_conservador: number
+          cierre_optimista: number
+          cierre_probable: number
+          dias_mes: number
+          dias_transcurridos: number
+          nombre: string
+          pct_cumplimiento_fecha: number
+          pct_cumplimiento_general: number
+          presupuesto_mes: number
+          tipo: string
+          venta_actual: number
+          zona: string
+        }[]
+      }
       reporte_comportamiento_producto: {
         Args: {
           dias_atras: number

@@ -5,8 +5,9 @@ import { useUserRole } from "@/hooks/useUserRole";
 import { PresupuestosWizard } from "@/components/dashboard/PresupuestosWizard";
 import { CumplimientoDashboard } from "@/components/dashboard/CumplimientoDashboard";
 import { PresupuestosGuardados } from "@/components/dashboard/PresupuestosGuardados";
+import { ProyeccionCierreDashboard } from "@/components/dashboard/ProyeccionCierreDashboard";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { BarChart3, Eye, PlusCircle } from "lucide-react";
+import { BarChart3, Eye, PlusCircle, TrendingUp } from "lucide-react";
 
 export default function PresupuestosPage() {
   const { isAdmin, loading } = useUserRole();
@@ -46,12 +47,18 @@ export default function PresupuestosPage() {
                   <TabsTrigger value="ver" className="gap-1.5">
                     <Eye className="h-4 w-4" /> Visualización
                   </TabsTrigger>
+                  <TabsTrigger value="proyeccion" className="gap-1.5">
+                    <TrendingUp className="h-4 w-4" /> Proyección Cierre
+                  </TabsTrigger>
                   <TabsTrigger value="crear" className="gap-1.5">
                     <PlusCircle className="h-4 w-4" /> Crear Presupuesto
                   </TabsTrigger>
                 </TabsList>
                 <TabsContent value="cumplimiento">
                   <CumplimientoDashboard key={refreshKey} />
+                </TabsContent>
+                <TabsContent value="proyeccion">
+                  <ProyeccionCierreDashboard />
                 </TabsContent>
                 <TabsContent value="ver">
                   <PresupuestosGuardados
