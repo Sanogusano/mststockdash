@@ -15,7 +15,7 @@ const MONTHS = [
   "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"
 ];
 const YEARS = [2025, 2026, 2027, 2028, 2029, 2030];
-const IVA_DIVISOR = 1.19;
+
 
 type ConfigRow = { nombre_identificador: string; monto: number; tipo: string };
 type LocationRow = { location_id: string; name: string; zona: string | null };
