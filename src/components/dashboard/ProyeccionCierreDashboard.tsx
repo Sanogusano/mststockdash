@@ -352,7 +352,7 @@ export function ProyeccionCierreDashboard() {
                     if (filterStatus === "todos") return true;
                     // For groups/subgroups always show
                     if (row.level !== "item") return true;
-                    if (row.presupuesto <= 0) return filterStatus === "todos";
+                    if (row.presupuesto <= 0) return true;
                     const pctProb = (row.probable / row.presupuesto) * 100;
                     return filterStatus === "cumple" ? pctProb >= 100 : pctProb < 100;
                   })
