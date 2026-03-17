@@ -333,24 +333,23 @@ export function ProyeccionCierreDashboard() {
         </CardHeader>
         <CardContent className="p-0">
           <div className="overflow-x-auto">
-            <Table>
+            <Table className="table-fixed w-full">
               <TableHeader>
                 <TableRow className="bg-muted/30">
-                  <TableHead className="text-xs font-semibold min-w-[180px]">Nombre</TableHead>
-                  <TableHead className="text-xs font-semibold text-right">Venta Actual</TableHead>
-                  <TableHead className="text-xs font-semibold text-right">Presupuesto</TableHead>
-                  <TableHead className="text-xs font-semibold text-right">% Cumpl. General</TableHead>
-                  <TableHead className="text-xs font-semibold text-right">% Cumpl. Fecha</TableHead>
-                  <TableHead className="text-xs font-semibold text-right text-[hsl(var(--danger))]">Conservador</TableHead>
-                  <TableHead className="text-xs font-semibold text-right text-[hsl(var(--warning))]">Probable</TableHead>
-                  <TableHead className="text-xs font-semibold text-right text-[hsl(var(--success))]">Optimista</TableHead>
+                  <TableHead className="text-[11px] font-semibold w-[22%]">Nombre</TableHead>
+                  <TableHead className="text-[11px] font-semibold text-right w-[11%]">Venta MTD</TableHead>
+                  <TableHead className="text-[11px] font-semibold text-right w-[11%]">Presup.</TableHead>
+                  <TableHead className="text-[11px] font-semibold text-right w-[9%]">% Gral</TableHead>
+                  <TableHead className="text-[11px] font-semibold text-right w-[9%]">% Fecha</TableHead>
+                  <TableHead className="text-[11px] font-semibold text-right w-[13%] text-[hsl(var(--danger))]">Conserv.</TableHead>
+                  <TableHead className="text-[11px] font-semibold text-right w-[13%] text-[hsl(var(--warning))]">Probable</TableHead>
+                  <TableHead className="text-[11px] font-semibold text-right w-[13%] text-[hsl(var(--success))]">Optimista</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {tableRows
                   .filter(row => {
                     if (filterStatus === "todos") return true;
-                    // For groups/subgroups always show
                     if (row.level !== "item") return true;
                     if (row.presupuesto <= 0) return true;
                     const pctProb = (row.probable / row.presupuesto) * 100;
@@ -373,65 +372,57 @@ export function ProyeccionCierreDashboard() {
                           : "hover:bg-muted/10"
                       }
                     >
-                      <TableCell className={`text-sm ${row.level === "item" ? "pl-8" : ""}`}>
+                      <TableCell className={`text-[11px] truncate ${row.level === "item" ? "pl-6" : ""}`}>
                         {row.label}
                       </TableCell>
-                      <TableCell className="text-sm text-right">{fmtCOP(row.ventaActual)}</TableCell>
-                      <TableCell className="text-sm text-right text-muted-foreground">
+                      <TableCell className="text-[11px] text-right tabular-nums">{fmtCOP(row.ventaActual)}</TableCell>
+                      <TableCell className="text-[11px] text-right tabular-nums text-muted-foreground">
                         {row.presupuesto > 0 ? fmtCOP(row.presupuesto) : "—"}
                       </TableCell>
                       <TableCell className="text-right">
-                        <div className="flex items-center justify-end gap-2">
-                          <div className="w-14 h-1.5 rounded-full bg-muted overflow-hidden">
-                            <div
-                              className={`h-full rounded-full ${pctBg(row.pctGeneral)}`}
-                              style={{ width: `${Math.min(row.pctGeneral, 100)}%` }}
-                            />
-                          </div>
-                          <span className={`text-xs font-medium w-12 text-right ${pctColor(row.pctGeneral)}`}>
-                            {row.pctGeneral.toFixed(1)}%
-                          </span>
-                        </div>
+                        <span className={`text-[11px] font-medium tabular-nums ${pctColor(row.pctGeneral)}`}>
+                          {row.pctGeneral.toFixed(1)}%
+                        </span>
                       </TableCell>
                       <TableCell className="text-right">
-                        <span className={`text-xs font-medium ${pctColor(row.pctFecha)}`}>
+                        <span className={`text-[11px] font-medium tabular-nums ${pctColor(row.pctFecha)}`}>
                           {row.pctFecha.toFixed(1)}%
                           {row.pctFecha >= 100 ? " 🚀" : row.pctFecha < 80 ? " 🐢" : ""}
                         </span>
                       </TableCell>
                       <TableCell className="text-right">
-                        <div className="text-sm">{fmtCOP(row.conservador)}</div>
+                        <div className="text-[11px] tabular-nums">{fmtCOP(row.conservador)}</div>
                         {row.presupuesto > 0 && (
-                          <span className={`inline-block mt-0.5 px-1.5 py-0.5 rounded text-[10px] font-semibold ${
+                          <span className={`inline-block mt-0.5 px-1 py-px rounded text-[9px] font-semibold whitespace-nowrap ${
                             pctCons >= 100 
                               ? "bg-[hsl(var(--success))]/15 text-[hsl(var(--success))]" 
                               : "bg-[hsl(var(--danger))]/15 text-[hsl(var(--danger))]"
                           }`}>
-                            {pctCons >= 100 ? "CUMPLE" : "NO CUMPLE"} {pctCons.toFixed(1)}%
+                            {pctCons >= 100 ? "CUMPLE" : "NO CUMPLE"} {pctCons.toFixed(0)}%
                           </span>
                         )}
                       </TableCell>
                       <TableCell className="text-right">
-                        <div className="text-sm">{fmtCOP(row.probable)}</div>
+                        <div className="text-[11px] tabular-nums">{fmtCOP(row.probable)}</div>
                         {row.presupuesto > 0 && (
-                          <span className={`inline-block mt-0.5 px-1.5 py-0.5 rounded text-[10px] font-semibold ${
+                          <span className={`inline-block mt-0.5 px-1 py-px rounded text-[9px] font-semibold whitespace-nowrap ${
                             pctProb >= 100 
                               ? "bg-[hsl(var(--success))]/15 text-[hsl(var(--success))]" 
                               : "bg-[hsl(var(--danger))]/15 text-[hsl(var(--danger))]"
                           }`}>
-                            {pctProb >= 100 ? "CUMPLE" : "NO CUMPLE"} {pctProb.toFixed(1)}%
+                            {pctProb >= 100 ? "CUMPLE" : "NO CUMPLE"} {pctProb.toFixed(0)}%
                           </span>
                         )}
                       </TableCell>
                       <TableCell className="text-right">
-                        <div className="text-sm">{fmtCOP(row.optimista)}</div>
+                        <div className="text-[11px] tabular-nums">{fmtCOP(row.optimista)}</div>
                         {row.presupuesto > 0 && (
-                          <span className={`inline-block mt-0.5 px-1.5 py-0.5 rounded text-[10px] font-semibold ${
+                          <span className={`inline-block mt-0.5 px-1 py-px rounded text-[9px] font-semibold whitespace-nowrap ${
                             pctOpt >= 100 
                               ? "bg-[hsl(var(--success))]/15 text-[hsl(var(--success))]" 
                               : "bg-[hsl(var(--danger))]/15 text-[hsl(var(--danger))]"
                           }`}>
-                            {pctOpt >= 100 ? "CUMPLE" : "NO CUMPLE"} {pctOpt.toFixed(1)}%
+                            {pctOpt >= 100 ? "CUMPLE" : "NO CUMPLE"} {pctOpt.toFixed(0)}%
                           </span>
                         )}
                       </TableCell>
