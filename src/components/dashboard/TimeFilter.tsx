@@ -26,13 +26,12 @@ export function resolveDays(value: number): number {
   if (value === PREV_MONTH_SENTINEL) {
     const now = new Date();
     const prevStart = startOfMonth(subMonths(now, 1));
-    const prevEnd = endOfMonth(subMonths(now, 1));
     return differenceInCalendarDays(now, prevStart);
   }
   if (value === CUSTOM_SENTINEL) {
     return 30;
   }
-  return value;
+  return value; // 0 is valid → means "today only"
 }
 
 /** Returns the actual date range for a given filter value */
