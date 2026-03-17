@@ -476,7 +476,7 @@ export function CumplimientoDashboard() {
 
       <div id="cumplimiento-dashboard-content" className="space-y-6 bg-background">
       {/* ── Master KPI ── */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div data-pdf-section className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Cumplimiento Mes */}
         <Card>
           <CardContent className="py-6">
@@ -540,7 +540,7 @@ export function CumplimientoDashboard() {
       </div>
 
       {/* Secondary KPIs */}
-      <div className="grid grid-cols-2 md:grid-cols-2 gap-4">
+      <div data-pdf-section className="grid grid-cols-2 md:grid-cols-2 gap-4">
         <Card>
           <CardContent className="py-4 text-center">
             <p className="text-xs text-muted-foreground mb-1">Unidades Vendidas</p>
@@ -556,7 +556,7 @@ export function CumplimientoDashboard() {
       </div>
 
       {/* ── Daily Gamified History ── */}
-      <Card>
+      <Card data-pdf-section>
         <CardHeader className="pb-2">
           <div className="flex items-center justify-between">
             <CardTitle className="text-base flex items-center gap-2">
@@ -615,7 +615,7 @@ export function CumplimientoDashboard() {
       </Card>
 
       {/* ── Hierarchical Compliance Table ── */}
-      <Card>
+      <Card data-pdf-section>
         <CardHeader>
           <CardTitle className="text-base flex items-center gap-2">
             <Store className="h-4 w-4" /> Tabla de Cumplimiento
