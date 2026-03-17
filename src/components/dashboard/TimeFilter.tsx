@@ -26,13 +26,12 @@ export function resolveDays(value: number): number {
   if (value === PREV_MONTH_SENTINEL) {
     const now = new Date();
     const prevStart = startOfMonth(subMonths(now, 1));
-    const prevEnd = endOfMonth(subMonths(now, 1));
     return differenceInCalendarDays(now, prevStart);
   }
   if (value === CUSTOM_SENTINEL) {
     return 30;
   }
-  return value;
+  return value; // 0 is valid → means "today only"
 }
 
 /** Returns the actual date range for a given filter value */
@@ -121,6 +120,7 @@ interface Preset {
 }
 
 const presets: Preset[] = [
+  { label: "Hoy", value: 0 },
   { label: "Este Mes", value: THIS_MONTH_SENTINEL },
   { label: "Última Semana", value: 7 },
   { label: "15 Días", value: 15 },
@@ -171,7 +171,7 @@ export function TimeFilter({ value, onChange, comparisonPeriod, onComparisonChan
     if (!date) return;
     setCustomFrom(date);
     const days = differenceInCalendarDays(new Date(), date);
-    onChange(Math.max(days, 1));
+    onChange(Math.max(days, 0));
     setShowCalendar(false);
     setMenuOpen(false);
   };
