@@ -120,6 +120,7 @@ interface Preset {
 }
 
 const presets: Preset[] = [
+  { label: "Hoy", value: 0 },
   { label: "Este Mes", value: THIS_MONTH_SENTINEL },
   { label: "Última Semana", value: 7 },
   { label: "15 Días", value: 15 },
