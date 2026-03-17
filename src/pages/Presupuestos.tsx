@@ -40,17 +40,17 @@ export default function PresupuestosPage() {
             </p>
             {isAdmin ? (
               <Tabs value={activeTab} onValueChange={setActiveTab}>
-                <TabsList className="mb-6">
-                  <TabsTrigger value="cumplimiento" className="gap-1.5">
+                <TabsList className="mb-6 bg-muted/50 p-1">
+                  <TabsTrigger value="cumplimiento" className="gap-1.5 data-[state=active]:bg-emerald-600 data-[state=active]:text-white">
                     <BarChart3 className="h-4 w-4" /> Cumplimiento
                   </TabsTrigger>
-                  <TabsTrigger value="ver" className="gap-1.5">
+                  <TabsTrigger value="ver" className="gap-1.5 data-[state=active]:bg-emerald-600 data-[state=active]:text-white">
                     <Eye className="h-4 w-4" /> Visualización
                   </TabsTrigger>
-                  <TabsTrigger value="proyeccion" className="gap-1.5">
+                  <TabsTrigger value="proyeccion" className="gap-1.5 data-[state=active]:bg-emerald-600 data-[state=active]:text-white">
                     <TrendingUp className="h-4 w-4" /> Proyección Cierre
                   </TabsTrigger>
-                  <TabsTrigger value="crear" className="gap-1.5">
+                  <TabsTrigger value="crear" className="gap-1.5 data-[state=active]:bg-emerald-600 data-[state=active]:text-white">
                     <PlusCircle className="h-4 w-4" /> Crear Presupuesto
                   </TabsTrigger>
                 </TabsList>
