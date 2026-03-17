@@ -5,8 +5,9 @@ import { useUserRole } from "@/hooks/useUserRole";
 import { PresupuestosWizard } from "@/components/dashboard/PresupuestosWizard";
 import { CumplimientoDashboard } from "@/components/dashboard/CumplimientoDashboard";
 import { PresupuestosGuardados } from "@/components/dashboard/PresupuestosGuardados";
+import { ProyeccionCierreDashboard } from "@/components/dashboard/ProyeccionCierreDashboard";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { BarChart3, Eye, PlusCircle } from "lucide-react";
+import { BarChart3, Eye, PlusCircle, TrendingUp } from "lucide-react";
 
 export default function PresupuestosPage() {
   const { isAdmin, loading } = useUserRole();
