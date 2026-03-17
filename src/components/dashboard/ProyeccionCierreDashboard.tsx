@@ -314,6 +314,7 @@ export function ProyeccionCierreDashboard() {
                 <TableRow className="bg-muted/30">
                   <TableHead className="text-xs font-semibold min-w-[180px]">Nombre</TableHead>
                   <TableHead className="text-xs font-semibold text-right">Venta Actual</TableHead>
+                  <TableHead className="text-xs font-semibold text-right">Presupuesto</TableHead>
                   <TableHead className="text-xs font-semibold text-right">% Cumpl. General</TableHead>
                   <TableHead className="text-xs font-semibold text-right">% Cumpl. Fecha</TableHead>
                   <TableHead className="text-xs font-semibold text-right text-[hsl(var(--danger))]">Conservador</TableHead>
@@ -325,6 +326,9 @@ export function ProyeccionCierreDashboard() {
                 {tableRows.map((row, i) => {
                   const isGroup = row.level === "group" || row.level === "total-tiendas";
                   const isSubgroup = row.level === "subgroup";
+                  const pctCons = row.presupuesto > 0 ? (row.conservador / row.presupuesto) * 100 : 0;
+                  const pctProb = row.presupuesto > 0 ? (row.probable / row.presupuesto) * 100 : 0;
+                  const pctOpt = row.presupuesto > 0 ? (row.optimista / row.presupuesto) * 100 : 0;
                   return (
                     <TableRow
                       key={i}
@@ -340,6 +344,9 @@ export function ProyeccionCierreDashboard() {
                         {row.label}
                       </TableCell>
                       <TableCell className="text-sm text-right">{fmtCOP(row.ventaActual)}</TableCell>
+                      <TableCell className="text-sm text-right text-muted-foreground">
+                        {row.presupuesto > 0 ? fmtCOP(row.presupuesto) : "—"}
+                      </TableCell>
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-2">
                           <div className="w-14 h-1.5 rounded-full bg-muted overflow-hidden">
@@ -359,9 +366,30 @@ export function ProyeccionCierreDashboard() {
                           {row.pctFecha >= 100 ? " 🚀" : row.pctFecha < 80 ? " 🐢" : ""}
                         </span>
                       </TableCell>
-                      <TableCell className="text-sm text-right">{fmtCOP(row.conservador)}</TableCell>
-                      <TableCell className="text-sm text-right">{fmtCOP(row.probable)}</TableCell>
-                      <TableCell className="text-sm text-right">{fmtCOP(row.optimista)}</TableCell>
+                      <TableCell className="text-right">
+                        <div className="text-sm">{fmtCOP(row.conservador)}</div>
+                        {row.presupuesto > 0 && (
+                          <span className={`text-[10px] font-medium ${pctColor(pctCons)}`}>
+                            {pctCons >= 100 ? "✅" : "❌"} {pctCons.toFixed(1)}%
+                          </span>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="text-sm">{fmtCOP(row.probable)}</div>
+                        {row.presupuesto > 0 && (
+                          <span className={`text-[10px] font-medium ${pctColor(pctProb)}`}>
+                            {pctProb >= 100 ? "✅" : "❌"} {pctProb.toFixed(1)}%
+                          </span>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="text-sm">{fmtCOP(row.optimista)}</div>
+                        {row.presupuesto > 0 && (
+                          <span className={`text-[10px] font-medium ${pctColor(pctOpt)}`}>
+                            {pctOpt >= 100 ? "✅" : "❌"} {pctOpt.toFixed(1)}%
+                          </span>
+                        )}
+                      </TableCell>
                     </TableRow>
                   );
                 })}
