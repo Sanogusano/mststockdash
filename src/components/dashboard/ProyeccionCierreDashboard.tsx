@@ -308,7 +308,28 @@ export function ProyeccionCierreDashboard() {
       {/* Hierarchical Table */}
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle className="text-sm font-semibold">Detalle de Cumplimiento y Proyección</CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-sm font-semibold">Detalle de Cumplimiento y Proyección</CardTitle>
+            <div className="flex gap-1">
+              {([
+                { value: "todos", label: "Todos" },
+                { value: "cumple", label: "Cumple" },
+                { value: "no-cumple", label: "No Cumple" },
+              ] as const).map(tab => (
+                <button
+                  key={tab.value}
+                  onClick={() => setFilterStatus(tab.value)}
+                  className={`px-3 py-1 rounded-md text-xs font-medium transition-colors ${
+                    filterStatus === tab.value
+                      ? "bg-emerald-600 text-white"
+                      : "bg-muted text-muted-foreground hover:bg-muted/80"
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+          </div>
         </CardHeader>
         <CardContent className="p-0">
           <div className="overflow-x-auto">
@@ -326,7 +347,16 @@ export function ProyeccionCierreDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {tableRows.map((row, i) => {
+                {tableRows
+                  .filter(row => {
+                    if (filterStatus === "todos") return true;
+                    // For groups/subgroups always show
+                    if (row.level !== "item") return true;
+                    if (row.presupuesto <= 0) return filterStatus === "todos";
+                    const pctProb = (row.probable / row.presupuesto) * 100;
+                    return filterStatus === "cumple" ? pctProb >= 100 : pctProb < 100;
+                  })
+                  .map((row, i) => {
                   const isGroup = row.level === "group" || row.level === "total-tiendas";
                   const isSubgroup = row.level === "subgroup";
                   const pctCons = row.presupuesto > 0 ? (row.conservador / row.presupuesto) * 100 : 0;
@@ -372,24 +402,36 @@ export function ProyeccionCierreDashboard() {
                       <TableCell className="text-right">
                         <div className="text-sm">{fmtCOP(row.conservador)}</div>
                         {row.presupuesto > 0 && (
-                          <span className={`text-[10px] font-medium ${pctColor(pctCons)}`}>
-                            {pctCons >= 100 ? "✅" : "❌"} {pctCons.toFixed(1)}%
+                          <span className={`inline-block mt-0.5 px-1.5 py-0.5 rounded text-[10px] font-semibold ${
+                            pctCons >= 100 
+                              ? "bg-[hsl(var(--success))]/15 text-[hsl(var(--success))]" 
+                              : "bg-[hsl(var(--danger))]/15 text-[hsl(var(--danger))]"
+                          }`}>
+                            {pctCons >= 100 ? "CUMPLE" : "NO CUMPLE"} {pctCons.toFixed(1)}%
                           </span>
                         )}
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="text-sm">{fmtCOP(row.probable)}</div>
                         {row.presupuesto > 0 && (
-                          <span className={`text-[10px] font-medium ${pctColor(pctProb)}`}>
-                            {pctProb >= 100 ? "✅" : "❌"} {pctProb.toFixed(1)}%
+                          <span className={`inline-block mt-0.5 px-1.5 py-0.5 rounded text-[10px] font-semibold ${
+                            pctProb >= 100 
+                              ? "bg-[hsl(var(--success))]/15 text-[hsl(var(--success))]" 
+                              : "bg-[hsl(var(--danger))]/15 text-[hsl(var(--danger))]"
+                          }`}>
+                            {pctProb >= 100 ? "CUMPLE" : "NO CUMPLE"} {pctProb.toFixed(1)}%
                           </span>
                         )}
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="text-sm">{fmtCOP(row.optimista)}</div>
                         {row.presupuesto > 0 && (
-                          <span className={`text-[10px] font-medium ${pctColor(pctOpt)}`}>
-                            {pctOpt >= 100 ? "✅" : "❌"} {pctOpt.toFixed(1)}%
+                          <span className={`inline-block mt-0.5 px-1.5 py-0.5 rounded text-[10px] font-semibold ${
+                            pctOpt >= 100 
+                              ? "bg-[hsl(var(--success))]/15 text-[hsl(var(--success))]" 
+                              : "bg-[hsl(var(--danger))]/15 text-[hsl(var(--danger))]"
+                          }`}>
+                            {pctOpt >= 100 ? "CUMPLE" : "NO CUMPLE"} {pctOpt.toFixed(1)}%
                           </span>
                         )}
                       </TableCell>
