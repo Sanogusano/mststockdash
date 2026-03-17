@@ -615,7 +615,7 @@ export function CumplimientoDashboard() {
       </Card>
 
       {/* ── Hierarchical Compliance Table ── */}
-      <Card>
+      <Card data-pdf-section>
         <CardHeader>
           <CardTitle className="text-base flex items-center gap-2">
             <Store className="h-4 w-4" /> Tabla de Cumplimiento
