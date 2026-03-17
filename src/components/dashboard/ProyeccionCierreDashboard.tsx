@@ -248,63 +248,89 @@ export function ProyeccionCierreDashboard() {
       </div>
 
       {/* KPI Cards - Venta Directa */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="border-primary/20">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-xs font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
-              <Target className="h-3.5 w-3.5" /> Venta Actual MTD
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-xl font-bold text-foreground">{fmtCOP(totals.ventaActual)}</p>
-            <p className="text-[10px] text-muted-foreground mt-1">
-              Presupuesto: {fmtCOP(totals.presupuesto)}
-            </p>
-          </CardContent>
-        </Card>
+      <TooltipProvider delayDuration={200}>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <Card className="border-primary/20">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-xs font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+                <Target className="h-3.5 w-3.5" /> Venta Actual MTD
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-xl font-bold text-foreground">{fmtCOP(totals.ventaActual)}</p>
+              <p className="text-[10px] text-muted-foreground mt-1">
+                Presupuesto: {fmtCOP(totals.presupuesto)}
+              </p>
+            </CardContent>
+          </Card>
 
-        <Card className="border-[hsl(var(--danger))]/20 bg-[hsl(var(--danger))]/5">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-xs font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
-              <TrendingDown className="h-3.5 w-3.5 text-[hsl(var(--danger))]" /> Conservador
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-xl font-bold text-foreground">{fmtCOP(totals.conservador)}</p>
-            <p className={`text-[10px] mt-1 font-medium ${pctColor(pctPresupConservador)}`}>
-              {pctPresupConservador.toFixed(1)}% del presupuesto
-            </p>
-          </CardContent>
-        </Card>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Card className="border-[hsl(var(--danger))]/20 bg-[hsl(var(--danger))]/5 cursor-help">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-xs font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+                    <TrendingDown className="h-3.5 w-3.5 text-[hsl(var(--danger))]" /> Conservador
+                    <Info className="h-3 w-3 text-muted-foreground/50" />
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-xl font-bold text-foreground">{fmtCOP(totals.conservador)}</p>
+                  <p className={`text-[10px] mt-1 font-medium ${pctColor(pctPresupConservador)}`}>
+                    {pctPresupConservador.toFixed(1)}% del presupuesto
+                  </p>
+                </CardContent>
+              </Card>
+            </TooltipTrigger>
+            <TooltipContent side="bottom" className="max-w-xs text-xs">
+              Venta MTD + (Run Rate diario × días restantes × 0.85). Escenario pesimista que asume un rendimiento 15% menor al ritmo actual.
+            </TooltipContent>
+          </Tooltip>
 
-        <Card className="border-[hsl(var(--warning))]/20 bg-[hsl(var(--warning))]/5">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-xs font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
-              <Minus className="h-3.5 w-3.5 text-[hsl(var(--warning))]" /> Probable
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-xl font-bold text-foreground">{fmtCOP(totals.probable)}</p>
-            <p className={`text-[10px] mt-1 font-medium ${pctColor(pctPresupProbable)}`}>
-              {pctPresupProbable.toFixed(1)}% del presupuesto
-            </p>
-          </CardContent>
-        </Card>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Card className="border-[hsl(var(--warning))]/20 bg-[hsl(var(--warning))]/5 cursor-help">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-xs font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+                    <Minus className="h-3.5 w-3.5 text-[hsl(var(--warning))]" /> Probable
+                    <Info className="h-3 w-3 text-muted-foreground/50" />
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-xl font-bold text-foreground">{fmtCOP(totals.probable)}</p>
+                  <p className={`text-[10px] mt-1 font-medium ${pctColor(pctPresupProbable)}`}>
+                    {pctPresupProbable.toFixed(1)}% del presupuesto
+                  </p>
+                </CardContent>
+              </Card>
+            </TooltipTrigger>
+            <TooltipContent side="bottom" className="max-w-xs text-xs">
+              Venta MTD + (Run Rate diario × días restantes × 1.0). Proyección lineal que mantiene el ritmo de venta actual hasta fin de mes.
+            </TooltipContent>
+          </Tooltip>
 
-        <Card className="border-[hsl(var(--success))]/20 bg-[hsl(var(--success))]/5">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-xs font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
-              <TrendingUp className="h-3.5 w-3.5 text-[hsl(var(--success))]" /> Optimista
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-xl font-bold text-foreground">{fmtCOP(totals.optimista)}</p>
-            <p className={`text-[10px] mt-1 font-medium ${pctColor(pctPresupOptimista)}`}>
-              {pctPresupOptimista.toFixed(1)}% del presupuesto
-            </p>
-          </CardContent>
-        </Card>
-      </div>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Card className="border-[hsl(var(--success))]/20 bg-[hsl(var(--success))]/5 cursor-help">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-xs font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+                    <TrendingUp className="h-3.5 w-3.5 text-[hsl(var(--success))]" /> Optimista
+                    <Info className="h-3 w-3 text-muted-foreground/50" />
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-xl font-bold text-foreground">{fmtCOP(totals.optimista)}</p>
+                  <p className={`text-[10px] mt-1 font-medium ${pctColor(pctPresupOptimista)}`}>
+                    {pctPresupOptimista.toFixed(1)}% del presupuesto
+                  </p>
+                </CardContent>
+              </Card>
+            </TooltipTrigger>
+            <TooltipContent side="bottom" className="max-w-xs text-xs">
+              Venta MTD + (Run Rate diario × días restantes × 1.15). Escenario optimista que asume un rendimiento 15% superior al ritmo actual.
+            </TooltipContent>
+          </Tooltip>
+        </div>
+      </TooltipProvider>
 
       {/* Hierarchical Table */}
       <Card>
