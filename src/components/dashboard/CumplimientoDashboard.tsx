@@ -165,7 +165,7 @@ export function CumplimientoDashboard() {
       const byDay: DailySales = {};
 
       orders.forEach((o: any) => {
-        const netSale = (revenueByOrder[o.shopify_order_id] || 0) / IVA_DIVISOR;
+        const netSale = revenueByOrder[o.shopify_order_id] || 0;
         const units = unitsByOrder[o.shopify_order_id] || 0;
         const storeName = locMap[o.location_id] || o.location_id;
 
