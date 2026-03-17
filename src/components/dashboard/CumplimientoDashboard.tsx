@@ -183,8 +183,13 @@ export function CumplimientoDashboard() {
         byChannel[channel].pedidos += 1;
         byChannel[channel].unidades += units;
 
-        // By day
-        const day = o.created_at?.substring(0, 10) || "";
+        // By day — convert UTC timestamp to Colombia local date (UTC-5)
+        let day = "";
+        if (o.created_at) {
+          const utc = new Date(o.created_at);
+          const col = new Date(utc.getTime() - 5 * 60 * 60 * 1000);
+          day = `${col.getUTCFullYear()}-${String(col.getUTCMonth() + 1).padStart(2, "0")}-${String(col.getUTCDate()).padStart(2, "0")}`;
+        }
         if (day) {
           if (!byDay[day]) byDay[day] = { ventaNeta: 0, pedidos: 0, unidades: 0 };
           byDay[day].ventaNeta += netSale;
