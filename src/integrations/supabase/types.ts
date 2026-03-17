@@ -422,6 +422,7 @@ export type Database = {
       }
     }
     Functions: {
+      _col_date_boundary: { Args: { dias: number }; Returns: string }
       reporte_comportamiento_producto: {
         Args: {
           dias_atras: number
