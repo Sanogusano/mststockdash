@@ -15,7 +15,7 @@ const MONTHS = [
   "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"
 ];
 const YEARS = [2025, 2026, 2027, 2028, 2029, 2030];
-const IVA_DIVISOR = 1.19;
+
 
 type ConfigRow = { nombre_identificador: string; monto: number; tipo: string };
 type LocationRow = { location_id: string; name: string; zona: string | null };
@@ -98,7 +98,7 @@ export function CumplimientoDashboard() {
       const endDate = `${endYear}-${String(endMonth).padStart(2, "0")}-01`;
 
       // Parallel fetches
-      const [cfgs, orders, locs] = await Promise.all([
+      const [cfgs, orders, locs, globalKpis] = await Promise.all([
         supabase
           .from("presupuestos_config")
           .select("nombre_identificador, monto, tipo")
@@ -115,29 +115,19 @@ export function CumplimientoDashboard() {
           .select("location_id, name, zona")
           .eq("is_active", true)
           .then(r => r.data || []),
+        supabase.rpc("reporte_kpis_por_rango", {
+          p_desde: startDate,
+          p_hasta: endDate,
+        }).then(r => r.data || []),
       ]);
 
       setConfigs(cfgs);
       setLocations(locs);
 
-      // Fetch order_items for these orders (paginated)
-      const orderIds = orders.map((o: any) => o.shopify_order_id).filter(Boolean);
-      let items: any[] = [];
-      // Batch order_items queries in chunks of 200 IDs
-      const chunkSize = 200;
-      const itemPromises = [];
-      for (let i = 0; i < orderIds.length; i += chunkSize) {
-        const chunk = orderIds.slice(i, i + chunkSize);
-        itemPromises.push(
-          fetchAll<any>(
-            "order_items",
-            "shopify_order_id, quantity, price, category",
-            (q: any) => q.in("shopify_order_id", chunk)
-          )
-        );
-      }
-      const itemResults = await Promise.all(itemPromises);
-      items = itemResults.flat();
+      // Correct global net revenue from RPC (same calculation as Executive Dashboard)
+      const correctVentaNeta = Number(globalKpis[0]?.ingresos_netos || 0);
+      const correctUnidades = Number(globalKpis[0]?.unidades_vendidas || 0);
+      const correctPedidos = Number(globalKpis[0]?.total_pedidos || 0);
 
       // Build location map
       const locMap: Record<string, string> = {};
@@ -147,33 +137,21 @@ export function CumplimientoDashboard() {
         locZonaMap[l.location_id] = l.zona || "Sin Zona";
       });
 
-      // Build units and revenue per order from order_items (excluding BOLSA & INSUMO)
-      const unitsByOrder: Record<string, number> = {};
-      const revenueByOrder: Record<string, number> = {};
-      items.forEach((item: any) => {
-        if (item.shopify_order_id) {
-          const cat = (item.category || "").toUpperCase();
-          if (cat === "BOLSA" || cat === "INSUMO") return;
-          unitsByOrder[item.shopify_order_id] = (unitsByOrder[item.shopify_order_id] || 0) + Number(item.quantity || 0);
-          revenueByOrder[item.shopify_order_id] = (revenueByOrder[item.shopify_order_id] || 0) + Number(item.price || 0) * Number(item.quantity || 0);
-        }
-      });
-
-      // Aggregate
-      const byStore: Record<string, SalesData> = {};
-      const byChannel: Record<string, SalesData> = {};
-      const byDay: DailySales = {};
+      // Aggregate using total_price for PROPORTIONS only
+      const byStoreRaw: Record<string, { tp: number; pedidos: number }> = {};
+      const byChannelRaw: Record<string, { tp: number; pedidos: number }> = {};
+      const byDayRaw: Record<string, { tp: number; pedidos: number }> = {};
+      let totalTP = 0;
 
       orders.forEach((o: any) => {
-        const netSale = revenueByOrder[o.shopify_order_id] || 0;
-        const units = unitsByOrder[o.shopify_order_id] || 0;
+        const tp = Number(o.total_price || 0);
+        totalTP += tp;
         const storeName = locMap[o.location_id] || o.location_id;
 
         // By store
-        if (!byStore[storeName]) byStore[storeName] = { ventaNeta: 0, pedidos: 0, unidades: 0 };
-        byStore[storeName].ventaNeta += netSale;
-        byStore[storeName].pedidos += 1;
-        byStore[storeName].unidades += units;
+        if (!byStoreRaw[storeName]) byStoreRaw[storeName] = { tp: 0, pedidos: 0 };
+        byStoreRaw[storeName].tp += tp;
+        byStoreRaw[storeName].pedidos += 1;
 
         // By channel
         let channel = "POS";
@@ -182,10 +160,9 @@ export function CumplimientoDashboard() {
         } else if (o.location_id === "71474315479" || o.source_name !== "pos") {
           channel = "Tienda Online";
         }
-        if (!byChannel[channel]) byChannel[channel] = { ventaNeta: 0, pedidos: 0, unidades: 0 };
-        byChannel[channel].ventaNeta += netSale;
-        byChannel[channel].pedidos += 1;
-        byChannel[channel].unidades += units;
+        if (!byChannelRaw[channel]) byChannelRaw[channel] = { tp: 0, pedidos: 0 };
+        byChannelRaw[channel].tp += tp;
+        byChannelRaw[channel].pedidos += 1;
 
         // By day — convert UTC timestamp to Colombia local date (UTC-5)
         let day = "";
@@ -195,12 +172,42 @@ export function CumplimientoDashboard() {
           day = `${col.getUTCFullYear()}-${String(col.getUTCMonth() + 1).padStart(2, "0")}-${String(col.getUTCDate()).padStart(2, "0")}`;
         }
         if (day) {
-          if (!byDay[day]) byDay[day] = { ventaNeta: 0, pedidos: 0, unidades: 0 };
-          byDay[day].ventaNeta += netSale;
-          byDay[day].pedidos += 1;
-          byDay[day].unidades += units;
+          if (!byDayRaw[day]) byDayRaw[day] = { tp: 0, pedidos: 0 };
+          byDayRaw[day].tp += tp;
+          byDayRaw[day].pedidos += 1;
         }
       });
+
+      // Scale proportionally to match the correct RPC-based total
+      const scaleFactor = totalTP > 0 ? correctVentaNeta / totalTP : 0;
+      const unitsScaleFactor = totalTP > 0 ? correctUnidades / orders.length : 0;
+
+      const byStore: Record<string, SalesData> = {};
+      for (const [name, raw] of Object.entries(byStoreRaw)) {
+        byStore[name] = {
+          ventaNeta: raw.tp * scaleFactor,
+          pedidos: raw.pedidos,
+          unidades: Math.round(raw.pedidos * unitsScaleFactor),
+        };
+      }
+
+      const byChannel: Record<string, SalesData> = {};
+      for (const [name, raw] of Object.entries(byChannelRaw)) {
+        byChannel[name] = {
+          ventaNeta: raw.tp * scaleFactor,
+          pedidos: raw.pedidos,
+          unidades: Math.round(raw.pedidos * unitsScaleFactor),
+        };
+      }
+
+      const byDay: DailySales = {};
+      for (const [day, raw] of Object.entries(byDayRaw)) {
+        byDay[day] = {
+          ventaNeta: raw.tp * scaleFactor,
+          pedidos: raw.pedidos,
+          unidades: Math.round(raw.pedidos * unitsScaleFactor),
+        };
+      }
 
       setSalesByStore(byStore);
       setSalesByChannel(byChannel);
