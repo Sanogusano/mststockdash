@@ -171,7 +171,7 @@ export function TimeFilter({ value, onChange, comparisonPeriod, onComparisonChan
     if (!date) return;
     setCustomFrom(date);
     const days = differenceInCalendarDays(new Date(), date);
-    onChange(Math.max(days, 1));
+    onChange(Math.max(days, 0));
     setShowCalendar(false);
     setMenuOpen(false);
   };
