@@ -44,12 +44,15 @@ interface ProyeccionRow {
   cierre_optimista: number;
 }
 
+type FilterStatus = "todos" | "cumple" | "no-cumple";
+
 export function ProyeccionCierreDashboard() {
   const now = new Date();
   const [anio, setAnio] = useState(now.getFullYear());
   const [mes, setMes] = useState(now.getMonth() + 1);
   const [data, setData] = useState<ProyeccionRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [filterStatus, setFilterStatus] = useState<FilterStatus>("todos");
 
   useEffect(() => {
     const load = async () => {
