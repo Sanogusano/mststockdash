@@ -131,7 +131,7 @@ export function CumplimientoDashboard() {
         itemPromises.push(
           fetchAll<any>(
             "order_items",
-            "shopify_order_id, quantity",
+            "shopify_order_id, quantity, price, category",
             (q: any) => q.in("shopify_order_id", chunk)
           )
         );
