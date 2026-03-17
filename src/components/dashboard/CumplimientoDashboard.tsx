@@ -665,6 +665,9 @@ export function CumplimientoDashboard() {
                         {(row.level === "item" || row.level === "subgroup" || row.level === "total-tiendas") && row.pctToDate < 100 && (
                           <Turtle className="h-3.5 w-3.5 text-[hsl(var(--danger))] shrink-0" />
                         )}
+                        {(row.level === "item" || row.level === "subgroup" || row.level === "total-tiendas") && row.pctToDate >= 100 && (
+                          <Rocket className="h-3.5 w-3.5 text-[hsl(var(--success))] shrink-0" />
+                        )}
                         {row.label}
                       </span>
                     </TableCell>
