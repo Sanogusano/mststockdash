@@ -476,7 +476,7 @@ export function CumplimientoDashboard() {
 
       <div id="cumplimiento-dashboard-content" className="space-y-6 bg-background">
       {/* ── Master KPI ── */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div data-pdf-section className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Cumplimiento Mes */}
         <Card>
           <CardContent className="py-6">
