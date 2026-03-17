@@ -47,12 +47,18 @@ export default function PresupuestosPage() {
                   <TabsTrigger value="ver" className="gap-1.5">
                     <Eye className="h-4 w-4" /> Visualización
                   </TabsTrigger>
+                  <TabsTrigger value="proyeccion" className="gap-1.5">
+                    <TrendingUp className="h-4 w-4" /> Proyección Cierre
+                  </TabsTrigger>
                   <TabsTrigger value="crear" className="gap-1.5">
                     <PlusCircle className="h-4 w-4" /> Crear Presupuesto
                   </TabsTrigger>
                 </TabsList>
                 <TabsContent value="cumplimiento">
                   <CumplimientoDashboard key={refreshKey} />
+                </TabsContent>
+                <TabsContent value="proyeccion">
+                  <ProyeccionCierreDashboard />
                 </TabsContent>
                 <TabsContent value="ver">
                   <PresupuestosGuardados
