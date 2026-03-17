@@ -131,7 +131,7 @@ export function CumplimientoDashboard() {
         itemPromises.push(
           fetchAll<any>(
             "order_items",
-            "shopify_order_id, quantity",
+            "shopify_order_id, quantity, price, category",
             (q: any) => q.in("shopify_order_id", chunk)
           )
         );
@@ -147,11 +147,15 @@ export function CumplimientoDashboard() {
         locZonaMap[l.location_id] = l.zona || "Sin Zona";
       });
 
-      // Build units per order from order_items
+      // Build units and revenue per order from order_items (excluding BOLSA & INSUMO)
       const unitsByOrder: Record<string, number> = {};
+      const revenueByOrder: Record<string, number> = {};
       items.forEach((item: any) => {
         if (item.shopify_order_id) {
+          const cat = (item.category || "").toUpperCase();
+          if (cat === "BOLSA" || cat === "INSUMO") return;
           unitsByOrder[item.shopify_order_id] = (unitsByOrder[item.shopify_order_id] || 0) + Number(item.quantity || 0);
+          revenueByOrder[item.shopify_order_id] = (revenueByOrder[item.shopify_order_id] || 0) + Number(item.price || 0) * Number(item.quantity || 0);
         }
       });
 
@@ -161,7 +165,7 @@ export function CumplimientoDashboard() {
       const byDay: DailySales = {};
 
       orders.forEach((o: any) => {
-        const netSale = Number(o.total_price || 0) / IVA_DIVISOR;
+        const netSale = (revenueByOrder[o.shopify_order_id] || 0) / IVA_DIVISOR;
         const units = unitsByOrder[o.shopify_order_id] || 0;
         const storeName = locMap[o.location_id] || o.location_id;
 
