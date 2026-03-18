@@ -74,7 +74,7 @@ export async function exportCumplimientoPDF(
 
       // If a single section is taller than one page, split it row-aware
       if (sectionHeightMM > availableH - margin) {
-        // Capture row boundaries for this section
+        // Capture row boundaries for this section (in CSS pixels)
         const sectionRect = section.getBoundingClientRect();
         const rowBottoms: number[] = [];
         section.querySelectorAll("tr").forEach((tr) => {
@@ -83,30 +83,32 @@ export async function exportCumplimientoPDF(
         });
         rowBottoms.sort((a, b) => a - b);
 
-        const totalPx = canvas.height / 2; // scale=2
-        let startPx = 0;
+        // Work in canvas pixels (scale=2) for consistency
+        const canvasScale = 2;
+        const cssToPdfScale = contentW / (canvas.width / canvasScale); // mm per CSS pixel
+        const totalCssPx = canvas.height / canvasScale;
+        let startCssPx = 0;
 
-        while (startPx < totalPx) {
-          const maxPxPerPage = (availableH - currentY) / scaleFactor;
-          const idealEndPx = startPx + maxPxPerPage;
+        while (startCssPx < totalCssPx) {
+          const availMM = availableH - currentY;
+          const maxCssPxPerPage = availMM / cssToPdfScale;
+          const idealEndCssPx = startCssPx + maxCssPxPerPage;
 
-          let endPx = totalPx;
-          if (idealEndPx < totalPx) {
-            // Find the best row boundary before idealEndPx
-            let bestBreak = idealEndPx * 0.8; // fallback
+          let endCssPx = totalCssPx;
+          if (idealEndCssPx < totalCssPx) {
+            let bestBreak = idealEndCssPx * 0.8;
             for (let i = rowBottoms.length - 1; i >= 0; i--) {
-              if (rowBottoms[i] <= idealEndPx && rowBottoms[i] > startPx) {
+              if (rowBottoms[i] <= idealEndCssPx && rowBottoms[i] > startCssPx) {
                 bestBreak = rowBottoms[i];
                 break;
               }
             }
-            endPx = bestBreak;
+            endCssPx = bestBreak;
           }
 
-          // Slice the canvas
-          const srcY = Math.round(startPx * 2); // scale=2
-          const srcH = Math.round((endPx - startPx) * 2);
-          const sliceHeightMM = (endPx - startPx) * scaleFactor;
+          const srcY = Math.round(startCssPx * canvasScale);
+          const srcH = Math.round((endCssPx - startCssPx) * canvasScale);
+          const sliceHeightMM = (endCssPx - startCssPx) * cssToPdfScale;
 
           const sliceCanvas = document.createElement("canvas");
           sliceCanvas.width = canvas.width;
@@ -129,9 +131,9 @@ export async function exportCumplimientoPDF(
             sliceHeightMM
           );
 
-          startPx = endPx;
+          startCssPx = endCssPx;
 
-          if (startPx < totalPx) {
+          if (startCssPx < totalCssPx) {
             addFooter();
             pdf.addPage();
             pageNum++;
