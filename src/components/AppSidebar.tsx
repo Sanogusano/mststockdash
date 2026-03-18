@@ -56,6 +56,12 @@ const navItems = [
     icon: Target,
     description: "Metas de venta",
   },
+  {
+    title: "Centro de Acción",
+    url: "/centro-accion",
+    icon: Zap,
+    description: "Alertas comerciales",
+  },
 ];
 
 export function AppSidebar() {
