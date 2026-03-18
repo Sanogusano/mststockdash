@@ -3,217 +3,180 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, AlertTriangle, CheckCircle2, Target, TrendingDown, TrendingUp, ShoppingCart, Percent, Users, BarChart3, Store, Globe, ChevronDown, ChevronUp } from "lucide-react";
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { Button } from "@/components/ui/button";
+import {
+  Calendar, AlertTriangle, CheckCircle2, Target, TrendingDown, TrendingUp,
+  Play, Activity, Percent, ShoppingCart, ArrowUpRight, ArrowDownRight, Zap
+} from "lucide-react";
+import { toast } from "sonner";
 
 const MONTHS = [
   "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
   "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"
 ];
-const YEARS = [2025, 2026, 2027, 2028, 2029, 2030];
+const YEARS = [2024, 2025, 2026, 2027, 2028, 2029, 2030];
 
 function fmtCOP(n: number) {
   return "$" + Math.round(n).toLocaleString("es-CO");
 }
+function fmtPct(n: number, decimals = 1) {
+  return `${(n * 100).toFixed(decimals)}%`;
+}
 
-interface AlertaRow {
+interface StoreRow {
   nombre: string;
   tipo: string;
+  tipo_tienda: string;
   es_digital: boolean;
   presupuesto: number;
   venta_mtd: number;
-  pct_proyeccion: number;
-  ticket_promedio_local: number;
-  ticket_promedio_nacional: number;
-  upt_local: number;
-  upt_nacional: number;
-  tendencia_transacciones: number;
-  pct_recompra: number;
+  proyeccion_conservadora: number;
+  crecimiento_mom: number;
+  crecimiento_yoy: number;
+  esfuerzo_requerido: number;
+  ticket_promedio: number;
+  upt: number;
   pct_descuento: number;
+  tiene_stamp: boolean;
+  stamped_at: string | null;
+  stamp_variacion: number;
 }
 
-interface Diagnostico {
+interface Tactica {
   regla: string;
   icono: string;
-  color: string;
   colorClass: string;
-  diagnostico: string;
-  checklist: string[];
-  tacticaFisica: string[];
-  tacticaDigital: string[];
+  descripcion: string;
 }
 
-function evalDiagnosticos(row: AlertaRow): Diagnostico[] {
-  const diagnosticos: Diagnostico[] = [];
-
-  // REGLA 1: EL MIRADOR
-  if (row.tendencia_transacciones >= 0 && row.upt_local < 1.5) {
-    diagnosticos.push({
-      regla: "EL MIRADOR",
-      icono: "🔭",
-      color: "warning",
-      colorClass: "border-[hsl(var(--warning))]/40 bg-[hsl(var(--warning))]/5",
-      diagnostico: "Tráfico estable pero compras de un solo artículo (Bajo UPT).",
-      checklist: [
-        "¿Se ofrecen complementos obligatorios en cada interacción?",
-        "¿La exhibición fomenta looks completos?"
-      ],
-      tacticaFisica: [
-        "Script obligatorio: 'Esto se complementa con...'",
-        "Incentivo interno hoy por UPT > 2"
-      ],
-      tacticaDigital: [
-        "Validar activación de Cross-sell ('Completa el look') en el carrito",
-        "Revisar sugerencias de productos complementarios"
-      ]
-    });
-  }
-
-  // REGLA 2: COMPRAS PEQUEÑAS
-  if (row.ticket_promedio_local < row.ticket_promedio_nacional * 0.85) {
-    diagnosticos.push({
-      regla: "COMPRAS PEQUEÑAS",
-      icono: "💰",
-      color: "warning",
-      colorClass: "border-[hsl(var(--warning))]/40 bg-[hsl(var(--warning))]/5",
-      diagnostico: "Falla en argumentación de valor o anclaje de precio.",
-      checklist: [
-        "¿Se están mostrando primero los productos High Ticket?",
-        "¿Falta argumentación de diseño/materiales?"
-      ],
-      tacticaFisica: [
-        "Anclaje de precio en vitrina y abordaje",
-        "Upsell dirigido por el asesor"
-      ],
-      tacticaDigital: [
-        "Revisar ordenación del catálogo (High ticket primero)",
-        "Validar banners de umbral (ej. 'Envío gratis por compras superiores a X')"
-      ]
-    });
-  }
-
-  // REGLA 3: ALERTA DE RENTABILIDAD
-  if (row.pct_descuento > 0.05) {
-    diagnosticos.push({
-      regla: "ALERTA DE RENTABILIDAD",
+function evalTactica(row: StoreRow): Tactica | null {
+  // Priority 1: Fuga de Margen Inútil (not Outlets)
+  if (row.tipo_tienda !== "Outlet" && row.pct_descuento > 0.05 && row.crecimiento_mom <= 0) {
+    return {
+      regla: "Fuga de Margen Inútil",
       icono: "⚠️",
-      color: "danger",
       colorClass: "border-[hsl(var(--danger))]/40 bg-[hsl(var(--danger))]/5",
-      diagnostico: "Dependencia peligrosa del descuento para cerrar ventas.",
-      checklist: [
-        "¿Se está evadiendo la venta consultiva?",
-        "¿Hay códigos de descuento filtrados?"
-      ],
-      tacticaFisica: [
-        "Migrar a narrativa de valor. Eliminar descuentos abiertos",
-        "Requerir autorización para cualquier descuento"
-      ],
-      tacticaDigital: [
-        "Segmentar promociones por audiencia",
-        "Ofrecer acceso anticipado a colecciones en lugar de rebajas de precio"
-      ]
-    });
+      descripcion:
+        "Los descuentos no están trayendo volumen. Bloquear/restringir descuentos manuales en POS. Reubicar mercancía de precio full en la zona caliente de entrada.",
+    };
   }
-
-  // REGLA 4: FUGA DE CLIENTES
-  if (row.pct_recompra < 0.15) {
-    diagnosticos.push({
-      regla: "FUGA DE CLIENTES",
-      icono: "🚪",
-      color: "danger",
+  // Priority 2: Caída Estructural
+  if (row.crecimiento_yoy < 0 && row.upt >= 1.5) {
+    return {
+      regla: "Caída Estructural",
+      icono: "📉",
       colorClass: "border-[hsl(var(--danger))]/40 bg-[hsl(var(--danger))]/5",
-      diagnostico: "Adquisición sana, pero los clientes no regresan.",
-      checklist: [
-        "¿Se captura el 100% de los datos en POS?",
-        "¿Hay experiencia post-compra memorable?"
-      ],
-      tacticaFisica: [
-        "Captura obligatoria en caja",
-        "Administrador debe hacer seguimiento por WhatsApp post-visita"
-      ],
-      tacticaDigital: [
-        "Revisar flujos post-compra (Email/WhatsApp)",
-        "Activar campaña de remarketing para inactivos"
-      ]
-    });
+      descripcion:
+        "Caída histórica de tráfico. Revisar vitrina urgente y activar base de datos local (Clienteling) para atraer visitas.",
+    };
   }
-
-  // REGLA 5: PROBLEMA ESTRUCTURAL
-  if (row.tendencia_transacciones < -0.15) {
-    diagnosticos.push({
-      regla: "PROBLEMA ESTRUCTURAL",
-      icono: "🔴",
-      color: "danger",
-      colorClass: "border-[hsl(var(--danger))]/40 bg-[hsl(var(--danger))]/5",
-      diagnostico: "Caída severa de tráfico o conversión nula.",
-      checklist: [
-        "¿Ubicación/Vitrina bloqueada?",
-        "¿Atención fría o demorada?"
-      ],
-      tacticaFisica: [
-        "Activación local inmediata (Clienteling agresivo a base VIP)",
-        "Auditoría presencial de experiencia"
-      ],
-      tacticaDigital: [
-        "Rediseño UX urgente. Test A/B de creativos en pauta",
-        "Revisar velocidad de carga del sitio"
-      ]
-    });
+  // Priority 3: Cesta Débil
+  if (row.upt < 1.5) {
+    return {
+      regla: "Cesta Débil",
+      icono: "🛒",
+      colorClass: "border-[hsl(var(--warning))]/40 bg-[hsl(var(--warning))]/5",
+      descripcion:
+        "Foco en Venta Cruzada. Imponer cuota diaria de facturas con 2+ artículos. Ofrecer accesorios obligatoriamente.",
+    };
   }
-
-  return diagnosticos;
+  // Priority 4: Estancamiento Sano
+  if (row.crecimiento_mom > 0 && row.proyeccion_conservadora < 0.9) {
+    return {
+      regla: "Estancamiento Sano",
+      icono: "📊",
+      colorClass: "border-[hsl(var(--warning))]/40 bg-[hsl(var(--warning))]/5",
+      descripcion:
+        "La tienda crece, pero el presupuesto exige más. Foco en subir el Ticket Promedio mediante anclaje de precios más altos.",
+    };
+  }
+  return null;
 }
 
 export function CentroAccionComercial() {
   const now = new Date();
   const [anio, setAnio] = useState(now.getFullYear());
   const [mes, setMes] = useState(now.getMonth() + 1);
-  const [data, setData] = useState<AlertaRow[]>([]);
+  const [data, setData] = useState<StoreRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [stampingStore, setStampingStore] = useState<string | null>(null);
 
-  useEffect(() => {
-    const load = async () => {
-      setLoading(true);
-      const { data: rows, error } = await supabase.rpc(
-        "get_alertas_comerciales" as any,
-        { p_anio: anio, p_mes: mes }
-      );
-      if (!error && rows) {
-        setData((rows as any[]).map(r => ({
+  const fetchData = async () => {
+    setLoading(true);
+    const { data: rows, error } = await supabase.rpc(
+      "get_centro_accion_comercial" as any,
+      { p_anio: anio, p_mes: mes }
+    );
+    if (!error && rows) {
+      setData(
+        (rows as any[]).map((r) => ({
           nombre: r.nombre,
           tipo: r.tipo,
+          tipo_tienda: r.tipo_tienda ?? "",
           es_digital: r.es_digital,
           presupuesto: Number(r.presupuesto),
           venta_mtd: Number(r.venta_mtd),
-          pct_proyeccion: Number(r.pct_proyeccion),
-          ticket_promedio_local: Number(r.ticket_promedio_local),
-          ticket_promedio_nacional: Number(r.ticket_promedio_nacional),
-          upt_local: Number(r.upt_local),
-          upt_nacional: Number(r.upt_nacional),
-          tendencia_transacciones: Number(r.tendencia_transacciones),
-          pct_recompra: Number(r.pct_recompra),
+          proyeccion_conservadora: Number(r.proyeccion_conservadora),
+          crecimiento_mom: Number(r.crecimiento_mom),
+          crecimiento_yoy: Number(r.crecimiento_yoy),
+          esfuerzo_requerido: Number(r.esfuerzo_requerido),
+          ticket_promedio: Number(r.ticket_promedio),
+          upt: Number(r.upt),
           pct_descuento: Number(r.pct_descuento),
-        })));
-      } else {
-        setData([]);
-      }
-      setLoading(false);
-    };
-    load();
+          tiene_stamp: r.tiene_stamp,
+          stamped_at: r.stamped_at,
+          stamp_variacion: Number(r.stamp_variacion),
+        }))
+      );
+    } else {
+      setData([]);
+    }
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    fetchData();
   }, [anio, mes]);
 
   const alertas = useMemo(() => {
     return data
-      .filter(r => r.pct_proyeccion < 90 && r.presupuesto > 0)
-      .sort((a, b) => a.pct_proyeccion - b.pct_proyeccion);
+      .filter((r) => r.proyeccion_conservadora < 0.9 && r.presupuesto > 0)
+      .sort((a, b) => a.proyeccion_conservadora - b.proyeccion_conservadora);
   }, [data]);
 
   const totalAlertas = alertas.length;
-  const alertasCriticas = alertas.filter(a => a.pct_proyeccion < 70).length;
-  const alertasRiesgo = alertas.filter(a => a.pct_proyeccion >= 70 && a.pct_proyeccion < 90).length;
+  const criticas = alertas.filter((a) => a.proyeccion_conservadora < 0.7).length;
+  const enRiesgo = alertas.filter((a) => a.proyeccion_conservadora >= 0.7 && a.proyeccion_conservadora < 0.9).length;
+
+  const handleStamp = async (storeName: string) => {
+    setStampingStore(storeName);
+    // Deactivate any previous active stamp for this store
+    await supabase
+      .from("store_action_stamps" as any)
+      .update({ active: false } as any)
+      .eq("location_name", storeName)
+      .eq("active", true);
+
+    // Insert new stamp
+    const { error } = await supabase
+      .from("store_action_stamps" as any)
+      .insert({ location_name: storeName, active: true } as any);
+
+    if (error) {
+      toast.error("Error al crear seguimiento");
+    } else {
+      toast.success(`Seguimiento iniciado para ${storeName}`);
+      fetchData();
+    }
+    setStampingStore(null);
+  };
 
   if (loading) {
-    return <div className="text-center py-12 text-muted-foreground text-sm">Analizando métricas comerciales...</div>;
+    return (
+      <div className="text-center py-12 text-muted-foreground text-sm">
+        Analizando métricas comerciales...
+      </div>
+    );
   }
 
   return (
@@ -224,7 +187,7 @@ export function CentroAccionComercial() {
         <Select value={anio.toString()} onValueChange={(v) => setAnio(Number(v))}>
           <SelectTrigger className="w-28"><SelectValue /></SelectTrigger>
           <SelectContent>
-            {YEARS.map(y => <SelectItem key={y} value={y.toString()}>{y}</SelectItem>)}
+            {YEARS.map((y) => <SelectItem key={y} value={y.toString()}>{y}</SelectItem>)}
           </SelectContent>
         </Select>
         <Select value={mes.toString()} onValueChange={(v) => setMes(Number(v))}>
@@ -245,7 +208,7 @@ export function CentroAccionComercial() {
           </CardHeader>
           <CardContent>
             <p className="text-3xl font-bold text-foreground">{totalAlertas}</p>
-            <p className="text-[10px] text-muted-foreground mt-1">Puntos de venta con proyección &lt; 90%</p>
+            <p className="text-[10px] text-muted-foreground mt-1">Proyección conservadora &lt; 90%</p>
           </CardContent>
         </Card>
         <Card className="border-[hsl(var(--danger))]/30 bg-[hsl(var(--danger))]/5">
@@ -255,7 +218,7 @@ export function CentroAccionComercial() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-3xl font-bold text-[hsl(var(--danger))]">{alertasCriticas}</p>
+            <p className="text-3xl font-bold text-[hsl(var(--danger))]">{criticas}</p>
           </CardContent>
         </Card>
         <Card className="border-[hsl(var(--warning))]/30 bg-[hsl(var(--warning))]/5">
@@ -265,12 +228,12 @@ export function CentroAccionComercial() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-3xl font-bold text-[hsl(var(--warning))]">{alertasRiesgo}</p>
+            <p className="text-3xl font-bold text-[hsl(var(--warning))]">{enRiesgo}</p>
           </CardContent>
         </Card>
       </div>
 
-      {/* No Alerts State */}
+      {/* No Alerts */}
       {alertas.length === 0 && (
         <Card>
           <CardContent className="py-12 text-center">
@@ -284,35 +247,42 @@ export function CentroAccionComercial() {
         </Card>
       )}
 
-      {/* Alert Cards */}
-      {alertas.map((alerta) => {
-        const diagnosticos = evalDiagnosticos(alerta);
-        const pctColor = alerta.pct_proyeccion < 70 ? "text-[hsl(var(--danger))]" : "text-[hsl(var(--warning))]";
-        const borderColor = alerta.pct_proyeccion < 70 ? "border-[hsl(var(--danger))]/30" : "border-[hsl(var(--warning))]/30";
+      {/* Store Cards */}
+      {alertas.map((store) => {
+        const tactica = evalTactica(store);
+        const pctColor =
+          store.proyeccion_conservadora < 0.7
+            ? "text-[hsl(var(--danger))]"
+            : "text-[hsl(var(--warning))]";
+        const borderColor =
+          store.proyeccion_conservadora < 0.7
+            ? "border-[hsl(var(--danger))]/30"
+            : "border-[hsl(var(--warning))]/30";
 
         return (
-          <Card key={alerta.nombre} className={`${borderColor} overflow-hidden`}>
-            {/* Header */}
+          <Card key={store.nombre} className={`${borderColor} overflow-hidden`}>
             <CardHeader className="pb-3">
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between flex-wrap gap-2">
                 <div className="flex items-center gap-3">
-                  {alerta.es_digital ? (
-                    <Globe className="h-5 w-5 text-blue-500" />
-                  ) : (
-                    <Store className="h-5 w-5 text-muted-foreground" />
-                  )}
                   <div>
-                    <CardTitle className="text-base font-semibold">{alerta.nombre}</CardTitle>
-                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider">
-                      {alerta.es_digital ? "Canal Digital" : "Tienda Física"} · {alerta.tipo}
+                    <CardTitle className="text-base font-semibold flex items-center gap-2">
+                      {store.nombre}
+                      {store.tipo_tienda && (
+                        <Badge variant="outline" className="text-[10px] font-medium">
+                          {store.tipo_tienda}
+                        </Badge>
+                      )}
+                    </CardTitle>
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider mt-0.5">
+                      {store.tipo}
                     </p>
                   </div>
                 </div>
                 <div className="text-right">
                   <p className={`text-2xl font-bold tabular-nums ${pctColor}`}>
-                    {alerta.pct_proyeccion.toFixed(1)}%
+                    {fmtPct(store.proyeccion_conservadora)}
                   </p>
-                  <p className="text-[10px] text-muted-foreground">Proyección</p>
+                  <p className="text-[10px] text-muted-foreground">Proyección Conservadora</p>
                 </div>
               </div>
             </CardHeader>
@@ -322,129 +292,101 @@ export function CentroAccionComercial() {
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 <KpiMini
                   label="Venta MTD"
-                  value={fmtCOP(alerta.venta_mtd)}
-                  sub={`Meta: ${fmtCOP(alerta.presupuesto)}`}
+                  value={fmtCOP(store.venta_mtd)}
+                  sub={`Meta: ${fmtCOP(store.presupuesto)}`}
                 />
                 <KpiMini
                   label="Ticket Promedio"
-                  value={fmtCOP(alerta.ticket_promedio_local)}
-                  sub={`Nacional: ${fmtCOP(alerta.ticket_promedio_nacional)}`}
-                  alert={alerta.ticket_promedio_local < alerta.ticket_promedio_nacional * 0.85}
+                  value={fmtCOP(store.ticket_promedio)}
                 />
                 <KpiMini
                   label="UPT"
-                  value={alerta.upt_local.toFixed(2)}
-                  sub={`Nacional: ${alerta.upt_nacional.toFixed(2)}`}
-                  alert={alerta.upt_local < 1.5}
-                />
-                <KpiMini
-                  label="Tendencia 7d"
-                  value={`${alerta.tendencia_transacciones >= 0 ? "+" : ""}${(alerta.tendencia_transacciones * 100).toFixed(1)}%`}
-                  sub="vs 7d anteriores"
-                  alert={alerta.tendencia_transacciones < -0.15}
+                  value={store.upt.toFixed(2)}
+                  alert={store.upt < 1.5}
                 />
                 <KpiMini
                   label="% Descuento"
-                  value={`${(alerta.pct_descuento * 100).toFixed(1)}%`}
-                  sub="Desc / Vta Bruta"
-                  alert={alerta.pct_descuento > 0.05}
-                />
-                <KpiMini
-                  label="% Recompra"
-                  value={`${(alerta.pct_recompra * 100).toFixed(1)}%`}
-                  sub="Clientes recurrentes"
-                  alert={alerta.pct_recompra < 0.15}
-                  muted
+                  value={fmtPct(store.pct_descuento)}
+                  alert={store.pct_descuento > 0.05}
                 />
               </div>
 
-              {/* Diagnostics */}
-              {diagnosticos.length > 0 ? (
-                <Accordion type="multiple" className="w-full">
-                  {diagnosticos.map((diag, idx) => (
-                    <AccordionItem key={idx} value={`${alerta.nombre}-${idx}`} className={`rounded-lg border ${diag.colorClass} mb-2 last:mb-0`}>
-                      <AccordionTrigger className="px-4 py-3 hover:no-underline">
-                        <div className="flex items-center gap-2 text-left">
-                          <span className="text-lg">{diag.icono}</span>
-                          <div>
-                            <p className="text-sm font-semibold">{diag.regla}</p>
-                            <p className="text-xs text-muted-foreground">{diag.diagnostico}</p>
-                          </div>
-                        </div>
-                      </AccordionTrigger>
-                      <AccordionContent className="px-4 pb-4">
-                        <div className="space-y-3">
-                          {/* Checklist */}
-                          <div>
-                            <p className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground mb-1.5">
-                              Checklist de Revisión
-                            </p>
-                            <ul className="space-y-1">
-                              {diag.checklist.map((item, ci) => (
-                                <li key={ci} className="flex items-start gap-2 text-xs text-foreground">
-                                  <span className="text-muted-foreground mt-0.5">☐</span>
-                                  {item}
-                                </li>
-                              ))}
-                            </ul>
-                          </div>
+              {/* Growth & Effort Row */}
+              <div className="grid grid-cols-3 gap-3">
+                <GrowthMini label="MoM" value={store.crecimiento_mom} />
+                <GrowthMini label="YoY" value={store.crecimiento_yoy} />
+                <div className="rounded-lg p-2.5 border border-[hsl(var(--primary))]/20 bg-[hsl(var(--primary))]/5">
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider">
+                    Esfuerzo Requerido
+                  </p>
+                  <p className={`text-sm font-bold tabular-nums ${store.esfuerzo_requerido > 0.5 ? "text-[hsl(var(--danger))]" : "text-foreground"}`}>
+                    {store.esfuerzo_requerido > 0
+                      ? `+${fmtPct(store.esfuerzo_requerido)}`
+                      : "Meta alcanzable"}
+                  </p>
+                  <p className="text-[9px] text-muted-foreground">vs ritmo actual</p>
+                </div>
+              </div>
 
-                          {/* Tactics */}
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                            {!alerta.es_digital && (
-                              <div className="rounded-md bg-background/80 p-3 border">
-                                <p className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground mb-1.5 flex items-center gap-1">
-                                  <Store className="h-3 w-3" /> Táctica Física
-                                </p>
-                                <ul className="space-y-1">
-                                  {diag.tacticaFisica.map((t, ti) => (
-                                    <li key={ti} className="text-xs text-foreground flex items-start gap-1.5">
-                                      <span className="text-[hsl(var(--primary))]">→</span> {t}
-                                    </li>
-                                  ))}
-                                </ul>
-                              </div>
-                            )}
-                            {alerta.es_digital && (
-                              <div className="rounded-md bg-background/80 p-3 border">
-                                <p className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground mb-1.5 flex items-center gap-1">
-                                  <Globe className="h-3 w-3" /> Táctica Digital
-                                </p>
-                                <ul className="space-y-1">
-                                  {diag.tacticaDigital.map((t, ti) => (
-                                    <li key={ti} className="text-xs text-foreground flex items-start gap-1.5">
-                                      <span className="text-[hsl(var(--primary))]">→</span> {t}
-                                    </li>
-                                  ))}
-                                </ul>
-                              </div>
-                            )}
-                            {/* Show both for mixed context */}
-                            {!alerta.es_digital && (
-                              <div className="rounded-md bg-background/80 p-3 border">
-                                <p className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground mb-1.5 flex items-center gap-1">
-                                  <Globe className="h-3 w-3" /> Táctica Digital (Referencia)
-                                </p>
-                                <ul className="space-y-1">
-                                  {diag.tacticaDigital.map((t, ti) => (
-                                    <li key={ti} className="text-xs text-muted-foreground flex items-start gap-1.5">
-                                      <span>→</span> {t}
-                                    </li>
-                                  ))}
-                                </ul>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      </AccordionContent>
-                    </AccordionItem>
-                  ))}
-                </Accordion>
-              ) : (
-                <div className="text-xs text-muted-foreground bg-muted/30 rounded-lg p-3 text-center">
-                  Sin diagnóstico específico por reglas — revisar métricas manualmente.
+              {/* Tactic */}
+              {tactica && (
+                <div className={`rounded-lg border p-4 ${tactica.colorClass}`}>
+                  <div className="flex items-start gap-2">
+                    <span className="text-lg">{tactica.icono}</span>
+                    <div>
+                      <p className="text-sm font-semibold">{tactica.regla}</p>
+                      <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+                        {tactica.descripcion}
+                      </p>
+                    </div>
+                  </div>
                 </div>
               )}
+
+              {/* Stamp / Tracking */}
+              <div className="flex items-center justify-between border-t pt-3">
+                {store.tiene_stamp ? (
+                  <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-1.5">
+                      <Activity className="h-4 w-4 text-[hsl(var(--primary))]" />
+                      <span className="text-xs font-medium text-[hsl(var(--primary))]">
+                        Seguimiento activo
+                      </span>
+                    </div>
+                    <div className="rounded-md bg-muted/40 px-2.5 py-1">
+                      <p className="text-[10px] text-muted-foreground">Variación Post-Táctica</p>
+                      <p
+                        className={`text-sm font-bold tabular-nums ${
+                          store.stamp_variacion > 0
+                            ? "text-[hsl(var(--success))]"
+                            : store.stamp_variacion < 0
+                            ? "text-[hsl(var(--danger))]"
+                            : "text-muted-foreground"
+                        }`}
+                      >
+                        {store.stamp_variacion > 0 ? "+" : ""}
+                        {fmtPct(store.stamp_variacion)}
+                      </p>
+                    </div>
+                    {store.stamped_at && (
+                      <p className="text-[10px] text-muted-foreground">
+                        Desde {new Date(store.stamped_at).toLocaleDateString("es-CO", { day: "numeric", month: "short" })}
+                      </p>
+                    )}
+                  </div>
+                ) : (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleStamp(store.nombre)}
+                    disabled={stampingStore === store.nombre}
+                    className="gap-1.5"
+                  >
+                    <Play className="h-3.5 w-3.5" />
+                    {stampingStore === store.nombre ? "Iniciando..." : "Comenzar Seguimiento"}
+                  </Button>
+                )}
+              </div>
             </CardContent>
           </Card>
         );
@@ -453,14 +395,62 @@ export function CentroAccionComercial() {
   );
 }
 
-function KpiMini({ label, value, sub, alert, muted }: { label: string; value: string; sub: string; alert?: boolean; muted?: boolean }) {
+function KpiMini({
+  label,
+  value,
+  sub,
+  alert,
+}: {
+  label: string;
+  value: string;
+  sub?: string;
+  alert?: boolean;
+}) {
   return (
-    <div className={`rounded-lg p-2.5 border ${alert ? "border-[hsl(var(--danger))]/30 bg-[hsl(var(--danger))]/5" : "border-border bg-muted/20"}`}>
+    <div
+      className={`rounded-lg p-2.5 border ${
+        alert
+          ? "border-[hsl(var(--danger))]/30 bg-[hsl(var(--danger))]/5"
+          : "border-border bg-muted/20"
+      }`}
+    >
       <p className="text-[10px] text-muted-foreground uppercase tracking-wider">{label}</p>
-      <p className={`text-sm font-bold tabular-nums ${alert ? "text-[hsl(var(--danger))]" : "text-foreground"} ${muted ? "opacity-50" : ""}`}>
+      <p
+        className={`text-sm font-bold tabular-nums ${
+          alert ? "text-[hsl(var(--danger))]" : "text-foreground"
+        }`}
+      >
         {value}
       </p>
-      <p className="text-[9px] text-muted-foreground">{sub}</p>
+      {sub && <p className="text-[9px] text-muted-foreground">{sub}</p>}
+    </div>
+  );
+}
+
+function GrowthMini({ label, value }: { label: string; value: number }) {
+  const isPositive = value > 0;
+  const isNegative = value < 0;
+  return (
+    <div className="rounded-lg p-2.5 border border-border bg-muted/20">
+      <p className="text-[10px] text-muted-foreground uppercase tracking-wider">
+        Crecimiento {label}
+      </p>
+      <div className="flex items-center gap-1">
+        {isPositive && <ArrowUpRight className="h-3.5 w-3.5 text-[hsl(var(--success))]" />}
+        {isNegative && <ArrowDownRight className="h-3.5 w-3.5 text-[hsl(var(--danger))]" />}
+        <p
+          className={`text-sm font-bold tabular-nums ${
+            isPositive
+              ? "text-[hsl(var(--success))]"
+              : isNegative
+              ? "text-[hsl(var(--danger))]"
+              : "text-muted-foreground"
+          }`}
+        >
+          {value > 0 ? "+" : ""}
+          {fmtPct(value)}
+        </p>
+      </div>
     </div>
   );
 }

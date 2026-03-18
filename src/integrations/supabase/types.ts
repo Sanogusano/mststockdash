@@ -373,6 +373,27 @@ export type Database = {
         }
         Relationships: []
       }
+      store_action_stamps: {
+        Row: {
+          active: boolean
+          id: string
+          location_name: string
+          stamped_at: string
+        }
+        Insert: {
+          active?: boolean
+          id?: string
+          location_name: string
+          stamped_at?: string
+        }
+        Update: {
+          active?: boolean
+          id?: string
+          location_name?: string
+          stamped_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       allocation_suggestions: {
@@ -455,6 +476,27 @@ export type Database = {
           tipo: string
           upt_local: number
           upt_nacional: number
+          venta_mtd: number
+        }[]
+      }
+      get_centro_accion_comercial: {
+        Args: { p_anio: number; p_mes: number }
+        Returns: {
+          crecimiento_mom: number
+          crecimiento_yoy: number
+          es_digital: boolean
+          esfuerzo_requerido: number
+          nombre: string
+          pct_descuento: number
+          presupuesto: number
+          proyeccion_conservadora: number
+          stamp_variacion: number
+          stamped_at: string
+          ticket_promedio: number
+          tiene_stamp: boolean
+          tipo: string
+          tipo_tienda: string
+          upt: number
           venta_mtd: number
         }[]
       }
