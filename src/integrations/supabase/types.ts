@@ -440,6 +440,24 @@ export type Database = {
           zona: string
         }[]
       }
+      get_alertas_comerciales: {
+        Args: { p_anio: number; p_mes: number }
+        Returns: {
+          es_digital: boolean
+          nombre: string
+          pct_descuento: number
+          pct_proyeccion: number
+          pct_recompra: number
+          presupuesto: number
+          tendencia_transacciones: number
+          ticket_promedio_local: number
+          ticket_promedio_nacional: number
+          tipo: string
+          upt_local: number
+          upt_nacional: number
+          venta_mtd: number
+        }[]
+      }
       reporte_comportamiento_producto: {
         Args: {
           dias_atras: number
