@@ -51,7 +51,7 @@ interface Tactica {
 
 function evalTactica(row: StoreRow): Tactica | null {
   // Priority 1: Fuga de Margen Inútil (not Outlets)
-  if (row.tipo_tienda !== "Outlet" && row.pct_descuento > 0.05 && row.crecimiento_mom <= 0) {
+  if (row.tipo_tienda.toUpperCase() !== "OUTLET" && row.pct_descuento > 0.05 && row.crecimiento_mom <= 0) {
     return {
       regla: "Fuga de Margen Inútil",
       icono: "⚠️",
