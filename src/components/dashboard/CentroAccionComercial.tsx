@@ -139,11 +139,9 @@ export function CentroAccionComercial() {
   }, [anio, mes]);
 
   const alertas = useMemo(() => {
-    const filtered = data
-      .filter((r) => r.proyeccion_conservadora < 0.9 && r.presupuesto > 0);
-    console.log("Centro Acción - total rows:", data.length, "alertas:", filtered.length, 
-      "sample presupuestos:", data.slice(0, 15).map(r => ({ n: r.nombre, proy: r.proyeccion_conservadora, pres: r.presupuesto })));
-    return filtered.sort((a, b) => a.proyeccion_conservadora - b.proyeccion_conservadora);
+    return data
+      .filter((r) => r.proyeccion_conservadora < 0.9 && r.presupuesto > 0)
+      .sort((a, b) => a.proyeccion_conservadora - b.proyeccion_conservadora);
   }, [data]);
 
   const totalAlertas = alertas.length;
