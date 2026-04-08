@@ -9,7 +9,7 @@ import { exportToPDF } from "@/lib/pdf-export";
 import { LoadingState, EmptyState } from "./LoadingState";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Store, Globe, Download, FileText, DollarSign, ShoppingBag, Receipt, Star, Percent, Tag, Trophy, TrendingDown, TrendingUp, CalendarDays, Package, AlertTriangle, Ruler, Crown, ShieldAlert, MapPin } from "lucide-react";
+import { Store, Globe, Download, FileText, DollarSign, ShoppingBag, Receipt, Star, Percent, Tag, Trophy, TrendingDown, TrendingUp, CalendarDays, Package, AlertTriangle, Ruler, Crown, ShieldAlert, MapPin, Banknote } from "lucide-react";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid } from "recharts";
 import { StoreLeaderboard } from "./StoreLeaderboard";
 import { CollectionBadge } from "./CollectionBadge";
@@ -1204,12 +1204,18 @@ function ChannelPanel({ days, canal, showLocationFilter, locationFilter, compari
         const pctDesc = kpis?.pct_pedidos_con_descuento ?? 0;
         return (
           <div className="space-y-4">
-            {/* Row 1: Ventas Netas + Ticket */}
-            <div className="grid grid-cols-2 gap-4">
+            {/* Row 1: Ventas Netas + Ticket + Precio Promedio */}
+            <div className="grid grid-cols-3 gap-4">
               <KpiCard label="Ventas Netas" value={fmtCurrency(kpis?.ingresos_netos ?? 0)} icon={DollarSign}
                 actual={kpis?.ingresos_netos ?? 0} anterior={prevKpis?.ingresos_netos ?? 0} />
               <KpiCard label="Ticket Promedio" value={fmtCurrency(kpis?.ticket_promedio ?? 0)} icon={Receipt}
                 actual={kpis?.ticket_promedio ?? 0} anterior={prevKpis?.ticket_promedio ?? 0} />
+              {(() => {
+                const precioProm = (kpis?.unidades_vendidas ?? 0) > 0 ? (kpis?.ingresos_netos ?? 0) / (kpis?.unidades_vendidas ?? 1) : 0;
+                const prevPrecioProm = (prevKpis?.unidades_vendidas ?? 0) > 0 ? (prevKpis?.ingresos_netos ?? 0) / (prevKpis?.unidades_vendidas ?? 1) : 0;
+                return <KpiCard label="Precio Promedio" value={fmtCurrency(precioProm)} icon={Banknote}
+                  actual={precioProm} anterior={prevPrecioProm} />;
+              })()}
             </div>
             {/* Row 2: UPT + Venta/m² */}
             <div className={cn("grid gap-4", showM2 ? "grid-cols-2" : "grid-cols-1")}>
@@ -1539,12 +1545,15 @@ function BrandOverviewPanel({ days, comparisonPeriod = "previous" }: { days: num
             onChange={(labels) => setSelectedChannels(labels.map(l => Object.entries(CHANNEL_LABELS).find(([, v]) => v === l)?.[0] ?? "").filter(Boolean))}
           />
         </div>
-        {/* Row 1: Ventas Netas + Ticket */}
-        <div className="grid grid-cols-2 gap-4">
+        {/* Row 1: Ventas Netas + Ticket + Precio Promedio */}
+        <div className="grid grid-cols-3 gap-4">
           <KpiCard label="Ventas Netas" value={fmtCurrency(kpis.ingresos_netos)} icon={DollarSign}
             actual={kpis.ingresos_netos} anterior={prevKpis.ingresos_netos} />
           <KpiCard label="Ticket Promedio" value={fmtCurrency(kpis.ticket_promedio)} icon={Receipt}
             actual={kpis.ticket_promedio} anterior={prevKpis.ticket_promedio} />
+          <KpiCard label="Precio Promedio" value={fmtCurrency(kpis.unidades_vendidas > 0 ? kpis.ingresos_netos / kpis.unidades_vendidas : 0)} icon={Banknote}
+            actual={kpis.unidades_vendidas > 0 ? kpis.ingresos_netos / kpis.unidades_vendidas : 0}
+            anterior={prevKpis.unidades_vendidas > 0 ? prevKpis.ingresos_netos / prevKpis.unidades_vendidas : 0} />
         </div>
         {/* Row 2: UPT + Venta m² Tienda */}
         <div className={cn("grid gap-4 mt-4", showM2 ? "grid-cols-2" : "grid-cols-1")}>
@@ -1753,11 +1762,17 @@ function ZonePanel({ days, locationFilter, comparisonPeriod = "previous" }: { da
           <h3 className="text-sm font-semibold text-foreground">📊 DESEMPEÑO POR ZONA</h3>
         </div>
         {/* Row 1 */}
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-3 gap-4">
           <KpiCard label="Ventas Netas" value={fmtCurrency(kpis?.ingresos_netos ?? 0)} icon={DollarSign}
             actual={kpis?.ingresos_netos ?? 0} anterior={prevKpis?.ingresos_netos ?? 0} />
           <KpiCard label="Ticket Promedio" value={fmtCurrency(kpis?.ticket_promedio ?? 0)} icon={Receipt}
             actual={kpis?.ticket_promedio ?? 0} anterior={prevKpis?.ticket_promedio ?? 0} />
+          {(() => {
+            const precioPromZone = (kpis?.unidades_vendidas ?? 0) > 0 ? (kpis?.ingresos_netos ?? 0) / (kpis?.unidades_vendidas ?? 1) : 0;
+            const prevPrecioPromZone = (prevKpis?.unidades_vendidas ?? 0) > 0 ? (prevKpis?.ingresos_netos ?? 0) / (prevKpis?.unidades_vendidas ?? 1) : 0;
+            return <KpiCard label="Precio Promedio" value={fmtCurrency(precioPromZone)} icon={Banknote}
+              actual={precioPromZone} anterior={prevPrecioPromZone} />;
+          })()}
         </div>
         {/* Row 2 */}
         <div className="grid grid-cols-2 gap-4 mt-4">
