@@ -81,6 +81,150 @@ export type Database = {
           },
         ]
       }
+      incentivo_liquidaciones: {
+        Row: {
+          cumple_meta: boolean | null
+          id: string
+          incentivo_id: string
+          location_id: string | null
+          monto_ganado: number | null
+          progreso_actual: Json | null
+          ultima_actualizacion: string | null
+          vendedor_id: string | null
+        }
+        Insert: {
+          cumple_meta?: boolean | null
+          id?: string
+          incentivo_id: string
+          location_id?: string | null
+          monto_ganado?: number | null
+          progreso_actual?: Json | null
+          ultima_actualizacion?: string | null
+          vendedor_id?: string | null
+        }
+        Update: {
+          cumple_meta?: boolean | null
+          id?: string
+          incentivo_id?: string
+          location_id?: string | null
+          monto_ganado?: number | null
+          progreso_actual?: Json | null
+          ultima_actualizacion?: string | null
+          vendedor_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "incentivo_liquidaciones_incentivo_id_fkey"
+            columns: ["incentivo_id"]
+            isOneToOne: false
+            referencedRelation: "incentivos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      incentivo_recompensas: {
+        Row: {
+          created_at: string | null
+          id: string
+          incentivo_id: string
+          tipo_pago: string
+          tope_maximo: number | null
+          tope_minimo: number | null
+          valor: number
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          incentivo_id: string
+          tipo_pago: string
+          tope_maximo?: number | null
+          tope_minimo?: number | null
+          valor: number
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          incentivo_id?: string
+          tipo_pago?: string
+          tope_maximo?: number | null
+          tope_minimo?: number | null
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "incentivo_recompensas_incentivo_id_fkey"
+            columns: ["incentivo_id"]
+            isOneToOne: false
+            referencedRelation: "incentivos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      incentivo_reglas: {
+        Row: {
+          created_at: string | null
+          id: string
+          incentivo_id: string
+          parametros: Json | null
+          tipo_regla: string
+          valor_objetivo: number
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          incentivo_id: string
+          parametros?: Json | null
+          tipo_regla: string
+          valor_objetivo: number
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          incentivo_id?: string
+          parametros?: Json | null
+          tipo_regla?: string
+          valor_objetivo?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "incentivo_reglas_incentivo_id_fkey"
+            columns: ["incentivo_id"]
+            isOneToOne: false
+            referencedRelation: "incentivos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      incentivos: {
+        Row: {
+          alcance: string
+          created_at: string | null
+          estado: string | null
+          fecha_fin: string
+          fecha_inicio: string
+          id: string
+          nombre: string
+        }
+        Insert: {
+          alcance: string
+          created_at?: string | null
+          estado?: string | null
+          fecha_fin: string
+          fecha_inicio: string
+          id?: string
+          nombre: string
+        }
+        Update: {
+          alcance?: string
+          created_at?: string | null
+          estado?: string | null
+          fecha_fin?: string
+          fecha_inicio?: string
+          id?: string
+          nombre?: string
+        }
+        Relationships: []
+      }
       inventory_snapshot: {
         Row: {
           available: number | null
