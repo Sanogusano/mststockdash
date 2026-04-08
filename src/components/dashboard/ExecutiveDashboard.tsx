@@ -1539,12 +1539,15 @@ function BrandOverviewPanel({ days, comparisonPeriod = "previous" }: { days: num
             onChange={(labels) => setSelectedChannels(labels.map(l => Object.entries(CHANNEL_LABELS).find(([, v]) => v === l)?.[0] ?? "").filter(Boolean))}
           />
         </div>
-        {/* Row 1: Ventas Netas + Ticket */}
-        <div className="grid grid-cols-2 gap-4">
+        {/* Row 1: Ventas Netas + Ticket + Precio Promedio */}
+        <div className="grid grid-cols-3 gap-4">
           <KpiCard label="Ventas Netas" value={fmtCurrency(kpis.ingresos_netos)} icon={DollarSign}
             actual={kpis.ingresos_netos} anterior={prevKpis.ingresos_netos} />
           <KpiCard label="Ticket Promedio" value={fmtCurrency(kpis.ticket_promedio)} icon={Receipt}
             actual={kpis.ticket_promedio} anterior={prevKpis.ticket_promedio} />
+          <KpiCard label="Precio Promedio" value={fmtCurrency(kpis.unidades_vendidas > 0 ? kpis.ingresos_netos / kpis.unidades_vendidas : 0)} icon={Banknote}
+            actual={kpis.unidades_vendidas > 0 ? kpis.ingresos_netos / kpis.unidades_vendidas : 0}
+            anterior={prevKpis.unidades_vendidas > 0 ? prevKpis.ingresos_netos / prevKpis.unidades_vendidas : 0} />
         </div>
         {/* Row 2: UPT + Venta m² Tienda */}
         <div className={cn("grid gap-4 mt-4", showM2 ? "grid-cols-2" : "grid-cols-1")}>
