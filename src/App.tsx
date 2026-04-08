@@ -19,6 +19,7 @@ import TiendaDetailPage from "./pages/TiendaDetail";
 import VentaM2Page from "./pages/VentaM2";
 import PresupuestosPage from "./pages/Presupuestos";
 import CentroAccionPage from "./pages/CentroAccion";
+import IncentivosPage from "./pages/Incentivos";
 
 const queryClient = new QueryClient();
 
