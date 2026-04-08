@@ -1756,11 +1756,17 @@ function ZonePanel({ days, locationFilter, comparisonPeriod = "previous" }: { da
           <h3 className="text-sm font-semibold text-foreground">📊 DESEMPEÑO POR ZONA</h3>
         </div>
         {/* Row 1 */}
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-3 gap-4">
           <KpiCard label="Ventas Netas" value={fmtCurrency(kpis?.ingresos_netos ?? 0)} icon={DollarSign}
             actual={kpis?.ingresos_netos ?? 0} anterior={prevKpis?.ingresos_netos ?? 0} />
           <KpiCard label="Ticket Promedio" value={fmtCurrency(kpis?.ticket_promedio ?? 0)} icon={Receipt}
             actual={kpis?.ticket_promedio ?? 0} anterior={prevKpis?.ticket_promedio ?? 0} />
+          {(() => {
+            const precioPromZone = (kpis?.unidades_vendidas ?? 0) > 0 ? (kpis?.ingresos_netos ?? 0) / (kpis?.unidades_vendidas ?? 1) : 0;
+            const prevPrecioPromZone = (prevKpis?.unidades_vendidas ?? 0) > 0 ? (prevKpis?.ingresos_netos ?? 0) / (prevKpis?.unidades_vendidas ?? 1) : 0;
+            return <KpiCard label="Precio Promedio" value={fmtCurrency(precioPromZone)} icon={Banknote}
+              actual={precioPromZone} anterior={prevPrecioPromZone} />;
+          })()}
         </div>
         {/* Row 2 */}
         <div className="grid grid-cols-2 gap-4 mt-4">
