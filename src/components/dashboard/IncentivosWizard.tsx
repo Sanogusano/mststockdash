@@ -95,7 +95,7 @@ export function IncentivosWizard({ open, onOpenChange, onCreated }: Props) {
       tipo_regla: tipoRegla,
       valor_objetivo: Number(valorObjetivo),
       parametros: parsedParams,
-    });
+    } as any);
     if (error) {
       toast.error("Error al guardar la regla");
       setSaving(false);
