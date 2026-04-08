@@ -62,6 +62,12 @@ const navItems = [
     icon: Zap,
     description: "Alertas comerciales",
   },
+  {
+    title: "Gestión de Incentivos",
+    url: "/incentivos",
+    icon: Trophy,
+    description: "Campañas & bonificaciones",
+  },
 ];
 
 export function AppSidebar() {

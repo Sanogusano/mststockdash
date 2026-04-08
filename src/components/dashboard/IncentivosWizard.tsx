@@ -116,7 +116,7 @@ export function IncentivosWizard({ open, onOpenChange, onCreated }: Props) {
       tipo_pago: tipoPago,
       valor: Number(valorPago),
       tope_minimo: topeMinimo ? Number(topeMinimo) : 0,
-    });
+    } as any);
     if (error) {
       toast.error("Error al guardar la recompensa");
       setSaving(false);
