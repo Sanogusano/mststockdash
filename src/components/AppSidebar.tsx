@@ -1,4 +1,4 @@
-import { BarChart3, TrendingUp, ArrowLeftRight, Package, Tag, Layers, Target, Zap } from "lucide-react";
+import { BarChart3, TrendingUp, ArrowLeftRight, Package, Tag, Layers, Target, Zap, Trophy } from "lucide-react";
 import { useLocation, Link } from "react-router-dom";
 import monasteryLogoWhite from "@/assets/monastery-logo-white.jpg";
 import {
@@ -61,6 +61,12 @@ const navItems = [
     url: "/centro-accion",
     icon: Zap,
     description: "Alertas comerciales",
+  },
+  {
+    title: "Gestión de Incentivos",
+    url: "/incentivos",
+    icon: Trophy,
+    description: "Campañas & bonificaciones",
   },
 ];
 

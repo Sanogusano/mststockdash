@@ -19,6 +19,7 @@ import TiendaDetailPage from "./pages/TiendaDetail";
 import VentaM2Page from "./pages/VentaM2";
 import PresupuestosPage from "./pages/Presupuestos";
 import CentroAccionPage from "./pages/CentroAccion";
+import IncentivosPage from "./pages/Incentivos";
 
 const queryClient = new QueryClient();
 
@@ -43,6 +44,7 @@ const App = () => (
           <Route path="/insumos" element={<ProtectedRoute><InsumosPage /></ProtectedRoute>} />
           <Route path="/presupuestos" element={<ProtectedRoute><PresupuestosPage /></ProtectedRoute>} />
           <Route path="/centro-accion" element={<ProtectedRoute><CentroAccionPage /></ProtectedRoute>} />
+          <Route path="/incentivos" element={<ProtectedRoute><IncentivosPage /></ProtectedRoute>} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
