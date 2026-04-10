@@ -5,8 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
+import { IncentivosParametrosFields, parseParamsFromJson } from "./IncentivosParametrosFields";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 
@@ -38,7 +38,7 @@ export function IncentivosEditDialog({ incentivo, open, onOpenChange, onSaved }:
   const [reglaId, setReglaId] = useState<string | null>(null);
   const [tipoRegla, setTipoRegla] = useState("");
   const [valorObjetivo, setValorObjetivo] = useState("");
-  const [parametros, setParametros] = useState("");
+  const [parametros, setParametros] = useState<Record<string, unknown>>({});
 
   // Reward fields
   const [recompensaId, setRecompensaId] = useState<string | null>(null);
@@ -62,7 +62,7 @@ export function IncentivosEditDialog({ incentivo, open, onOpenChange, onSaved }:
         setReglaId(r.id);
         setTipoRegla(r.tipo_regla);
         setValorObjetivo(String(r.valor_objetivo));
-        setParametros(r.parametros && Object.keys(r.parametros as object).length > 0 ? JSON.stringify(r.parametros) : "");
+        setParametros(parseParamsFromJson(r.parametros));
       }
 
       const rc = recompensas.data?.[0];
@@ -83,15 +83,7 @@ export function IncentivosEditDialog({ incentivo, open, onOpenChange, onSaved }:
       return;
     }
 
-    let parsedParams: Record<string, unknown> = {};
-    if (parametros.trim()) {
-      try {
-        parsedParams = JSON.parse(parametros);
-      } catch {
-        toast.error("El campo parámetros debe ser JSON válido");
-        return;
-      }
-    }
+    const parsedParams = Object.keys(parametros).length > 0 ? parametros : {};
 
     setSaving(true);
     try {
@@ -209,6 +201,7 @@ export function IncentivosEditDialog({ incentivo, open, onOpenChange, onSaved }:
                   <SelectTrigger><SelectValue placeholder="Seleccionar..." /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="presupuesto">Presupuesto</SelectItem>
+                    <SelectItem value="presupuesto_semanal_dual">Presupuesto Semanal Dual</SelectItem>
                     <SelectItem value="venta_categoria">Venta por Categoría</SelectItem>
                     <SelectItem value="venta_skus">Venta por SKUs</SelectItem>
                     <SelectItem value="ticket_minimo">Ticket Mínimo</SelectItem>
@@ -220,10 +213,11 @@ export function IncentivosEditDialog({ incentivo, open, onOpenChange, onSaved }:
                 <Label>Valor Objetivo</Label>
                 <Input type="number" placeholder="Ej: 5000000" value={valorObjetivo} onChange={(e) => setValorObjetivo(e.target.value)} />
               </div>
-              <div>
-                <Label>Parámetros (JSON opcional)</Label>
-                <Textarea placeholder='Ej: {"categorias": ["Calzado"]}' value={parametros} onChange={(e) => setParametros(e.target.value)} rows={2} />
-              </div>
+              <IncentivosParametrosFields
+                tipoRegla={tipoRegla}
+                params={parametros}
+                onChange={setParametros}
+              />
             </div>
 
             <Separator />
