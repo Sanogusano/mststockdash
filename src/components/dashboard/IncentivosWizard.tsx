@@ -5,9 +5,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { CheckCircle2 } from "lucide-react";
+import { IncentivosParametrosFields } from "./IncentivosParametrosFields";
 
 interface Props {
   open: boolean;
@@ -31,7 +31,7 @@ export function IncentivosWizard({ open, onOpenChange, onCreated }: Props) {
   // Step 2
   const [tipoRegla, setTipoRegla] = useState("");
   const [valorObjetivo, setValorObjetivo] = useState("");
-  const [parametros, setParametros] = useState("");
+  const [parametros, setParametros] = useState<Record<string, unknown>>({});
 
   // Step 3
   const [tipoPago, setTipoPago] = useState("");
@@ -47,7 +47,7 @@ export function IncentivosWizard({ open, onOpenChange, onCreated }: Props) {
     setAlcance("");
     setTipoRegla("");
     setValorObjetivo("");
-    setParametros("");
+    setParametros({});
     setTipoPago("");
     setValorPago("");
     setTopeMinimo("");
@@ -80,21 +80,12 @@ export function IncentivosWizard({ open, onOpenChange, onCreated }: Props) {
       toast.error("Completa los campos de condiciones");
       return;
     }
-    let parsedParams: Record<string, unknown> = {};
-    if (parametros.trim()) {
-      try {
-        parsedParams = JSON.parse(parametros);
-      } catch {
-        toast.error("El campo parámetros debe ser JSON válido");
-        return;
-      }
-    }
     setSaving(true);
     const { error } = await supabase.from("incentivo_reglas").insert({
       incentivo_id: incentivoId,
       tipo_regla: tipoRegla,
       valor_objetivo: Number(valorObjetivo),
-      parametros: parsedParams,
+      parametros: Object.keys(parametros).length > 0 ? parametros : {},
     } as any);
     if (error) {
       toast.error("Error al guardar la regla");
@@ -198,7 +189,8 @@ export function IncentivosWizard({ open, onOpenChange, onCreated }: Props) {
               <Select value={tipoRegla} onValueChange={setTipoRegla}>
                 <SelectTrigger><SelectValue placeholder="Seleccionar..." /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="presupuesto">Presupuesto</SelectItem>
+              <SelectItem value="presupuesto">Presupuesto</SelectItem>
+                  <SelectItem value="presupuesto_semanal_dual">Presupuesto Semanal Dual</SelectItem>
                   <SelectItem value="venta_categoria">Venta por Categoría</SelectItem>
                   <SelectItem value="venta_skus">Venta por SKUs</SelectItem>
                   <SelectItem value="ticket_minimo">Ticket Mínimo</SelectItem>
@@ -210,15 +202,11 @@ export function IncentivosWizard({ open, onOpenChange, onCreated }: Props) {
               <Label>Valor Objetivo</Label>
               <Input type="number" placeholder="Ej: 5000000" value={valorObjetivo} onChange={(e) => setValorObjetivo(e.target.value)} />
             </div>
-            <div>
-              <Label>Parámetros (JSON opcional)</Label>
-              <Textarea
-                placeholder='Ej: {"categorias": ["Calzado", "Bolsos"]}'
-                value={parametros}
-                onChange={(e) => setParametros(e.target.value)}
-                rows={3}
-              />
-            </div>
+            <IncentivosParametrosFields
+              tipoRegla={tipoRegla}
+              params={parametros}
+              onChange={setParametros}
+            />
             <Button className="w-full" onClick={handleStep2} disabled={saving}>
               {saving ? "Guardando..." : "Siguiente"}
             </Button>
