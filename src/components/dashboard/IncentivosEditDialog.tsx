@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
-import { IncentivosParametrosFields, parseParamsFromJson } from "./IncentivosParametrosFields";
+import { IncentivosParametrosFields, parseParamsFromJson, RULES_WITHOUT_VALOR_OBJETIVO } from "./IncentivosParametrosFields";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 
@@ -209,10 +209,12 @@ export function IncentivosEditDialog({ incentivo, open, onOpenChange, onSaved }:
                   </SelectContent>
                 </Select>
               </div>
+              {!RULES_WITHOUT_VALOR_OBJETIVO.includes(tipoRegla) && (
               <div>
                 <Label>Valor Objetivo</Label>
                 <Input type="number" placeholder="Ej: 5000000" value={valorObjetivo} onChange={(e) => setValorObjetivo(e.target.value)} />
               </div>
+              )}
               <IncentivosParametrosFields
                 tipoRegla={tipoRegla}
                 params={parametros}

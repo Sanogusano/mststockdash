@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { CheckCircle2 } from "lucide-react";
-import { IncentivosParametrosFields } from "./IncentivosParametrosFields";
+import { IncentivosParametrosFields, RULES_WITHOUT_VALOR_OBJETIVO } from "./IncentivosParametrosFields";
 
 interface Props {
   open: boolean;
@@ -198,10 +198,12 @@ export function IncentivosWizard({ open, onOpenChange, onCreated }: Props) {
                 </SelectContent>
               </Select>
             </div>
+            {!RULES_WITHOUT_VALOR_OBJETIVO.includes(tipoRegla) && (
             <div>
               <Label>Valor Objetivo</Label>
               <Input type="number" placeholder="Ej: 5000000" value={valorObjetivo} onChange={(e) => setValorObjetivo(e.target.value)} />
             </div>
+            )}
             <IncentivosParametrosFields
               tipoRegla={tipoRegla}
               params={parametros}
