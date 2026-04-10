@@ -1217,8 +1217,10 @@ function ChannelPanel({ days, canal, showLocationFilter, locationFilter, compari
                   actual={precioProm} anterior={prevPrecioProm} />;
               })()}
             </div>
-            {/* Row 2: UPT + Venta/m² */}
-            <div className={cn("grid gap-4", showM2 ? "grid-cols-2" : "grid-cols-1")}>
+            {/* Row 2: Unidades Vendidas + UPT + Venta/m² */}
+            <div className={cn("grid gap-4", showM2 ? "grid-cols-3" : "grid-cols-2")}>
+              <KpiCard label="Unidades Vendidas" value={(kpis?.unidades_vendidas ?? 0).toLocaleString()} icon={Package}
+                actual={kpis?.unidades_vendidas ?? 0} anterior={prevKpis?.unidades_vendidas ?? 0} />
               <KpiCard label="UPT" value={(kpis?.upt ?? 0).toFixed(2)} icon={ShoppingBag}
                 actual={kpis?.upt ?? 0} anterior={prevKpis?.upt ?? 0} />
               {showM2 && (
@@ -1555,8 +1557,10 @@ function BrandOverviewPanel({ days, comparisonPeriod = "previous" }: { days: num
             actual={kpis.unidades_vendidas > 0 ? kpis.ingresos_netos / kpis.unidades_vendidas : 0}
             anterior={prevKpis.unidades_vendidas > 0 ? prevKpis.ingresos_netos / prevKpis.unidades_vendidas : 0} />
         </div>
-        {/* Row 2: UPT + Venta m² Tienda */}
-        <div className={cn("grid gap-4 mt-4", showM2 ? "grid-cols-2" : "grid-cols-1")}>
+        {/* Row 2: Unidades Vendidas + UPT + Venta m² Tienda */}
+        <div className={cn("grid gap-4 mt-4", showM2 ? "grid-cols-3" : "grid-cols-2")}>
+          <KpiCard label="Unidades Vendidas" value={kpis.unidades_vendidas.toLocaleString()} icon={Package}
+            actual={kpis.unidades_vendidas} anterior={prevKpis.unidades_vendidas} />
           <KpiCard label="UPT" value={kpis.upt.toFixed(2)} icon={ShoppingBag}
             actual={kpis.upt} anterior={prevKpis.upt} />
           {showM2 && (
@@ -1775,7 +1779,9 @@ function ZonePanel({ days, locationFilter, comparisonPeriod = "previous" }: { da
           })()}
         </div>
         {/* Row 2 */}
-        <div className="grid grid-cols-2 gap-4 mt-4">
+        <div className="grid grid-cols-3 gap-4 mt-4">
+          <KpiCard label="Unidades Vendidas" value={(kpis?.unidades_vendidas ?? 0).toLocaleString()} icon={Package}
+            actual={kpis?.unidades_vendidas ?? 0} anterior={prevKpis?.unidades_vendidas ?? 0} />
           <KpiCard label="UPT" value={(kpis?.upt ?? 0).toFixed(2)} icon={ShoppingBag}
             actual={kpis?.upt ?? 0} anterior={prevKpis?.upt ?? 0} />
           <KpiCard label="Venta / m²" value={fmtCurrency(ventaM2)} icon={Ruler}
