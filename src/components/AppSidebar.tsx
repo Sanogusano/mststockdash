@@ -1,4 +1,4 @@
-import { BarChart3, TrendingUp, ArrowLeftRight, Package, Tag, Layers, Target, Zap, Trophy } from "lucide-react";
+import { BarChart3, TrendingUp, ArrowLeftRight, Package, Tag, Layers, Target, Zap, Trophy, FileSpreadsheet } from "lucide-react";
 import { useLocation, Link } from "react-router-dom";
 import monasteryLogoWhite from "@/assets/monastery-logo-white.jpg";
 import {
@@ -67,6 +67,12 @@ const navItems = [
     url: "/incentivos",
     icon: Trophy,
     description: "Campañas & bonificaciones",
+  },
+  {
+    title: "Liquidación Incentivos",
+    url: "/liquidacion-incentivos",
+    icon: FileSpreadsheet,
+    description: "Resultados & pagos",
   },
 ];
 
