@@ -8,11 +8,14 @@ interface Props {
   onChange: (params: Record<string, unknown>) => void;
 }
 
+/** Rule types that calculate valor_objetivo automatically — hide the field */
+export const RULES_WITHOUT_VALOR_OBJETIVO = ["presupuesto_semanal_dual"];
+
 const RULE_FIELDS: Record<string, { label: string; key: string; type: string; placeholder: string }[]> = {
   presupuesto: [],
   presupuesto_semanal_dual: [
-    { label: "Meta Semana 1-2", key: "meta_semana_1_2", type: "number", placeholder: "Ej: 3000000" },
-    { label: "Meta Semana 3-4", key: "meta_semana_3_4", type: "number", placeholder: "Ej: 5000000" },
+    { label: "Semanas del mes", key: "semanas_mes", type: "number", placeholder: "Ej: 3" },
+    { label: "Ticket Meta", key: "ticket_meta", type: "number", placeholder: "Ej: 700000" },
   ],
   venta_categoria: [
     { label: "Categorías (separadas por coma)", key: "categorias", type: "text", placeholder: "Ej: Calzado, Bolsos, Accesorios" },
