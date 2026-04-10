@@ -5,9 +5,19 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
-import { Pencil, Calculator, Loader2 } from "lucide-react";
+import { Pencil, Calculator, Loader2, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { IncentivosEditDialog } from "./IncentivosEditDialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface Incentivo {
   id: string;
@@ -27,6 +37,8 @@ export function IncentivosTable({ refreshKey }: Props) {
   const [loading, setLoading] = useState(true);
   const [editItem, setEditItem] = useState<Incentivo | null>(null);
   const [calculatingId, setCalculatingId] = useState<string | null>(null);
+  const [deleteItem, setDeleteItem] = useState<Incentivo | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const fetchData = async () => {
     setLoading(true);
@@ -45,15 +57,33 @@ export function IncentivosTable({ refreshKey }: Props) {
   const handleCalcular = async (id: string) => {
     setCalculatingId(id);
     try {
-      const { error } = await supabase.rpc("actualizar_progreso_incentivo", {
-        p_incentivo_id: id,
-      });
+      const { error } = await supabase.rpc("actualizar_progreso_incentivo", { p_incentivo_id: id });
       if (error) throw error;
       toast.success("Progreso calculado exitosamente");
     } catch (err: any) {
       toast.error("Error al calcular progreso: " + (err.message || "desconocido"));
     } finally {
       setCalculatingId(null);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!deleteItem) return;
+    setDeleting(true);
+    try {
+      // Delete children first, then parent
+      await supabase.from("incentivo_liquidaciones").delete().eq("incentivo_id", deleteItem.id);
+      await supabase.from("incentivo_recompensas").delete().eq("incentivo_id", deleteItem.id);
+      await supabase.from("incentivo_reglas").delete().eq("incentivo_id", deleteItem.id);
+      const { error } = await supabase.from("incentivos").delete().eq("id", deleteItem.id);
+      if (error) throw error;
+      toast.success("Incentivo eliminado");
+      setDeleteItem(null);
+      fetchData();
+    } catch (err: any) {
+      toast.error("Error al eliminar: " + (err.message || "desconocido"));
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -112,27 +142,14 @@ export function IncentivosTable({ refreshKey }: Props) {
                       <TableCell>{estadoBadge(row.estado)}</TableCell>
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-1">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8"
-                            onClick={() => setEditItem(row)}
-                            title="Editar"
-                          >
+                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setEditItem(row)} title="Editar">
                             <Pencil className="h-3.5 w-3.5" />
                           </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="h-8 text-xs gap-1"
-                            disabled={calculatingId === row.id}
-                            onClick={() => handleCalcular(row.id)}
-                          >
-                            {calculatingId === row.id ? (
-                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                            ) : (
-                              <Calculator className="h-3.5 w-3.5" />
-                            )}
+                          <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => setDeleteItem(row)} title="Eliminar">
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                          <Button variant="outline" size="sm" className="h-8 text-xs gap-1" disabled={calculatingId === row.id} onClick={() => handleCalcular(row.id)}>
+                            {calculatingId === row.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Calculator className="h-3.5 w-3.5" />}
                             Calcular Progreso
                           </Button>
                         </div>
@@ -154,6 +171,23 @@ export function IncentivosTable({ refreshKey }: Props) {
           onSaved={() => { setEditItem(null); fetchData(); }}
         />
       )}
+
+      <AlertDialog open={!!deleteItem} onOpenChange={(v) => { if (!v) setDeleteItem(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Eliminar incentivo?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Se eliminará permanentemente la campaña <strong>"{deleteItem?.nombre}"</strong> junto con todas sus reglas, recompensas y liquidaciones asociadas.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} disabled={deleting} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              {deleting ? "Eliminando..." : "Eliminar"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }
