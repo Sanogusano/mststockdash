@@ -1,4 +1,5 @@
 import { useState } from "react";
+import type { Json } from "@/integrations/supabase/types";
 import { supabase } from "@/integrations/supabase/client";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -17,10 +18,29 @@ interface Props {
 
 const STEPS = ["Campaña", "Condiciones", "Pago"];
 
+const toNumber = (value: unknown) => {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : 0;
+};
+
+const toStringArray = (value: unknown) => {
+  if (Array.isArray(value)) {
+    return value.map((item) => String(item).trim()).filter(Boolean);
+  }
+
+  if (typeof value === "string") {
+    return value
+      .split(",")
+      .map((item) => item.trim())
+      .filter(Boolean);
+  }
+
+  return [];
+};
+
 export function IncentivosWizard({ open, onOpenChange, onCreated }: Props) {
   const [step, setStep] = useState(0);
   const [saving, setSaving] = useState(false);
-  const [incentivoId, setIncentivoId] = useState<string | null>(null);
 
   // Step 1
   const [nombre, setNombre] = useState("");
@@ -38,9 +58,10 @@ export function IncentivosWizard({ open, onOpenChange, onCreated }: Props) {
   const [valorPago, setValorPago] = useState("");
   const [topeMinimo, setTopeMinimo] = useState("");
 
+  const requiresValorObjetivo = !RULES_WITHOUT_VALOR_OBJETIVO.includes(tipoRegla);
+
   const reset = () => {
     setStep(0);
-    setIncentivoId(null);
     setNombre("");
     setFechaInicio("");
     setFechaFin("");
@@ -53,75 +74,167 @@ export function IncentivosWizard({ open, onOpenChange, onCreated }: Props) {
     setTopeMinimo("");
   };
 
-  const handleStep1 = async () => {
+  const handleDialogOpenChange = (nextOpen: boolean) => {
+    if (!nextOpen) reset();
+    onOpenChange(nextOpen);
+  };
+
+  const buildParametrosPayload = (): Json => {
+    switch (tipoRegla) {
+      case "presupuesto_semanal_dual":
+        return {
+          semanas_mes: toNumber(parametros.semanas_mes),
+          ticket_meta: toNumber(parametros.ticket_meta),
+        };
+      case "venta_categoria":
+        return { categorias: toStringArray(parametros.categorias) };
+      case "venta_skus":
+        return { skus: toStringArray(parametros.skus) };
+      case "ticket_minimo":
+        return { ticket_minimo: toNumber(parametros.ticket_minimo) };
+      case "metodo_pago":
+        return { metodos: toStringArray(parametros.metodos) };
+      default:
+        return {};
+    }
+  };
+
+  const validateStep1 = () => {
     if (!nombre || !fechaInicio || !fechaFin || !alcance) {
       toast.error("Completa todos los campos de la campaña");
-      return;
+      return false;
     }
-    setSaving(true);
-    const { data, error } = await supabase
-      .from("incentivos")
-      .insert({ nombre, fecha_inicio: fechaInicio, fecha_fin: fechaFin, alcance })
-      .select("id")
-      .single();
-
-    if (error || !data) {
-      toast.error("Error al crear la campaña");
-      setSaving(false);
-      return;
-    }
-    setIncentivoId(data.id);
-    setStep(1);
-    setSaving(false);
+    return true;
   };
 
-  const handleStep2 = async () => {
-    if (!tipoRegla || !valorObjetivo || !incentivoId) {
-      toast.error("Completa los campos de condiciones");
-      return;
+  const validateStep2 = () => {
+    if (!tipoRegla) {
+      toast.error("Selecciona el tipo de regla");
+      return false;
     }
-    setSaving(true);
-    const { error } = await supabase.from("incentivo_reglas").insert({
-      incentivo_id: incentivoId,
-      tipo_regla: tipoRegla,
-      valor_objetivo: Number(valorObjetivo),
-      parametros: Object.keys(parametros).length > 0 ? parametros : {},
-    } as any);
-    if (error) {
-      toast.error("Error al guardar la regla");
-      setSaving(false);
-      return;
+
+    if (requiresValorObjetivo && !valorObjetivo) {
+      toast.error("Completa el valor objetivo");
+      return false;
     }
-    setStep(2);
-    setSaving(false);
+
+    if (tipoRegla === "presupuesto_semanal_dual") {
+      if (toNumber(parametros.semanas_mes) <= 0 || toNumber(parametros.ticket_meta) <= 0) {
+        toast.error("Completa Semanas del mes y Ticket Meta");
+        return false;
+      }
+    }
+
+    if (tipoRegla === "venta_categoria" && toStringArray(parametros.categorias).length === 0) {
+      toast.error("Ingresa al menos una categoría");
+      return false;
+    }
+
+    if (tipoRegla === "venta_skus" && toStringArray(parametros.skus).length === 0) {
+      toast.error("Ingresa al menos un SKU");
+      return false;
+    }
+
+    if (tipoRegla === "ticket_minimo" && toNumber(parametros.ticket_minimo) <= 0) {
+      toast.error("Ingresa el ticket mínimo");
+      return false;
+    }
+
+    if (tipoRegla === "metodo_pago" && toStringArray(parametros.metodos).length === 0) {
+      toast.error("Ingresa al menos un método de pago");
+      return false;
+    }
+
+    return true;
   };
 
-  const handleStep3 = async () => {
-    if (!tipoPago || !valorPago || !incentivoId) {
+  const validateStep3 = () => {
+    if (!tipoPago || !valorPago) {
       toast.error("Completa los campos de pago");
-      return;
+      return false;
     }
+
+    return true;
+  };
+
+  const handleStep1 = () => {
+    if (!validateStep1()) return;
+    setStep(1);
+  };
+
+  const handleStep2 = () => {
+    if (!validateStep2()) return;
+    setStep(2);
+  };
+
+  const handleSave = async () => {
+    if (!validateStep1() || !validateStep2() || !validateStep3()) return;
+
     setSaving(true);
-    const { error } = await supabase.from("incentivo_recompensas").insert({
-      incentivo_id: incentivoId,
-      tipo_pago: tipoPago,
-      valor: Number(valorPago),
-      tope_minimo: topeMinimo ? Number(topeMinimo) : 0,
-    } as any);
-    if (error) {
-      toast.error("Error al guardar la recompensa");
+
+    let createdIncentivoId: string | null = null;
+
+    try {
+      const { data: incentivo, error: incentivoError } = await supabase
+        .from("incentivos")
+        .insert({
+          nombre,
+          fecha_inicio: fechaInicio,
+          fecha_fin: fechaFin,
+          alcance,
+        })
+        .select("id")
+        .single();
+
+      if (incentivoError || !incentivo) {
+        throw new Error(incentivoError?.message || "Error al crear la campaña");
+      }
+
+      createdIncentivoId = incentivo.id;
+
+      const { error: reglaError } = await supabase.from("incentivo_reglas").insert({
+        incentivo_id: createdIncentivoId,
+        tipo_regla: tipoRegla,
+        valor_objetivo: requiresValorObjetivo ? Number(valorObjetivo) : 0,
+        parametros: buildParametrosPayload(),
+      });
+
+      if (reglaError) {
+        throw new Error(reglaError.message || "Error al guardar la regla");
+      }
+
+      const { error: recompensaError } = await supabase.from("incentivo_recompensas").insert({
+        incentivo_id: createdIncentivoId,
+        tipo_pago: tipoPago,
+        valor: Number(valorPago),
+        tope_minimo: topeMinimo ? Number(topeMinimo) : 0,
+      });
+
+      if (recompensaError) {
+        throw new Error(recompensaError.message || "Error al guardar la recompensa");
+      }
+
+      toast.success("Incentivo creado exitosamente");
+      reset();
+      onCreated();
+      onOpenChange(false);
+    } catch (error) {
+      if (createdIncentivoId) {
+        await Promise.allSettled([
+          supabase.from("incentivo_recompensas").delete().eq("incentivo_id", createdIncentivoId),
+          supabase.from("incentivo_reglas").delete().eq("incentivo_id", createdIncentivoId),
+        ]);
+        await supabase.from("incentivos").delete().eq("id", createdIncentivoId);
+      }
+
+      toast.error(error instanceof Error ? error.message : "Error al guardar el incentivo");
+    } finally {
       setSaving(false);
-      return;
     }
-    toast.success("Incentivo creado exitosamente");
-    setSaving(false);
-    onCreated();
-    onOpenChange(false);
-    reset();
   };
 
   return (
-    <Dialog open={open} onOpenChange={(v) => { if (!v) reset(); onOpenChange(v); }}>
+    <Dialog open={open} onOpenChange={handleDialogOpenChange}>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle className="text-lg">Crear Incentivo</DialogTitle>
@@ -189,7 +302,7 @@ export function IncentivosWizard({ open, onOpenChange, onCreated }: Props) {
               <Select value={tipoRegla} onValueChange={setTipoRegla}>
                 <SelectTrigger><SelectValue placeholder="Seleccionar..." /></SelectTrigger>
                 <SelectContent>
-              <SelectItem value="presupuesto">Presupuesto</SelectItem>
+                  <SelectItem value="presupuesto">Presupuesto</SelectItem>
                   <SelectItem value="presupuesto_semanal_dual">Presupuesto Semanal Dual</SelectItem>
                   <SelectItem value="venta_categoria">Venta por Categoría</SelectItem>
                   <SelectItem value="venta_skus">Venta por SKUs</SelectItem>
@@ -198,11 +311,11 @@ export function IncentivosWizard({ open, onOpenChange, onCreated }: Props) {
                 </SelectContent>
               </Select>
             </div>
-            {!RULES_WITHOUT_VALOR_OBJETIVO.includes(tipoRegla) && (
-            <div>
-              <Label>Valor Objetivo</Label>
-              <Input type="number" placeholder="Ej: 5000000" value={valorObjetivo} onChange={(e) => setValorObjetivo(e.target.value)} />
-            </div>
+            {requiresValorObjetivo && (
+              <div>
+                <Label>Valor Objetivo</Label>
+                <Input type="number" placeholder="Ej: 5000000" value={valorObjetivo} onChange={(e) => setValorObjetivo(e.target.value)} />
+              </div>
             )}
             <IncentivosParametrosFields
               tipoRegla={tipoRegla}
@@ -237,7 +350,7 @@ export function IncentivosWizard({ open, onOpenChange, onCreated }: Props) {
               <Label>Tope Mínimo</Label>
               <Input type="number" placeholder="Ej: 0" value={topeMinimo} onChange={(e) => setTopeMinimo(e.target.value)} />
             </div>
-            <Button className="w-full" onClick={handleStep3} disabled={saving}>
+            <Button className="w-full" onClick={handleSave} disabled={saving}>
               {saving ? "Guardando..." : "Guardar Incentivo"}
             </Button>
           </div>
