@@ -588,6 +588,10 @@ export type Database = {
     }
     Functions: {
       _col_date_boundary: { Args: { dias: number }; Returns: string }
+      actualizar_progreso_incentivo: {
+        Args: { p_incentivo_id: string }
+        Returns: undefined
+      }
       calcular_proyecciones_y_cumplimiento: {
         Args: { p_anio: number; p_mes: number }
         Returns: {
