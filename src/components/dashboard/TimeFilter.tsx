@@ -21,7 +21,7 @@ function localDateStr(d: Date): string {
 
 export function resolveDays(value: number): number {
   if (value === THIS_MONTH_SENTINEL) {
-    return Math.max(new Date().getDate() - 1, 1); // days since the 1st of current month
+    return Math.max(new Date().getDate() - 1, 1);
   }
   if (value === PREV_MONTH_SENTINEL) {
     const now = new Date();
@@ -31,19 +31,18 @@ export function resolveDays(value: number): number {
   if (value === CUSTOM_SENTINEL) {
     return 30;
   }
-  return value; // 0 is valid → means "today only"
+  return value;
 }
 
 /** Returns the actual date range for a given filter value */
-export function getDateRange(value: number, customFrom?: Date): { from: Date; to: Date } {
+export function getDateRange(value: number, customFrom?: Date, customTo?: Date): { from: Date; to: Date } {
   const now = new Date();
 
   if (value === CUSTOM_SENTINEL && customFrom) {
-    return { from: customFrom, to: now };
+    return { from: customFrom, to: customTo ?? now };
   }
 
   if (value === THIS_MONTH_SENTINEL) {
-    // Use startOfMonth to avoid any timezone shifts
     const from = startOfMonth(now);
     return { from, to: now };
   }
@@ -73,13 +72,13 @@ export const COMPARISON_OPTIONS: { value: ComparisonPeriod; label: string }[] = 
 export function resolveComparisonRange(
   filterValue: number,
   comparisonPeriod: ComparisonPeriod,
-  customFrom?: Date
+  customFrom?: Date,
+  customTo?: Date
 ): { from: Date; to: Date } {
-  const { from: currentFrom, to: currentTo } = getDateRange(filterValue, customFrom);
+  const { from: currentFrom, to: currentTo } = getDateRange(filterValue, customFrom, customTo);
   const rangeDays = differenceInCalendarDays(currentTo, currentFrom);
 
   if (comparisonPeriod === "previous") {
-    // Same length period immediately before
     const compTo = new Date(currentFrom.getFullYear(), currentFrom.getMonth(), currentFrom.getDate() - 1);
     const compFrom = new Date(compTo.getFullYear(), compTo.getMonth(), compTo.getDate() - rangeDays);
     return { from: compFrom, to: compTo };
@@ -107,9 +106,10 @@ export function resolveComparisonRange(
 export function resolveComparisonDays(
   filterValue: number,
   comparisonPeriod: ComparisonPeriod,
-  customFrom?: Date
+  customFrom?: Date,
+  customTo?: Date
 ): number {
-  const { from } = resolveComparisonRange(filterValue, comparisonPeriod, customFrom);
+  const { from } = resolveComparisonRange(filterValue, comparisonPeriod, customFrom, customTo);
   const now = new Date();
   return Math.max(differenceInCalendarDays(now, from), 1);
 }
@@ -144,54 +144,78 @@ interface TimeFilterProps {
   onChange: (days: number) => void;
   comparisonPeriod?: ComparisonPeriod;
   onComparisonChange?: (period: ComparisonPeriod) => void;
+  customFrom?: Date;
+  customTo?: Date;
+  onCustomRangeChange?: (from: Date, to: Date) => void;
 }
 
-export function TimeFilter({ value, onChange, comparisonPeriod, onComparisonChange }: TimeFilterProps) {
-  const [customFrom, setCustomFrom] = useState<Date | undefined>();
+export function TimeFilter({ value, onChange, comparisonPeriod, onComparisonChange, customFrom: externalFrom, customTo: externalTo, onCustomRangeChange }: TimeFilterProps) {
+  const [internalFrom, setInternalFrom] = useState<Date | undefined>();
+  const [internalTo, setInternalTo] = useState<Date | undefined>();
   const [menuOpen, setMenuOpen] = useState(false);
   const [showCalendar, setShowCalendar] = useState(false);
+  const [calendarStep, setCalendarStep] = useState<"from" | "to">("from");
   const [compOpen, setCompOpen] = useState(false);
 
+  const customFrom = externalFrom ?? internalFrom;
+  const customTo = externalTo ?? internalTo;
   const isCustom = !!customFrom;
   const presetLabel = !isCustom ? getPresetLabel(value) : undefined;
-  const { from, to } = getDateRange(isCustom ? CUSTOM_SENTINEL : value, customFrom);
+  const { from, to } = getDateRange(isCustom ? CUSTOM_SENTINEL : value, customFrom, customTo);
 
   const handlePresetClick = (preset: Preset) => {
-    setCustomFrom(undefined);
+    setInternalFrom(undefined);
+    setInternalTo(undefined);
     setShowCalendar(false);
+    setCalendarStep("from");
     onChange(preset.value);
     setMenuOpen(false);
   };
 
   const handleCustomClick = () => {
     setShowCalendar(true);
+    setCalendarStep("from");
   };
 
-  const handleDateSelect = (date: Date | undefined) => {
+  const handleFromSelect = (date: Date | undefined) => {
     if (!date) return;
-    setCustomFrom(date);
-    const days = differenceInCalendarDays(new Date(), date);
+    setInternalFrom(date);
+    setCalendarStep("to");
+  };
+
+  const handleToSelect = (date: Date | undefined) => {
+    if (!date) return;
+    const fromDate = internalFrom!;
+    const toDate = date;
+    setInternalTo(toDate);
+    if (onCustomRangeChange) {
+      onCustomRangeChange(fromDate, toDate);
+    }
+    const days = differenceInCalendarDays(toDate, fromDate);
     onChange(Math.max(days, 0));
     setShowCalendar(false);
+    setCalendarStep("from");
     setMenuOpen(false);
   };
 
   const handleOpenChange = (open: boolean) => {
     setMenuOpen(open);
-    if (!open) setShowCalendar(false);
+    if (!open) {
+      setShowCalendar(false);
+      setCalendarStep("from");
+    }
   };
 
   const displayLabel = isCustom
-    ? format(customFrom!, "d MMM", { locale: es }) + " – Hoy"
+    ? `${format(customFrom!, "d MMM", { locale: es })} – ${customTo ? format(customTo, "d MMM", { locale: es }) : "Hoy"}`
     : presetLabel || "Seleccionar";
 
   const compLabel = comparisonPeriod
     ? COMPARISON_OPTIONS.find(o => o.value === comparisonPeriod)?.label ?? "vs Anterior"
     : "vs Anterior";
 
-  // Comparison range for display
   const compRange = comparisonPeriod
-    ? resolveComparisonRange(isCustom ? CUSTOM_SENTINEL : value, comparisonPeriod, customFrom)
+    ? resolveComparisonRange(isCustom ? CUSTOM_SENTINEL : value, comparisonPeriod, customFrom, customTo)
     : null;
 
   return (
@@ -210,21 +234,41 @@ export function TimeFilter({ value, onChange, comparisonPeriod, onComparisonChan
         <PopoverContent className="w-auto p-0" align="end">
           {showCalendar ? (
             <div>
-              <div className="px-3 pt-3 pb-1">
+              <div className="px-3 pt-3 pb-1 flex items-center justify-between">
                 <button
-                  onClick={() => setShowCalendar(false)}
+                  onClick={() => {
+                    if (calendarStep === "to") {
+                      setCalendarStep("from");
+                    } else {
+                      setShowCalendar(false);
+                    }
+                  }}
                   className="text-xs text-muted-foreground hover:text-foreground transition-colors"
                 >
                   ← Volver
                 </button>
+                <span className="text-xs font-medium text-foreground">
+                  {calendarStep === "from" ? "📅 Fecha Inicio" : "📅 Fecha Fin"}
+                </span>
               </div>
+              {calendarStep === "from" && internalFrom === undefined && (
+                <p className="text-[10px] text-muted-foreground px-3 pb-1">Selecciona la fecha de inicio del rango</p>
+              )}
+              {calendarStep === "to" && (
+                <p className="text-[10px] text-muted-foreground px-3 pb-1">
+                  Desde: <span className="font-medium text-foreground">{format(internalFrom!, "d MMM yyyy", { locale: es })}</span> — selecciona fecha fin
+                </p>
+              )}
               <Calendar
                 mode="single"
-                selected={customFrom}
-                onSelect={handleDateSelect}
-                disabled={(date) =>
-                  date > new Date() || date < new Date("2024-01-01")
-                }
+                selected={calendarStep === "from" ? internalFrom : internalTo}
+                onSelect={calendarStep === "from" ? handleFromSelect : handleToSelect}
+                disabled={(date) => {
+                  if (date > new Date()) return true;
+                  if (date < new Date("2024-01-01")) return true;
+                  if (calendarStep === "to" && internalFrom && date < internalFrom) return true;
+                  return false;
+                }}
                 initialFocus
                 className={cn("p-3 pointer-events-auto")}
               />
@@ -256,7 +300,7 @@ export function TimeFilter({ value, onChange, comparisonPeriod, onComparisonChan
                 )}
               >
                 <CalendarIcon className="h-3.5 w-3.5" />
-                Periodo Personalizado
+                Rango Personalizado
               </button>
             </div>
           )}
