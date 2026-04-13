@@ -648,6 +648,83 @@ export type Database = {
           venta_mtd: number
         }[]
       }
+      reporte_cierre_coleccion_curva_tallas: {
+        Args: {
+          p_canal?: string
+          p_coleccion?: string
+          p_genero?: string
+          p_location_id?: string
+          p_zona?: string
+        }
+        Returns: {
+          stock_disponible: number
+          talla: string
+          und_vendidas: number
+        }[]
+      }
+      reporte_cierre_coleccion_kpis: {
+        Args: {
+          p_canal?: string
+          p_coleccion?: string
+          p_genero?: string
+          p_location_id?: string
+          p_zona?: string
+        }
+        Returns: {
+          calidad_venta_pct: number
+          ingreso_total: number
+          sell_through_pct: number
+          stock_remanente: number
+        }[]
+      }
+      reporte_cierre_coleccion_pareto_categoria: {
+        Args: {
+          p_canal?: string
+          p_coleccion?: string
+          p_genero?: string
+          p_location_id?: string
+          p_zona?: string
+        }
+        Returns: {
+          categoria: string
+          pct_participacion: number
+          unidades: number
+        }[]
+      }
+      reporte_cierre_coleccion_remanentes: {
+        Args: {
+          p_canal?: string
+          p_coleccion?: string
+          p_genero?: string
+          p_limite?: number
+          p_location_id?: string
+          p_zona?: string
+        }
+        Returns: {
+          categoria: string
+          foto: string
+          genero: string
+          precio_prom_venta: number
+          producto: string
+          sell_through_pct: number
+          sku: string
+          stock_actual: number
+          und_vendidas: number
+        }[]
+      }
+      reporte_cierre_coleccion_top_colores: {
+        Args: {
+          p_canal?: string
+          p_coleccion?: string
+          p_genero?: string
+          p_location_id?: string
+          p_zona?: string
+        }
+        Returns: {
+          color: string
+          unidades: number
+        }[]
+      }
       reporte_comportamiento_producto: {
         Args: {
           dias_atras: number
