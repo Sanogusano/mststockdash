@@ -150,23 +150,36 @@ export function CentroAccionComercial() {
 
   const handleStamp = async (storeName: string) => {
     setStampingStore(storeName);
-    // Deactivate any previous active stamp for this store
-    await supabase
-      .from("store_action_stamps" as any)
-      .update({ active: false } as any)
-      .eq("location_name", storeName)
-      .eq("active", true);
+    try {
+      // Deactivate any previous active stamp for this store
+      const { error: updateError } = await supabase
+        .from("store_action_stamps")
+        .update({ active: false })
+        .eq("location_name", storeName)
+        .eq("active", true);
 
-    // Insert new stamp
-    const { error } = await supabase
-      .from("store_action_stamps" as any)
-      .insert({ location_name: storeName, active: true } as any);
+      if (updateError) {
+        console.error("Error deactivating stamp:", updateError);
+        toast.error(`Error al desactivar seguimiento anterior: ${updateError.message}`);
+        setStampingStore(null);
+        return;
+      }
 
-    if (error) {
-      toast.error("Error al crear seguimiento");
-    } else {
-      toast.success(`Seguimiento iniciado para ${storeName}`);
-      fetchData();
+      // Insert new stamp
+      const { error } = await supabase
+        .from("store_action_stamps")
+        .insert({ location_name: storeName, active: true });
+
+      if (error) {
+        console.error("Error inserting stamp:", error);
+        toast.error(`Error al crear seguimiento: ${error.message}`);
+      } else {
+        toast.success(`Seguimiento iniciado para ${storeName}`);
+        fetchData();
+      }
+    } catch (e) {
+      console.error("Unexpected error in handleStamp:", e);
+      toast.error("Error inesperado al crear seguimiento");
     }
     setStampingStore(null);
   };
