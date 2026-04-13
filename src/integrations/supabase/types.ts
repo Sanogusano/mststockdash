@@ -588,6 +588,10 @@ export type Database = {
     }
     Functions: {
       _col_date_boundary: { Args: { dias: number }; Returns: string }
+      _latest_valid_snapshot_date: {
+        Args: { min_variants?: number }
+        Returns: string
+      }
       actualizar_progreso_incentivo: {
         Args: { p_incentivo_id: string }
         Returns: undefined
