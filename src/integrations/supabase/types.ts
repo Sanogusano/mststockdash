@@ -648,6 +648,20 @@ export type Database = {
           venta_mtd: number
         }[]
       }
+      reporte_cierre_coleccion_categoria_coleccion: {
+        Args: {
+          p_canal?: string
+          p_coleccion?: string
+          p_genero?: string
+          p_location_id?: string
+          p_zona?: string
+        }
+        Returns: {
+          categoria: string
+          coleccion: string
+          unidades: number
+        }[]
+      }
       reporte_cierre_coleccion_curva_tallas: {
         Args: {
           p_canal?: string
@@ -723,6 +737,20 @@ export type Database = {
         Returns: {
           color: string
           unidades: number
+        }[]
+      }
+      reporte_cierre_coleccion_ventas_coleccion: {
+        Args: {
+          p_canal?: string
+          p_coleccion?: string
+          p_genero?: string
+          p_location_id?: string
+          p_zona?: string
+        }
+        Returns: {
+          coleccion: string
+          stock_disponible: number
+          und_vendidas: number
         }[]
       }
       reporte_comportamiento_producto: {
