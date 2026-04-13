@@ -669,6 +669,7 @@ export type Database = {
       reporte_cierre_coleccion_curva_tallas: {
         Args: {
           p_canal?: string
+          p_categoria?: string
           p_coleccion?: string
           p_genero?: string
           p_location_id?: string
@@ -733,6 +734,7 @@ export type Database = {
       reporte_cierre_coleccion_top_colores: {
         Args: {
           p_canal?: string
+          p_categoria?: string
           p_coleccion?: string
           p_genero?: string
           p_location_id?: string
@@ -740,6 +742,7 @@ export type Database = {
         }
         Returns: {
           color: string
+          color_name: string
           unidades: number
         }[]
       }
