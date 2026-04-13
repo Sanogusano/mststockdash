@@ -30,21 +30,27 @@ function fmtCOP(n: number) {
 }
 
 function pctColor(pct: number) {
-  if (pct >= 100) return "text-[hsl(var(--success))]";
-  if (pct >= 80) return "text-[hsl(var(--warning))]";
-  return "text-[hsl(var(--danger))]";
+  if (pct > 100) return "text-blue-600";
+  if (pct >= 98) return "text-green-600";
+  if (pct >= 90) return "text-yellow-500";
+  if (pct >= 81) return "text-orange-500";
+  return "text-red-600";
 }
 
 function pctBg(pct: number) {
-  if (pct >= 100) return "bg-[hsl(var(--success))]";
-  if (pct >= 80) return "bg-[hsl(var(--warning))]";
-  return "bg-[hsl(var(--danger))]";
+  if (pct > 100) return "bg-blue-600";
+  if (pct >= 98) return "bg-green-600";
+  if (pct >= 90) return "bg-yellow-500";
+  if (pct >= 81) return "bg-orange-500";
+  return "bg-red-600";
 }
 
-function pctBadgeVariant(pct: number): "default" | "secondary" | "destructive" {
-  if (pct >= 100) return "default";
-  if (pct >= 80) return "secondary";
-  return "destructive";
+function pctBadgeClass(pct: number) {
+  if (pct > 100) return "bg-blue-100 text-blue-700 border-blue-300 hover:bg-blue-200";
+  if (pct >= 98) return "bg-green-100 text-green-700 border-green-300 hover:bg-green-200";
+  if (pct >= 90) return "bg-yellow-100 text-yellow-700 border-yellow-300 hover:bg-yellow-200";
+  if (pct >= 81) return "bg-orange-100 text-orange-700 border-orange-300 hover:bg-orange-200";
+  return "bg-red-100 text-red-700 border-red-300 hover:bg-red-200";
 }
 
 // ── Types for aggregation ──
@@ -641,12 +647,12 @@ export function CumplimientoDashboard() {
                 <TableCell className="text-right font-bold">{fmtCOP(totalBudget)}</TableCell>
                 <TableCell className="text-right font-bold">{fmtCOP(totalVentaNeta)}</TableCell>
                 <TableCell className="text-right">
-                  <Badge variant={pctBadgeVariant(globalPct)} className="text-xs font-bold">
+                  <Badge className={`text-xs font-bold border ${pctBadgeClass(globalPct)}`}>
                     {globalPct.toFixed(1)}%
                   </Badge>
                 </TableCell>
                 <TableCell className="text-right">
-                  <Badge variant={pctBadgeVariant(pctToDate)} className="text-xs font-bold">
+                  <Badge className={`text-xs font-bold border ${pctBadgeClass(pctToDate)}`}>
                     {pctToDate.toFixed(1)}%
                   </Badge>
                 </TableCell>
@@ -690,12 +696,12 @@ export function CumplimientoDashboard() {
                     <TableCell className="text-right text-sm">{fmtCOP(row.budget)}</TableCell>
                     <TableCell className="text-right text-sm">{fmtCOP(row.ventaNeta)}</TableCell>
                     <TableCell className="text-right">
-                      <Badge variant={pctBadgeVariant(row.pct)} className="text-xs">
+                      <Badge className={`text-xs border ${pctBadgeClass(row.pct)}`}>
                         {row.pct.toFixed(1)}%
                       </Badge>
                     </TableCell>
                     <TableCell className="text-right">
-                      <Badge variant={pctBadgeVariant(row.pctToDate)} className="text-xs">
+                      <Badge className={`text-xs border ${pctBadgeClass(row.pctToDate)}`}>
                         {row.pctToDate.toFixed(1)}%
                       </Badge>
                     </TableCell>
