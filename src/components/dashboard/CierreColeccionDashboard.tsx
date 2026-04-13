@@ -5,19 +5,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Loader2, TrendingUp, Award, DollarSign, Package, Truck } from "lucide-react";
-import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import { toast } from "sonner";
 
-const CHART_COLORS = [
-  "hsl(230, 65%, 55%)",
-  "hsl(160, 60%, 45%)",
-  "hsl(30, 80%, 55%)",
-  "hsl(340, 65%, 50%)",
-  "hsl(200, 70%, 50%)",
-  "hsl(270, 55%, 55%)",
-  "hsl(50, 75%, 50%)",
-  "hsl(180, 50%, 45%)",
-];
 
 interface KPIs {
   sell_through_pct: number;
@@ -168,41 +158,80 @@ export function CierreColeccionDashboard() {
             <KpiCard title="Stock Remanente" value={fmtNum(kpis?.stock_remanente ?? 0)} subtitle="unidades" icon={<Package className="h-4 w-4" />} />
           </div>
 
-          {/* Charts row */}
+          {/* Pareto + Colores + Tallas */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-            {/* Pareto */}
+            {/* Pareto - Tabla */}
             <Card>
               <CardHeader className="pb-2"><CardTitle className="text-sm font-medium">Pareto por Categoría</CardTitle></CardHeader>
-              <CardContent>
+              <CardContent className="p-0">
                 {pareto.length > 0 ? (
-                  <ResponsiveContainer width="100%" height={250}>
-                    <PieChart>
-                      <Pie data={pareto} dataKey="unidades" nameKey="categoria" cx="50%" cy="50%" innerRadius={50} outerRadius={90} paddingAngle={2}>
-                        {pareto.map((_, i) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}
-                      </Pie>
-                      <Tooltip formatter={(v: number) => fmtNum(v)} />
-                      <Legend wrapperStyle={{ fontSize: 11 }} />
-                    </PieChart>
-                  </ResponsiveContainer>
+                  <div className="overflow-auto max-h-[280px]">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="sticky top-0 bg-background text-xs">Categoría</TableHead>
+                          <TableHead className="sticky top-0 bg-background text-xs text-right">Unidades</TableHead>
+                          <TableHead className="sticky top-0 bg-background text-xs text-right">% Part.</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {pareto.map((r, i) => (
+                          <TableRow key={i}>
+                            <TableCell className="text-xs py-2">{r.categoria}</TableCell>
+                            <TableCell className="text-xs text-right py-2">{fmtNum(r.unidades)}</TableCell>
+                            <TableCell className="text-xs text-right py-2">
+                              <div className="flex items-center justify-end gap-2">
+                                <div className="w-16 h-2 rounded-full bg-muted overflow-hidden">
+                                  <div className="h-full rounded-full bg-primary" style={{ width: `${Math.min(r.pct_participacion, 100)}%` }} />
+                                </div>
+                                <span>{r.pct_participacion}%</span>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
                 ) : <p className="text-sm text-muted-foreground text-center py-10">Sin datos</p>}
               </CardContent>
             </Card>
 
-            {/* Top Colores */}
+            {/* Top Colores - Mapa de calor */}
             <Card>
               <CardHeader className="pb-2"><CardTitle className="text-sm font-medium">Top 5 Colores</CardTitle></CardHeader>
               <CardContent>
-                {topColores.length > 0 ? (
-                  <ResponsiveContainer width="100%" height={250}>
-                    <BarChart data={topColores} layout="vertical" margin={{ left: 60 }}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis type="number" tick={{ fontSize: 11 }} />
-                      <YAxis type="category" dataKey="color" tick={{ fontSize: 11 }} width={55} />
-                      <Tooltip formatter={(v: number) => fmtNum(v)} />
-                      <Bar dataKey="unidades" fill="hsl(230, 65%, 55%)" radius={[0, 4, 4, 0]} />
-                    </BarChart>
-                  </ResponsiveContainer>
-                ) : <p className="text-sm text-muted-foreground text-center py-10">Sin datos</p>}
+                {topColores.length > 0 ? (() => {
+                  const maxUnidades = Math.max(...topColores.map(c => c.unidades));
+                  return (
+                    <div className="space-y-2">
+                      {topColores.map((c, i) => {
+                        const hex = c.color.startsWith("#") ? c.color : `#${c.color}`;
+                        const intensity = maxUnidades > 0 ? c.unidades / maxUnidades : 0;
+                        return (
+                          <div key={i} className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded border border-border flex-shrink-0" style={{ backgroundColor: hex }} title={hex} />
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center justify-between mb-1">
+                                <span className="text-xs font-medium truncate">{c.color}</span>
+                                <span className="text-xs text-muted-foreground ml-2">{fmtNum(c.unidades)} uds</span>
+                              </div>
+                              <div className="w-full h-5 rounded bg-muted overflow-hidden">
+                                <div
+                                  className="h-full rounded transition-all"
+                                  style={{
+                                    width: `${intensity * 100}%`,
+                                    backgroundColor: hex,
+                                    opacity: 0.7 + intensity * 0.3,
+                                  }}
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  );
+                })() : <p className="text-sm text-muted-foreground text-center py-10">Sin datos</p>}
               </CardContent>
             </Card>
 
