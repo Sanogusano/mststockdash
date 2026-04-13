@@ -8,16 +8,6 @@ import { Loader2, TrendingUp, Award, DollarSign, Package, Truck } from "lucide-r
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import { toast } from "sonner";
 
-const CHART_COLORS = [
-  "hsl(230, 65%, 55%)",
-  "hsl(160, 60%, 45%)",
-  "hsl(30, 80%, 55%)",
-  "hsl(340, 65%, 50%)",
-  "hsl(200, 70%, 50%)",
-  "hsl(270, 55%, 55%)",
-  "hsl(50, 75%, 50%)",
-  "hsl(180, 50%, 45%)",
-];
 
 interface KPIs {
   sell_through_pct: number;
