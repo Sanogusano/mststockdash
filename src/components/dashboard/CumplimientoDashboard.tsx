@@ -647,7 +647,7 @@ export function CumplimientoDashboard() {
                 <TableCell className="text-right font-bold">{fmtCOP(totalBudget)}</TableCell>
                 <TableCell className="text-right font-bold">{fmtCOP(totalVentaNeta)}</TableCell>
                 <TableCell className="text-right">
-                  <Badge variant={pctBadgeVariant(globalPct)} className="text-xs font-bold">
+                  <Badge className={`text-xs font-bold border ${pctBadgeClass(globalPct)}`}>
                     {globalPct.toFixed(1)}%
                   </Badge>
                 </TableCell>
