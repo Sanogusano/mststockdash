@@ -652,7 +652,7 @@ export function CumplimientoDashboard() {
                   </Badge>
                 </TableCell>
                 <TableCell className="text-right">
-                  <Badge variant={pctBadgeVariant(pctToDate)} className="text-xs font-bold">
+                  <Badge className={`text-xs font-bold border ${pctBadgeClass(pctToDate)}`}>
                     {pctToDate.toFixed(1)}%
                   </Badge>
                 </TableCell>
@@ -696,12 +696,12 @@ export function CumplimientoDashboard() {
                     <TableCell className="text-right text-sm">{fmtCOP(row.budget)}</TableCell>
                     <TableCell className="text-right text-sm">{fmtCOP(row.ventaNeta)}</TableCell>
                     <TableCell className="text-right">
-                      <Badge variant={pctBadgeVariant(row.pct)} className="text-xs">
+                      <Badge className={`text-xs border ${pctBadgeClass(row.pct)}`}>
                         {row.pct.toFixed(1)}%
                       </Badge>
                     </TableCell>
                     <TableCell className="text-right">
-                      <Badge variant={pctBadgeVariant(row.pctToDate)} className="text-xs">
+                      <Badge className={`text-xs border ${pctBadgeClass(row.pctToDate)}`}>
                         {row.pctToDate.toFixed(1)}%
                       </Badge>
                     </TableCell>
