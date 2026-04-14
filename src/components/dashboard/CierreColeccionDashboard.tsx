@@ -627,7 +627,7 @@ function ColorTreemap({ data, cleanColorName }: { data: TreemapColorRow[]; clean
 
     return (
       <g>
-        <rect x={x} y={y} width={width} height={height} fill={hex} stroke="hsl(var(--background))" strokeWidth={2} rx={4} />
+        <rect x={x} y={y} width={width} height={height} fill={safeHex} stroke="hsl(var(--background))" strokeWidth={2} rx={4} />
         {width > 40 && height > 35 && (
           <>
             <text x={x + 6} y={y + 16} fill={textColor} fontSize={width > 80 ? 12 : 10} fontWeight="600">{name.length > (width / 7) ? name.slice(0, Math.floor(width / 7)) + "…" : name}</text>
