@@ -132,6 +132,7 @@ export function CierreColeccionDashboard({ days }: Props) {
     setLoading(true);
     const params = baseParams();
     const resolvedDays = resolveDays(days);
+    const hastaParam = getFilterEndDate(days);
 
     const [kpiRes, paretoRes, colorRes, tallaRes, remRes, compVentaRes, invColRes, catColRes] = await Promise.all([
       supabase.rpc("reporte_cierre_coleccion_kpis", params),
@@ -139,7 +140,7 @@ export function CierreColeccionDashboard({ days }: Props) {
       supabase.rpc("reporte_cierre_coleccion_top_colores", { ...params, p_categoria: null }),
       supabase.rpc("reporte_cierre_coleccion_curva_tallas", { ...params, p_categoria: null }),
       supabase.rpc("reporte_cierre_coleccion_remanentes", { ...params, p_limite: 50 }),
-      supabase.rpc("reporte_composicion_coleccion" as any, { dias_atras: resolvedDays, p_canal: params.p_canal, p_location_id: params.p_location_id, p_zona: params.p_zona }),
+      supabase.rpc("reporte_composicion_coleccion" as any, { dias_atras: resolvedDays, p_canal: params.p_canal, p_location_id: params.p_location_id, p_zona: params.p_zona, p_hasta: hastaParam }),
       supabase.rpc("reporte_composicion_inventario_coleccion" as any, { p_location_id: params.p_location_id }),
       supabase.rpc("reporte_cierre_coleccion_categoria_coleccion", params),
     ]);
@@ -180,10 +181,12 @@ export function CierreColeccionDashboard({ days }: Props) {
   const fetchTreemap = useCallback(async () => {
     setLoadingTreemap(true);
     const resolvedDays = resolveDays(days);
+    const hastaParam = getFilterEndDate(days);
     const res = await supabase.rpc("reporte_cierre_coleccion_treemap_colores" as any, {
       dias_atras: resolvedDays,
       ...baseParams(),
       p_categoria: categoriaTreemap || null,
+      p_hasta: hastaParam,
     });
     setTreemapColores((res.data || []) as unknown as TreemapColorRow[]);
     setLoadingTreemap(false);

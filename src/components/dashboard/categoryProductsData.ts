@@ -21,14 +21,16 @@ interface FetchCategoryProductsParams {
   effectiveDays: number;
   locationId?: string | null;
   canal?: string | null;
+  hasta?: string | null;
 }
 
-export async function fetchCategoryProducts({ categoria, effectiveDays, locationId, canal }: FetchCategoryProductsParams): Promise<ProductRow[]> {
+export async function fetchCategoryProducts({ categoria, effectiveDays, locationId, canal, hasta }: FetchCategoryProductsParams): Promise<ProductRow[]> {
   const { data: rpcData, error } = await supabase.rpc("reporte_productos_por_categoria" as any, {
     dias_atras: effectiveDays,
     p_categoria: categoria,
     p_location_id: locationId || null,
     p_canal: canal || null,
+    p_hasta: hasta || null,
   });
   if (error) throw new Error(error.message);
 

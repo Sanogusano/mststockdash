@@ -2,6 +2,7 @@ import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { LoadingState, EmptyState } from "./LoadingState";
+import { getFilterEndDate } from "./TimeFilter";
 import { StatusBadge } from "./StatusBadge";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
@@ -72,6 +73,7 @@ export function ProductDetailDrawer({
       const { data, error } = await supabase.rpc("reporte_detalle_producto_tiendas", {
         dias_atras: days,
         p_producto: product.producto,
+        p_hasta: getFilterEndDate(days),
       });
       if (error) throw new Error(error.message);
       return (data ?? []) as DetailRow[];

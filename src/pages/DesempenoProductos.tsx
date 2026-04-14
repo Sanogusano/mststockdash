@@ -89,6 +89,7 @@ export default function DesempenoProductosPage() {
       setLoading(true);
       setError(null);
       const effectiveDays = resolveDays(days);
+      const hastaParam = getFilterEndDate(days);
       const canalParam = canal === "all" ? null : canal;
       const catParam = catFilter === "all" ? null : catFilter;
       const { data: rows, error: err } = await supabase.rpc("reporte_top_productos_global" as any, {
@@ -97,6 +98,7 @@ export default function DesempenoProductosPage() {
         p_categoria: catParam,
         p_orden: "TOP",
         p_limite: 50,
+        p_hasta: hastaParam,
       });
       if (err) {
         setError(err.message);

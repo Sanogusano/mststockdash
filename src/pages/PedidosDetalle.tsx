@@ -154,12 +154,14 @@ export default function PedidosDetallePage() {
     const locParam = selectedLocation === "all" ? null : selectedLocation;
     const canalParam = selectedCanal || null;
     const effectiveDays = resolveDays(days);
+    const hastaParam = getFilterEndDate(days);
 
     supabase.rpc("reporte_pedidos_por_tipo_venta", {
       dias_atras: effectiveDays,
       p_canal: canalParam,
       p_location_id: locParam,
       p_tipo: tipo,
+      p_hasta: hastaParam,
     }).then(({ data: rows, error }) => {
       if (error) {
         console.error("Error fetching orders:", error);

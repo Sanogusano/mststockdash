@@ -44,7 +44,7 @@ export function CategoryProductsDrawer({ categoria, days, locationId, canal, sto
     queryKey: ["category-products", categoria, effectiveDays, locationId, canal],
     queryFn: async () => {
       if (!categoria) return [];
-      return fetchCategoryProducts({ categoria, effectiveDays, locationId, canal });
+      return fetchCategoryProducts({ categoria, effectiveDays, locationId, canal, hasta: getFilterEndDate(days) });
     },
     enabled: !!categoria,
   });

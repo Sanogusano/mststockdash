@@ -129,11 +129,13 @@ export default function LineasProductoPage() {
       setLoading(true);
       setError(null);
       const effectiveDays = resolveDays(days);
+      const hastaParam = getFilterEndDate(days);
       const canalParam = canal === "all" ? null : canal;
       const [res, supplyRes, stockCountRes] = await Promise.all([
         supabase.rpc("reporte_desempeno_por_linea" as any, {
           dias_atras: effectiveDays,
           p_canal: canalParam,
+          p_hasta: hastaParam,
         }),
         supabase.rpc("stock_insumos_agregado" as any),
         supabase.rpc("stock_general_por_producto" as any),
