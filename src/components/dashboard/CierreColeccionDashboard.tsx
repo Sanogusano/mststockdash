@@ -83,13 +83,13 @@ export function CierreColeccionDashboard({ days }: Props) {
   const [pareto, setPareto] = useState<ParetoRow[]>([]);
   const [topColores, setTopColores] = useState<ColorRow[]>([]);
   const [curvaTallas, setCurvaTallas] = useState<TallaRow[]>([]);
-  const [ventasColeccion, setVentasColeccion] = useState<VentaColeccionRow[]>([]);
+  const [ventasColeccion, setVentasColeccion] = useState<ComposicionVentaRow[]>([]);
+  const [inventarioColeccion, setInventarioColeccion] = useState<InventarioColeccionRow[]>([]);
   const [catColData, setCatColData] = useState<CatColRow[]>([]);
   const [remanentes, setRemanentes] = useState<RemanentRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingColores, setLoadingColores] = useState(false);
   const [loadingTallas, setLoadingTallas] = useState(false);
-  const [showAllCollections, setShowAllCollections] = useState(false);
 
   useEffect(() => {
     const loadFilters = async () => {
