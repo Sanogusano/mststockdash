@@ -614,13 +614,14 @@ function ColorTreemap({ data, cleanColorName }: { data: TreemapColorRow[]; clean
   });
 
   const CustomContent = (props: any) => {
-    const { x, y, width, height, name, hex, pctVenta, pctInv } = props;
+    const { x, y, width, height, name, hex = "#888888", pctVenta, pctInv } = props;
     if (width < 20 || height < 20) return null;
 
     // Determine text color based on luminance
-    const r = parseInt(hex.slice(1, 3), 16);
-    const g = parseInt(hex.slice(3, 5), 16);
-    const b = parseInt(hex.slice(5, 7), 16);
+    const safeHex = (hex && hex.length >= 7) ? hex : "#888888";
+    const r = parseInt(safeHex.slice(1, 3), 16);
+    const g = parseInt(safeHex.slice(3, 5), 16);
+    const b = parseInt(safeHex.slice(5, 7), 16);
     const lum = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
     const textColor = lum > 0.5 ? "#000" : "#fff";
 
