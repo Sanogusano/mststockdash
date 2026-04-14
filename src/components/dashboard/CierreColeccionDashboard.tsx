@@ -51,7 +51,8 @@ interface KPIs {
 interface ParetoRow { categoria: string; unidades: number; pct_participacion: number }
 interface ColorRow { color: string; unidades: number; color_name?: string }
 interface TallaRow { talla: string; und_vendidas: number; stock_disponible: number }
-interface VentaColeccionRow { coleccion: string; und_vendidas: number; stock_disponible: number }
+interface ComposicionVentaRow { coleccion: string; unidades: number }
+interface InventarioColeccionRow { coleccion: string; unidades: number; pct: number }
 interface CatColRow { categoria: string; coleccion: string; unidades: number }
 interface RemanentRow {
   sku: string; producto: string; categoria: string; genero: string; foto: string;
