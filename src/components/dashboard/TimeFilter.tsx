@@ -44,6 +44,18 @@ export function resolveDays(value: number): number {
   return value;
 }
 
+/** 
+ * Returns the end date as 'YYYY-MM-DD' string when the filter needs a bounded query.
+ * Returns null for filters where the natural upper bound is "today" (no bounding needed).
+ */
+export function getFilterEndDate(value: number): string | null {
+  if (value === PREV_MONTH_SENTINEL) {
+    const prevEnd = endOfMonth(subMonths(new Date(), 1));
+    return `${prevEnd.getFullYear()}-${String(prevEnd.getMonth() + 1).padStart(2, "0")}-${String(prevEnd.getDate()).padStart(2, "0")}`;
+  }
+  return null;
+}
+
 /** Returns the actual date range for a given filter value */
 export function getDateRange(value: number, customFrom?: Date, customTo?: Date): { from: Date; to: Date } {
   const now = new Date();
