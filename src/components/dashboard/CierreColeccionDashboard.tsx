@@ -190,23 +190,13 @@ export function CierreColeccionDashboard({ days }: Props) {
     catColMap.set(r.categoria, existing);
   });
 
-  // Sort ventas por colección in the specified order
-  const sortVentas = (rows: VentaColeccionRow[]) => {
-    const ordered: VentaColeccionRow[] = [];
-    const rest: VentaColeccionRow[] = [];
-    for (const col of ORDERED_COLLECTIONS) {
-      const found = rows.find(r => r.coleccion?.toUpperCase().trim() === col.toUpperCase());
-      if (found) ordered.push(found);
-    }
-    for (const r of rows) {
-      if (!matchesOrderedCollection(r.coleccion)) rest.push(r);
-    }
-    return { ordered, rest };
-  };
+  // Sort ventas by units descending
+  const sortedVentas = [...ventasColeccion].sort((a, b) => b.unidades - a.unidades);
+  const totalVentas = sortedVentas.reduce((s, r) => s + r.unidades, 0);
 
-  const { ordered: orderedVentas, rest: restVentas } = sortVentas(ventasColeccion);
-
-  const displayedVentas = showAllCollections ? [...orderedVentas, ...restVentas] : orderedVentas;
+  // Sort inventario by units descending
+  const sortedInventario = [...inventarioColeccion].sort((a, b) => b.unidades - a.unidades);
+  const totalInventario = sortedInventario.reduce((s, r) => s + r.unidades, 0);
 
   return (
     <div className="space-y-6">
@@ -264,54 +254,84 @@ export function CierreColeccionDashboard({ days }: Props) {
             <KpiCard title="Stock Remanente" value={fmtNum(kpis?.stock_remanente ?? 0)} subtitle="unidades" icon={<Package className="h-4 w-4" />} />
           </div>
 
-          {/* Ventas por Colección */}
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium flex items-center gap-2">
-                <ShoppingBag className="h-4 w-4" /> Ventas por Colección
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {displayedVentas.length > 0 ? (
-                <div className="space-y-3">
-                  {displayedVentas.map((v, i) => {
-                    const total = v.und_vendidas + v.stock_disponible;
-                    const pct = total > 0 ? Math.round((v.und_vendidas / total) * 100) : 0;
-                    return (
-                      <div key={i}>
-                        <div className="flex items-center justify-between mb-1">
-                          <span className="text-xs font-medium">{v.coleccion}</span>
-                          <span className="text-xs text-muted-foreground">
-                            {fmtNum(v.und_vendidas)} vendidas / {fmtNum(v.stock_disponible)} disponibles — <span className="font-semibold text-foreground">{pct}% ST</span>
-                          </span>
+          {/* Unidades & Participación en Venta + Inventario por Colección */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            {/* Gráfico 1: Unidades vendidas por colección (con filtro de fecha) */}
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium flex items-center gap-2">
+                  <ShoppingBag className="h-4 w-4" /> Unidades & Participación en Venta
+                </CardTitle>
+                <p className="text-[10px] text-muted-foreground">Según filtro de fecha seleccionado</p>
+              </CardHeader>
+              <CardContent>
+                {sortedVentas.length > 0 ? (
+                  <div className="space-y-2.5">
+                    {sortedVentas.map((v, i) => {
+                      const pct = totalVentas > 0 ? ((v.unidades / totalVentas) * 100) : 0;
+                      return (
+                        <div key={i}>
+                          <div className="flex items-center justify-between mb-1">
+                            <span className="text-xs font-medium truncate max-w-[140px]">{v.coleccion}</span>
+                            <span className="text-xs text-muted-foreground">
+                              {fmtNum(v.unidades)} uds — <span className="font-semibold text-foreground">{pct.toFixed(1)}%</span>
+                            </span>
+                          </div>
+                          <div className="w-full h-3.5 rounded-full bg-muted overflow-hidden">
+                            <div
+                              className="h-full rounded-full transition-all bg-primary"
+                              style={{ width: `${Math.max(pct, 1)}%` }}
+                            />
+                          </div>
                         </div>
-                        <div className="w-full h-4 rounded-full bg-muted overflow-hidden">
-                          <div
-                            className="h-full rounded-full transition-all bg-primary"
-                            style={{ width: `${pct}%` }}
-                          />
+                      );
+                    })}
+                    <div className="text-xs text-muted-foreground text-right pt-1 border-t border-border">
+                      Total: <span className="font-semibold text-foreground">{fmtNum(totalVentas)}</span> uds
+                    </div>
+                  </div>
+                ) : <p className="text-sm text-muted-foreground text-center py-6">Sin datos</p>}
+              </CardContent>
+            </Card>
+
+            {/* Gráfico 2: Inventario actual por colección */}
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium flex items-center gap-2">
+                  <Package className="h-4 w-4" /> Inventario por Colección
+                </CardTitle>
+                <p className="text-[10px] text-muted-foreground">Stock actual disponible</p>
+              </CardHeader>
+              <CardContent>
+                {sortedInventario.length > 0 ? (
+                  <div className="space-y-2.5">
+                    {sortedInventario.map((v, i) => {
+                      const pct = totalInventario > 0 ? ((v.unidades / totalInventario) * 100) : 0;
+                      return (
+                        <div key={i}>
+                          <div className="flex items-center justify-between mb-1">
+                            <span className="text-xs font-medium truncate max-w-[140px]">{v.coleccion}</span>
+                            <span className="text-xs text-muted-foreground">
+                              {fmtNum(v.unidades)} uds — <span className="font-semibold text-foreground">{pct.toFixed(1)}%</span>
+                            </span>
+                          </div>
+                          <div className="w-full h-3.5 rounded-full bg-muted overflow-hidden">
+                            <div
+                              className="h-full rounded-full transition-all bg-accent-foreground/60"
+                              style={{ width: `${Math.max(pct, 1)}%` }}
+                            />
+                          </div>
                         </div>
-                      </div>
-                    );
-                  })}
-                  {restVentas.length > 0 && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="w-full text-xs gap-1"
-                      onClick={() => setShowAllCollections(!showAllCollections)}
-                    >
-                      {showAllCollections ? (
-                        <>Ocultar <ChevronUp className="h-3 w-3" /></>
-                      ) : (
-                        <>Ver más ({restVentas.length}) <ChevronDown className="h-3 w-3" /></>
-                      )}
-                    </Button>
-                  )}
-                </div>
-              ) : <p className="text-sm text-muted-foreground text-center py-6">Sin datos</p>}
-            </CardContent>
-          </Card>
+                      );
+                    })}
+                    <div className="text-xs text-muted-foreground text-right pt-1 border-t border-border">
+                      Total: <span className="font-semibold text-foreground">{fmtNum(totalInventario)}</span> uds
+                    </div>
+                  </div>
+                ) : <p className="text-sm text-muted-foreground text-center py-6">Sin datos</p>}
+              </CardContent>
+            </Card>
+          </div>
 
           {/* Pareto full width */}
           <Card>
