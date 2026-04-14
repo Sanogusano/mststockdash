@@ -4,9 +4,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Loader2, TrendingUp, Award, DollarSign, Package, Truck, ShoppingBag } from "lucide-react";
+import { Loader2, TrendingUp, Award, DollarSign, Package, Truck, ShoppingBag, ChevronDown, ChevronUp } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import { toast } from "sonner";
+import { resolveDays } from "./TimeFilter";
 
 // Strip common category words from extracted color names
 const CATEGORY_WORDS = new Set([
@@ -26,6 +27,20 @@ function cleanColorName(raw: string | null, hex: string): string {
   return cleaned || hex.toUpperCase();
 }
 
+// Ordered collections to show
+const ORDERED_COLLECTIONS = [
+  "Dominus", "Imperium", "Stallion", "Horsebeat", "The King",
+  "The Throne", "The Race", "Bishop", "Zero"
+];
+
+function matchesOrderedCollection(name: string): string | null {
+  const upper = name.toUpperCase().trim();
+  for (const col of ORDERED_COLLECTIONS) {
+    if (upper === col.toUpperCase()) return col;
+  }
+  return null;
+}
+
 interface KPIs {
   sell_through_pct: number;
   calidad_venta_pct: number;
@@ -43,14 +58,17 @@ interface RemanentRow {
   und_vendidas: number; stock_actual: number; sell_through_pct: number; precio_prom_venta: number;
 }
 
-export function CierreColeccionDashboard() {
+interface Props {
+  days: number;
+}
+
+export function CierreColeccionDashboard({ days }: Props) {
   const [coleccion, setColeccion] = useState<string | null>(null);
   const [genero, setGenero] = useState<string | null>(null);
   const [canal, setCanal] = useState<string | null>(null);
   const [zona, setZona] = useState<string | null>(null);
   const [locationId, setLocationId] = useState<string | null>(null);
 
-  // Category filter for colors and sizes
   const [categoriaColor, setCategoriaColor] = useState<string | null>(null);
   const [categoriaTalla, setCategoriaTalla] = useState<string | null>(null);
 
@@ -70,6 +88,7 @@ export function CierreColeccionDashboard() {
   const [loading, setLoading] = useState(true);
   const [loadingColores, setLoadingColores] = useState(false);
   const [loadingTallas, setLoadingTallas] = useState(false);
+  const [showAllCollections, setShowAllCollections] = useState(false);
 
   useEffect(() => {
     const loadFilters = async () => {
@@ -114,7 +133,8 @@ export function CierreColeccionDashboard() {
     if (kpiRes.data && kpiRes.data.length > 0) setKpis(kpiRes.data[0] as unknown as KPIs);
     else setKpis({ sell_through_pct: 0, calidad_venta_pct: 0, ingreso_total: 0, stock_remanente: 0 });
 
-    setPareto((paretoRes.data || []) as unknown as ParetoRow[]);
+    // Exclude INSUMOS from pareto
+    setPareto(((paretoRes.data || []) as unknown as ParetoRow[]).filter(r => r.categoria?.toUpperCase() !== "INSUMOS"));
     setTopColores((colorRes.data || []) as unknown as ColorRow[]);
     setCurvaTallas((tallaRes.data || []) as unknown as TallaRow[]);
     setVentasColeccion((ventColRes.data || []) as unknown as VentaColeccionRow[]);
@@ -123,7 +143,6 @@ export function CierreColeccionDashboard() {
     setLoading(false);
   }, [baseParams, categoriaColor, categoriaTalla]);
 
-  // Separate fetch for colors when category changes
   const fetchColores = useCallback(async () => {
     setLoadingColores(true);
     const res = await supabase.rpc("reporte_cierre_coleccion_top_colores", {
@@ -146,7 +165,6 @@ export function CierreColeccionDashboard() {
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
-  // Refetch only colors/tallas when their category filter changes (after initial load)
   useEffect(() => {
     if (!loading) fetchColores();
   }, [categoriaColor]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -158,16 +176,34 @@ export function CierreColeccionDashboard() {
   const fmt = (n: number) => new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 }).format(n);
   const fmtNum = (n: number) => new Intl.NumberFormat("es-CO").format(n);
 
-  // Build category → collection breakdown map
+  // Build category → collection breakdown map — only show ordered collections
   const catColMap = new Map<string, Record<string, number>>();
-  const allCollections = new Set<string>();
   catColData.forEach(r => {
-    allCollections.add(r.coleccion);
+    if (r.categoria?.toUpperCase() === "INSUMOS") return;
+    const matched = matchesOrderedCollection(r.coleccion);
+    if (!matched) return;
     const existing = catColMap.get(r.categoria) || {};
-    existing[r.coleccion] = (existing[r.coleccion] || 0) + r.unidades;
+    existing[matched] = (existing[matched] || 0) + r.unidades;
     catColMap.set(r.categoria, existing);
   });
-  const sortedCollections = [...allCollections].sort();
+
+  // Sort ventas por colección in the specified order
+  const sortVentas = (rows: VentaColeccionRow[]) => {
+    const ordered: VentaColeccionRow[] = [];
+    const rest: VentaColeccionRow[] = [];
+    for (const col of ORDERED_COLLECTIONS) {
+      const found = rows.find(r => r.coleccion?.toUpperCase().trim() === col.toUpperCase());
+      if (found) ordered.push(found);
+    }
+    for (const r of rows) {
+      if (!matchesOrderedCollection(r.coleccion)) rest.push(r);
+    }
+    return { ordered, rest };
+  };
+
+  const { ordered: orderedVentas, rest: restVentas } = sortVentas(ventasColeccion);
+
+  const displayedVentas = showAllCollections ? [...orderedVentas, ...restVentas] : orderedVentas;
 
   return (
     <div className="space-y-6">
@@ -233,9 +269,9 @@ export function CierreColeccionDashboard() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              {ventasColeccion.length > 0 ? (
+              {displayedVentas.length > 0 ? (
                 <div className="space-y-3">
-                  {ventasColeccion.map((v, i) => {
+                  {displayedVentas.map((v, i) => {
                     const total = v.und_vendidas + v.stock_disponible;
                     const pct = total > 0 ? Math.round((v.und_vendidas / total) * 100) : 0;
                     return (
@@ -255,6 +291,20 @@ export function CierreColeccionDashboard() {
                       </div>
                     );
                   })}
+                  {restVentas.length > 0 && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="w-full text-xs gap-1"
+                      onClick={() => setShowAllCollections(!showAllCollections)}
+                    >
+                      {showAllCollections ? (
+                        <>Ocultar <ChevronUp className="h-3 w-3" /></>
+                      ) : (
+                        <>Ver más ({restVentas.length}) <ChevronDown className="h-3 w-3" /></>
+                      )}
+                    </Button>
+                  )}
                 </div>
               ) : <p className="text-sm text-muted-foreground text-center py-6">Sin datos</p>}
             </CardContent>
@@ -272,7 +322,7 @@ export function CierreColeccionDashboard() {
                         <TableHead className="sticky top-0 bg-background text-xs">Categoría</TableHead>
                         <TableHead className="sticky top-0 bg-background text-xs text-right">Unidades</TableHead>
                         <TableHead className="sticky top-0 bg-background text-xs text-right">% Part.</TableHead>
-                        {sortedCollections.map(col => (
+                        {ORDERED_COLLECTIONS.map(col => (
                           <TableHead key={col} className="sticky top-0 bg-background text-xs text-right">{col}</TableHead>
                         ))}
                       </TableRow>
@@ -292,7 +342,7 @@ export function CierreColeccionDashboard() {
                                 <span>{r.pct_participacion}%</span>
                               </div>
                             </TableCell>
-                            {sortedCollections.map(col => (
+                            {ORDERED_COLLECTIONS.map(col => (
                               <TableCell key={col} className="text-xs text-right py-2">
                                 {colBreakdown[col] ? fmtNum(colBreakdown[col]) : "—"}
                               </TableCell>

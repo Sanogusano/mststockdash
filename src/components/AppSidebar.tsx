@@ -69,10 +69,10 @@ const navItems = [
     description: "Campañas & liquidaciones",
   },
   {
-    title: "Cierre de Colección",
+    title: "Comportamiento de Colección",
     url: "/cierre-coleccion",
     icon: Archive,
-    description: "Fin de temporada & remanentes",
+    description: "Desempeño por colección & remanentes",
   },
 ];
 
