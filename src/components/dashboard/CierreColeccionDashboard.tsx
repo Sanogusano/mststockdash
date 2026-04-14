@@ -133,7 +133,7 @@ export function CierreColeccionDashboard({ days }: Props) {
     const params = baseParams();
     const resolvedDays = resolveDays(days);
 
-    const [kpiRes, paretoRes, colorRes, tallaRes, remRes, compVentaRes, invColRes, catColRes, treemapRes] = await Promise.all([
+    const [kpiRes, paretoRes, colorRes, tallaRes, remRes, compVentaRes, invColRes, catColRes] = await Promise.all([
       supabase.rpc("reporte_cierre_coleccion_kpis", params),
       supabase.rpc("reporte_cierre_coleccion_pareto_categoria", params),
       supabase.rpc("reporte_cierre_coleccion_top_colores", { ...params, p_categoria: null }),
@@ -142,7 +142,6 @@ export function CierreColeccionDashboard({ days }: Props) {
       supabase.rpc("reporte_composicion_coleccion" as any, { dias_atras: resolvedDays, p_canal: params.p_canal, p_location_id: params.p_location_id, p_zona: params.p_zona }),
       supabase.rpc("reporte_composicion_inventario_coleccion" as any, { p_location_id: params.p_location_id }),
       supabase.rpc("reporte_cierre_coleccion_categoria_coleccion", params),
-      supabase.rpc("reporte_cierre_coleccion_treemap_colores" as any, { dias_atras: resolvedDays, ...params, p_categoria: null }),
     ]);
 
     if (kpiRes.data && kpiRes.data.length > 0) setKpis(kpiRes.data[0] as unknown as KPIs);
@@ -155,7 +154,6 @@ export function CierreColeccionDashboard({ days }: Props) {
     setInventarioColeccion((invColRes.data || []) as unknown as InventarioColeccionRow[]);
     setCatColData((catColRes.data || []) as unknown as CatColRow[]);
     setRemanentes((remRes.data || []) as unknown as RemanentRow[]);
-    setTreemapColores((treemapRes.data || []) as unknown as TreemapColorRow[]);
     setLoading(false);
   }, [baseParams, days]);
 
@@ -193,6 +191,9 @@ export function CierreColeccionDashboard({ days }: Props) {
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
+  // Treemap loads independently (can be slow)
+  useEffect(() => { fetchTreemap(); }, [fetchTreemap]);
+
   useEffect(() => {
     if (!loading) fetchColores();
   }, [categoriaColor]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -200,10 +201,6 @@ export function CierreColeccionDashboard({ days }: Props) {
   useEffect(() => {
     if (!loading) fetchTallas();
   }, [categoriaTalla]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  useEffect(() => {
-    if (!loading) fetchTreemap();
-  }, [categoriaTreemap, days]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const fmt = (n: number) => new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 }).format(n);
   const fmtNum = (n: number) => new Intl.NumberFormat("es-CO").format(n);
