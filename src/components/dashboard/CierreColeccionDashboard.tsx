@@ -179,6 +179,18 @@ export function CierreColeccionDashboard({ days }: Props) {
     setLoadingTallas(false);
   }, [baseParams, categoriaTalla]);
 
+  const fetchTreemap = useCallback(async () => {
+    setLoadingTreemap(true);
+    const resolvedDays = resolveDays(days);
+    const res = await supabase.rpc("reporte_cierre_coleccion_treemap_colores" as any, {
+      dias_atras: resolvedDays,
+      ...baseParams(),
+      p_categoria: categoriaTreemap || null,
+    });
+    setTreemapColores((res.data || []) as unknown as TreemapColorRow[]);
+    setLoadingTreemap(false);
+  }, [baseParams, categoriaTreemap, days]);
+
   useEffect(() => { fetchData(); }, [fetchData]);
 
   useEffect(() => {
@@ -188,6 +200,10 @@ export function CierreColeccionDashboard({ days }: Props) {
   useEffect(() => {
     if (!loading) fetchTallas();
   }, [categoriaTalla]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (!loading) fetchTreemap();
+  }, [categoriaTreemap, days]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const fmt = (n: number) => new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 }).format(n);
   const fmtNum = (n: number) => new Intl.NumberFormat("es-CO").format(n);
