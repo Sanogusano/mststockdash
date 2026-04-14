@@ -45,7 +45,7 @@ export function PresupuestosDashboard() {
         .select("location_id, total_price, source_name, financial_status")
         .gte("created_at", startDate)
         .lt("created_at", endDate)
-        .not("financial_status", "in", "(voided,refunded)");
+        .in("financial_status", ["paid", "partially_refunded", "partially_paid"]);
 
       if (orders) {
         // Get location names

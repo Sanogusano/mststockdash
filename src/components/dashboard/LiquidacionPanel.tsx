@@ -161,7 +161,7 @@ export function LiquidacionPanel() {
         .in("location_id", locationIds)
         .gte("created_at", minDate)
         .lte("created_at", maxDate + "T23:59:59")
-        .not("financial_status", "in", "(voided,refunded)")
+        .in("financial_status", ["paid", "partially_refunded", "partially_paid"])
         .order("created_at", { ascending: false })
         .limit(5000);
 
