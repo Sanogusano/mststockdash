@@ -600,6 +600,77 @@ export function CierreColeccionDashboard({ days }: Props) {
   );
 }
 
+function ColorTreemap({ data, cleanColorName }: { data: TreemapColorRow[]; cleanColorName: (raw: string | null, hex: string) => string }) {
+  // Build treemap data with color as fill
+  const treemapData = data.map(d => {
+    const hex = d.color.startsWith("#") ? d.color : `#${d.color}`;
+    const name = cleanColorName(d.color_name || null, d.color);
+    return {
+      name,
+      size: Math.max(d.und_vendidas, 1),
+      hex,
+      pctVenta: d.pct_venta,
+      pctInv: d.pct_inventario,
+      undVendidas: d.und_vendidas,
+      stockDisponible: d.stock_disponible,
+    };
+  });
+
+  const CustomContent = (props: any) => {
+    const { x, y, width, height, name, hex, pctVenta, pctInv } = props;
+    if (width < 20 || height < 20) return null;
+
+    // Determine text color based on luminance
+    const r = parseInt(hex.slice(1, 3), 16);
+    const g = parseInt(hex.slice(3, 5), 16);
+    const b = parseInt(hex.slice(5, 7), 16);
+    const lum = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+    const textColor = lum > 0.5 ? "#000" : "#fff";
+
+    return (
+      <g>
+        <rect x={x} y={y} width={width} height={height} fill={hex} stroke="hsl(var(--background))" strokeWidth={2} rx={4} />
+        {width > 40 && height > 35 && (
+          <>
+            <text x={x + 6} y={y + 16} fill={textColor} fontSize={width > 80 ? 12 : 10} fontWeight="600">{name.length > (width / 7) ? name.slice(0, Math.floor(width / 7)) + "…" : name}</text>
+            <text x={x + 6} y={y + 30} fill={textColor} fontSize={10} opacity={0.85}>Vta {pctVenta}%</text>
+            {height > 48 && <text x={x + 6} y={y + 43} fill={textColor} fontSize={10} opacity={0.85}>Inv {pctInv}%</text>}
+          </>
+        )}
+      </g>
+    );
+  };
+
+  return (
+    <ResponsiveContainer width="100%" height={400}>
+      <Treemap
+        data={treemapData}
+        dataKey="size"
+        nameKey="name"
+        content={<CustomContent />}
+        isAnimationActive={false}
+      >
+        <Tooltip
+          content={({ payload }) => {
+            if (!payload?.length) return null;
+            const d = payload[0].payload;
+            return (
+              <div className="rounded-lg border border-border/50 bg-background px-3 py-2 text-xs shadow-xl">
+                <p className="font-semibold mb-1 flex items-center gap-2">
+                  <span className="w-3 h-3 rounded-sm border border-border inline-block" style={{ backgroundColor: d.hex }} />
+                  {d.name}
+                </p>
+                <p>Vendidas: <span className="font-medium">{d.undVendidas.toLocaleString("es-CO")}</span> — <span className="font-semibold">{d.pctVenta}%</span></p>
+                <p>Stock: <span className="font-medium">{d.stockDisponible.toLocaleString("es-CO")}</span> — <span className="font-semibold">{d.pctInv}%</span></p>
+              </div>
+            );
+          }}
+        />
+      </Treemap>
+    </ResponsiveContainer>
+  );
+}
+
 function KpiCard({ title, value, subtitle, icon }: { title: string; value: string; subtitle?: string; icon: React.ReactNode }) {
   return (
     <Card>
