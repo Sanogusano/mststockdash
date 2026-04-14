@@ -1492,9 +1492,9 @@ function BrandOverviewPanel({ days, comparisonPeriod = "previous" }: { days: num
       const effectiveDays = resolveDays(days);
       const cr = resolveComparisonRange(days, comparisonPeriod);
       const [kpiTiendasRes, kpiOutletsRes, kpiDigitalRes, prevTiendasRes, prevOutletsRes, prevDigitalRes, m2Res] = await Promise.all([
-        supabase.rpc("reporte_kpis_comerciales", { dias_atras: effectiveDays, p_canal: "tiendas", p_location_id: null }),
-        supabase.rpc("reporte_kpis_comerciales", { dias_atras: effectiveDays, p_canal: "outlets", p_location_id: null }),
-        supabase.rpc("reporte_kpis_comerciales", { dias_atras: effectiveDays, p_canal: "digital", p_location_id: null }),
+        buildKpiCall(days, effectiveDays, { p_canal: "tiendas", p_location_id: null }),
+        buildKpiCall(days, effectiveDays, { p_canal: "outlets", p_location_id: null }),
+        buildKpiCall(days, effectiveDays, { p_canal: "digital", p_location_id: null }),
         supabase.rpc("reporte_kpis_por_rango" as any, { p_desde: toDateStr(cr.from), p_hasta: toDateStr(cr.to), p_canal: "tiendas", p_location_id: null }),
         supabase.rpc("reporte_kpis_por_rango" as any, { p_desde: toDateStr(cr.from), p_hasta: toDateStr(cr.to), p_canal: "outlets", p_location_id: null }),
         supabase.rpc("reporte_kpis_por_rango" as any, { p_desde: toDateStr(cr.from), p_hasta: toDateStr(cr.to), p_canal: "digital", p_location_id: null }),
