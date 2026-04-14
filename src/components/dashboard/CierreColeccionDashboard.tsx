@@ -409,6 +409,38 @@ export function CierreColeccionDashboard({ days }: Props) {
             </CardContent>
           </Card>
 
+          {/* Treemap de Venta por Color */}
+          <Card>
+            <CardHeader className="pb-2">
+              <div className="flex items-center justify-between gap-2 flex-wrap">
+                <div>
+                  <CardTitle className="text-sm font-medium flex items-center gap-2">
+                    <Palette className="h-4 w-4" /> Análisis por Color — Venta & Inventario
+                  </CardTitle>
+                  <p className="text-[10px] text-muted-foreground mt-0.5">Tamaño por unidades vendidas · Muestra Vta% e Inv%</p>
+                </div>
+                <Select value={categoriaTreemap || "__all__"} onValueChange={v => setCategoriaTreemap(v === "__all__" ? null : v)}>
+                  <SelectTrigger className="w-[180px] h-8 text-xs">
+                    <SelectValue placeholder="Línea de producto" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__all__">Todas las líneas</SelectItem>
+                    {categorias.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {loadingTreemap ? (
+                <div className="flex items-center justify-center py-10">
+                  <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                </div>
+              ) : treemapColores.length > 0 ? (
+                <ColorTreemap data={treemapColores} cleanColorName={cleanColorName} />
+              ) : <p className="text-sm text-muted-foreground text-center py-10">Sin datos</p>}
+            </CardContent>
+          </Card>
+
           {/* Top 10 Colores + Curva de Tallas */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <Card>
