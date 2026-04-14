@@ -7,6 +7,7 @@ import { TimeFilter } from "@/components/dashboard/TimeFilter";
 import { LoadingState, EmptyState } from "@/components/dashboard/LoadingState";
 import { isValidDays } from "@/lib/validation";
 import { resolveDays } from "@/components/dashboard/TimeFilter";
+import { getFilterEndDate } from "@/components/dashboard/TimeFilter";
 import { exportToCSV } from "@/lib/csv-export";
 import { exportToPDF } from "@/lib/pdf-export";
 import { ArrowLeft, Ruler, Download, FileText, TrendingUp, TrendingDown, Crown, AlertTriangle, ShieldAlert } from "lucide-react";
@@ -58,10 +59,11 @@ export default function VentaM2Page() {
     async function fetchData() {
       setLoading(true);
       const effectiveDays = isValidDays(days) ? resolveDays(days) : days;
+      const hastaParam = getFilterEndDate(days);
 
       const [rankTiendasRes, rankOutletsRes, locRes] = await Promise.all([
-        supabase.rpc("reporte_ranking_tiendas", { dias_atras: effectiveDays, p_canal: "tiendas" }),
-        supabase.rpc("reporte_ranking_tiendas", { dias_atras: effectiveDays, p_canal: "outlets" }),
+        supabase.rpc("reporte_ranking_tiendas", { dias_atras: effectiveDays, p_canal: "tiendas", p_hasta: hastaParam }),
+        supabase.rpc("reporte_ranking_tiendas", { dias_atras: effectiveDays, p_canal: "outlets", p_hasta: hastaParam }),
         supabase.from("locations").select("location_id, name, dimension_m2, tipo_tienda").eq("is_active", true),
       ]);
 

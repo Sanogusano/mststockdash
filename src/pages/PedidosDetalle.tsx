@@ -13,7 +13,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { exportToCSV } from "@/lib/csv-export";
 import { exportToPDF } from "@/lib/pdf-export";
 import { LoadingState } from "@/components/dashboard/LoadingState";
-import { TimeFilter, resolveDays } from "@/components/dashboard/TimeFilter";
+import { TimeFilter, resolveDays, getFilterEndDate } from "@/components/dashboard/TimeFilter";
 
 interface OrderRow {
   numero_pedido: string;
@@ -154,12 +154,14 @@ export default function PedidosDetallePage() {
     const locParam = selectedLocation === "all" ? null : selectedLocation;
     const canalParam = selectedCanal || null;
     const effectiveDays = resolveDays(days);
+    const hastaParam = getFilterEndDate(days);
 
     supabase.rpc("reporte_pedidos_por_tipo_venta", {
       dias_atras: effectiveDays,
       p_canal: canalParam,
       p_location_id: locParam,
       p_tipo: tipo,
+      p_hasta: hastaParam,
     }).then(({ data: rows, error }) => {
       if (error) {
         console.error("Error fetching orders:", error);

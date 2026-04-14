@@ -10,7 +10,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ProductSkuDrawer } from "./ProductSkuDrawer";
 import { CollectionBadge } from "./CollectionBadge";
-import { resolveDays } from "./TimeFilter";
+import { resolveDays, getFilterEndDate } from "./TimeFilter";
 import { fetchCategoryProducts, type ProductRow } from "./categoryProductsData";
 
 
@@ -44,7 +44,7 @@ export function CategoryProductsDrawer({ categoria, days, locationId, canal, sto
     queryKey: ["category-products", categoria, effectiveDays, locationId, canal],
     queryFn: async () => {
       if (!categoria) return [];
-      return fetchCategoryProducts({ categoria, effectiveDays, locationId, canal });
+      return fetchCategoryProducts({ categoria, effectiveDays, locationId, canal, hasta: getFilterEndDate(days) });
     },
     enabled: !!categoria,
   });

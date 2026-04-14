@@ -10,7 +10,7 @@ import { exportToPDF } from "@/lib/pdf-export";
 import { Download, FileText, ArrowLeft, Store, Globe, Truck, AlertTriangle } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { resolveDays } from "./TimeFilter";
+import { resolveDays, getFilterEndDate } from "./TimeFilter";
 
 interface SkuRow {
   sku: string;
@@ -67,6 +67,7 @@ const getWosColor = (wos: number | null) => {
 
 export function ProductSkuDrawer({ product, days, locationId, onClose }: Props) {
   const effectiveDays = resolveDays(days);
+  const hastaParam = getFilterEndDate(days);
 
   // SKU detail (filtered by location if provided)
   const { data: skuData, isLoading: skuLoading } = useQuery({
@@ -77,6 +78,7 @@ export function ProductSkuDrawer({ product, days, locationId, onClose }: Props) 
         dias_atras: effectiveDays,
         p_product_id: product.product_id,
         location_filtro: locationId || null,
+        p_hasta: hastaParam,
       });
       if (error) throw new Error(error.message);
       return (data ?? []) as unknown as SkuRow[];
@@ -151,6 +153,7 @@ export function ProductSkuDrawer({ product, days, locationId, onClose }: Props) 
       const { data: storeDetailRows } = await supabase.rpc("reporte_detalle_producto_tiendas" as any, {
         dias_atras: effectiveDays,
         p_producto: product.producto,
+        p_hasta: hastaParam,
       });
 
       const wosMap = new Map<string, number>();
@@ -199,6 +202,7 @@ export function ProductSkuDrawer({ product, days, locationId, onClose }: Props) 
       if (!product) return [];
       const { data, error } = await supabase.rpc("reporte_sugerencias_traslado" as any, {
         dias_atras: effectiveDays,
+        p_hasta: hastaParam,
       });
       if (error) return [];
       // Filter to only this product

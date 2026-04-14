@@ -3,7 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
-import { TimeFilter, THIS_MONTH_SENTINEL, resolveDays } from "@/components/dashboard/TimeFilter";
+import { TimeFilter, THIS_MONTH_SENTINEL, resolveDays, getFilterEndDate } from "@/components/dashboard/TimeFilter";
 import { LoadingState, EmptyState } from "@/components/dashboard/LoadingState";
 import { StatusBadge } from "@/components/dashboard/StatusBadge";
 import { CategoryProductsDrawer } from "@/components/dashboard/CategoryProductsDrawer";
@@ -129,11 +129,13 @@ export default function LineasProductoPage() {
       setLoading(true);
       setError(null);
       const effectiveDays = resolveDays(days);
+      const hastaParam = getFilterEndDate(days);
       const canalParam = canal === "all" ? null : canal;
       const [res, supplyRes, stockCountRes] = await Promise.all([
         supabase.rpc("reporte_desempeno_por_linea" as any, {
           dias_atras: effectiveDays,
           p_canal: canalParam,
+          p_hasta: hastaParam,
         }),
         supabase.rpc("stock_insumos_agregado" as any),
         supabase.rpc("stock_general_por_producto" as any),

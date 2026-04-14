@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { resolveDays } from "./TimeFilter";
+import { resolveDays, getFilterEndDate } from "./TimeFilter";
 import { LoadingState, EmptyState } from "./LoadingState";
 import { StatusBadge } from "./StatusBadge";
 import { ProductDetailDrawer } from "./ProductDetailDrawer";
@@ -143,7 +143,7 @@ export function ProductBehaviorTable({ days, initialWosFilter, initialLocationId
   const { data, isLoading, error } = useQuery({
     queryKey: ["producto-comportamiento", resolvedDays, search, locationId],
     queryFn: async () => {
-      const params: { dias_atras: number; p_sku_filter?: string; p_location_id?: string } = { dias_atras: resolvedDays };
+      const params: { dias_atras: number; p_sku_filter?: string; p_location_id?: string; p_hasta?: string | null } = { dias_atras: resolvedDays, p_hasta: getFilterEndDate(days) };
       if (search.trim()) params.p_sku_filter = search.trim();
       if (locationId !== "all") params.p_location_id = locationId;
       const { data, error } = await supabase.rpc("reporte_comportamiento_producto", params);

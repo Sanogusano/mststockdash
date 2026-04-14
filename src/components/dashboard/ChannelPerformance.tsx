@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { isValidDays } from "@/lib/validation";
-import { resolveDays } from "@/components/dashboard/TimeFilter";
+import { resolveDays, getFilterEndDate } from "@/components/dashboard/TimeFilter";
 import { LoadingState, EmptyState } from "./LoadingState";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Store, Globe, TrendingUp, TrendingDown } from "lucide-react";
@@ -101,9 +101,10 @@ export function ChannelPerformance({ days }: Props) {
       if (!isValidDays(days)) return;
       setLoading(true);
       const effectiveDays = resolveDays(days);
+      const hastaParam = getFilterEndDate(days);
       const { data: rows, error } = await supabase.rpc(
         "reporte_desempeño_por_canal",
-        { dias_atras: effectiveDays }
+        { dias_atras: effectiveDays, p_hasta: hastaParam }
       );
       if (!error && rows) setData(rows as unknown as ChannelRow[]);
       setLoading(false);

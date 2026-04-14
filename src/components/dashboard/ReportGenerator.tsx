@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { resolveDays, needsDateRange, getDateRange, toDateStr } from "./TimeFilter";
+import { resolveDays, needsDateRange, getDateRange, toDateStr, getFilterEndDate } from "./TimeFilter";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
@@ -548,6 +548,7 @@ async function generateExecutiveReport(
   zona?: string,
 ) {
   const effectiveDays = resolveDays(days);
+  const hastaParam = getFilterEndDate(days);
   let titulo = "DESEMPENO COMERCIAL - Venta Directa";
   if (reportType === "canal" && canal) {
     const canalLabel = canal === "tiendas" ? "Tiendas de Linea" : canal === "outlets" ? "Outlets" : "Digital";
@@ -565,20 +566,20 @@ async function generateExecutiveReport(
 
   // ── Fetch all data in parallel ──
   const fetchPromises: PromiseLike<any>[] = [
-    /* 0 */ (needsDateRange(days) ? supabase.rpc("reporte_kpis_por_rango" as any, (() => { const r = getDateRange(days); return { p_desde: toDateStr(r.from), p_hasta: toDateStr(r.to), p_canal: canalParam, p_location_id: locationParam, p_zona: zonaParam }; })() ) : supabase.rpc("reporte_kpis_comerciales", { dias_atras: effectiveDays, p_canal: canalParam, p_location_id: locationParam, p_zona: zonaParam })) as any,
-    /* 1 */ supabase.rpc("reporte_pareto_categorias" as any, { dias_atras: effectiveDays, p_canal: canalParam ?? "", p_location_id: locationParam }) as any,
-    /* 2 */ supabase.rpc("reporte_ejecutivo_productos", { dias_atras: effectiveDays, canal_filtro: canalFiltro, location_filtro: locationParam, orden: "TOP", limite: 20, zona_filtro: zonaParam }) as any,
-    /* 3 */ supabase.rpc("reporte_ejecutivo_productos", { dias_atras: effectiveDays, canal_filtro: canalFiltro, location_filtro: locationParam, orden: "BOTTOM", limite: 20, zona_filtro: zonaParam }) as any,
-    /* 4 */ supabase.rpc("reporte_desempeno_por_linea" as any, { dias_atras: effectiveDays, p_canal: canalParam }) as any,
+    /* 0 */ (needsDateRange(days) ? supabase.rpc("reporte_kpis_por_rango" as any, (() => { const r = getDateRange(days); return { p_desde: toDateStr(r.from), p_hasta: toDateStr(r.to), p_canal: canalParam, p_location_id: locationParam, p_zona: zonaParam }; })() ) : supabase.rpc("reporte_kpis_comerciales", { dias_atras: effectiveDays, p_canal: canalParam, p_location_id: locationParam, p_zona: zonaParam, p_hasta: hastaParam })) as any,
+    /* 1 */ supabase.rpc("reporte_pareto_categorias" as any, { dias_atras: effectiveDays, p_canal: canalParam ?? "", p_location_id: locationParam, p_hasta: hastaParam }) as any,
+    /* 2 */ supabase.rpc("reporte_ejecutivo_productos", { dias_atras: effectiveDays, canal_filtro: canalFiltro, location_filtro: locationParam, orden: "TOP", limite: 20, zona_filtro: zonaParam, p_hasta: hastaParam }) as any,
+    /* 3 */ supabase.rpc("reporte_ejecutivo_productos", { dias_atras: effectiveDays, canal_filtro: canalFiltro, location_filtro: locationParam, orden: "BOTTOM", limite: 20, zona_filtro: zonaParam, p_hasta: hastaParam }) as any,
+    /* 4 */ supabase.rpc("reporte_desempeno_por_linea" as any, { dias_atras: effectiveDays, p_canal: canalParam, p_hasta: hastaParam }) as any,
     /* 5 */ getLogoBase64(),
-    /* 6 */ supabase.rpc("reporte_kpis_periodo_anterior", { dias_atras: effectiveDays, p_canal: canalParam, p_location_id: locationParam, p_zona: zonaParam }) as any,
+    /* 6 */ supabase.rpc("reporte_kpis_periodo_anterior", { dias_atras: effectiveDays, p_canal: canalParam, p_location_id: locationParam, p_zona: zonaParam, p_hasta: hastaParam }) as any,
     /* 7 - metricas */ locationParam
-      ? supabase.rpc("reporte_metricas_tienda_individual", { dias_atras: effectiveDays, p_location_id: locationParam }) as any
-      : supabase.rpc("reporte_metricas_zona", { dias_atras: effectiveDays, p_canal: canalParam, p_zona: zonaParam }) as any,
-    /* 8 */ supabase.rpc("reporte_ranking_tiendas", { dias_atras: effectiveDays, p_canal: canalParam }) as any,
-    /* 9 */ supabase.rpc("reporte_pct_ventas_por_tipo", { dias_atras: effectiveDays, p_canal: canalParam, p_location_id: locationParam, p_zona: zonaParam }) as any,
-    /* 10 */ supabase.rpc("reporte_pedidos_por_tipo_venta", { dias_atras: effectiveDays, p_canal: canalParam, p_location_id: locationParam, p_tipo: "descuento" }) as any,
-    /* 11 */ supabase.rpc("reporte_comportamiento_producto", { dias_atras: effectiveDays }) as any,
+      ? supabase.rpc("reporte_metricas_tienda_individual", { dias_atras: effectiveDays, p_location_id: locationParam, p_hasta: hastaParam }) as any
+      : supabase.rpc("reporte_metricas_zona", { dias_atras: effectiveDays, p_canal: canalParam, p_zona: zonaParam, p_hasta: hastaParam }) as any,
+    /* 8 */ supabase.rpc("reporte_ranking_tiendas", { dias_atras: effectiveDays, p_canal: canalParam, p_hasta: hastaParam }) as any,
+    /* 9 */ supabase.rpc("reporte_pct_ventas_por_tipo", { dias_atras: effectiveDays, p_canal: canalParam, p_location_id: locationParam, p_zona: zonaParam, p_hasta: hastaParam }) as any,
+    /* 10 */ supabase.rpc("reporte_pedidos_por_tipo_venta", { dias_atras: effectiveDays, p_canal: canalParam, p_location_id: locationParam, p_tipo: "descuento", p_hasta: hastaParam }) as any,
+    /* 11 */ supabase.rpc("reporte_comportamiento_producto", { dias_atras: effectiveDays, p_hasta: hastaParam }) as any,
     /* 12 */ supabase.from("locations").select("location_id, name, zona, dimension_m2").eq("is_active", true) as any,
   ];
 
@@ -922,8 +923,9 @@ async function generateExecutiveReport(
    ───────────────────────────────────────────────── */
 async function generateHealthReport(days: number) {
   const effectiveDays = resolveDays(days);
+  const hastaParam = getFilterEndDate(days);
   const [healthRes, logoB64] = await Promise.all([
-    supabase.rpc("reporte_comportamiento_producto", { dias_atras: effectiveDays }),
+    supabase.rpc("reporte_comportamiento_producto", { dias_atras: effectiveDays, p_hasta: hastaParam }),
     getLogoBase64(),
   ]);
 
@@ -986,8 +988,9 @@ async function generateHealthReport(days: number) {
    ───────────────────────────────────────────────── */
 async function generateTransferReport(days: number) {
   const effectiveDays = resolveDays(days);
+  const hastaParam = getFilterEndDate(days);
   const [transferRes, logoB64] = await Promise.all([
-    supabase.rpc("reporte_sugerencias_traslado", { dias_atras: effectiveDays }),
+    supabase.rpc("reporte_sugerencias_traslado", { dias_atras: effectiveDays, p_hasta: hastaParam }),
     getLogoBase64(),
   ]);
 

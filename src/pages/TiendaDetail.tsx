@@ -10,7 +10,7 @@ import { MultiSelectFilter } from "@/components/dashboard/MultiSelectFilter";
 import { ArrowLeft, DollarSign, Receipt, ShoppingBag, Star, Percent, Package, Filter, Tag } from "lucide-react";
 import { CollectionInventoryCard } from "@/components/dashboard/CollectionInventoryCard";
 import { isValidDays } from "@/lib/validation";
-import { resolveDays, needsDateRange, getDateRange, toDateStr } from "@/components/dashboard/TimeFilter";
+import { resolveDays, needsDateRange, getDateRange, toDateStr, getFilterEndDate } from "@/components/dashboard/TimeFilter";
 import { cn } from "@/lib/utils";
 import { CategoryProductsDrawer } from "@/components/dashboard/CategoryProductsDrawer";
 
@@ -95,18 +95,19 @@ export default function TiendaDetailPage() {
       if (!id || !isValidDays(days)) return;
       setLoading(true);
       const effectiveDays = resolveDays(days);
+      const hastaParam = getFilterEndDate(days);
 
       const [locRes, wosRes, kpiRes, supplyRes, wosCatRes] = await Promise.all([
         supabase.from("locations").select("name").eq("location_id", id).single(),
-        supabase.rpc("reporte_wos_categoria_tienda", { dias_atras: effectiveDays, p_location_id: id }),
+        supabase.rpc("reporte_wos_categoria_tienda", { dias_atras: effectiveDays, p_location_id: id, p_hasta: hastaParam }),
         needsDateRange(days)
           ? supabase.rpc("reporte_kpis_por_rango" as any, (() => { const r = getDateRange(days); return { p_desde: toDateStr(r.from), p_hasta: toDateStr(r.to), p_location_id: id }; })())
-          : supabase.rpc("reporte_kpis_comerciales", { dias_atras: effectiveDays, p_location_id: id }),
+          : supabase.rpc("reporte_kpis_comerciales", { dias_atras: effectiveDays, p_location_id: id, p_hasta: hastaParam }),
         supabase
           .from("product_catalog")
           .select("sku, title, category, variant_id")
           .or("category.ilike.%bolsa%,category.ilike.%insumo%"),
-        supabase.rpc("reporte_wos_categoria_global", { dias_atras: effectiveDays, p_location_ids: [id] }),
+        supabase.rpc("reporte_wos_categoria_global", { dias_atras: effectiveDays, p_location_ids: [id], p_hasta: hastaParam }),
       ]);
 
       if (locRes.data) setStoreName(locRes.data.name);

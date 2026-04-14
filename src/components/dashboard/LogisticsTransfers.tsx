@@ -1,7 +1,7 @@
 import { useEffect, useState, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { isValidDays } from "@/lib/validation";
-import { resolveDays } from "@/components/dashboard/TimeFilter";
+import { resolveDays, getFilterEndDate } from "@/components/dashboard/TimeFilter";
 import { exportToCSV } from "@/lib/csv-export";
 import { exportToPDF } from "@/lib/pdf-export";
 import { exportToXLS } from "@/lib/xls-export";
@@ -109,10 +109,12 @@ export function LogisticsTransfers({ days }: Props) {
       if (!isValidDays(days)) return;
       setLoading(true);
       const effectiveDays = resolveDays(days);
+      const hastaParam = getFilterEndDate(days);
       const { data: rows, error } = await supabase.rpc("reporte_curva_traslados" as any, {
         dias_atras: effectiveDays,
         p_origen: origenFilter === "all" ? null : origenFilter,
         p_destino: destinoFilter === "all" ? null : destinoFilter,
+        p_hasta: hastaParam,
       });
       if (!error && rows) setData(rows as unknown as CurvaRow[]);
       else setData([]);

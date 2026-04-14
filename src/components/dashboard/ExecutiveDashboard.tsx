@@ -2,7 +2,7 @@ import { useEffect, useState, Fragment } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { isValidDays } from "@/lib/validation";
-import { resolveDays, resolveComparisonRange, getDateRange, needsDateRange, toDateStr as _toDateStr, CUSTOM_SENTINEL, PREV_MONTH_SENTINEL, THIS_MONTH_SENTINEL, type ComparisonPeriod } from "@/components/dashboard/TimeFilter";
+import { resolveDays, resolveComparisonRange, getDateRange, needsDateRange, toDateStr as _toDateStr, getFilterEndDate, CUSTOM_SENTINEL, PREV_MONTH_SENTINEL, THIS_MONTH_SENTINEL, type ComparisonPeriod } from "@/components/dashboard/TimeFilter";
 import { exportToCSV } from "@/lib/csv-export";
 import { cn } from "@/lib/utils";
 import { exportToPDF } from "@/lib/pdf-export";
@@ -125,6 +125,7 @@ function buildKpiCall(
     p_canal: opts.p_canal ?? null,
     p_location_id: opts.p_location_id ?? null,
     p_zona: opts.p_zona ?? null,
+    p_hasta: getFilterEndDate(days),
   });
 }
 
@@ -248,11 +249,13 @@ function ProductTable({ data, title, exportFilename, days, canalFiltro, location
     setExpandedId(productId);
     setSkuLoading(true);
     const effectiveDays = resolveDays(days);
+    const hastaParam = getFilterEndDate(days);
     const { data: rows } = await supabase.rpc("reporte_detalle_skus_producto" as any, {
       dias_atras: effectiveDays,
       p_product_id: productId,
       canal_filtro: canalFiltro || null,
       location_filtro: locationFiltro || null,
+      p_hasta: hastaParam,
     });
     setSkuDetails((rows ?? []) as unknown as SkuDetailRow[]);
     setSkuLoading(false);
@@ -408,11 +411,13 @@ function VentasTipoCards({ days, canal, locationId, zona }: { days: number; cana
       if (!isValidDays(days)) return;
       setLoading(true);
       const effectiveDays = resolveDays(days);
+      const hastaParam = getFilterEndDate(days);
       const { data: rows } = await supabase.rpc("reporte_pct_ventas_por_tipo" as any, {
         dias_atras: effectiveDays,
         p_canal: canal || null,
         p_location_id: locationId || null,
         p_zona: zona || null,
+        p_hasta: hastaParam,
       });
       if (rows && (rows as any[]).length > 0) {
         const r = (rows as any[])[0];
@@ -464,10 +469,12 @@ function ParetoChart({ days, canal, locationId }: { days: number; canal: string;
       if (!isValidDays(days)) return;
       setLoading(true);
       const effectiveDays = resolveDays(days);
+      const hastaParam = getFilterEndDate(days);
       const { data: rows } = await supabase.rpc("reporte_pareto_categorias" as any, {
         dias_atras: effectiveDays,
         p_canal: canal || null,
         p_location_id: locationId || null,
+        p_hasta: hastaParam,
       });
       if (rows) {
         const normalized = (rows as any[]).map((r) => ({
@@ -612,9 +619,11 @@ function WorstLinesRecommendation({ days, canal, locationId }: { days: number; c
       if (!isValidDays(days)) return;
       setLoading(true);
       const effectiveDays = resolveDays(days);
+      const hastaParam = getFilterEndDate(days);
       const { data: rows } = await supabase.rpc("reporte_comportamiento_producto", {
         dias_atras: effectiveDays,
         p_location_id: locationId || null,
+        p_hasta: hastaParam,
       });
       if (rows) setData(rows as unknown as ComportamientoRow[]);
       setLoading(false);
@@ -709,9 +718,11 @@ function StockOutAlerts({ days, locationId }: { days: number; locationId?: strin
       if (!isValidDays(days)) return;
       setLoading(true);
       const effectiveDays = resolveDays(days);
+      const hastaParam = getFilterEndDate(days);
       const { data: rows } = await supabase.rpc("reporte_comportamiento_producto", {
         dias_atras: effectiveDays,
         p_location_id: locationId || null,
+        p_hasta: hastaParam,
       });
       if (rows) {
         const filtered = (rows as unknown as AlertRow[])
@@ -784,10 +795,11 @@ function StoreRankCard({ days, canal, locationId, locationName }: {
       if (!isValidDays(days)) return;
       setLoading(true);
       const effectiveDays = resolveDays(days);
+      const hastaParam = getFilterEndDate(days);
 
       const [rankRes, metricsRes] = await Promise.all([
-        supabase.rpc("reporte_ranking_tiendas", { dias_atras: effectiveDays, p_canal: canal || null }),
-        supabase.rpc("reporte_metricas_tienda_individual" as any, { dias_atras: effectiveDays, p_location_id: locationId }),
+        supabase.rpc("reporte_ranking_tiendas", { dias_atras: effectiveDays, p_canal: canal || null, p_hasta: hastaParam }),
+        supabase.rpc("reporte_metricas_tienda_individual" as any, { dias_atras: effectiveDays, p_location_id: locationId, p_hasta: hastaParam }),
       ]);
 
       if (rankRes.data) {
@@ -921,10 +933,11 @@ function DigitalChannelCard({ days }: { days: number }) {
       if (!isValidDays(days)) return;
       setLoading(true);
       const effectiveDays = resolveDays(days);
+      const hastaParam = getFilterEndDate(days);
 
       const [rankRes, metricsRes] = await Promise.all([
-        supabase.rpc("reporte_ranking_tiendas", { dias_atras: effectiveDays, p_canal: null }),
-        supabase.rpc("reporte_metricas_tienda_individual" as any, { dias_atras: effectiveDays, p_location_id: CEDI_ID }),
+        supabase.rpc("reporte_ranking_tiendas", { dias_atras: effectiveDays, p_canal: null, p_hasta: hastaParam }),
+        supabase.rpc("reporte_metricas_tienda_individual" as any, { dias_atras: effectiveDays, p_location_id: CEDI_ID, p_hasta: hastaParam }),
       ]);
 
       if (rankRes.data) {
@@ -1091,6 +1104,7 @@ function ChannelPanel({ days, canal, showLocationFilter, locationFilter, compari
             location_filtro: locParam,
             orden: "TOP",
             limite: 20,
+            p_hasta: getFilterEndDate(days),
           }),
           supabase.rpc("reporte_ejecutivo_productos", {
             dias_atras: effectiveDays,
@@ -1098,6 +1112,7 @@ function ChannelPanel({ days, canal, showLocationFilter, locationFilter, compari
             location_filtro: locParam,
             orden: "BOTTOM",
             limite: 20,
+            p_hasta: getFilterEndDate(days),
           }),
           // Fetch m² for the selected location or all relevant locations
           locParam
@@ -1321,9 +1336,10 @@ function BrandTopBottomProducts({ days }: { days: number }) {
       if (!isValidDays(days)) return;
       setLoading(true);
       const effectiveDays = resolveDays(days);
+      const hastaParam = getFilterEndDate(days);
       const [topRes, bottomRes] = await Promise.all([
-        supabase.rpc("reporte_top_productos_global" as any, { dias_atras: effectiveDays, p_orden: "TOP", p_limite: 5 }),
-        supabase.rpc("reporte_top_productos_global" as any, { dias_atras: effectiveDays, p_orden: "BOTTOM", p_limite: 5 }),
+        supabase.rpc("reporte_top_productos_global" as any, { dias_atras: effectiveDays, p_orden: "TOP", p_limite: 5, p_hasta: hastaParam }),
+        supabase.rpc("reporte_top_productos_global" as any, { dias_atras: effectiveDays, p_orden: "BOTTOM", p_limite: 5, p_hasta: hastaParam }),
       ]);
       if (topRes.data) setTop5(topRes.data as unknown as GlobalProductRow[]);
       if (bottomRes.data) setBottom5(bottomRes.data as unknown as GlobalProductRow[]);
@@ -1666,19 +1682,19 @@ function ZonePanel({ days, locationFilter, comparisonPeriod = "previous" }: { da
       const [kpiRes, prevKpiRes, rankRes, topRes, bottomRes, m2Res, zoneMetricsRes] = await Promise.all([
         buildKpiCall(days, effectiveDays, { p_canal: canal, p_location_id: locParam, p_zona: zonaParam }),
         (() => { const cr = resolveComparisonRange(days, comparisonPeriod); return supabase.rpc("reporte_kpis_por_rango" as any, { p_desde: toDateStr(cr.from), p_hasta: toDateStr(cr.to), p_canal: canal, p_location_id: locParam, p_zona: zonaParam }); })(),
-        supabase.rpc("reporte_ranking_tiendas", { dias_atras: effectiveDays, p_canal: canal }),
+        supabase.rpc("reporte_ranking_tiendas", { dias_atras: effectiveDays, p_canal: canal, p_hasta: getFilterEndDate(days) }),
         supabase.rpc("reporte_ejecutivo_productos" as any, {
-          dias_atras: effectiveDays, canal_filtro: canalFiltro, location_filtro: locParam, orden: "TOP", limite: 20, zona_filtro: zonaParam,
+          dias_atras: effectiveDays, canal_filtro: canalFiltro, location_filtro: locParam, orden: "TOP", limite: 20, zona_filtro: zonaParam, p_hasta: getFilterEndDate(days),
         }),
         supabase.rpc("reporte_ejecutivo_productos" as any, {
-          dias_atras: effectiveDays, canal_filtro: canalFiltro, location_filtro: locParam, orden: "BOTTOM", limite: 20, zona_filtro: zonaParam,
+          dias_atras: effectiveDays, canal_filtro: canalFiltro, location_filtro: locParam, orden: "BOTTOM", limite: 20, zona_filtro: zonaParam, p_hasta: getFilterEndDate(days),
         }),
         locParam
           ? supabase.from("locations").select("dimension_m2").eq("location_id", locParam)
           : supabase.from("locations").select("dimension_m2, location_id, tipo_tienda, zona").eq("is_active", true).not("dimension_m2", "is", null),
         locParam
-          ? supabase.rpc("reporte_metricas_tienda_individual" as any, { dias_atras: effectiveDays, p_location_id: locParam })
-          : supabase.rpc("reporte_metricas_zona" as any, { dias_atras: effectiveDays, p_canal: canal, p_zona: zonaParam }),
+          ? supabase.rpc("reporte_metricas_tienda_individual" as any, { dias_atras: effectiveDays, p_location_id: locParam, p_hasta: getFilterEndDate(days) })
+          : supabase.rpc("reporte_metricas_zona" as any, { dias_atras: effectiveDays, p_canal: canal, p_zona: zonaParam, p_hasta: getFilterEndDate(days) }),
       ]);
 
       const emptyKpi = normalizeKpiData({});
@@ -1985,8 +2001,9 @@ function ZoneStoreRankCard({ days, canal, locationId, locationName, allRanking, 
     async function fetch() {
       if (!isValidDays(days)) return;
       setLoading(true);
+      const hastaParam = getFilterEndDate(days);
       const { data: metricsData } = await supabase.rpc("reporte_metricas_tienda_individual" as any, {
-        dias_atras: effectiveDays, p_location_id: locationId,
+        dias_atras: effectiveDays, p_location_id: locationId, p_hasta: hastaParam,
       });
       if (metricsData && (metricsData as any[]).length > 0) {
         setExtraMetrics((metricsData as any[])[0] as ExtraMetrics);

@@ -35,12 +35,25 @@ export function resolveDays(value: number): number {
   if (value === PREV_MONTH_SENTINEL) {
     const now = new Date();
     const prevStart = startOfMonth(subMonths(now, 1));
-    return differenceInCalendarDays(now, prevStart);
+    const prevEnd = endOfMonth(subMonths(now, 1));
+    return differenceInCalendarDays(prevEnd, prevStart) + 1;
   }
   if (value === CUSTOM_SENTINEL) {
     return 30;
   }
   return value;
+}
+
+/** 
+ * Returns the end date as 'YYYY-MM-DD' string when the filter needs a bounded query.
+ * Returns null for filters where the natural upper bound is "today" (no bounding needed).
+ */
+export function getFilterEndDate(value: number): string | null {
+  if (value === PREV_MONTH_SENTINEL) {
+    const prevEnd = endOfMonth(subMonths(new Date(), 1));
+    return `${prevEnd.getFullYear()}-${String(prevEnd.getMonth() + 1).padStart(2, "0")}-${String(prevEnd.getDate()).padStart(2, "0")}`;
+  }
+  return null;
 }
 
 /** Returns the actual date range for a given filter value */

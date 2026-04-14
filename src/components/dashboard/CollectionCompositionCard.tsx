@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { isValidDays } from "@/lib/validation";
-import { resolveDays } from "./TimeFilter";
+import { resolveDays, getFilterEndDate } from "./TimeFilter";
 import { LoadingState } from "./LoadingState";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 import { Layers, ChevronDown, ChevronRight } from "lucide-react";
@@ -40,11 +40,13 @@ export function CollectionCompositionCard({ days, canal, locationId, zona }: Pro
       if (!isValidDays(days)) return;
       setLoading(true);
       const effectiveDays = resolveDays(days);
+      const hastaParam = getFilterEndDate(days);
       const params = {
         dias_atras: effectiveDays,
         p_canal: canal || null,
         p_location_id: locationId || null,
         p_zona: zona || null,
+        p_hasta: hastaParam,
       };
       const [res1, res2] = await Promise.all([
         supabase.rpc("reporte_composicion_coleccion" as any, params),

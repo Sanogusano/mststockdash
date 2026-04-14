@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { isValidDays } from "@/lib/validation";
-import { resolveDays } from "@/components/dashboard/TimeFilter";
+import { resolveDays, getFilterEndDate } from "@/components/dashboard/TimeFilter";
 import { exportToCSV } from "@/lib/csv-export";
 import { exportToPDF } from "@/lib/pdf-export";
 import { LoadingState, EmptyState } from "./LoadingState";
@@ -117,9 +117,10 @@ export function StoreLeaderboard({ days, canal }: { days: number; canal?: string
       if (!isValidDays(days)) return;
       setLoading(true);
       const effectiveDays = resolveDays(days);
+      const hastaParam = getFilterEndDate(days);
       const [curRes, prevRes] = await Promise.all([
-        supabase.rpc("reporte_ranking_tiendas", { dias_atras: effectiveDays, p_canal: canal || null }),
-        supabase.rpc("reporte_ranking_tiendas_anterior" as any, { dias_atras: effectiveDays, p_canal: canal || null }),
+        supabase.rpc("reporte_ranking_tiendas", { dias_atras: effectiveDays, p_canal: canal || null, p_hasta: hastaParam }),
+        supabase.rpc("reporte_ranking_tiendas_anterior" as any, { dias_atras: effectiveDays, p_canal: canal || null, p_hasta: hastaParam }),
       ]);
       if (curRes.data) setData(curRes.data as unknown as RankingRow[]);
       if (prevRes.data) setPrevData(prevRes.data as unknown as PrevRow[]);
