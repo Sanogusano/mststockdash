@@ -10,7 +10,7 @@ import { MultiSelectFilter } from "@/components/dashboard/MultiSelectFilter";
 import { ArrowLeft, DollarSign, Receipt, ShoppingBag, Star, Percent, Package, Filter, Tag } from "lucide-react";
 import { CollectionInventoryCard } from "@/components/dashboard/CollectionInventoryCard";
 import { isValidDays } from "@/lib/validation";
-import { resolveDays } from "@/components/dashboard/TimeFilter";
+import { resolveDays, needsDateRange, getDateRange, toDateStr } from "@/components/dashboard/TimeFilter";
 import { cn } from "@/lib/utils";
 import { CategoryProductsDrawer } from "@/components/dashboard/CategoryProductsDrawer";
 
@@ -99,7 +99,9 @@ export default function TiendaDetailPage() {
       const [locRes, wosRes, kpiRes, supplyRes, wosCatRes] = await Promise.all([
         supabase.from("locations").select("name").eq("location_id", id).single(),
         supabase.rpc("reporte_wos_categoria_tienda", { dias_atras: effectiveDays, p_location_id: id }),
-        supabase.rpc("reporte_kpis_comerciales", { dias_atras: effectiveDays, p_location_id: id }),
+        needsDateRange(days)
+          ? supabase.rpc("reporte_kpis_por_rango" as any, (() => { const r = getDateRange(days); return { p_desde: toDateStr(r.from), p_hasta: toDateStr(r.to), p_location_id: id }; })())
+          : supabase.rpc("reporte_kpis_comerciales", { dias_atras: effectiveDays, p_location_id: id }),
         supabase
           .from("product_catalog")
           .select("sku, title, category, variant_id")

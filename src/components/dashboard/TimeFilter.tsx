@@ -14,9 +14,18 @@ export const THIS_MONTH_SENTINEL = -1;
 export const CUSTOM_SENTINEL = -2;
 export const PREV_MONTH_SENTINEL = -3;
 
-/** Helper: format a Date as "YYYY-MM-DD" using LOCAL components (avoids UTC shift). */
-function localDateStr(d: Date): string {
+/** Returns true when the filter value requires explicit date-range RPCs instead of dias_atras */
+export function needsDateRange(value: number): boolean {
+  return value === THIS_MONTH_SENTINEL || value === PREV_MONTH_SENTINEL || value === CUSTOM_SENTINEL;
+}
+
+/** Format a Date as "YYYY-MM-DD" using LOCAL components (avoids UTC shift). */
+export function toDateStr(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+function localDateStr(d: Date): string {
+  return toDateStr(d);
 }
 
 export function resolveDays(value: number): number {

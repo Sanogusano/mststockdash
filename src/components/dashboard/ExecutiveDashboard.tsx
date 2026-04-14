@@ -2,7 +2,7 @@ import { useEffect, useState, Fragment } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { isValidDays } from "@/lib/validation";
-import { resolveDays, resolveComparisonRange, getDateRange, CUSTOM_SENTINEL, type ComparisonPeriod } from "@/components/dashboard/TimeFilter";
+import { resolveDays, resolveComparisonRange, getDateRange, needsDateRange, toDateStr as _toDateStr, CUSTOM_SENTINEL, PREV_MONTH_SENTINEL, THIS_MONTH_SENTINEL, type ComparisonPeriod } from "@/components/dashboard/TimeFilter";
 import { exportToCSV } from "@/lib/csv-export";
 import { cn } from "@/lib/utils";
 import { exportToPDF } from "@/lib/pdf-export";
@@ -101,7 +101,31 @@ interface Props {
 
 /** Format a Date as "YYYY-MM-DD" for RPC date params */
 function toDateStr(d: Date): string {
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  return _toDateStr(d);
+}
+
+/** Build the right KPI RPC call depending on whether we need date-range or dias_atras */
+function buildKpiCall(
+  days: number,
+  effectiveDays: number,
+  opts: { p_canal?: string | null; p_location_id?: string | null; p_zona?: string | null; customFrom?: Date; customTo?: Date }
+) {
+  if (needsDateRange(days)) {
+    const { from, to } = getDateRange(days, opts.customFrom, opts.customTo);
+    return supabase.rpc("reporte_kpis_por_rango" as any, {
+      p_desde: toDateStr(from),
+      p_hasta: toDateStr(to),
+      p_canal: opts.p_canal ?? null,
+      p_location_id: opts.p_location_id ?? null,
+      p_zona: opts.p_zona ?? null,
+    });
+  }
+  return supabase.rpc("reporte_kpis_comerciales", {
+    dias_atras: effectiveDays,
+    p_canal: opts.p_canal ?? null,
+    p_location_id: opts.p_location_id ?? null,
+    p_zona: opts.p_zona ?? null,
+  });
 }
 
 /* ── Export Buttons ── */
@@ -1051,11 +1075,7 @@ function ChannelPanel({ days, canal, showLocationFilter, locationFilter, compari
 
       try {
         const [kpiRes, prevKpiRes, topRes, bottomRes, m2Res] = await Promise.all([
-          supabase.rpc("reporte_kpis_comerciales", {
-            dias_atras: effectiveDays,
-            p_canal: canal,
-            p_location_id: locParam,
-          }),
+          buildKpiCall(days, effectiveDays, { p_canal: canal, p_location_id: locParam }),
           (() => {
             const compRange = resolveComparisonRange(days, comparisonPeriod);
             return supabase.rpc("reporte_kpis_por_rango" as any, {
@@ -1472,9 +1492,9 @@ function BrandOverviewPanel({ days, comparisonPeriod = "previous" }: { days: num
       const effectiveDays = resolveDays(days);
       const cr = resolveComparisonRange(days, comparisonPeriod);
       const [kpiTiendasRes, kpiOutletsRes, kpiDigitalRes, prevTiendasRes, prevOutletsRes, prevDigitalRes, m2Res] = await Promise.all([
-        supabase.rpc("reporte_kpis_comerciales", { dias_atras: effectiveDays, p_canal: "tiendas", p_location_id: null }),
-        supabase.rpc("reporte_kpis_comerciales", { dias_atras: effectiveDays, p_canal: "outlets", p_location_id: null }),
-        supabase.rpc("reporte_kpis_comerciales", { dias_atras: effectiveDays, p_canal: "digital", p_location_id: null }),
+        buildKpiCall(days, effectiveDays, { p_canal: "tiendas", p_location_id: null }),
+        buildKpiCall(days, effectiveDays, { p_canal: "outlets", p_location_id: null }),
+        buildKpiCall(days, effectiveDays, { p_canal: "digital", p_location_id: null }),
         supabase.rpc("reporte_kpis_por_rango" as any, { p_desde: toDateStr(cr.from), p_hasta: toDateStr(cr.to), p_canal: "tiendas", p_location_id: null }),
         supabase.rpc("reporte_kpis_por_rango" as any, { p_desde: toDateStr(cr.from), p_hasta: toDateStr(cr.to), p_canal: "outlets", p_location_id: null }),
         supabase.rpc("reporte_kpis_por_rango" as any, { p_desde: toDateStr(cr.from), p_hasta: toDateStr(cr.to), p_canal: "digital", p_location_id: null }),
@@ -1644,9 +1664,7 @@ function ZonePanel({ days, locationFilter, comparisonPeriod = "previous" }: { da
       const zonaParam = selectedZone !== "all" ? selectedZone : null;
 
       const [kpiRes, prevKpiRes, rankRes, topRes, bottomRes, m2Res, zoneMetricsRes] = await Promise.all([
-        supabase.rpc("reporte_kpis_comerciales" as any, {
-          dias_atras: effectiveDays, p_canal: canal, p_location_id: locParam, p_zona: zonaParam,
-        }),
+        buildKpiCall(days, effectiveDays, { p_canal: canal, p_location_id: locParam, p_zona: zonaParam }),
         (() => { const cr = resolveComparisonRange(days, comparisonPeriod); return supabase.rpc("reporte_kpis_por_rango" as any, { p_desde: toDateStr(cr.from), p_hasta: toDateStr(cr.to), p_canal: canal, p_location_id: locParam, p_zona: zonaParam }); })(),
         supabase.rpc("reporte_ranking_tiendas", { dias_atras: effectiveDays, p_canal: canal }),
         supabase.rpc("reporte_ejecutivo_productos" as any, {
