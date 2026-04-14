@@ -113,8 +113,8 @@ export function CumplimientoDashboard() {
           .then(r => r.data || []),
         fetchAll<any>(
           "orders",
-          "shopify_order_id, location_id, total_price, source_name, created_at",
-          (q: any) => q.gte("created_at", startDate).lt("created_at", endDate)
+          "shopify_order_id, location_id, total_price, source_name, created_at, financial_status",
+          (q: any) => q.gte("created_at", startDate).lt("created_at", endDate).not("financial_status", "in", "(voided,refunded)")
         ),
         supabase
           .from("locations")
