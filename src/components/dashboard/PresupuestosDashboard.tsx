@@ -42,9 +42,10 @@ export function PresupuestosDashboard() {
 
       const { data: orders } = await supabase
         .from("orders")
-        .select("location_id, total_price, source_name")
+        .select("location_id, total_price, source_name, financial_status")
         .gte("created_at", startDate)
-        .lt("created_at", endDate);
+        .lt("created_at", endDate)
+        .not("financial_status", "in", "(voided,refunded)");
 
       if (orders) {
         // Get location names

@@ -157,10 +157,11 @@ export function LiquidacionPanel() {
 
       const { data: orders } = await supabase
         .from("orders")
-        .select("order_number, created_at, total_price, location_id")
+        .select("order_number, created_at, total_price, location_id, financial_status")
         .in("location_id", locationIds)
         .gte("created_at", minDate)
         .lte("created_at", maxDate + "T23:59:59")
+        .not("financial_status", "in", "(voided,refunded)")
         .order("created_at", { ascending: false })
         .limit(5000);
 
