@@ -35,7 +35,8 @@ export function resolveDays(value: number): number {
   if (value === PREV_MONTH_SENTINEL) {
     const now = new Date();
     const prevStart = startOfMonth(subMonths(now, 1));
-    return differenceInCalendarDays(now, prevStart);
+    const prevEnd = endOfMonth(subMonths(now, 1));
+    return differenceInCalendarDays(prevEnd, prevStart) + 1;
   }
   if (value === CUSTOM_SENTINEL) {
     return 30;
