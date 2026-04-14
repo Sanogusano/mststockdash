@@ -338,6 +338,7 @@ export type Database = {
       orders: {
         Row: {
           created_at: string
+          financial_status: string | null
           location_id: string | null
           order_number: string
           shopify_order_id: string
@@ -346,6 +347,7 @@ export type Database = {
         }
         Insert: {
           created_at: string
+          financial_status?: string | null
           location_id?: string | null
           order_number: string
           shopify_order_id: string
@@ -354,6 +356,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          financial_status?: string | null
           location_id?: string | null
           order_number?: string
           shopify_order_id?: string
