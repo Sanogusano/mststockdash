@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { resolveDays } from "./TimeFilter";
+import { resolveDays, needsDateRange, getDateRange, toDateStr } from "./TimeFilter";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
@@ -565,7 +565,7 @@ async function generateExecutiveReport(
 
   // ── Fetch all data in parallel ──
   const fetchPromises: PromiseLike<any>[] = [
-    /* 0 */ supabase.rpc("reporte_kpis_comerciales", { dias_atras: effectiveDays, p_canal: canalParam, p_location_id: locationParam, p_zona: zonaParam }) as any,
+    /* 0 */ (needsDateRange(days) ? supabase.rpc("reporte_kpis_por_rango" as any, (() => { const r = getDateRange(days); return { p_desde: toDateStr(r.from), p_hasta: toDateStr(r.to), p_canal: canalParam, p_location_id: locationParam, p_zona: zonaParam }; })() ) : supabase.rpc("reporte_kpis_comerciales", { dias_atras: effectiveDays, p_canal: canalParam, p_location_id: locationParam, p_zona: zonaParam })) as any,
     /* 1 */ supabase.rpc("reporte_pareto_categorias" as any, { dias_atras: effectiveDays, p_canal: canalParam ?? "", p_location_id: locationParam }) as any,
     /* 2 */ supabase.rpc("reporte_ejecutivo_productos", { dias_atras: effectiveDays, canal_filtro: canalFiltro, location_filtro: locationParam, orden: "TOP", limite: 20, zona_filtro: zonaParam }) as any,
     /* 3 */ supabase.rpc("reporte_ejecutivo_productos", { dias_atras: effectiveDays, canal_filtro: canalFiltro, location_filtro: locationParam, orden: "BOTTOM", limite: 20, zona_filtro: zonaParam }) as any,
