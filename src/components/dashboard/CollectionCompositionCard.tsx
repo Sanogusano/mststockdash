@@ -40,11 +40,13 @@ export function CollectionCompositionCard({ days, canal, locationId, zona }: Pro
       if (!isValidDays(days)) return;
       setLoading(true);
       const effectiveDays = resolveDays(days);
+      const hastaParam = getFilterEndDate(days);
       const params = {
         dias_atras: effectiveDays,
         p_canal: canal || null,
         p_location_id: locationId || null,
         p_zona: zona || null,
+        p_hasta: hastaParam,
       };
       const [res1, res2] = await Promise.all([
         supabase.rpc("reporte_composicion_coleccion" as any, params),

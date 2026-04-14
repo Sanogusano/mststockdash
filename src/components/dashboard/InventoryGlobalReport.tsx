@@ -63,8 +63,9 @@ export function InventoryGlobalReport({ open, onOpenChange, days }: Props) {
     async function fetch() {
       setLoading(true);
       const effectiveDays = resolveDays(days);
+      const hastaParam = getFilterEndDate(days);
       const [res, locRes, supplyRes] = await Promise.all([
-        supabase.rpc("reporte_wos_categoria_global", { dias_atras: effectiveDays }),
+        supabase.rpc("reporte_wos_categoria_global", { dias_atras: effectiveDays, p_hasta: hastaParam }),
         supabase.from("locations").select("location_id, tipo_tienda").eq("is_active", true),
         supabase
           .from("inventory_snapshot")

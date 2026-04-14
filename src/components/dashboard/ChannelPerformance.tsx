@@ -101,9 +101,10 @@ export function ChannelPerformance({ days }: Props) {
       if (!isValidDays(days)) return;
       setLoading(true);
       const effectiveDays = resolveDays(days);
+      const hastaParam = getFilterEndDate(days);
       const { data: rows, error } = await supabase.rpc(
         "reporte_desempeño_por_canal",
-        { dias_atras: effectiveDays }
+        { dias_atras: effectiveDays, p_hasta: hastaParam }
       );
       if (!error && rows) setData(rows as unknown as ChannelRow[]);
       setLoading(false);

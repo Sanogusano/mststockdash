@@ -169,7 +169,7 @@ export function InventoryHealth({ days }: Props) {
 
       try {
         const [healthRes, locsRes] = await Promise.all([
-          supabase.rpc("reporte_salud_inventario", { dias_atras: effectiveDays }),
+          supabase.rpc("reporte_salud_inventario", { dias_atras: effectiveDays, p_hasta: getFilterEndDate(days) }),
           supabase.from("locations").select("location_id, name").eq("is_active", true),
         ]);
 
