@@ -746,6 +746,25 @@ export type Database = {
           unidades: number
         }[]
       }
+      reporte_cierre_coleccion_treemap_colores: {
+        Args: {
+          dias_atras?: number
+          p_canal?: string
+          p_categoria?: string
+          p_coleccion?: string
+          p_genero?: string
+          p_location_id?: string
+          p_zona?: string
+        }
+        Returns: {
+          color: string
+          color_name: string
+          pct_inventario: number
+          pct_venta: number
+          stock_disponible: number
+          und_vendidas: number
+        }[]
+      }
       reporte_cierre_coleccion_ventas_coleccion: {
         Args: {
           p_canal?: string

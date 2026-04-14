@@ -1,11 +1,11 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Loader2, TrendingUp, Award, DollarSign, Package, Truck, ShoppingBag } from "lucide-react";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
+import { Loader2, TrendingUp, Award, DollarSign, Package, Truck, ShoppingBag, Palette } from "lucide-react";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Treemap } from "recharts";
 import { toast } from "sonner";
 import { resolveDays } from "./TimeFilter";
 
@@ -54,6 +54,14 @@ interface TallaRow { talla: string; und_vendidas: number; stock_disponible: numb
 interface ComposicionVentaRow { coleccion: string; unidades: number }
 interface InventarioColeccionRow { coleccion: string; unidades: number; pct: number }
 interface CatColRow { categoria: string; coleccion: string; unidades: number }
+interface TreemapColorRow {
+  color: string;
+  color_name: string;
+  und_vendidas: number;
+  stock_disponible: number;
+  pct_venta: number;
+  pct_inventario: number;
+}
 interface RemanentRow {
   sku: string; producto: string; categoria: string; genero: string; foto: string;
   und_vendidas: number; stock_actual: number; sell_through_pct: number; precio_prom_venta: number;
@@ -87,9 +95,12 @@ export function CierreColeccionDashboard({ days }: Props) {
   const [inventarioColeccion, setInventarioColeccion] = useState<InventarioColeccionRow[]>([]);
   const [catColData, setCatColData] = useState<CatColRow[]>([]);
   const [remanentes, setRemanentes] = useState<RemanentRow[]>([]);
+  const [treemapColores, setTreemapColores] = useState<TreemapColorRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingColores, setLoadingColores] = useState(false);
   const [loadingTallas, setLoadingTallas] = useState(false);
+  const [loadingTreemap, setLoadingTreemap] = useState(false);
+  const [categoriaTreemap, setCategoriaTreemap] = useState<string | null>(null);
 
   useEffect(() => {
     const loadFilters = async () => {
@@ -122,15 +133,16 @@ export function CierreColeccionDashboard({ days }: Props) {
     const params = baseParams();
     const resolvedDays = resolveDays(days);
 
-    const [kpiRes, paretoRes, colorRes, tallaRes, remRes, compVentaRes, invColRes, catColRes] = await Promise.all([
+    const [kpiRes, paretoRes, colorRes, tallaRes, remRes, compVentaRes, invColRes, catColRes, treemapRes] = await Promise.all([
       supabase.rpc("reporte_cierre_coleccion_kpis", params),
       supabase.rpc("reporte_cierre_coleccion_pareto_categoria", params),
-      supabase.rpc("reporte_cierre_coleccion_top_colores", { ...params, p_categoria: categoriaColor || null }),
-      supabase.rpc("reporte_cierre_coleccion_curva_tallas", { ...params, p_categoria: categoriaTalla || null }),
+      supabase.rpc("reporte_cierre_coleccion_top_colores", { ...params, p_categoria: null }),
+      supabase.rpc("reporte_cierre_coleccion_curva_tallas", { ...params, p_categoria: null }),
       supabase.rpc("reporte_cierre_coleccion_remanentes", { ...params, p_limite: 50 }),
       supabase.rpc("reporte_composicion_coleccion" as any, { dias_atras: resolvedDays, p_canal: params.p_canal, p_location_id: params.p_location_id, p_zona: params.p_zona }),
       supabase.rpc("reporte_composicion_inventario_coleccion" as any, { p_location_id: params.p_location_id }),
       supabase.rpc("reporte_cierre_coleccion_categoria_coleccion", params),
+      supabase.rpc("reporte_cierre_coleccion_treemap_colores" as any, { dias_atras: resolvedDays, ...params, p_categoria: null }),
     ]);
 
     if (kpiRes.data && kpiRes.data.length > 0) setKpis(kpiRes.data[0] as unknown as KPIs);
@@ -143,8 +155,9 @@ export function CierreColeccionDashboard({ days }: Props) {
     setInventarioColeccion((invColRes.data || []) as unknown as InventarioColeccionRow[]);
     setCatColData((catColRes.data || []) as unknown as CatColRow[]);
     setRemanentes((remRes.data || []) as unknown as RemanentRow[]);
+    setTreemapColores((treemapRes.data || []) as unknown as TreemapColorRow[]);
     setLoading(false);
-  }, [baseParams, categoriaColor, categoriaTalla, days]);
+  }, [baseParams, days]);
 
   const fetchColores = useCallback(async () => {
     setLoadingColores(true);
@@ -166,6 +179,18 @@ export function CierreColeccionDashboard({ days }: Props) {
     setLoadingTallas(false);
   }, [baseParams, categoriaTalla]);
 
+  const fetchTreemap = useCallback(async () => {
+    setLoadingTreemap(true);
+    const resolvedDays = resolveDays(days);
+    const res = await supabase.rpc("reporte_cierre_coleccion_treemap_colores" as any, {
+      dias_atras: resolvedDays,
+      ...baseParams(),
+      p_categoria: categoriaTreemap || null,
+    });
+    setTreemapColores((res.data || []) as unknown as TreemapColorRow[]);
+    setLoadingTreemap(false);
+  }, [baseParams, categoriaTreemap, days]);
+
   useEffect(() => { fetchData(); }, [fetchData]);
 
   useEffect(() => {
@@ -175,6 +200,10 @@ export function CierreColeccionDashboard({ days }: Props) {
   useEffect(() => {
     if (!loading) fetchTallas();
   }, [categoriaTalla]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (!loading) fetchTreemap();
+  }, [categoriaTreemap, days]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const fmt = (n: number) => new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 }).format(n);
   const fmtNum = (n: number) => new Intl.NumberFormat("es-CO").format(n);
@@ -380,6 +409,38 @@ export function CierreColeccionDashboard({ days }: Props) {
             </CardContent>
           </Card>
 
+          {/* Treemap de Venta por Color */}
+          <Card>
+            <CardHeader className="pb-2">
+              <div className="flex items-center justify-between gap-2 flex-wrap">
+                <div>
+                  <CardTitle className="text-sm font-medium flex items-center gap-2">
+                    <Palette className="h-4 w-4" /> Análisis por Color — Venta & Inventario
+                  </CardTitle>
+                  <p className="text-[10px] text-muted-foreground mt-0.5">Tamaño por unidades vendidas · Muestra Vta% e Inv%</p>
+                </div>
+                <Select value={categoriaTreemap || "__all__"} onValueChange={v => setCategoriaTreemap(v === "__all__" ? null : v)}>
+                  <SelectTrigger className="w-[180px] h-8 text-xs">
+                    <SelectValue placeholder="Línea de producto" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__all__">Todas las líneas</SelectItem>
+                    {categorias.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {loadingTreemap ? (
+                <div className="flex items-center justify-center py-10">
+                  <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                </div>
+              ) : treemapColores.length > 0 ? (
+                <ColorTreemap data={treemapColores} cleanColorName={cleanColorName} />
+              ) : <p className="text-sm text-muted-foreground text-center py-10">Sin datos</p>}
+            </CardContent>
+          </Card>
+
           {/* Top 10 Colores + Curva de Tallas */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <Card>
@@ -536,6 +597,77 @@ export function CierreColeccionDashboard({ days }: Props) {
         </>
       )}
     </div>
+  );
+}
+
+function ColorTreemap({ data, cleanColorName }: { data: TreemapColorRow[]; cleanColorName: (raw: string | null, hex: string) => string }) {
+  // Build treemap data with color as fill
+  const treemapData = data.map(d => {
+    const hex = d.color.startsWith("#") ? d.color : `#${d.color}`;
+    const name = cleanColorName(d.color_name || null, d.color);
+    return {
+      name,
+      size: Math.max(d.und_vendidas, 1),
+      hex,
+      pctVenta: d.pct_venta,
+      pctInv: d.pct_inventario,
+      undVendidas: d.und_vendidas,
+      stockDisponible: d.stock_disponible,
+    };
+  });
+
+  const CustomContent = (props: any) => {
+    const { x, y, width, height, name, hex, pctVenta, pctInv } = props;
+    if (width < 20 || height < 20) return null;
+
+    // Determine text color based on luminance
+    const r = parseInt(hex.slice(1, 3), 16);
+    const g = parseInt(hex.slice(3, 5), 16);
+    const b = parseInt(hex.slice(5, 7), 16);
+    const lum = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+    const textColor = lum > 0.5 ? "#000" : "#fff";
+
+    return (
+      <g>
+        <rect x={x} y={y} width={width} height={height} fill={hex} stroke="hsl(var(--background))" strokeWidth={2} rx={4} />
+        {width > 40 && height > 35 && (
+          <>
+            <text x={x + 6} y={y + 16} fill={textColor} fontSize={width > 80 ? 12 : 10} fontWeight="600">{name.length > (width / 7) ? name.slice(0, Math.floor(width / 7)) + "…" : name}</text>
+            <text x={x + 6} y={y + 30} fill={textColor} fontSize={10} opacity={0.85}>Vta {pctVenta}%</text>
+            {height > 48 && <text x={x + 6} y={y + 43} fill={textColor} fontSize={10} opacity={0.85}>Inv {pctInv}%</text>}
+          </>
+        )}
+      </g>
+    );
+  };
+
+  return (
+    <ResponsiveContainer width="100%" height={400}>
+      <Treemap
+        data={treemapData}
+        dataKey="size"
+        nameKey="name"
+        content={<CustomContent />}
+        isAnimationActive={false}
+      >
+        <Tooltip
+          content={({ payload }) => {
+            if (!payload?.length) return null;
+            const d = payload[0].payload;
+            return (
+              <div className="rounded-lg border border-border/50 bg-background px-3 py-2 text-xs shadow-xl">
+                <p className="font-semibold mb-1 flex items-center gap-2">
+                  <span className="w-3 h-3 rounded-sm border border-border inline-block" style={{ backgroundColor: d.hex }} />
+                  {d.name}
+                </p>
+                <p>Vendidas: <span className="font-medium">{d.undVendidas.toLocaleString("es-CO")}</span> — <span className="font-semibold">{d.pctVenta}%</span></p>
+                <p>Stock: <span className="font-medium">{d.stockDisponible.toLocaleString("es-CO")}</span> — <span className="font-semibold">{d.pctInv}%</span></p>
+              </div>
+            );
+          }}
+        />
+      </Treemap>
+    </ResponsiveContainer>
   );
 }
 
