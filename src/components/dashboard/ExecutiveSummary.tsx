@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { LoadingState, EmptyState } from "./LoadingState";
 import { isValidDays } from "@/lib/validation";
-import { resolveDays } from "@/components/dashboard/TimeFilter";
+import { resolveDays, getFilterEndDate } from "@/components/dashboard/TimeFilter";
 import { StatusBadge } from "./StatusBadge";
 import { CollectionBadge } from "./CollectionBadge";
 

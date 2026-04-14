@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { isValidDays } from "@/lib/validation";
-import { resolveDays } from "./TimeFilter";
+import { resolveDays, getFilterEndDate } from "./TimeFilter";
 import { LoadingState } from "./LoadingState";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 import { Layers, ChevronDown, ChevronRight } from "lucide-react";

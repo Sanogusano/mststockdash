@@ -10,7 +10,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ProductSkuDrawer } from "./ProductSkuDrawer";
 import { CollectionBadge } from "./CollectionBadge";
-import { resolveDays } from "./TimeFilter";
+import { resolveDays, getFilterEndDate } from "./TimeFilter";
 import { fetchCategoryProducts, type ProductRow } from "./categoryProductsData";
 
 

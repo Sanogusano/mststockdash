@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { resolveDays } from "./TimeFilter";
+import { resolveDays, getFilterEndDate } from "./TimeFilter";
 import { LoadingState, EmptyState } from "./LoadingState";
 import { StatusBadge } from "./StatusBadge";
 import { ProductDetailDrawer } from "./ProductDetailDrawer";

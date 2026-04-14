@@ -10,7 +10,7 @@ import { MultiSelectFilter } from "@/components/dashboard/MultiSelectFilter";
 import { ArrowLeft, DollarSign, Receipt, ShoppingBag, Star, Percent, Package, Filter, Tag } from "lucide-react";
 import { CollectionInventoryCard } from "@/components/dashboard/CollectionInventoryCard";
 import { isValidDays } from "@/lib/validation";
-import { resolveDays, needsDateRange, getDateRange, toDateStr } from "@/components/dashboard/TimeFilter";
+import { resolveDays, needsDateRange, getDateRange, toDateStr, getFilterEndDate } from "@/components/dashboard/TimeFilter";
 import { cn } from "@/lib/utils";
 import { CategoryProductsDrawer } from "@/components/dashboard/CategoryProductsDrawer";
 

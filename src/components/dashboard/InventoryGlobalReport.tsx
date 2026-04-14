@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { resolveDays } from "@/components/dashboard/TimeFilter";
+import { resolveDays, getFilterEndDate } from "@/components/dashboard/TimeFilter";
 import { LoadingState, EmptyState } from "./LoadingState";
 import { StatusBadge } from "./StatusBadge";
 import { MultiSelectFilter } from "./MultiSelectFilter";

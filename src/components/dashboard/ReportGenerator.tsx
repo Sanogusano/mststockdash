@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { resolveDays, needsDateRange, getDateRange, toDateStr } from "./TimeFilter";
+import { resolveDays, needsDateRange, getDateRange, toDateStr, getFilterEndDate } from "./TimeFilter";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";

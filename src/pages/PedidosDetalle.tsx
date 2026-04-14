@@ -13,7 +13,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { exportToCSV } from "@/lib/csv-export";
 import { exportToPDF } from "@/lib/pdf-export";
 import { LoadingState } from "@/components/dashboard/LoadingState";
-import { TimeFilter, resolveDays } from "@/components/dashboard/TimeFilter";
+import { TimeFilter, resolveDays, getFilterEndDate } from "@/components/dashboard/TimeFilter";
 
 interface OrderRow {
   numero_pedido: string;

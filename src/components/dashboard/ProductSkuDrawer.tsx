@@ -10,7 +10,7 @@ import { exportToPDF } from "@/lib/pdf-export";
 import { Download, FileText, ArrowLeft, Store, Globe, Truck, AlertTriangle } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { resolveDays } from "./TimeFilter";
+import { resolveDays, getFilterEndDate } from "./TimeFilter";
 
 interface SkuRow {
   sku: string;

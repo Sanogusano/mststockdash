@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Loader2, TrendingUp, Award, DollarSign, Package, Truck, ShoppingBag, Palette } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Treemap } from "recharts";
 import { toast } from "sonner";
-import { resolveDays } from "./TimeFilter";
+import { resolveDays, getFilterEndDate } from "./TimeFilter";
 
 // Strip common category words from extracted color names
 const CATEGORY_WORDS = new Set([
