@@ -191,6 +191,9 @@ export function CierreColeccionDashboard({ days }: Props) {
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
+  // Treemap loads independently (can be slow)
+  useEffect(() => { fetchTreemap(); }, [fetchTreemap]);
+
   useEffect(() => {
     if (!loading) fetchColores();
   }, [categoriaColor]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -198,10 +201,6 @@ export function CierreColeccionDashboard({ days }: Props) {
   useEffect(() => {
     if (!loading) fetchTallas();
   }, [categoriaTalla]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  useEffect(() => {
-    if (!loading) fetchTreemap();
-  }, [categoriaTreemap, days]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const fmt = (n: number) => new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 }).format(n);
   const fmtNum = (n: number) => new Intl.NumberFormat("es-CO").format(n);
