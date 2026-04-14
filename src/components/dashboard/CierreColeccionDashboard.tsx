@@ -54,6 +54,14 @@ interface TallaRow { talla: string; und_vendidas: number; stock_disponible: numb
 interface ComposicionVentaRow { coleccion: string; unidades: number }
 interface InventarioColeccionRow { coleccion: string; unidades: number; pct: number }
 interface CatColRow { categoria: string; coleccion: string; unidades: number }
+interface TreemapColorRow {
+  color: string;
+  color_name: string;
+  und_vendidas: number;
+  stock_disponible: number;
+  pct_venta: number;
+  pct_inventario: number;
+}
 interface RemanentRow {
   sku: string; producto: string; categoria: string; genero: string; foto: string;
   und_vendidas: number; stock_actual: number; sell_through_pct: number; precio_prom_venta: number;
