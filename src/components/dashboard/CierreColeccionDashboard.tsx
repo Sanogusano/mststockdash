@@ -8,86 +8,22 @@ import { Loader2, TrendingUp, Award, DollarSign, Package, Truck, ShoppingBag } f
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import { toast } from "sonner";
 
-// Hex color name mapping
-const HEX_COLOR_NAMES: Record<string, string> = {
-  "000000": "Negro",
-  "ffffff": "Blanco",
-  "ff0000": "Rojo",
-  "00ff00": "Verde",
-  "0000ff": "Azul",
-  "ffff00": "Amarillo",
-  "ff00ff": "Magenta",
-  "00ffff": "Cian",
-  "c0c0c0": "Plateado",
-  "808080": "Gris",
-  "800000": "Marrón Oscuro",
-  "808000": "Oliva",
-  "008000": "Verde Oscuro",
-  "800080": "Púrpura",
-  "008080": "Teal",
-  "000080": "Azul Marino",
-  "a40607": "Rojo Carmesí",
-  "065754": "Verde Azulado",
-  "075d5c": "Verde Azulado",
-  "151d34": "Azul Noche",
-  "364349": "Gris Pizarra",
-  "40312f": "Chocolate Oscuro",
-  "414141": "Gris Carbón",
-  "455d72": "Azul Acero",
-  "4f4e29": "Oliva Oscuro",
-  "54535a": "Gris Plomo",
-  "788ca5": "Azul Grisáceo",
-  "95988a": "Gris Salvia",
-  "969696": "Gris Medio",
-  "a6c8d2": "Celeste",
-  "aa9992": "Beige Rosado",
-  "aab7ad": "Verde Menta Gris",
-  "b3c6dd": "Azul Pastel",
-  "b7c4ba": "Verde Salvia",
-  "b82720": "Rojo Ladrillo",
-  "c11021": "Rojo Intenso",
-  "c2ad92": "Arena",
-  "c9122a": "Rojo Cereza",
-  "d2bba3": "Beige",
-  "d3a9ac": "Rosa Antiguo",
-  "d6c3b0": "Crema",
-  "d7a0a3": "Rosa Palo",
-  "d7dbd2": "Gris Perla",
-};
+// Strip common category words from extracted color names
+const CATEGORY_WORDS = new Set([
+  "T-SHIRT", "TSHIRT", "OVERSIZED", "HOODIE", "CROP", "TOP", "POLO",
+  "SNEAKER", "SNEAKERS", "CAP", "HAT", "JEAN", "JEANS", "SHORT", "SHORTS",
+  "SHIRT", "LONG", "SLEEVE", "BODY", "BODYSUIT", "DRESS", "JACKET",
+  "TROUSERS", "PANTS", "PACK", "SET", "SWIM", "BOXER", "BELT",
+  "BAG", "BACKPACK", "HANDLE", "FANNY", "VISOR", "WINDBREAKER",
+  "BLAZER", "BLUSA", "CARGO", "BERMUDAS", "BRA", "BIKINI", "SWEATSHIRT",
+  "MEN", "WOMEN", "UNISEX", "KIDS"
+]);
 
-function getColorName(hex: string): string {
-  const clean = hex.replace("#", "").toLowerCase();
-  if (HEX_COLOR_NAMES[clean]) return HEX_COLOR_NAMES[clean];
-
-  // Try closest match by parsing RGB
-  const r = parseInt(clean.substring(0, 2), 16);
-  const g = parseInt(clean.substring(2, 4), 16);
-  const b = parseInt(clean.substring(4, 6), 16);
-
-  if (isNaN(r) || isNaN(g) || isNaN(b)) return hex;
-
-  const brightness = (r * 299 + g * 587 + b * 114) / 1000;
-  const isWarm = r > b;
-  const isGreen = g > r && g > b;
-
-  if (brightness < 50) return "Negro";
-  if (brightness > 220 && Math.abs(r - g) < 20 && Math.abs(g - b) < 20) return "Blanco";
-  if (Math.abs(r - g) < 30 && Math.abs(g - b) < 30) {
-    if (brightness < 100) return "Gris Oscuro";
-    if (brightness < 180) return "Gris";
-    return "Gris Claro";
-  }
-  if (r > 180 && g < 80 && b < 80) return "Rojo";
-  if (r > 180 && g > 100 && g < 180 && b < 80) return "Naranja";
-  if (r > 200 && g > 200 && b < 100) return "Amarillo";
-  if (isGreen && g > 100) return brightness > 150 ? "Verde Claro" : "Verde";
-  if (b > 150 && r < 100 && g < 100) return "Azul";
-  if (b > 100 && g > 100 && r < 100) return "Teal";
-  if (r > 150 && b > 100 && g < 100) return "Púrpura";
-  if (r > 180 && g > 120 && b > 120 && r > g) return "Rosa";
-  if (isWarm && brightness > 120) return "Beige";
-  if (isWarm) return "Marrón";
-  return "Azul Grisáceo";
+function cleanColorName(raw: string | null, hex: string): string {
+  if (!raw) return hex.toUpperCase();
+  const words = raw.toUpperCase().split(/\s+/).filter(w => !CATEGORY_WORDS.has(w) && w.length > 0);
+  const cleaned = words.join(" ").trim();
+  return cleaned || hex.toUpperCase();
 }
 
 interface KPIs {
@@ -98,7 +34,7 @@ interface KPIs {
 }
 
 interface ParetoRow { categoria: string; unidades: number; pct_participacion: number }
-interface ColorRow { color: string; unidades: number }
+interface ColorRow { color: string; unidades: number; color_name?: string }
 interface TallaRow { talla: string; und_vendidas: number; stock_disponible: number }
 interface VentaColeccionRow { coleccion: string; und_vendidas: number; stock_disponible: number }
 interface CatColRow { categoria: string; coleccion: string; unidades: number }
@@ -114,10 +50,15 @@ export function CierreColeccionDashboard() {
   const [zona, setZona] = useState<string | null>(null);
   const [locationId, setLocationId] = useState<string | null>(null);
 
+  // Category filter for colors and sizes
+  const [categoriaColor, setCategoriaColor] = useState<string | null>(null);
+  const [categoriaTalla, setCategoriaTalla] = useState<string | null>(null);
+
   const [colecciones, setColecciones] = useState<string[]>([]);
   const [generos, setGeneros] = useState<string[]>([]);
   const [zonas, setZonas] = useState<string[]>([]);
   const [tiendas, setTiendas] = useState<{ id: string; name: string }[]>([]);
+  const [categorias, setCategorias] = useState<string[]>([]);
 
   const [kpis, setKpis] = useState<KPIs | null>(null);
   const [pareto, setPareto] = useState<ParetoRow[]>([]);
@@ -127,38 +68,44 @@ export function CierreColeccionDashboard() {
   const [catColData, setCatColData] = useState<CatColRow[]>([]);
   const [remanentes, setRemanentes] = useState<RemanentRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingColores, setLoadingColores] = useState(false);
+  const [loadingTallas, setLoadingTallas] = useState(false);
 
   useEffect(() => {
     const loadFilters = async () => {
-      const [colRes, genRes, zonRes, tieRes] = await Promise.all([
+      const [colRes, genRes, zonRes, tieRes, catRes] = await Promise.all([
         supabase.from("product_catalog").select("collection_season").not("collection_season", "is", null),
         supabase.from("product_catalog").select("target_gender").not("target_gender", "is", null),
         supabase.from("locations").select("zona").not("zona", "is", null),
         supabase.from("locations").select("location_id, name").eq("is_active", true).order("name"),
+        supabase.from("product_catalog").select("category").not("category", "is", null),
       ]);
       setColecciones([...new Set((colRes.data || []).map(r => r.collection_season).filter(Boolean))] as string[]);
       setGeneros([...new Set((genRes.data || []).map(r => r.target_gender).filter(Boolean))] as string[]);
       setZonas([...new Set((zonRes.data || []).map(r => r.zona).filter(Boolean))] as string[]);
       setTiendas((tieRes.data || []).map(r => ({ id: r.location_id, name: r.name })));
+      setCategorias([...new Set((catRes.data || []).map(r => r.category).filter(Boolean))].sort() as string[]);
     };
     loadFilters();
   }, []);
 
+  const baseParams = useCallback(() => ({
+    p_coleccion: coleccion || null,
+    p_genero: genero || null,
+    p_canal: canal || null,
+    p_zona: zona || null,
+    p_location_id: locationId || null,
+  }), [coleccion, genero, canal, zona, locationId]);
+
   const fetchData = useCallback(async () => {
     setLoading(true);
-    const params = {
-      p_coleccion: coleccion || null,
-      p_genero: genero || null,
-      p_canal: canal || null,
-      p_zona: zona || null,
-      p_location_id: locationId || null,
-    };
+    const params = baseParams();
 
     const [kpiRes, paretoRes, colorRes, tallaRes, remRes, ventColRes, catColRes] = await Promise.all([
       supabase.rpc("reporte_cierre_coleccion_kpis", params),
       supabase.rpc("reporte_cierre_coleccion_pareto_categoria", params),
-      supabase.rpc("reporte_cierre_coleccion_top_colores", params),
-      supabase.rpc("reporte_cierre_coleccion_curva_tallas", params),
+      supabase.rpc("reporte_cierre_coleccion_top_colores", { ...params, p_categoria: categoriaColor || null }),
+      supabase.rpc("reporte_cierre_coleccion_curva_tallas", { ...params, p_categoria: categoriaTalla || null }),
       supabase.rpc("reporte_cierre_coleccion_remanentes", { ...params, p_limite: 50 }),
       supabase.rpc("reporte_cierre_coleccion_ventas_coleccion", params),
       supabase.rpc("reporte_cierre_coleccion_categoria_coleccion", params),
@@ -174,9 +121,39 @@ export function CierreColeccionDashboard() {
     setCatColData((catColRes.data || []) as unknown as CatColRow[]);
     setRemanentes((remRes.data || []) as unknown as RemanentRow[]);
     setLoading(false);
-  }, [coleccion, genero, canal, zona, locationId]);
+  }, [baseParams, categoriaColor, categoriaTalla]);
+
+  // Separate fetch for colors when category changes
+  const fetchColores = useCallback(async () => {
+    setLoadingColores(true);
+    const res = await supabase.rpc("reporte_cierre_coleccion_top_colores", {
+      ...baseParams(),
+      p_categoria: categoriaColor || null,
+    });
+    setTopColores((res.data || []) as unknown as ColorRow[]);
+    setLoadingColores(false);
+  }, [baseParams, categoriaColor]);
+
+  const fetchTallas = useCallback(async () => {
+    setLoadingTallas(true);
+    const res = await supabase.rpc("reporte_cierre_coleccion_curva_tallas", {
+      ...baseParams(),
+      p_categoria: categoriaTalla || null,
+    });
+    setCurvaTallas((res.data || []) as unknown as TallaRow[]);
+    setLoadingTallas(false);
+  }, [baseParams, categoriaTalla]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
+
+  // Refetch only colors/tallas when their category filter changes (after initial load)
+  useEffect(() => {
+    if (!loading) fetchColores();
+  }, [categoriaColor]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (!loading) fetchTallas();
+  }, [categoriaTalla]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const fmt = (n: number) => new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 }).format(n);
   const fmtNum = (n: number) => new Intl.NumberFormat("es-CO").format(n);
@@ -333,22 +310,39 @@ export function CierreColeccionDashboard() {
           {/* Top 10 Colores + Curva de Tallas */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <Card>
-              <CardHeader className="pb-2"><CardTitle className="text-sm font-medium">Top 10 Colores</CardTitle></CardHeader>
+              <CardHeader className="pb-2">
+                <div className="flex items-center justify-between gap-2 flex-wrap">
+                  <CardTitle className="text-sm font-medium">Top 10 Colores</CardTitle>
+                  <Select value={categoriaColor || "__all__"} onValueChange={v => setCategoriaColor(v === "__all__" ? null : v)}>
+                    <SelectTrigger className="w-[180px] h-8 text-xs">
+                      <SelectValue placeholder="Línea de producto" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__all__">Todas las líneas</SelectItem>
+                      {categorias.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </CardHeader>
               <CardContent>
-                {topColores.length > 0 ? (() => {
+                {loadingColores ? (
+                  <div className="flex items-center justify-center py-10">
+                    <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                  </div>
+                ) : topColores.length > 0 ? (() => {
                   const maxUnidades = Math.max(...topColores.map(c => c.unidades));
                   return (
                     <div className="space-y-2">
                       {topColores.map((c, i) => {
                         const hex = c.color.startsWith("#") ? c.color : `#${c.color}`;
                         const intensity = maxUnidades > 0 ? c.unidades / maxUnidades : 0;
-                        const colorName = getColorName(c.color);
+                        const displayName = cleanColorName(c.color_name || null, c.color);
                         return (
                           <div key={i} className="flex items-center gap-3">
                             <div className="w-8 h-8 rounded border border-border flex-shrink-0" style={{ backgroundColor: hex }} title={hex} />
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center justify-between mb-1">
-                                <span className="text-xs font-medium truncate">{colorName} <span className="text-muted-foreground">({c.color})</span></span>
+                                <span className="text-xs font-medium truncate">{displayName}</span>
                                 <span className="text-xs text-muted-foreground ml-2">{fmtNum(c.unidades)} uds</span>
                               </div>
                               <div className="w-full h-5 rounded bg-muted overflow-hidden">
@@ -372,9 +366,26 @@ export function CierreColeccionDashboard() {
             </Card>
 
             <Card>
-              <CardHeader className="pb-2"><CardTitle className="text-sm font-medium">Curva de Tallas</CardTitle></CardHeader>
+              <CardHeader className="pb-2">
+                <div className="flex items-center justify-between gap-2 flex-wrap">
+                  <CardTitle className="text-sm font-medium">Curva de Tallas</CardTitle>
+                  <Select value={categoriaTalla || "__all__"} onValueChange={v => setCategoriaTalla(v === "__all__" ? null : v)}>
+                    <SelectTrigger className="w-[180px] h-8 text-xs">
+                      <SelectValue placeholder="Línea de producto" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__all__">Todas las líneas</SelectItem>
+                      {categorias.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </CardHeader>
               <CardContent>
-                {curvaTallas.length > 0 ? (
+                {loadingTallas ? (
+                  <div className="flex items-center justify-center py-10">
+                    <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                  </div>
+                ) : curvaTallas.length > 0 ? (
                   <ResponsiveContainer width="100%" height={300}>
                     <BarChart data={curvaTallas} margin={{ left: 10 }}>
                       <CartesianGrid strokeDasharray="3 3" />
