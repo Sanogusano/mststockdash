@@ -2,7 +2,7 @@ import { useEffect, useState, Fragment } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { isValidDays } from "@/lib/validation";
-import { resolveDays, resolveComparisonRange, getDateRange, CUSTOM_SENTINEL, type ComparisonPeriod } from "@/components/dashboard/TimeFilter";
+import { resolveDays, resolveComparisonRange, getDateRange, needsDateRange, toDateStr as _toDateStr, CUSTOM_SENTINEL, PREV_MONTH_SENTINEL, THIS_MONTH_SENTINEL, type ComparisonPeriod } from "@/components/dashboard/TimeFilter";
 import { exportToCSV } from "@/lib/csv-export";
 import { cn } from "@/lib/utils";
 import { exportToPDF } from "@/lib/pdf-export";
@@ -101,7 +101,31 @@ interface Props {
 
 /** Format a Date as "YYYY-MM-DD" for RPC date params */
 function toDateStr(d: Date): string {
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  return _toDateStr(d);
+}
+
+/** Build the right KPI RPC call depending on whether we need date-range or dias_atras */
+function buildKpiCall(
+  days: number,
+  effectiveDays: number,
+  opts: { p_canal?: string | null; p_location_id?: string | null; p_zona?: string | null; customFrom?: Date; customTo?: Date }
+) {
+  if (needsDateRange(days)) {
+    const { from, to } = getDateRange(days, opts.customFrom, opts.customTo);
+    return supabase.rpc("reporte_kpis_por_rango" as any, {
+      p_desde: toDateStr(from),
+      p_hasta: toDateStr(to),
+      p_canal: opts.p_canal ?? null,
+      p_location_id: opts.p_location_id ?? null,
+      p_zona: opts.p_zona ?? null,
+    });
+  }
+  return supabase.rpc("reporte_kpis_comerciales", {
+    dias_atras: effectiveDays,
+    p_canal: opts.p_canal ?? null,
+    p_location_id: opts.p_location_id ?? null,
+    p_zona: opts.p_zona ?? null,
+  });
 }
 
 /* ── Export Buttons ── */
