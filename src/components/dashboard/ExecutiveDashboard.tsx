@@ -1075,11 +1075,7 @@ function ChannelPanel({ days, canal, showLocationFilter, locationFilter, compari
 
       try {
         const [kpiRes, prevKpiRes, topRes, bottomRes, m2Res] = await Promise.all([
-          supabase.rpc("reporte_kpis_comerciales", {
-            dias_atras: effectiveDays,
-            p_canal: canal,
-            p_location_id: locParam,
-          }),
+          buildKpiCall(days, effectiveDays, { p_canal: canal, p_location_id: locParam }),
           (() => {
             const compRange = resolveComparisonRange(days, comparisonPeriod);
             return supabase.rpc("reporte_kpis_por_rango" as any, {
