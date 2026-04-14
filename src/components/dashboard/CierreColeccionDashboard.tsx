@@ -120,29 +120,31 @@ export function CierreColeccionDashboard({ days }: Props) {
   const fetchData = useCallback(async () => {
     setLoading(true);
     const params = baseParams();
+    const resolvedDays = resolveDays(days);
 
-    const [kpiRes, paretoRes, colorRes, tallaRes, remRes, ventColRes, catColRes] = await Promise.all([
+    const [kpiRes, paretoRes, colorRes, tallaRes, remRes, compVentaRes, invColRes, catColRes] = await Promise.all([
       supabase.rpc("reporte_cierre_coleccion_kpis", params),
       supabase.rpc("reporte_cierre_coleccion_pareto_categoria", params),
       supabase.rpc("reporte_cierre_coleccion_top_colores", { ...params, p_categoria: categoriaColor || null }),
       supabase.rpc("reporte_cierre_coleccion_curva_tallas", { ...params, p_categoria: categoriaTalla || null }),
       supabase.rpc("reporte_cierre_coleccion_remanentes", { ...params, p_limite: 50 }),
-      supabase.rpc("reporte_cierre_coleccion_ventas_coleccion", params),
+      supabase.rpc("reporte_composicion_coleccion" as any, { dias_atras: resolvedDays, p_canal: params.p_canal, p_location_id: params.p_location_id, p_zona: params.p_zona }),
+      supabase.rpc("reporte_composicion_inventario_coleccion" as any, { p_location_id: params.p_location_id }),
       supabase.rpc("reporte_cierre_coleccion_categoria_coleccion", params),
     ]);
 
     if (kpiRes.data && kpiRes.data.length > 0) setKpis(kpiRes.data[0] as unknown as KPIs);
     else setKpis({ sell_through_pct: 0, calidad_venta_pct: 0, ingreso_total: 0, stock_remanente: 0 });
 
-    // Exclude INSUMOS from pareto
     setPareto(((paretoRes.data || []) as unknown as ParetoRow[]).filter(r => r.categoria?.toUpperCase() !== "INSUMOS"));
     setTopColores((colorRes.data || []) as unknown as ColorRow[]);
     setCurvaTallas((tallaRes.data || []) as unknown as TallaRow[]);
-    setVentasColeccion((ventColRes.data || []) as unknown as VentaColeccionRow[]);
+    setVentasColeccion((compVentaRes.data || []) as unknown as ComposicionVentaRow[]);
+    setInventarioColeccion((invColRes.data || []) as unknown as InventarioColeccionRow[]);
     setCatColData((catColRes.data || []) as unknown as CatColRow[]);
     setRemanentes((remRes.data || []) as unknown as RemanentRow[]);
     setLoading(false);
-  }, [baseParams, categoriaColor, categoriaTalla]);
+  }, [baseParams, categoriaColor, categoriaTalla, days]);
 
   const fetchColores = useCallback(async () => {
     setLoadingColores(true);
