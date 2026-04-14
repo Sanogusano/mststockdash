@@ -95,9 +95,12 @@ export function CierreColeccionDashboard({ days }: Props) {
   const [inventarioColeccion, setInventarioColeccion] = useState<InventarioColeccionRow[]>([]);
   const [catColData, setCatColData] = useState<CatColRow[]>([]);
   const [remanentes, setRemanentes] = useState<RemanentRow[]>([]);
+  const [treemapColores, setTreemapColores] = useState<TreemapColorRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingColores, setLoadingColores] = useState(false);
   const [loadingTallas, setLoadingTallas] = useState(false);
+  const [loadingTreemap, setLoadingTreemap] = useState(false);
+  const [categoriaTreemap, setCategoriaTreemap] = useState<string | null>(null);
 
   useEffect(() => {
     const loadFilters = async () => {
