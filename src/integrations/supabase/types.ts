@@ -81,6 +81,45 @@ export type Database = {
           },
         ]
       }
+      commission_batches: {
+        Row: {
+          anio: number
+          aprobado_at: string | null
+          aprobado_por: string | null
+          creado_por: string | null
+          created_at: string | null
+          estado: string | null
+          id: string
+          mes: number
+          reglas: Json
+          rol: string
+        }
+        Insert: {
+          anio: number
+          aprobado_at?: string | null
+          aprobado_por?: string | null
+          creado_por?: string | null
+          created_at?: string | null
+          estado?: string | null
+          id?: string
+          mes: number
+          reglas: Json
+          rol: string
+        }
+        Update: {
+          anio?: number
+          aprobado_at?: string | null
+          aprobado_por?: string | null
+          creado_por?: string | null
+          created_at?: string | null
+          estado?: string | null
+          id?: string
+          mes?: number
+          reglas?: Json
+          rol?: string
+        }
+        Relationships: []
+      }
       incentivo_liquidaciones: {
         Row: {
           cumple_meta: boolean | null
@@ -344,6 +383,7 @@ export type Database = {
           shopify_order_id: string
           source_name: string | null
           total_price: number
+          user_id: string | null
         }
         Insert: {
           created_at: string
@@ -353,6 +393,7 @@ export type Database = {
           shopify_order_id: string
           source_name?: string | null
           total_price: number
+          user_id?: string | null
         }
         Update: {
           created_at?: string
@@ -362,6 +403,7 @@ export type Database = {
           shopify_order_id?: string
           source_name?: string | null
           total_price?: number
+          user_id?: string | null
         }
         Relationships: [
           {
@@ -520,6 +562,56 @@ export type Database = {
         }
         Relationships: []
       }
+      staff_members: {
+        Row: {
+          canal: string | null
+          created_at: string | null
+          email: string | null
+          id: string
+          is_active: boolean | null
+          location_id: string | null
+          nombre: string
+          rol: string
+          shopify_user_id: string
+          updated_at: string | null
+          zona: string | null
+        }
+        Insert: {
+          canal?: string | null
+          created_at?: string | null
+          email?: string | null
+          id?: string
+          is_active?: boolean | null
+          location_id?: string | null
+          nombre: string
+          rol?: string
+          shopify_user_id: string
+          updated_at?: string | null
+          zona?: string | null
+        }
+        Update: {
+          canal?: string | null
+          created_at?: string | null
+          email?: string | null
+          id?: string
+          is_active?: boolean | null
+          location_id?: string | null
+          nombre?: string
+          rol?: string
+          shopify_user_id?: string
+          updated_at?: string | null
+          zona?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "staff_members_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["location_id"]
+          },
+        ]
+      }
       store_action_stamps: {
         Row: {
           active: boolean
@@ -602,6 +694,22 @@ export type Database = {
       actualizar_progreso_incentivo: {
         Args: { p_incentivo_id: string }
         Returns: undefined
+      }
+      calcular_comisiones_periodo: {
+        Args: { p_anio: number; p_mes: number; p_reglas?: Json; p_rol?: string }
+        Returns: {
+          monto_comision: number
+          nombre: string
+          pct_comision: number
+          pct_cumplimiento: number
+          presupuesto: number
+          rol: string
+          shopify_user_id: string
+          staff_id: string
+          tienda: string
+          tramo_aplicado: string
+          venta_facturada: number
+        }[]
       }
       calcular_proyecciones_y_cumplimiento: {
         Args: { p_anio: number; p_mes: number }
