@@ -141,15 +141,19 @@ export function PresupuestosWizard({ onSaved, editPeriod }: WizardProps) {
     if (data && data.length > 0) {
       const sb: Record<string, number> = {};
       const cb: Record<string, number> = {};
+      const vb: Record<string, number> = {};
       data.forEach((r: any) => {
         if (r.tipo === "tienda") sb[r.nombre_identificador] = Number(r.monto);
         if (r.tipo === "canal") cb[r.nombre_identificador] = Number(r.monto);
+        if (r.tipo === "vendedor") vb[r.nombre_identificador] = Number(r.monto);
       });
       setStoreBudgets(sb);
       setChannelBudgets(cb);
+      setSellerBudgets(vb);
     } else if (!isEditing) {
       setStoreBudgets({});
       setChannelBudgets({});
+      setSellerBudgets({});
     }
     setLoadedPeriod(periodKey);
   }, [anio, mes, loadedPeriod, isEditing]);
@@ -176,6 +180,9 @@ export function PresupuestosWizard({ onSaved, editPeriod }: WizardProps) {
       Object.entries(channelBudgets).forEach(([name, monto]) => {
         if (monto > 0) rows.push({ nombre_identificador: name, mes, anio, monto, tipo: "canal", updated_at: new Date().toISOString() });
       });
+      Object.entries(sellerBudgets).forEach(([id, monto]) => {
+        if (monto > 0) rows.push({ nombre_identificador: id, mes, anio, monto, tipo: "vendedor", updated_at: new Date().toISOString() });
+      });
 
       if (rows.length === 0) {
         toast.error("Asigna al menos un presupuesto");
@@ -195,6 +202,7 @@ export function PresupuestosWizard({ onSaved, editPeriod }: WizardProps) {
       setMes(null);
       setStoreBudgets({});
       setChannelBudgets({});
+      setSellerBudgets({});
       setLoadedPeriod(null);
       toast.success(isEditing ? "Presupuesto actualizado exitosamente" : "Presupuestos guardados exitosamente");
       onSaved?.();
