@@ -1,6 +1,6 @@
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface Props {
   tipoRegla: string;
@@ -11,65 +11,108 @@ interface Props {
 /** Rule types that calculate valor_objetivo automatically — hide the field */
 export const RULES_WITHOUT_VALOR_OBJETIVO = ["presupuesto_semanal_dual"];
 
-const RULE_FIELDS: Record<string, { label: string; key: string; type: string; placeholder: string }[]> = {
-  presupuesto: [],
+/** Canonical list of rule types shown in selects */
+export const TIPO_REGLA_OPTIONS: { value: string; label: string; description?: string }[] = [
+  { value: "presupuesto_semanal_dual", label: "Presupuesto Semanal", description: "Cumplimiento de presupuesto por semana con transacciones" },
+  { value: "venta_categoria", label: "Venta por Categoría", description: "Unidades vendidas de una o varias categorías" },
+  { value: "venta_sku", label: "Venta por SKU", description: "Unidades vendidas de SKUs específicos" },
+  { value: "ticket_minimo", label: "Ticket Mínimo", description: "Transacciones con valor mínimo" },
+  { value: "upt_minimo", label: "UPT Mínimo", description: "Transacciones con mínimo de unidades" },
+  { value: "numero_pedidos", label: "Número de Pedidos", description: "Cantidad de pedidos con ticket promedio mínimo" },
+];
+
+/** Rules with a fixed (non-selectable) alcance */
+export const FIXED_ALCANCE: Record<string, string> = {
+  presupuesto_semanal_dual: "tienda",
+  venta_categoria: "asesor",
+  venta_sku: "asesor",
+};
+
+/** Tipo de pago options per rule type */
+export function getTipoPagoOptions(tipoRegla: string): { value: string; label: string }[] {
+  if (tipoRegla === "presupuesto_semanal_dual") {
+    return [{ value: "monto_fijo", label: "Monto Fijo" }];
+  }
+  return [
+    { value: "monto_fijo", label: "Monto Fijo" },
+    { value: "por_unidad", label: "Por Unidad" },
+    { value: "porcentaje_venta", label: "Porcentaje sobre Venta" },
+  ];
+}
+
+type FieldDef = { label: string; key: string; type: "number" | "text"; placeholder: string };
+
+const RULE_FIELDS: Record<string, FieldDef[]> = {
   presupuesto_semanal_dual: [
     { label: "Semanas del mes", key: "semanas_mes", type: "number", placeholder: "Ej: 3" },
     { label: "Ticket Meta", key: "ticket_meta", type: "number", placeholder: "Ej: 700000" },
   ],
   venta_categoria: [
-    { label: "Categorías (separadas por coma)", key: "categorias", type: "text", placeholder: "Ej: Calzado, Bolsos, Accesorios" },
+    { label: "Categorías (separadas por coma)", key: "categorias", type: "text", placeholder: "Ej: SUNGLASSES, ACCESORIOS" },
   ],
-  venta_skus: [
-    { label: "SKUs (separados por coma)", key: "skus", type: "text", placeholder: "Ej: SKU001, SKU002, SKU003" },
+  venta_sku: [
+    { label: "SKUs (separados por coma)", key: "skus", type: "text", placeholder: "Ej: SKU001, SKU002" },
   ],
   ticket_minimo: [
-    { label: "Valor Mínimo del Ticket", key: "ticket_minimo", type: "number", placeholder: "Ej: 150000" },
+    { label: "Valor ticket mínimo (COP)", key: "valor_ticket_minimo", type: "number", placeholder: "Ej: 700000" },
   ],
-  metodo_pago: [
-    { label: "Métodos de Pago (separados por coma)", key: "metodos", type: "text", placeholder: "Ej: Efectivo, Tarjeta Crédito" },
+  upt_minimo: [
+    { label: "Unidades mínimas por transacción", key: "unidades_minimas", type: "number", placeholder: "Ej: 3" },
+  ],
+  numero_pedidos: [
+    { label: "Ticket promedio mínimo (COP)", key: "ticket_promedio_minimo", type: "number", placeholder: "Ej: 700000" },
   ],
 };
 
+/** Rules that include a tipo_venta selector in their parametros */
+const RULES_WITH_TIPO_VENTA = ["venta_categoria", "venta_sku", "ticket_minimo", "upt_minimo", "numero_pedidos"];
+
 export function IncentivosParametrosFields({ tipoRegla, params, onChange }: Props) {
   const fields = RULE_FIELDS[tipoRegla];
+  const showTipoVenta = RULES_WITH_TIPO_VENTA.includes(tipoRegla);
 
-  if (!fields || fields.length === 0) return null;
+  if ((!fields || fields.length === 0) && !showTipoVenta) return null;
 
-  const handleChange = (key: string, value: string, type: string) => {
-    let parsed: unknown;
-    if (type === "number") {
-      parsed = value === "" ? 0 : Number(value);
-    } else {
-      // For comma-separated lists, store as array
-      parsed = value.includes(",")
-        ? value.split(",").map((s) => s.trim()).filter(Boolean)
-        : value;
-    }
+  const handleChange = (key: string, value: string, type: "number" | "text") => {
+    const parsed: unknown = type === "number" ? (value === "" ? 0 : Number(value)) : value;
     onChange({ ...params, [key]: parsed });
   };
 
-  const getDisplayValue = (key: string, type: string): string => {
+  const getDisplayValue = (key: string): string => {
     const val = params[key];
     if (val === undefined || val === null) return "";
     if (Array.isArray(val)) return val.join(", ");
     return String(val);
   };
 
+  const tipoVentaValue = (params.tipo_venta as string) || "cualquiera";
+
   return (
     <div className="space-y-3">
       <p className="text-xs text-muted-foreground">Parámetros específicos</p>
-      {fields.map((field) => (
+      {fields?.map((field) => (
         <div key={field.key}>
           <Label>{field.label}</Label>
           <Input
             type={field.type === "number" ? "number" : "text"}
             placeholder={field.placeholder}
-            value={getDisplayValue(field.key, field.type)}
+            value={getDisplayValue(field.key)}
             onChange={(e) => handleChange(field.key, e.target.value, field.type)}
           />
         </div>
       ))}
+      {showTipoVenta && (
+        <div>
+          <Label>Tipo de Venta</Label>
+          <Select value={tipoVentaValue} onValueChange={(v) => onChange({ ...params, tipo_venta: v })}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="full_price">Full Price</SelectItem>
+              <SelectItem value="cualquiera">Cualquiera</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      )}
     </div>
   );
 }
