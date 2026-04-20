@@ -1,4 +1,4 @@
-import { BarChart3, TrendingUp, ArrowLeftRight, Package, Tag, Layers, Target, Zap, Trophy, Archive, Users } from "lucide-react";
+import { BarChart3, TrendingUp, ArrowLeftRight, Package, Tag, Layers, Target, Zap, Trophy, Archive, Users, Calculator } from "lucide-react";
 import { useLocation, Link } from "react-router-dom";
 import monasteryLogoWhite from "@/assets/monastery-logo-white.jpg";
 import {
@@ -79,6 +79,12 @@ const navItems = [
     url: "/rendimiento-vendedores",
     icon: Users,
     description: "Desempeño por vendedor",
+  },
+  {
+    title: "Liquidación Comisiones",
+    url: "/comisiones",
+    icon: Calculator,
+    description: "Cálculo y aprobación",
   },
 ];
 

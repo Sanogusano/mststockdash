@@ -120,11 +120,42 @@ export type Database = {
         }
         Relationships: []
       }
+      commission_scale_templates: {
+        Row: {
+          created_at: string | null
+          id: string
+          is_default: boolean | null
+          nombre: string
+          reglas: Json
+          rol: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          is_default?: boolean | null
+          nombre: string
+          reglas: Json
+          rol: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          is_default?: boolean | null
+          nombre?: string
+          reglas?: Json
+          rol?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       commission_settlements: {
         Row: {
           anio: number
           aprobado_at: string | null
           aprobado_por: string | null
+          batch_id: string | null
           created_at: string | null
           devoluciones: number | null
           estado: string | null
@@ -143,6 +174,7 @@ export type Database = {
           anio: number
           aprobado_at?: string | null
           aprobado_por?: string | null
+          batch_id?: string | null
           created_at?: string | null
           devoluciones?: number | null
           estado?: string | null
@@ -161,6 +193,7 @@ export type Database = {
           anio?: number
           aprobado_at?: string | null
           aprobado_por?: string | null
+          batch_id?: string | null
           created_at?: string | null
           devoluciones?: number | null
           estado?: string | null
@@ -176,6 +209,13 @@ export type Database = {
           venta_neta_comisionable?: number | null
         }
         Relationships: [
+          {
+            foreignKeyName: "commission_settlements_batch_id_fkey"
+            columns: ["batch_id"]
+            isOneToOne: false
+            referencedRelation: "commission_batches"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "commission_settlements_staff_id_fkey"
             columns: ["staff_id"]
