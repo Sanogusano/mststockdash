@@ -580,7 +580,7 @@ export default function RendimientoVendedoresPage() {
                             <td className="px-2 py-2.5 text-right text-muted-foreground">{fmtCOP(r.ticket_promedio)}</td>
                             <td className="px-2 py-2.5 text-right text-muted-foreground">{(r.upt ?? 0).toFixed(2)}</td>
                             <td className="px-2 py-2.5 text-right text-muted-foreground">
-                              {r.presupuesto ? fmtCOP(r.presupuesto) : <span className="text-xs italic">Sin asignar</span>}
+                              {r.presupuesto && r.presupuesto > 0 ? fmtCOP(r.presupuesto) : <span className="text-xs italic">Sin asignar</span>}
                             </td>
                             <td className="px-2 py-2.5">
                               {r.presupuesto && r.presupuesto > 0 ? (
@@ -588,6 +588,15 @@ export default function RendimientoVendedoresPage() {
                               ) : (
                                 <span className="text-xs text-muted-foreground">—</span>
                               )}
+                            </td>
+                            <td className={`px-2 py-2.5 text-right font-mono text-xs ${(r.pct_full_price ?? 0) >= 70 ? "text-emerald-600 font-semibold" : "text-muted-foreground"}`}>
+                              {(r.pct_full_price ?? 0).toFixed(1)}%
+                            </td>
+                            <td className="px-2 py-2.5 text-right font-mono text-xs text-orange-600">
+                              {(r.pct_rebajas ?? 0).toFixed(1)}%
+                            </td>
+                            <td className="px-2 py-2.5 text-right font-mono text-xs text-blue-600">
+                              {(r.pct_activaciones ?? 0).toFixed(1)}%
                             </td>
                           </tr>
                         ))}
