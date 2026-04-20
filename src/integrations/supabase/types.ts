@@ -573,6 +573,7 @@ export type Database = {
           nombre: string
           rol: string
           shopify_user_id: string
+          tipo_contrato: string | null
           updated_at: string | null
           zona: string | null
         }
@@ -586,6 +587,7 @@ export type Database = {
           nombre: string
           rol?: string
           shopify_user_id: string
+          tipo_contrato?: string | null
           updated_at?: string | null
           zona?: string | null
         }
@@ -599,6 +601,7 @@ export type Database = {
           nombre?: string
           rol?: string
           shopify_user_id?: string
+          tipo_contrato?: string | null
           updated_at?: string | null
           zona?: string | null
         }
