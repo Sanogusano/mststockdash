@@ -413,8 +413,72 @@ export function PresupuestosWizard({ onSaved, editPeriod }: WizardProps) {
         </div>
       )}
 
-      {/* Step 3: Resumen */}
+      {/* Step 3: Vendedores (opcional) */}
       {step === 3 && (
+        <div className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Users className="h-4 w-4" /> Presupuesto por Vendedor
+                <Badge variant="outline" className="ml-2 text-[10px] font-normal">Opcional</Badge>
+              </CardTitle>
+              <p className="text-xs text-muted-foreground">
+                {MONTHS[(mes || 1) - 1]} {anio} — Asigna metas individuales (vendedores y personal shoppers activos)
+              </p>
+            </CardHeader>
+            <CardContent>
+              <div className="mb-4 flex items-center gap-3">
+                <label className="text-xs text-muted-foreground">Filtrar por tienda:</label>
+                <div className="w-64">
+                  <Select value={sellerFilterLocation} onValueChange={setSellerFilterLocation}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todas</SelectItem>
+                      {locations.map((l) => <SelectItem key={l.location_id} value={l.location_id}>{l.name}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div className="max-h-[500px] overflow-y-auto pr-2">
+                <div className="grid gap-2">
+                  {filteredSellers.map((s) => (
+                    <div key={s.id} className="flex items-center gap-3 py-2 border-b border-border last:border-0">
+                      <Users className="h-3.5 w-3.5 text-muted-foreground" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm text-foreground truncate">{s.nombre}</p>
+                        <p className="text-[10px] text-muted-foreground">
+                          {s.rol === "personal_shopper" ? "Personal Shopper" : "Vendedor"}
+                          {s.location_id && ` · ${locations.find((l) => l.location_id === s.location_id)?.name || s.location_id}`}
+                        </p>
+                      </div>
+                      <div className="w-40">
+                        <Input
+                          type="number"
+                          min={0}
+                          placeholder="$ 0"
+                          value={sellerBudgets[s.shopify_user_id] || ""}
+                          onChange={(e) => setSellerBudgets((prev) => ({ ...prev, [s.shopify_user_id]: Number(e.target.value) }))}
+                          className="text-right text-sm"
+                        />
+                      </div>
+                    </div>
+                  ))}
+                  {filteredSellers.length === 0 && (
+                    <p className="text-sm text-muted-foreground text-center py-6">No hay vendedores para mostrar</p>
+                  )}
+                </div>
+              </div>
+              <div className="mt-4 pt-4 border-t border-border flex justify-between items-center">
+                <span className="text-sm font-medium text-muted-foreground">Total Vendedores</span>
+                <span className="text-lg font-semibold text-foreground">${totalVendedores.toLocaleString("es-CO")}</span>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Step 4: Resumen */}
+      {step === 4 && (
         <div className="space-y-4">
           <Card>
             <CardHeader>
@@ -488,7 +552,7 @@ export function PresupuestosWizard({ onSaved, editPeriod }: WizardProps) {
         <Button variant="outline" onClick={() => setStep(s => s - 1)} disabled={step === 0}>
           <ChevronLeft className="h-4 w-4 mr-1" /> Anterior
         </Button>
-        {step < 3 ? (
+        {step < 4 ? (
           <Button onClick={() => setStep(s => s + 1)} disabled={!canNext()}>
             Siguiente <ChevronRight className="h-4 w-4 ml-1" />
           </Button>
