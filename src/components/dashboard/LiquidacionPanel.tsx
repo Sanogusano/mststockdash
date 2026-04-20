@@ -1,52 +1,21 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Progress } from "@/components/ui/progress";
-import { Download } from "lucide-react";
-import { exportToCSV } from "@/lib/csv-export";
-
-interface WeekRow {
-  id: string;
-  tienda: string;
-  location_id: string;
-  campana: string;
-  incentivo_id: string;
-  semana: number;
-  semana_inicio: string;
-  semana_fin: string;
-  meta: number;
-  logrado: number;
-  tx_requeridas: number;
-  tx_logradas: number;
-  cumple_meta: boolean | null;
-  monto_ganado: number | null;
-  ticket_promedio: number;
-  fecha_inicio: string;
-  fecha_fin: string;
-}
-
-interface StoreGroup {
-  tienda: string;
-  location_id: string;
-  campana: string;
-  weeks: WeekRow[];
-  totalMeta: number;
-  totalLogrado: number;
-  totalTxReq: number;
-  totalTxLog: number;
-  totalMonto: number;
-  ticketPromedio: number;
-  semanasCumplidas: number;
-}
+import { ArrowLeft } from "lucide-react";
+import { CampanasListView } from "./liquidacion/CampanasListView";
+import { SemanalDetailView } from "./liquidacion/SemanalDetailView";
+import { CategoriaDetailView } from "./liquidacion/CategoriaDetailView";
+import type { CampanaResumen, LiquidacionRow } from "./liquidacion/types";
 
 export function LiquidacionPanel() {
-  const [groups, setGroups] = useState<StoreGroup[]>([]);
   const [loading, setLoading] = useState(true);
-  const [exporting, setExporting] = useState(false);
+  const [campanas, setCampanas] = useState<CampanaResumen[]>([]);
+  const [allRows, setAllRows] = useState<LiquidacionRow[]>([]);
+  const [locMap, setLocMap] = useState<Map<string, string>>(new Map());
+  const [vendedorMap, setVendedorMap] = useState<Map<string, string>>(new Map());
+  const [selectedId, setSelectedId] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -54,185 +23,118 @@ export function LiquidacionPanel() {
 
       const { data: liq } = await supabase
         .from("incentivo_liquidaciones")
-        .select("id, incentivo_id, location_id, progreso_actual, cumple_meta, monto_ganado");
+        .select("id, incentivo_id, location_id, vendedor_id, progreso_actual, cumple_meta, monto_ganado");
 
       if (!liq || liq.length === 0) {
-        setGroups([]);
+        setCampanas([]);
         setLoading(false);
         return;
       }
 
       const incentivoIds = [...new Set(liq.map((r) => r.incentivo_id))];
-      const locationIds = [...new Set(liq.map((r) => r.location_id).filter(Boolean))];
+      const locationIds = [...new Set(liq.map((r) => r.location_id).filter(Boolean) as string[])];
+      const vendedorIds = [...new Set(liq.map((r) => r.vendedor_id).filter(Boolean) as string[])];
 
-      const [incRes, locRes] = await Promise.all([
-        supabase.from("incentivos").select("id, nombre, fecha_inicio, fecha_fin").in("id", incentivoIds),
+      const [incRes, reglasRes, recompRes, locRes, staffRes] = await Promise.all([
+        supabase.from("incentivos").select("id, nombre, fecha_inicio, fecha_fin, alcance").in("id", incentivoIds),
+        supabase.from("incentivo_reglas").select("incentivo_id, tipo_regla, parametros, valor_objetivo").in("incentivo_id", incentivoIds),
+        supabase.from("incentivo_recompensas").select("incentivo_id, tipo_pago, valor, tope_minimo, tope_maximo").in("incentivo_id", incentivoIds),
         locationIds.length > 0
           ? supabase.from("locations").select("location_id, name").in("location_id", locationIds)
-          : Promise.resolve({ data: [] }),
+          : Promise.resolve({ data: [] as any[] }),
+        vendedorIds.length > 0
+          ? supabase.from("staff_members").select("shopify_user_id, nombre").in("shopify_user_id", vendedorIds)
+          : Promise.resolve({ data: [] as any[] }),
       ]);
 
-      const incMap = new Map((incRes.data ?? []).map((i) => [i.id, i]));
-      const locMap = new Map((locRes.data ?? []).map((l) => [l.location_id, l.name]));
+      const incMap = new Map((incRes.data ?? []).map((i: any) => [i.id, i]));
+      const reglaMap = new Map((reglasRes.data ?? []).map((r: any) => [r.incentivo_id, r]));
+      const recompMap = new Map((recompRes.data ?? []).map((r: any) => [r.incentivo_id, r]));
+      const locM = new Map((locRes.data ?? []).map((l: any) => [l.location_id, l.name]));
+      const vendM = new Map((staffRes.data ?? []).map((s: any) => [s.shopify_user_id, s.nombre]));
 
-      const rows: WeekRow[] = liq.map((r) => {
-        const p = r.progreso_actual as Record<string, any> | null;
-        const meta = p?.meta_semanal ?? p?.meta_semanal_dinamica ?? 0;
-        const logrado = p?.venta_lograda ?? 0;
-        const txLog = p?.tx_logradas ?? 0;
-        const txReq = p?.tx_requeridas ?? 0;
-        const inc = incMap.get(r.incentivo_id);
-        return {
-          id: r.id,
-          tienda: locMap.get(r.location_id ?? "") ?? r.location_id ?? "—",
-          location_id: r.location_id ?? "",
-          campana: inc?.nombre ?? r.incentivo_id,
-          incentivo_id: r.incentivo_id,
-          semana: p?.semana ?? 0,
-          semana_inicio: p?.semana_inicio ?? "",
-          semana_fin: p?.semana_fin ?? "",
-          meta,
-          logrado,
-          tx_requeridas: txReq,
-          tx_logradas: txLog,
-          cumple_meta: r.cumple_meta,
-          monto_ganado: r.monto_ganado,
-          ticket_promedio: txLog > 0 ? logrado / txLog : 0,
-          fecha_inicio: inc?.fecha_inicio ?? "",
-          fecha_fin: inc?.fecha_fin ?? "",
-        };
+      setLocMap(locM);
+      setVendedorMap(vendM);
+      setAllRows(liq as LiquidacionRow[]);
+
+      // Group by incentivo to build summaries
+      const byIncentivo = new Map<string, LiquidacionRow[]>();
+      (liq as LiquidacionRow[]).forEach((r) => {
+        if (!byIncentivo.has(r.incentivo_id)) byIncentivo.set(r.incentivo_id, []);
+        byIncentivo.get(r.incentivo_id)!.push(r);
       });
 
-      // Group by store
-      const map = new Map<string, WeekRow[]>();
-      rows.forEach((r) => {
-        const key = `${r.location_id}_${r.incentivo_id}`;
-        if (!map.has(key)) map.set(key, []);
-        map.get(key)!.push(r);
-      });
+      const summaries: CampanaResumen[] = [];
+      byIncentivo.forEach((rows, id) => {
+        const inc: any = incMap.get(id);
+        const regla: any = reglaMap.get(id);
+        const recomp: any = recompMap.get(id);
+        if (!inc) return;
+        const tipo_regla = regla?.tipo_regla ?? "desconocido";
 
-      const storeGroups: StoreGroup[] = [];
-      map.forEach((weeks) => {
-        weeks.sort((a, b) => a.semana - b.semana);
-        const totalLogrado = weeks.reduce((s, w) => s + w.logrado, 0);
-        const totalTxLog = weeks.reduce((s, w) => s + w.tx_logradas, 0);
-        storeGroups.push({
-          tienda: weeks[0].tienda,
-          location_id: weeks[0].location_id,
-          campana: weeks[0].campana,
-          weeks,
-          totalMeta: weeks.reduce((s, w) => s + w.meta, 0),
-          totalLogrado,
-          totalTxReq: weeks.reduce((s, w) => s + w.tx_requeridas, 0),
-          totalTxLog,
-          totalMonto: weeks.reduce((s, w) => s + (w.monto_ganado ?? 0), 0),
-          ticketPromedio: totalTxLog > 0 ? totalLogrado / totalTxLog : 0,
-          semanasCumplidas: weeks.filter((w) => w.cumple_meta).length,
+        let totalParticipantes = 0;
+        let cumplenMeta = 0;
+        let totalSemanas: number | undefined;
+        let semanasCumplidas: number | undefined;
+
+        if (tipo_regla === "presupuesto_semanal_dual") {
+          const stores = new Set(rows.map((r) => r.location_id));
+          totalParticipantes = stores.size;
+          totalSemanas = rows.length;
+          semanasCumplidas = rows.filter((r) => r.cumple_meta).length;
+          // Stores que cumplieron al menos una semana
+          const cumplenSet = new Set(rows.filter((r) => r.cumple_meta).map((r) => r.location_id));
+          cumplenMeta = cumplenSet.size;
+        } else {
+          totalParticipantes = rows.length;
+          cumplenMeta = rows.filter((r) => r.cumple_meta).length;
+        }
+
+        summaries.push({
+          incentivo_id: id,
+          nombre: inc.nombre,
+          fecha_inicio: inc.fecha_inicio,
+          fecha_fin: inc.fecha_fin,
+          alcance: inc.alcance,
+          tipo_regla,
+          parametros: regla?.parametros ?? {},
+          valor_objetivo: regla?.valor_objetivo ?? 0,
+          recompensa: recomp
+            ? { tipo_pago: recomp.tipo_pago, valor: recomp.valor, tope_minimo: recomp.tope_minimo, tope_maximo: recomp.tope_maximo }
+            : undefined,
+          totalParticipantes,
+          cumplenMeta,
+          totalGanado: rows.reduce((s, r) => s + (r.monto_ganado ?? 0), 0),
+          totalSemanas,
+          semanasCumplidas,
         });
       });
 
-      storeGroups.sort((a, b) => a.tienda.localeCompare(b.tienda));
-      setGroups(storeGroups);
+      summaries.sort((a, b) => a.nombre.localeCompare(b.nombre));
+      setCampanas(summaries);
       setLoading(false);
     };
     fetchData();
   }, []);
 
-  const pct = (logrado: number, meta: number) => (meta > 0 ? Math.min((logrado / meta) * 100, 100) : 0);
-  const fmt = (n: number) => "$" + Math.round(n).toLocaleString("es-CO");
-  const fmtDate = (d: string) => {
-    if (!d) return "—";
-    const date = new Date(d + "T12:00:00");
-    return date.toLocaleDateString("es-CO", { day: "numeric", month: "short" });
-  };
-
-  const handleExportExcel = async () => {
-    if (groups.length === 0) return;
-    setExporting(true);
-    try {
-      const locationIds = [...new Set(groups.map((g) => g.location_id).filter(Boolean))];
-      const allWeeks = groups.flatMap((g) => g.weeks);
-      const minDate = allWeeks.reduce((m, w) => (w.fecha_inicio < m ? w.fecha_inicio : m), allWeeks[0].fecha_inicio);
-      const maxDate = allWeeks.reduce((m, w) => (w.fecha_fin > m ? w.fecha_fin : m), allWeeks[0].fecha_fin);
-
-      const { data: orders } = await supabase
-        .from("orders")
-        .select("order_number, created_at, total_price, location_id, financial_status")
-        .in("location_id", locationIds)
-        .gte("created_at", minDate)
-        .lte("created_at", maxDate + "T23:59:59")
-        .in("financial_status", ["paid", "partially_refunded", "partially_paid"])
-        .order("created_at", { ascending: false })
-        .limit(5000);
-
-      const locNameMap = new Map<string, string>();
-      groups.forEach((g) => locNameMap.set(g.location_id, g.tienda));
-
-      const orderRows = (orders ?? []).map((o) => ({
-        "Número de Pedido": o.order_number,
-        Fecha: new Date(o.created_at).toLocaleDateString("es-CO", { day: "2-digit", month: "2-digit", year: "numeric" }),
-        Valor: o.total_price,
-        Tienda: locNameMap.get(o.location_id ?? "") ?? o.location_id ?? "—",
-      }));
-
-      const summaryRows = groups.flatMap((g) =>
-        g.weeks.map((w) => ({
-          Tienda: g.tienda,
-          Campaña: g.campana,
-          Semana: w.semana,
-          "Desde": w.semana_inicio,
-          "Hasta": w.semana_fin,
-          "Meta Semanal": Math.round(w.meta),
-          "Venta Lograda": Math.round(w.logrado),
-          "% Avance": Math.round(pct(w.logrado, w.meta)),
-          "Tx Requeridas": w.tx_requeridas,
-          "Tx Logradas": w.tx_logradas,
-          "Ticket Promedio": Math.round(w.ticket_promedio),
-          "¿Cumple?": w.cumple_meta ? "Sí" : "No",
-          "Monto Ganado": w.monto_ganado ?? 0,
-        }))
-      );
-
-      const XLSX = await import("xlsx");
-      const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(summaryRows), "Resumen Semanal");
-      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(orderRows), "Detalle Pedidos");
-      XLSX.writeFile(wb, "liquidacion_incentivos.xlsx");
-    } catch (err) {
-      console.error("Export error", err);
-    } finally {
-      setExporting(false);
-    }
-  };
-
-  const exportCSVHandler = () => {
-    const rows = groups.flatMap((g) =>
-      g.weeks.map((w) => ({
-        Tienda: g.tienda,
-        Campaña: g.campana,
-        Semana: w.semana,
-        "Meta Semanal": Math.round(w.meta),
-        "Venta Lograda": Math.round(w.logrado),
-        "% Avance": Math.round(pct(w.logrado, w.meta)),
-        "Ticket Promedio": Math.round(w.ticket_promedio),
-        "¿Cumple?": w.cumple_meta ? "Sí" : "No",
-        "Monto Ganado": w.monto_ganado ?? 0,
-      }))
-    );
-    exportToCSV(rows, "liquidacion_incentivos");
-  };
+  const selected = useMemo(() => campanas.find((c) => c.incentivo_id === selectedId), [campanas, selectedId]);
+  const selectedRows = useMemo(
+    () => (selectedId ? allRows.filter((r) => r.incentivo_id === selectedId) : []),
+    [allRows, selectedId]
+  );
 
   return (
     <Card>
       <CardHeader className="pb-3 flex flex-row items-center justify-between">
-        <CardTitle className="text-base font-semibold">Liquidación por Semana</CardTitle>
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm" className="gap-1.5" onClick={exportCSVHandler}>
-            <Download className="h-3.5 w-3.5" /> CSV
-          </Button>
-          <Button variant="outline" size="sm" className="gap-1.5" onClick={handleExportExcel} disabled={exporting}>
-            <Download className="h-3.5 w-3.5" /> Excel
-          </Button>
+        <div className="flex items-center gap-2">
+          {selected && (
+            <Button variant="ghost" size="sm" className="gap-1" onClick={() => setSelectedId(null)}>
+              <ArrowLeft className="h-3.5 w-3.5" /> Volver
+            </Button>
+          )}
+          <CardTitle className="text-base font-semibold">
+            {selected ? selected.nombre : "Liquidación de Campañas"}
+          </CardTitle>
         </div>
       </CardHeader>
       <CardContent>
@@ -240,97 +142,16 @@ export function LiquidacionPanel() {
           <div className="space-y-3">
             {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-10 w-full" />)}
           </div>
-        ) : groups.length === 0 ? (
-          <p className="text-sm text-muted-foreground text-center py-8">
-            No hay liquidaciones registradas. Usa "Calcular Progreso" en una campaña activa.
-          </p>
+        ) : !selected ? (
+          <CampanasListView campanas={campanas} onSelect={setSelectedId} />
+        ) : selected.tipo_regla === "presupuesto_semanal_dual" ? (
+          <SemanalDetailView campana={selected} rows={selectedRows} locMap={locMap} />
+        ) : selected.tipo_regla === "venta_categoria" ? (
+          <CategoriaDetailView campana={selected} rows={selectedRows} vendedorMap={vendedorMap} />
         ) : (
-          <div className="space-y-6">
-            {groups.map((g) => (
-              <div key={`${g.location_id}_${g.campana}`} className="border rounded-lg overflow-hidden">
-                {/* Store header */}
-                <div className="bg-muted/50 px-4 py-3 flex items-center justify-between">
-                  <div>
-                    <p className="font-semibold text-sm">{g.tienda}</p>
-                    <p className="text-[11px] text-muted-foreground">{g.campana}</p>
-                  </div>
-                  <div className="flex items-center gap-4 text-xs">
-                    <span className="text-muted-foreground">
-                      Semanas cumplidas: <strong className="text-foreground">{g.semanasCumplidas}/{g.weeks.length}</strong>
-                    </span>
-                    <span className="text-muted-foreground">
-                      Ticket Prom: <strong className="text-foreground tabular-nums">{fmt(g.ticketPromedio)}</strong>
-                    </span>
-                    <span className="text-muted-foreground">
-                      Total ganado: <strong className="text-foreground tabular-nums">{fmt(g.totalMonto)}</strong>
-                    </span>
-                  </div>
-                </div>
-
-                {/* Weekly rows */}
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="w-[80px]">Semana</TableHead>
-                      <TableHead className="w-[120px]">Periodo</TableHead>
-                      <TableHead className="min-w-[200px]">Avance Venta</TableHead>
-                      <TableHead>Transacciones</TableHead>
-                      <TableHead>Ticket Prom.</TableHead>
-                      <TableHead>¿Cumple?</TableHead>
-                      <TableHead className="text-right">Ganado</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {g.weeks.map((w) => {
-                      const avance = pct(w.logrado, w.meta);
-                      return (
-                        <TableRow key={w.id}>
-                          <TableCell className="font-medium text-sm">Sem {w.semana}</TableCell>
-                          <TableCell className="text-xs text-muted-foreground tabular-nums">
-                            {fmtDate(w.semana_inicio)} – {fmtDate(w.semana_fin)}
-                          </TableCell>
-                          <TableCell>
-                            <div className="space-y-1">
-                              <div className="flex justify-between text-xs text-muted-foreground">
-                                <span>{fmt(w.logrado)}</span>
-                                <span>{fmt(w.meta)}</span>
-                              </div>
-                              <Progress
-                                value={avance}
-                                className="h-2.5"
-                                indicatorClassName={
-                                  avance >= 100
-                                    ? "bg-[hsl(var(--success))]"
-                                    : avance >= 70
-                                    ? "bg-[hsl(var(--warning))]"
-                                    : "bg-destructive"
-                                }
-                              />
-                              <p className="text-[10px] text-muted-foreground text-right">{avance.toFixed(1)}%</p>
-                            </div>
-                          </TableCell>
-                          <TableCell className="text-sm tabular-nums">
-                            {w.tx_logradas} / {w.tx_requeridas}
-                          </TableCell>
-                          <TableCell className="tabular-nums font-medium text-sm">{fmt(w.ticket_promedio)}</TableCell>
-                          <TableCell>
-                            {w.cumple_meta ? (
-                              <Badge className="bg-[hsl(var(--success))]/15 text-[hsl(var(--success))]">Sí</Badge>
-                            ) : (
-                              <Badge variant="secondary">No</Badge>
-                            )}
-                          </TableCell>
-                          <TableCell className="text-right tabular-nums font-medium text-sm">
-                            {fmt(w.monto_ganado ?? 0)}
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
-              </div>
-            ))}
-          </div>
+          <p className="text-sm text-muted-foreground text-center py-8">
+            Tipo de regla no soportado: {selected.tipo_regla}
+          </p>
         )}
       </CardContent>
     </Card>
