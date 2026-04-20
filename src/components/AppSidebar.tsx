@@ -28,9 +28,9 @@ const navItems: NavItem[] = [
   { title: "Desempeño por Línea", url: "/lineas", icon: Layers, description: "Categorías & canales" },
   { title: "Logística & Traslados", url: "/logistica", icon: ArrowLeftRight, description: "Allocation & movimientos" },
   { title: "Gestión de Insumos", url: "/insumos", icon: Package, description: "CEDI & reorden" },
+  { title: "Cierre de Colecciones", url: "/cierre-coleccion", icon: Archive, description: "Desempeño por colección & remanentes" },
   { title: "Presupuestos", url: "/presupuestos", icon: Target, description: "Metas de venta" },
   { title: "Centro de Acción", url: "/centro-accion", icon: Zap, description: "Alertas comerciales" },
-  { title: "Cierre de Colecciones", url: "/cierre-coleccion", icon: Archive, description: "Desempeño por colección & remanentes" },
 ];
 
 const gestionComercialItems: NavItem[] = [
