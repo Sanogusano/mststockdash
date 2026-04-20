@@ -557,6 +557,9 @@ export default function RendimientoVendedoresPage() {
                               % Cumplim. <ArrowUpDown className="h-3 w-3" />
                             </button>
                           </th>
+                          <th className="px-2 py-2 text-right">% Full Price</th>
+                          <th className="px-2 py-2 text-right">% Rebajas</th>
+                          <th className="px-2 py-2 text-right">% Activaciones</th>
                         </tr>
                       </thead>
                       <tbody>
