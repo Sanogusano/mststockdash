@@ -285,6 +285,9 @@ export default function RendimientoVendedoresPage() {
         UPT: r.upt,
         Presupuesto: r.presupuesto ?? 0,
         "% Cumplimiento": (r.pct_cumplimiento ?? 0).toFixed(2),
+        "% Full Price": (r.pct_full_price ?? 0).toFixed(2),
+        "% Rebajas": (r.pct_rebajas ?? 0).toFixed(2),
+        "% Activaciones": (r.pct_activaciones ?? 0).toFixed(2),
       })),
       `rendimiento-vendedores-${anio}-${String(mes).padStart(2, "0")}`,
     );
