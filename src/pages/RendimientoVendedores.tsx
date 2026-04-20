@@ -201,28 +201,15 @@ export default function RendimientoVendedoresPage() {
         // Filtro de rol en cliente (RPC no lo soporta)
         if (rol !== "all") list = list.filter((r) => r.rol === rol);
 
-        // Buscar presupuestos por vendedor (tipo='vendedor', nombre_identificador=shopify_user_id)
-        const ids = list.map((r) => r.shopify_user_id).filter(Boolean);
-        let budgets: Record<string, number> = {};
-        if (ids.length) {
-          const { data: pres } = await supabase
-            .from("presupuestos_config")
-            .select("nombre_identificador, monto")
-            .eq("anio", anio)
-            .eq("mes", mes)
-            .eq("tipo", "vendedor")
-            .in("nombre_identificador", ids);
-          (pres ?? []).forEach((p: any) => {
-            budgets[p.nombre_identificador] = Number(p.monto) || 0;
-          });
-        }
-
-        list = list.map((r) => {
-          const presupuesto = budgets[r.shopify_user_id] ?? 0;
-          const pct =
-            presupuesto > 0 ? (Number(r.venta_neta) / presupuesto) * 100 : 0;
-          return { ...r, presupuesto, pct_cumplimiento: pct };
-        });
+        // Normalizar numéricos (presupuesto y % vienen del RPC)
+        list = list.map((r) => ({
+          ...r,
+          presupuesto: Number(r.presupuesto) || 0,
+          pct_cumplimiento: Number(r.pct_cumplimiento) || 0,
+          pct_full_price: Number(r.pct_full_price) || 0,
+          pct_rebajas: Number(r.pct_rebajas) || 0,
+          pct_activaciones: Number(r.pct_activaciones) || 0,
+        }));
 
         if (alive) setRows(list);
       } catch (e: any) {
