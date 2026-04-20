@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Check, ChevronRight, ChevronLeft, Save, Store, Globe, BarChart3, MapPin, AlertTriangle, Pencil } from "lucide-react";
+import { Check, ChevronRight, ChevronLeft, Save, Store, Globe, BarChart3, MapPin, AlertTriangle, Pencil, Users } from "lucide-react";
 import { toast } from "sonner";
 
 const MONTHS = [
@@ -18,6 +18,7 @@ const DIGITAL_CHANNELS = ["Tienda Online", "Personal Shopper"];
 const STORAGE_KEY = "presupuestos_wizard_state";
 
 type LocationData = { location_id: string; name: string; zona: string | null };
+type StaffData = { id: string; shopify_user_id: string; nombre: string; rol: string; location_id: string | null };
 
 type WizardState = {
   step: number;
@@ -25,6 +26,7 @@ type WizardState = {
   mes: number | null;
   storeBudgets: Record<string, number>;
   channelBudgets: Record<string, number>;
+  sellerBudgets: Record<string, number>;
   isEditing: boolean;
 };
 
@@ -57,24 +59,35 @@ export function PresupuestosWizard({ onSaved, editPeriod }: WizardProps) {
   const [anio, setAnio] = useState<number | null>(saved?.anio ?? null);
   const [mes, setMes] = useState<number | null>(saved?.mes ?? null);
   const [locations, setLocations] = useState<LocationData[]>([]);
+  const [sellers, setSellers] = useState<StaffData[]>([]);
   const [storeBudgets, setStoreBudgets] = useState<Record<string, number>>(saved?.storeBudgets ?? {});
   const [channelBudgets, setChannelBudgets] = useState<Record<string, number>>(saved?.channelBudgets ?? {});
+  const [sellerBudgets, setSellerBudgets] = useState<Record<string, number>>(saved?.sellerBudgets ?? {});
   const [saving, setSaving] = useState(false);
   const [loadedPeriod, setLoadedPeriod] = useState<string | null>(null);
   const [isEditing, setIsEditing] = useState(saved?.isEditing ?? false);
   const [existingPeriods, setExistingPeriods] = useState<Set<string>>(new Set());
   const [duplicateWarning, setDuplicateWarning] = useState(false);
+  const [sellerFilterLocation, setSellerFilterLocation] = useState<string>("all");
 
   // Persist state on every change
   useEffect(() => {
-    saveState({ step, anio, mes, storeBudgets, channelBudgets, isEditing });
-  }, [step, anio, mes, storeBudgets, channelBudgets, isEditing]);
+    saveState({ step, anio, mes, storeBudgets, channelBudgets, sellerBudgets, isEditing });
+  }, [step, anio, mes, storeBudgets, channelBudgets, sellerBudgets, isEditing]);
 
   // Load locations
   useEffect(() => {
     supabase.from("locations").select("location_id, name, zona").eq("is_active", true).neq("name", "CEDI Guayabal").order("name")
       .then(({ data }) => {
         if (data) setLocations(data);
+      });
+    supabase.from("staff_members")
+      .select("id, shopify_user_id, nombre, rol, location_id")
+      .eq("is_active", true)
+      .in("rol", ["vendedor", "personal_shopper"])
+      .order("nombre")
+      .then(({ data }) => {
+        if (data) setSellers(data as any);
       });
   }, []);
 
