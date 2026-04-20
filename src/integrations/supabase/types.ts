@@ -1956,6 +1956,32 @@ export type Database = {
               und_total: number
             }[]
           }
+      reporte_ventas_por_vendedor: {
+        Args: {
+          p_anio: number
+          p_location_id?: string
+          p_mes: number
+          p_zona?: string
+        }
+        Returns: {
+          nombre_vendedor: string
+          pct_activaciones: number
+          pct_cumplimiento: number
+          pct_full_price: number
+          pct_rebajas: number
+          presupuesto: number
+          rol: string
+          shopify_user_id: string
+          ticket_promedio: number
+          tienda: string
+          tipo_contrato: string
+          total_pedidos: number
+          unidades_vendidas: number
+          upt: number
+          venta_bruta: number
+          venta_neta: number
+        }[]
+      }
       reporte_wos_categoria_global:
         | {
             Args: { dias_atras: number; p_location_ids?: string[] }
