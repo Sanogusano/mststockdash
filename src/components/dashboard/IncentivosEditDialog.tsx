@@ -6,7 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
-import { IncentivosParametrosFields, parseParamsFromJson, RULES_WITHOUT_VALOR_OBJETIVO } from "./IncentivosParametrosFields";
+import { IncentivosParametrosFields, parseParamsFromJson, RULES_WITHOUT_VALOR_OBJETIVO, TIPO_REGLA_OPTIONS, FIXED_ALCANCE, getTipoPagoOptions } from "./IncentivosParametrosFields";
+import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 
@@ -95,33 +96,43 @@ export function IncentivosEditDialog({ incentivo, open, onOpenChange, onSaved }:
       if (e1) throw e1;
 
       // Update or insert rule
-      if (tipoRegla && valorObjetivo) {
+      if (tipoRegla) {
+        const reglaPayload = {
+          tipo_regla: tipoRegla,
+          valor_objetivo: Number(valorObjetivo) || 0,
+          parametros: parsedParams,
+        };
         if (reglaId) {
           const { error: e2 } = await supabase
             .from("incentivo_reglas")
-            .update({ tipo_regla: tipoRegla, valor_objetivo: Number(valorObjetivo), parametros: parsedParams } as any)
+            .update(reglaPayload as any)
             .eq("id", reglaId);
           if (e2) throw e2;
         } else {
           const { error: e2 } = await supabase
             .from("incentivo_reglas")
-            .insert({ incentivo_id: incentivo.id, tipo_regla: tipoRegla, valor_objetivo: Number(valorObjetivo), parametros: parsedParams } as any);
+            .insert({ ...reglaPayload, incentivo_id: incentivo.id } as any);
           if (e2) throw e2;
         }
       }
 
       // Update or insert reward
-      if (tipoPago && valorPago) {
+      if (tipoPago) {
+        const recompensaPayload = {
+          tipo_pago: tipoPago,
+          valor: Number(valorPago) || 0,
+          tope_minimo: topeMinimo ? Number(topeMinimo) : 0,
+        };
         if (recompensaId) {
           const { error: e3 } = await supabase
             .from("incentivo_recompensas")
-            .update({ tipo_pago: tipoPago, valor: Number(valorPago), tope_minimo: topeMinimo ? Number(topeMinimo) : 0 } as any)
+            .update(recompensaPayload as any)
             .eq("id", recompensaId);
           if (e3) throw e3;
         } else {
           const { error: e3 } = await supabase
             .from("incentivo_recompensas")
-            .insert({ incentivo_id: incentivo.id, tipo_pago: tipoPago, valor: Number(valorPago), tope_minimo: topeMinimo ? Number(topeMinimo) : 0 } as any);
+            .insert({ ...recompensaPayload, incentivo_id: incentivo.id } as any);
           if (e3) throw e3;
         }
       }
@@ -168,13 +179,19 @@ export function IncentivosEditDialog({ incentivo, open, onOpenChange, onSaved }:
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <Label>Alcance</Label>
-                  <Select value={alcance} onValueChange={setAlcance}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="tienda">Tienda</SelectItem>
-                      <SelectItem value="asesor">Asesor</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  {FIXED_ALCANCE[tipoRegla] ? (
+                    <div className="h-10 flex items-center">
+                      <Badge variant="secondary" className="capitalize">{FIXED_ALCANCE[tipoRegla]}</Badge>
+                    </div>
+                  ) : (
+                    <Select value={alcance} onValueChange={setAlcance}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="tienda">Tienda</SelectItem>
+                        <SelectItem value="asesor">Asesor</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  )}
                 </div>
                 <div>
                   <Label>Estado</Label>
@@ -197,22 +214,31 @@ export function IncentivosEditDialog({ incentivo, open, onOpenChange, onSaved }:
               <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Condiciones</p>
               <div>
                 <Label>Tipo de Regla</Label>
-                <Select value={tipoRegla} onValueChange={setTipoRegla}>
+                <Select
+                  value={tipoRegla}
+                  onValueChange={(v) => {
+                    setTipoRegla(v);
+                    const fixed = FIXED_ALCANCE[v];
+                    if (fixed) setAlcance(fixed);
+                  }}
+                >
                   <SelectTrigger><SelectValue placeholder="Seleccionar..." /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="presupuesto">Presupuesto</SelectItem>
-                    <SelectItem value="presupuesto_semanal_dual">Presupuesto Semanal Dual</SelectItem>
-                    <SelectItem value="venta_categoria">Venta por Categoría</SelectItem>
-                    <SelectItem value="venta_skus">Venta por SKUs</SelectItem>
-                    <SelectItem value="ticket_minimo">Ticket Mínimo</SelectItem>
-                    <SelectItem value="metodo_pago">Método de Pago</SelectItem>
+                    {TIPO_REGLA_OPTIONS.map((o) => (
+                      <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
               {!RULES_WITHOUT_VALOR_OBJETIVO.includes(tipoRegla) && (
               <div>
-                <Label>Valor Objetivo</Label>
-                <Input type="number" placeholder="Ej: 5000000" value={valorObjetivo} onChange={(e) => setValorObjetivo(e.target.value)} />
+                <Label>
+                  {tipoRegla === "venta_categoria" || tipoRegla === "venta_sku" ? "Meta de unidades"
+                    : tipoRegla === "ticket_minimo" || tipoRegla === "upt_minimo" ? "Número de transacciones requeridas"
+                    : tipoRegla === "numero_pedidos" ? "Número de pedidos requeridos"
+                    : "Valor Objetivo"}
+                </Label>
+                <Input type="number" placeholder="Ej: 30" value={valorObjetivo} onChange={(e) => setValorObjetivo(e.target.value)} />
               </div>
               )}
               <IncentivosParametrosFields
@@ -232,9 +258,9 @@ export function IncentivosEditDialog({ incentivo, open, onOpenChange, onSaved }:
                 <Select value={tipoPago} onValueChange={setTipoPago}>
                   <SelectTrigger><SelectValue placeholder="Seleccionar..." /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="monto_fijo">Monto Fijo</SelectItem>
-                    <SelectItem value="por_unidad">Por Unidad</SelectItem>
-                    <SelectItem value="porcentaje">Porcentaje</SelectItem>
+                    {getTipoPagoOptions(tipoRegla).map((o) => (
+                      <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
