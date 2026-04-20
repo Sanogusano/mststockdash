@@ -30,7 +30,7 @@ const navItems: NavItem[] = [
   { title: "Gestión de Insumos", url: "/insumos", icon: Package, description: "CEDI & reorden" },
   { title: "Presupuestos", url: "/presupuestos", icon: Target, description: "Metas de venta" },
   { title: "Centro de Acción", url: "/centro-accion", icon: Zap, description: "Alertas comerciales" },
-  { title: "Comportamiento de Colección", url: "/cierre-coleccion", icon: Archive, description: "Desempeño por colección & remanentes" },
+  { title: "Cierre de Colecciones", url: "/cierre-coleccion", icon: Archive, description: "Desempeño por colección & remanentes" },
 ];
 
 const gestionComercialItems: NavItem[] = [
