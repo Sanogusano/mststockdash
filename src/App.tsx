@@ -22,6 +22,7 @@ import CentroAccionPage from "./pages/CentroAccion";
 import IncentivosPage from "./pages/Incentivos";
 import CierreColeccionPage from "./pages/CierreColeccion";
 import RendimientoVendedoresPage from "./pages/RendimientoVendedores";
+import ComisionesPage from "./pages/Comisiones";
 
 
 const queryClient = new QueryClient();
@@ -50,6 +51,7 @@ const App = () => (
           <Route path="/incentivos" element={<ProtectedRoute><IncentivosPage /></ProtectedRoute>} />
           <Route path="/cierre-coleccion" element={<ProtectedRoute><CierreColeccionPage /></ProtectedRoute>} />
           <Route path="/rendimiento-vendedores" element={<ProtectedRoute><RendimientoVendedoresPage /></ProtectedRoute>} />
+          <Route path="/comisiones" element={<ProtectedRoute><ComisionesPage /></ProtectedRoute>} />
           
           <Route path="*" element={<NotFound />} />
         </Routes>
