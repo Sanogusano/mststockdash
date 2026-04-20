@@ -120,6 +120,71 @@ export type Database = {
         }
         Relationships: []
       }
+      commission_settlements: {
+        Row: {
+          anio: number
+          aprobado_at: string | null
+          aprobado_por: string | null
+          created_at: string | null
+          devoluciones: number | null
+          estado: string | null
+          id: string
+          mes: number
+          monto_comision: number | null
+          pct_comision_aplicado: number | null
+          pct_cumplimiento: number | null
+          presupuesto: number | null
+          staff_id: string
+          updated_at: string | null
+          venta_facturada: number | null
+          venta_neta_comisionable: number | null
+        }
+        Insert: {
+          anio: number
+          aprobado_at?: string | null
+          aprobado_por?: string | null
+          created_at?: string | null
+          devoluciones?: number | null
+          estado?: string | null
+          id?: string
+          mes: number
+          monto_comision?: number | null
+          pct_comision_aplicado?: number | null
+          pct_cumplimiento?: number | null
+          presupuesto?: number | null
+          staff_id: string
+          updated_at?: string | null
+          venta_facturada?: number | null
+          venta_neta_comisionable?: number | null
+        }
+        Update: {
+          anio?: number
+          aprobado_at?: string | null
+          aprobado_por?: string | null
+          created_at?: string | null
+          devoluciones?: number | null
+          estado?: string | null
+          id?: string
+          mes?: number
+          monto_comision?: number | null
+          pct_comision_aplicado?: number | null
+          pct_cumplimiento?: number | null
+          presupuesto?: number | null
+          staff_id?: string
+          updated_at?: string | null
+          venta_facturada?: number | null
+          venta_neta_comisionable?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "commission_settlements_staff_id_fkey"
+            columns: ["staff_id"]
+            isOneToOne: false
+            referencedRelation: "staff_members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       incentivo_liquidaciones: {
         Row: {
           cumple_meta: boolean | null
@@ -1848,6 +1913,27 @@ export type Database = {
               und_total: number
             }[]
           }
+      reporte_ventas_por_vendedor: {
+        Args: {
+          p_anio: number
+          p_location_id?: string
+          p_mes: number
+          p_zona?: string
+        }
+        Returns: {
+          nombre_vendedor: string
+          rol: string
+          shopify_user_id: string
+          ticket_promedio: number
+          tienda: string
+          tipo_contrato: string
+          total_pedidos: number
+          unidades_vendidas: number
+          upt: number
+          venta_bruta: number
+          venta_neta: number
+        }[]
+      }
       reporte_wos_categoria_global:
         | {
             Args: { dias_atras: number; p_location_ids?: string[] }
