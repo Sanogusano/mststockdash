@@ -57,6 +57,9 @@ interface VendedorRow {
   upt: number;
   presupuesto?: number;
   pct_cumplimiento?: number;
+  pct_full_price?: number;
+  pct_rebajas?: number;
+  pct_activaciones?: number;
 }
 
 interface Location {
@@ -198,28 +201,15 @@ export default function RendimientoVendedoresPage() {
         // Filtro de rol en cliente (RPC no lo soporta)
         if (rol !== "all") list = list.filter((r) => r.rol === rol);
 
-        // Buscar presupuestos por vendedor (tipo='vendedor', nombre_identificador=shopify_user_id)
-        const ids = list.map((r) => r.shopify_user_id).filter(Boolean);
-        let budgets: Record<string, number> = {};
-        if (ids.length) {
-          const { data: pres } = await supabase
-            .from("presupuestos_config")
-            .select("nombre_identificador, monto")
-            .eq("anio", anio)
-            .eq("mes", mes)
-            .eq("tipo", "vendedor")
-            .in("nombre_identificador", ids);
-          (pres ?? []).forEach((p: any) => {
-            budgets[p.nombre_identificador] = Number(p.monto) || 0;
-          });
-        }
-
-        list = list.map((r) => {
-          const presupuesto = budgets[r.shopify_user_id] ?? 0;
-          const pct =
-            presupuesto > 0 ? (Number(r.venta_neta) / presupuesto) * 100 : 0;
-          return { ...r, presupuesto, pct_cumplimiento: pct };
-        });
+        // Normalizar numéricos (presupuesto y % vienen del RPC)
+        list = list.map((r) => ({
+          ...r,
+          presupuesto: Number(r.presupuesto) || 0,
+          pct_cumplimiento: Number(r.pct_cumplimiento) || 0,
+          pct_full_price: Number(r.pct_full_price) || 0,
+          pct_rebajas: Number(r.pct_rebajas) || 0,
+          pct_activaciones: Number(r.pct_activaciones) || 0,
+        }));
 
         if (alive) setRows(list);
       } catch (e: any) {
@@ -295,6 +285,9 @@ export default function RendimientoVendedoresPage() {
         UPT: r.upt,
         Presupuesto: r.presupuesto ?? 0,
         "% Cumplimiento": (r.pct_cumplimiento ?? 0).toFixed(2),
+        "% Full Price": (r.pct_full_price ?? 0).toFixed(2),
+        "% Rebajas": (r.pct_rebajas ?? 0).toFixed(2),
+        "% Activaciones": (r.pct_activaciones ?? 0).toFixed(2),
       })),
       `rendimiento-vendedores-${anio}-${String(mes).padStart(2, "0")}`,
     );
@@ -567,6 +560,9 @@ export default function RendimientoVendedoresPage() {
                               % Cumplim. <ArrowUpDown className="h-3 w-3" />
                             </button>
                           </th>
+                          <th className="px-2 py-2 text-right">% Full Price</th>
+                          <th className="px-2 py-2 text-right">% Rebajas</th>
+                          <th className="px-2 py-2 text-right">% Activaciones</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -587,7 +583,7 @@ export default function RendimientoVendedoresPage() {
                             <td className="px-2 py-2.5 text-right text-muted-foreground">{fmtCOP(r.ticket_promedio)}</td>
                             <td className="px-2 py-2.5 text-right text-muted-foreground">{(r.upt ?? 0).toFixed(2)}</td>
                             <td className="px-2 py-2.5 text-right text-muted-foreground">
-                              {r.presupuesto ? fmtCOP(r.presupuesto) : <span className="text-xs italic">Sin asignar</span>}
+                              {r.presupuesto && r.presupuesto > 0 ? fmtCOP(r.presupuesto) : <span className="text-xs italic">Sin asignar</span>}
                             </td>
                             <td className="px-2 py-2.5">
                               {r.presupuesto && r.presupuesto > 0 ? (
@@ -595,6 +591,15 @@ export default function RendimientoVendedoresPage() {
                               ) : (
                                 <span className="text-xs text-muted-foreground">—</span>
                               )}
+                            </td>
+                            <td className={`px-2 py-2.5 text-right font-mono text-xs ${(r.pct_full_price ?? 0) >= 70 ? "text-emerald-600 font-semibold" : "text-muted-foreground"}`}>
+                              {(r.pct_full_price ?? 0).toFixed(1)}%
+                            </td>
+                            <td className="px-2 py-2.5 text-right font-mono text-xs text-orange-600">
+                              {(r.pct_rebajas ?? 0).toFixed(1)}%
+                            </td>
+                            <td className="px-2 py-2.5 text-right font-mono text-xs text-blue-600">
+                              {(r.pct_activaciones ?? 0).toFixed(1)}%
                             </td>
                           </tr>
                         ))}

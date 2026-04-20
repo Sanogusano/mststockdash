@@ -1962,6 +1962,11 @@ export type Database = {
         }
         Returns: {
           nombre_vendedor: string
+          pct_activaciones: number
+          pct_cumplimiento: number
+          pct_full_price: number
+          pct_rebajas: number
+          presupuesto: number
           rol: string
           shopify_user_id: string
           ticket_promedio: number
