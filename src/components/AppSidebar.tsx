@@ -35,7 +35,7 @@ const navItems: NavItem[] = [
 
 const gestionComercialItems: NavItem[] = [
   { title: "Gestión de Incentivos", url: "/incentivos", icon: Trophy, description: "Campañas & liquidaciones" },
-  { title: "Rendimiento Vendedores", url: "/rendimiento-vendedores", icon: Users, description: "Desempeño por vendedor" },
+  { title: "Rendimiento", url: "/rendimiento-vendedores", icon: Users, description: "Desempeño por vendedor" },
   { title: "Liquidación Comisiones", url: "/comisiones", icon: Calculator, description: "Cálculo y aprobación" },
   { title: "Equipo Comercial", url: "/vendedores", icon: UserCog, description: "Gestión de vendedores" },
 ];
