@@ -538,6 +538,24 @@ export function PresupuestosWizard({ onSaved, editPeriod }: WizardProps) {
                 </div>
               </div>
 
+              {totalVendedores > 0 && (
+                <div>
+                  <h3 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
+                    <Users className="h-4 w-4" /> Presupuesto Vendedores
+                    <Badge variant="outline" className="ml-1 text-[10px] font-normal">
+                      {Object.values(sellerBudgets).filter((v) => v > 0).length} con meta
+                    </Badge>
+                  </h3>
+                  <div className="flex justify-between px-3 py-2 rounded-lg bg-primary/5 border border-primary/10">
+                    <span className="text-sm font-semibold text-primary">Total Vendedores</span>
+                    <span className="text-sm font-bold text-primary">${totalVendedores.toLocaleString("es-CO")}</span>
+                  </div>
+                  <p className="text-[10px] text-muted-foreground mt-1.5">
+                    Las metas individuales no se suman al presupuesto total (son metas paralelas para liquidación de comisiones).
+                  </p>
+                </div>
+              )}
+
               <div className="flex justify-between items-center px-4 py-3 rounded-xl bg-primary text-primary-foreground">
                 <span className="font-semibold">PRESUPUESTO TOTAL</span>
                 <span className="text-xl font-bold">${totalGeneral.toLocaleString("es-CO")}</span>
