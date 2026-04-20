@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Check, ChevronRight, ChevronLeft, Save, Store, Globe, BarChart3, MapPin, AlertTriangle, Pencil } from "lucide-react";
+import { Check, ChevronRight, ChevronLeft, Save, Store, Globe, BarChart3, MapPin, AlertTriangle, Pencil, Users } from "lucide-react";
 import { toast } from "sonner";
 
 const MONTHS = [
@@ -18,6 +18,7 @@ const DIGITAL_CHANNELS = ["Tienda Online", "Personal Shopper"];
 const STORAGE_KEY = "presupuestos_wizard_state";
 
 type LocationData = { location_id: string; name: string; zona: string | null };
+type StaffData = { id: string; shopify_user_id: string; nombre: string; rol: string; location_id: string | null };
 
 type WizardState = {
   step: number;
@@ -25,6 +26,7 @@ type WizardState = {
   mes: number | null;
   storeBudgets: Record<string, number>;
   channelBudgets: Record<string, number>;
+  sellerBudgets: Record<string, number>;
   isEditing: boolean;
 };
 
@@ -57,24 +59,35 @@ export function PresupuestosWizard({ onSaved, editPeriod }: WizardProps) {
   const [anio, setAnio] = useState<number | null>(saved?.anio ?? null);
   const [mes, setMes] = useState<number | null>(saved?.mes ?? null);
   const [locations, setLocations] = useState<LocationData[]>([]);
+  const [sellers, setSellers] = useState<StaffData[]>([]);
   const [storeBudgets, setStoreBudgets] = useState<Record<string, number>>(saved?.storeBudgets ?? {});
   const [channelBudgets, setChannelBudgets] = useState<Record<string, number>>(saved?.channelBudgets ?? {});
+  const [sellerBudgets, setSellerBudgets] = useState<Record<string, number>>(saved?.sellerBudgets ?? {});
   const [saving, setSaving] = useState(false);
   const [loadedPeriod, setLoadedPeriod] = useState<string | null>(null);
   const [isEditing, setIsEditing] = useState(saved?.isEditing ?? false);
   const [existingPeriods, setExistingPeriods] = useState<Set<string>>(new Set());
   const [duplicateWarning, setDuplicateWarning] = useState(false);
+  const [sellerFilterLocation, setSellerFilterLocation] = useState<string>("all");
 
   // Persist state on every change
   useEffect(() => {
-    saveState({ step, anio, mes, storeBudgets, channelBudgets, isEditing });
-  }, [step, anio, mes, storeBudgets, channelBudgets, isEditing]);
+    saveState({ step, anio, mes, storeBudgets, channelBudgets, sellerBudgets, isEditing });
+  }, [step, anio, mes, storeBudgets, channelBudgets, sellerBudgets, isEditing]);
 
   // Load locations
   useEffect(() => {
     supabase.from("locations").select("location_id, name, zona").eq("is_active", true).neq("name", "CEDI Guayabal").order("name")
       .then(({ data }) => {
         if (data) setLocations(data);
+      });
+    supabase.from("staff_members")
+      .select("id, shopify_user_id, nombre, rol, location_id")
+      .eq("is_active", true)
+      .in("rol", ["vendedor", "personal_shopper"])
+      .order("nombre")
+      .then(({ data }) => {
+        if (data) setSellers(data as any);
       });
   }, []);
 
@@ -128,15 +141,19 @@ export function PresupuestosWizard({ onSaved, editPeriod }: WizardProps) {
     if (data && data.length > 0) {
       const sb: Record<string, number> = {};
       const cb: Record<string, number> = {};
+      const vb: Record<string, number> = {};
       data.forEach((r: any) => {
         if (r.tipo === "tienda") sb[r.nombre_identificador] = Number(r.monto);
         if (r.tipo === "canal") cb[r.nombre_identificador] = Number(r.monto);
+        if (r.tipo === "vendedor") vb[r.nombre_identificador] = Number(r.monto);
       });
       setStoreBudgets(sb);
       setChannelBudgets(cb);
+      setSellerBudgets(vb);
     } else if (!isEditing) {
       setStoreBudgets({});
       setChannelBudgets({});
+      setSellerBudgets({});
     }
     setLoadedPeriod(periodKey);
   }, [anio, mes, loadedPeriod, isEditing]);
@@ -163,6 +180,9 @@ export function PresupuestosWizard({ onSaved, editPeriod }: WizardProps) {
       Object.entries(channelBudgets).forEach(([name, monto]) => {
         if (monto > 0) rows.push({ nombre_identificador: name, mes, anio, monto, tipo: "canal", updated_at: new Date().toISOString() });
       });
+      Object.entries(sellerBudgets).forEach(([id, monto]) => {
+        if (monto > 0) rows.push({ nombre_identificador: id, mes, anio, monto, tipo: "vendedor", updated_at: new Date().toISOString() });
+      });
 
       if (rows.length === 0) {
         toast.error("Asigna al menos un presupuesto");
@@ -182,6 +202,7 @@ export function PresupuestosWizard({ onSaved, editPeriod }: WizardProps) {
       setMes(null);
       setStoreBudgets({});
       setChannelBudgets({});
+      setSellerBudgets({});
       setLoadedPeriod(null);
       toast.success(isEditing ? "Presupuesto actualizado exitosamente" : "Presupuestos guardados exitosamente");
       onSaved?.();
@@ -208,10 +229,13 @@ export function PresupuestosWizard({ onSaved, editPeriod }: WizardProps) {
 
   const totalTiendas = Object.values(storeBudgets).reduce((s, v) => s + (v || 0), 0);
   const totalDigital = DIGITAL_CHANNELS.reduce((s, ch) => s + (channelBudgets[ch] || 0), 0);
+  const totalVendedores = Object.values(sellerBudgets).reduce((s, v) => s + (v || 0), 0);
   const totalGeneral = totalTiendas + totalDigital;
 
-  const stepLabels = ["Periodo", "Digital", "Zonas", "Resumen"];
-  const stepIcons = [BarChart3, Globe, MapPin, Check];
+  const filteredSellers = sellers.filter((s) => sellerFilterLocation === "all" || s.location_id === sellerFilterLocation);
+
+  const stepLabels = ["Periodo", "Digital", "Zonas", "Vendedores", "Resumen"];
+  const stepIcons = [BarChart3, Globe, MapPin, Users, Check];
 
   return (
     <div className="space-y-6">
@@ -389,8 +413,72 @@ export function PresupuestosWizard({ onSaved, editPeriod }: WizardProps) {
         </div>
       )}
 
-      {/* Step 3: Resumen */}
+      {/* Step 3: Vendedores (opcional) */}
       {step === 3 && (
+        <div className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Users className="h-4 w-4" /> Presupuesto por Vendedor
+                <Badge variant="outline" className="ml-2 text-[10px] font-normal">Opcional</Badge>
+              </CardTitle>
+              <p className="text-xs text-muted-foreground">
+                {MONTHS[(mes || 1) - 1]} {anio} — Asigna metas individuales (vendedores y personal shoppers activos)
+              </p>
+            </CardHeader>
+            <CardContent>
+              <div className="mb-4 flex items-center gap-3">
+                <label className="text-xs text-muted-foreground">Filtrar por tienda:</label>
+                <div className="w-64">
+                  <Select value={sellerFilterLocation} onValueChange={setSellerFilterLocation}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todas</SelectItem>
+                      {locations.map((l) => <SelectItem key={l.location_id} value={l.location_id}>{l.name}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div className="max-h-[500px] overflow-y-auto pr-2">
+                <div className="grid gap-2">
+                  {filteredSellers.map((s) => (
+                    <div key={s.id} className="flex items-center gap-3 py-2 border-b border-border last:border-0">
+                      <Users className="h-3.5 w-3.5 text-muted-foreground" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm text-foreground truncate">{s.nombre}</p>
+                        <p className="text-[10px] text-muted-foreground">
+                          {s.rol === "personal_shopper" ? "Personal Shopper" : "Vendedor"}
+                          {s.location_id && ` · ${locations.find((l) => l.location_id === s.location_id)?.name || s.location_id}`}
+                        </p>
+                      </div>
+                      <div className="w-40">
+                        <Input
+                          type="number"
+                          min={0}
+                          placeholder="$ 0"
+                          value={sellerBudgets[s.shopify_user_id] || ""}
+                          onChange={(e) => setSellerBudgets((prev) => ({ ...prev, [s.shopify_user_id]: Number(e.target.value) }))}
+                          className="text-right text-sm"
+                        />
+                      </div>
+                    </div>
+                  ))}
+                  {filteredSellers.length === 0 && (
+                    <p className="text-sm text-muted-foreground text-center py-6">No hay vendedores para mostrar</p>
+                  )}
+                </div>
+              </div>
+              <div className="mt-4 pt-4 border-t border-border flex justify-between items-center">
+                <span className="text-sm font-medium text-muted-foreground">Total Vendedores</span>
+                <span className="text-lg font-semibold text-foreground">${totalVendedores.toLocaleString("es-CO")}</span>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Step 4: Resumen */}
+      {step === 4 && (
         <div className="space-y-4">
           <Card>
             <CardHeader>
@@ -450,6 +538,24 @@ export function PresupuestosWizard({ onSaved, editPeriod }: WizardProps) {
                 </div>
               </div>
 
+              {totalVendedores > 0 && (
+                <div>
+                  <h3 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
+                    <Users className="h-4 w-4" /> Presupuesto Vendedores
+                    <Badge variant="outline" className="ml-1 text-[10px] font-normal">
+                      {Object.values(sellerBudgets).filter((v) => v > 0).length} con meta
+                    </Badge>
+                  </h3>
+                  <div className="flex justify-between px-3 py-2 rounded-lg bg-primary/5 border border-primary/10">
+                    <span className="text-sm font-semibold text-primary">Total Vendedores</span>
+                    <span className="text-sm font-bold text-primary">${totalVendedores.toLocaleString("es-CO")}</span>
+                  </div>
+                  <p className="text-[10px] text-muted-foreground mt-1.5">
+                    Las metas individuales no se suman al presupuesto total (son metas paralelas para liquidación de comisiones).
+                  </p>
+                </div>
+              )}
+
               <div className="flex justify-between items-center px-4 py-3 rounded-xl bg-primary text-primary-foreground">
                 <span className="font-semibold">PRESUPUESTO TOTAL</span>
                 <span className="text-xl font-bold">${totalGeneral.toLocaleString("es-CO")}</span>
@@ -464,7 +570,7 @@ export function PresupuestosWizard({ onSaved, editPeriod }: WizardProps) {
         <Button variant="outline" onClick={() => setStep(s => s - 1)} disabled={step === 0}>
           <ChevronLeft className="h-4 w-4 mr-1" /> Anterior
         </Button>
-        {step < 3 ? (
+        {step < 4 ? (
           <Button onClick={() => setStep(s => s + 1)} disabled={!canNext()}>
             Siguiente <ChevronRight className="h-4 w-4 ml-1" />
           </Button>
