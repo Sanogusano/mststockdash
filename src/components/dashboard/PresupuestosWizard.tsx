@@ -229,10 +229,13 @@ export function PresupuestosWizard({ onSaved, editPeriod }: WizardProps) {
 
   const totalTiendas = Object.values(storeBudgets).reduce((s, v) => s + (v || 0), 0);
   const totalDigital = DIGITAL_CHANNELS.reduce((s, ch) => s + (channelBudgets[ch] || 0), 0);
+  const totalVendedores = Object.values(sellerBudgets).reduce((s, v) => s + (v || 0), 0);
   const totalGeneral = totalTiendas + totalDigital;
 
-  const stepLabels = ["Periodo", "Digital", "Zonas", "Resumen"];
-  const stepIcons = [BarChart3, Globe, MapPin, Check];
+  const filteredSellers = sellers.filter((s) => sellerFilterLocation === "all" || s.location_id === sellerFilterLocation);
+
+  const stepLabels = ["Periodo", "Digital", "Zonas", "Vendedores", "Resumen"];
+  const stepIcons = [BarChart3, Globe, MapPin, Users, Check];
 
   return (
     <div className="space-y-6">
