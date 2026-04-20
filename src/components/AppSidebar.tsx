@@ -1,4 +1,4 @@
-import { BarChart3, TrendingUp, ArrowLeftRight, Package, Tag, Layers, Target, Zap, Trophy, Archive } from "lucide-react";
+import { BarChart3, TrendingUp, ArrowLeftRight, Package, Tag, Layers, Target, Zap, Trophy, Archive, Users } from "lucide-react";
 import { useLocation, Link } from "react-router-dom";
 import monasteryLogoWhite from "@/assets/monastery-logo-white.jpg";
 import {
@@ -73,6 +73,12 @@ const navItems = [
     url: "/cierre-coleccion",
     icon: Archive,
     description: "Desempeño por colección & remanentes",
+  },
+  {
+    title: "Rendimiento Vendedores",
+    url: "/rendimiento-vendedores",
+    icon: Users,
+    description: "Desempeño por vendedor",
   },
 ];
 
