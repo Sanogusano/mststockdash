@@ -57,6 +57,9 @@ interface VendedorRow {
   upt: number;
   presupuesto?: number;
   pct_cumplimiento?: number;
+  pct_full_price?: number;
+  pct_rebajas?: number;
+  pct_activaciones?: number;
 }
 
 interface Location {
