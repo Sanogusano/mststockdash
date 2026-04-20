@@ -7,6 +7,8 @@ import { ArrowLeft } from "lucide-react";
 import { CampanasListView } from "./liquidacion/CampanasListView";
 import { SemanalDetailView } from "./liquidacion/SemanalDetailView";
 import { CategoriaDetailView } from "./liquidacion/CategoriaDetailView";
+import { SkuDetailView } from "./liquidacion/SkuDetailView";
+import { TransaccionesDetailView } from "./liquidacion/TransaccionesDetailView";
 import type { CampanaResumen, LiquidacionRow } from "./liquidacion/types";
 
 export function LiquidacionPanel() {
@@ -148,6 +150,10 @@ export function LiquidacionPanel() {
           <SemanalDetailView campana={selected} rows={selectedRows} locMap={locMap} />
         ) : selected.tipo_regla === "venta_categoria" ? (
           <CategoriaDetailView campana={selected} rows={selectedRows} vendedorMap={vendedorMap} />
+        ) : selected.tipo_regla === "venta_sku" ? (
+          <SkuDetailView campana={selected} rows={selectedRows} vendedorMap={vendedorMap} locMap={locMap} />
+        ) : ["ticket_minimo", "upt_minimo", "numero_pedidos"].includes(selected.tipo_regla) ? (
+          <TransaccionesDetailView campana={selected} rows={selectedRows} vendedorMap={vendedorMap} locMap={locMap} />
         ) : (
           <p className="text-sm text-muted-foreground text-center py-8">
             Tipo de regla no soportado: {selected.tipo_regla}

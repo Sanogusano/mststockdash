@@ -18,6 +18,10 @@ const fmtDate = (d: string) => {
 const tipoReglaLabel = (t: string) => {
   if (t === "presupuesto_semanal_dual") return "Semanal Dual";
   if (t === "venta_categoria") return "Venta Categoría";
+  if (t === "venta_sku") return "Venta SKU";
+  if (t === "ticket_minimo") return "Ticket Mínimo";
+  if (t === "upt_minimo") return "UPT Mínimo";
+  if (t === "numero_pedidos") return "Número de Pedidos";
   return t;
 };
 
