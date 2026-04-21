@@ -77,7 +77,7 @@ export function PresupuestosWizard({ onSaved, editPeriod }: WizardProps) {
 
   // Load locations
   useEffect(() => {
-    supabase.from("locations").select("location_id, name, zona").eq("is_active", true).neq("name", "CEDI Guayabal").order("name")
+    supabase.from("locations").select("location_id, name, zona").eq("is_active", true).order("name")
       .then(({ data }) => {
         if (data) setLocations(data);
       });
