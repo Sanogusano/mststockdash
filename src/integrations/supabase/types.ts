@@ -14,6 +14,113 @@ export type Database = {
   }
   public: {
     Tables: {
+      allocation_runs: {
+        Row: {
+          destino_location_id: string
+          destino_netsuite_id: number | null
+          empleado: string
+          fecha_traslado: string
+          generated_at: string
+          generated_by: string | null
+          id: string
+          id_externo: string
+          lineas_json: Json
+          origen_location_id: string
+          origen_netsuite_id: number | null
+          snapshot_id: string | null
+          status: string
+          subsidiaria: number
+          total_lineas: number
+          total_unidades: number
+        }
+        Insert: {
+          destino_location_id: string
+          destino_netsuite_id?: number | null
+          empleado: string
+          fecha_traslado: string
+          generated_at?: string
+          generated_by?: string | null
+          id?: string
+          id_externo: string
+          lineas_json: Json
+          origen_location_id: string
+          origen_netsuite_id?: number | null
+          snapshot_id?: string | null
+          status?: string
+          subsidiaria?: number
+          total_lineas: number
+          total_unidades: number
+        }
+        Update: {
+          destino_location_id?: string
+          destino_netsuite_id?: number | null
+          empleado?: string
+          fecha_traslado?: string
+          generated_at?: string
+          generated_by?: string | null
+          id?: string
+          id_externo?: string
+          lineas_json?: Json
+          origen_location_id?: string
+          origen_netsuite_id?: number | null
+          snapshot_id?: string | null
+          status?: string
+          subsidiaria?: number
+          total_lineas?: number
+          total_unidades?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "allocation_runs_destino_location_id_fkey"
+            columns: ["destino_location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["location_id"]
+          },
+          {
+            foreignKeyName: "allocation_runs_destino_location_id_fkey"
+            columns: ["destino_location_id"]
+            isOneToOne: false
+            referencedRelation: "v_locations_allocation_config"
+            referencedColumns: ["location_id"]
+          },
+          {
+            foreignKeyName: "allocation_runs_destino_location_id_fkey"
+            columns: ["destino_location_id"]
+            isOneToOne: false
+            referencedRelation: "v_ubicaciones_gestion"
+            referencedColumns: ["location_id"]
+          },
+          {
+            foreignKeyName: "allocation_runs_origen_location_id_fkey"
+            columns: ["origen_location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["location_id"]
+          },
+          {
+            foreignKeyName: "allocation_runs_origen_location_id_fkey"
+            columns: ["origen_location_id"]
+            isOneToOne: false
+            referencedRelation: "v_locations_allocation_config"
+            referencedColumns: ["location_id"]
+          },
+          {
+            foreignKeyName: "allocation_runs_origen_location_id_fkey"
+            columns: ["origen_location_id"]
+            isOneToOne: false
+            referencedRelation: "v_ubicaciones_gestion"
+            referencedColumns: ["location_id"]
+          },
+          {
+            foreignKeyName: "allocation_runs_snapshot_id_fkey"
+            columns: ["snapshot_id"]
+            isOneToOne: false
+            referencedRelation: "netsuite_inventory_snapshots"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       budget_expenses: {
         Row: {
           category: string
@@ -47,6 +154,20 @@ export type Database = {
             referencedRelation: "locations"
             referencedColumns: ["location_id"]
           },
+          {
+            foreignKeyName: "budget_expenses_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "v_locations_allocation_config"
+            referencedColumns: ["location_id"]
+          },
+          {
+            foreignKeyName: "budget_expenses_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "v_ubicaciones_gestion"
+            referencedColumns: ["location_id"]
+          },
         ]
       }
       budget_goals: {
@@ -77,6 +198,20 @@ export type Database = {
             columns: ["location_id"]
             isOneToOne: false
             referencedRelation: "locations"
+            referencedColumns: ["location_id"]
+          },
+          {
+            foreignKeyName: "budget_goals_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "v_locations_allocation_config"
+            referencedColumns: ["location_id"]
+          },
+          {
+            foreignKeyName: "budget_goals_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "v_ubicaciones_gestion"
             referencedColumns: ["location_id"]
           },
         ]
@@ -429,6 +564,213 @@ export type Database = {
         }
         Relationships: []
       }
+      netsuite_inventory_lines: {
+        Row: {
+          coleccion: string | null
+          coleccion_sku: string | null
+          color: string | null
+          created_at: string
+          genero: string | null
+          id: string
+          internal_location_id: string | null
+          linea: string | null
+          netsuite_location_name: string
+          nombre: string | null
+          quantity: number
+          sku: string
+          snapshot_id: string
+          sub_tipo: string | null
+          talla: string | null
+        }
+        Insert: {
+          coleccion?: string | null
+          coleccion_sku?: string | null
+          color?: string | null
+          created_at?: string
+          genero?: string | null
+          id?: string
+          internal_location_id?: string | null
+          linea?: string | null
+          netsuite_location_name: string
+          nombre?: string | null
+          quantity?: number
+          sku: string
+          snapshot_id: string
+          sub_tipo?: string | null
+          talla?: string | null
+        }
+        Update: {
+          coleccion?: string | null
+          coleccion_sku?: string | null
+          color?: string | null
+          created_at?: string
+          genero?: string | null
+          id?: string
+          internal_location_id?: string | null
+          linea?: string | null
+          netsuite_location_name?: string
+          nombre?: string | null
+          quantity?: number
+          sku?: string
+          snapshot_id?: string
+          sub_tipo?: string | null
+          talla?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "netsuite_inventory_lines_internal_location_id_fkey"
+            columns: ["internal_location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["location_id"]
+          },
+          {
+            foreignKeyName: "netsuite_inventory_lines_internal_location_id_fkey"
+            columns: ["internal_location_id"]
+            isOneToOne: false
+            referencedRelation: "v_locations_allocation_config"
+            referencedColumns: ["location_id"]
+          },
+          {
+            foreignKeyName: "netsuite_inventory_lines_internal_location_id_fkey"
+            columns: ["internal_location_id"]
+            isOneToOne: false
+            referencedRelation: "v_ubicaciones_gestion"
+            referencedColumns: ["location_id"]
+          },
+          {
+            foreignKeyName: "netsuite_inventory_lines_snapshot_id_fkey"
+            columns: ["snapshot_id"]
+            isOneToOne: false
+            referencedRelation: "netsuite_inventory_snapshots"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      netsuite_inventory_snapshots: {
+        Row: {
+          created_at: string
+          error_message: string | null
+          file_name: string
+          id: string
+          is_active: boolean
+          snapshot_date: string
+          status: string
+          total_locations: number | null
+          total_skus: number | null
+          total_units: number | null
+          uploaded_at: string
+          uploaded_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          error_message?: string | null
+          file_name: string
+          id?: string
+          is_active?: boolean
+          snapshot_date?: string
+          status?: string
+          total_locations?: number | null
+          total_skus?: number | null
+          total_units?: number | null
+          uploaded_at?: string
+          uploaded_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          error_message?: string | null
+          file_name?: string
+          id?: string
+          is_active?: boolean
+          snapshot_date?: string
+          status?: string
+          total_locations?: number | null
+          total_skus?: number | null
+          total_units?: number | null
+          uploaded_at?: string
+          uploaded_by?: string | null
+        }
+        Relationships: []
+      }
+      netsuite_location_mapping: {
+        Row: {
+          created_at: string
+          id: string
+          internal_location_id: string | null
+          netsuite_location_id: number | null
+          netsuite_location_name: string
+          notas: string | null
+          tipo: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          internal_location_id?: string | null
+          netsuite_location_id?: number | null
+          netsuite_location_name: string
+          notas?: string | null
+          tipo?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          internal_location_id?: string | null
+          netsuite_location_id?: number | null
+          netsuite_location_name?: string
+          notas?: string | null
+          tipo?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "netsuite_location_mapping_internal_location_id_fkey"
+            columns: ["internal_location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["location_id"]
+          },
+          {
+            foreignKeyName: "netsuite_location_mapping_internal_location_id_fkey"
+            columns: ["internal_location_id"]
+            isOneToOne: false
+            referencedRelation: "v_locations_allocation_config"
+            referencedColumns: ["location_id"]
+          },
+          {
+            foreignKeyName: "netsuite_location_mapping_internal_location_id_fkey"
+            columns: ["internal_location_id"]
+            isOneToOne: false
+            referencedRelation: "v_ubicaciones_gestion"
+            referencedColumns: ["location_id"]
+          },
+        ]
+      }
+      netsuite_sku_mapping: {
+        Row: {
+          created_at: string
+          id: string
+          last_synced_at: string
+          netsuite_internal_id: number
+          sku: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          last_synced_at?: string
+          netsuite_internal_id: number
+          sku: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          last_synced_at?: string
+          netsuite_internal_id?: number
+          sku?: string
+        }
+        Relationships: []
+      }
       order_items: {
         Row: {
           category: string | null
@@ -519,6 +861,20 @@ export type Database = {
             columns: ["location_id"]
             isOneToOne: false
             referencedRelation: "locations"
+            referencedColumns: ["location_id"]
+          },
+          {
+            foreignKeyName: "fk_order_location"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "v_locations_allocation_config"
+            referencedColumns: ["location_id"]
+          },
+          {
+            foreignKeyName: "fk_order_location"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "v_ubicaciones_gestion"
             referencedColumns: ["location_id"]
           },
         ]
@@ -721,6 +1077,20 @@ export type Database = {
             referencedRelation: "locations"
             referencedColumns: ["location_id"]
           },
+          {
+            foreignKeyName: "staff_members_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "v_locations_allocation_config"
+            referencedColumns: ["location_id"]
+          },
+          {
+            foreignKeyName: "staff_members_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "v_ubicaciones_gestion"
+            referencedColumns: ["location_id"]
+          },
         ]
       }
       store_action_stamps: {
@@ -743,6 +1113,167 @@ export type Database = {
           stamped_at?: string
         }
         Relationships: []
+      }
+      store_allocation_params: {
+        Row: {
+          activa: boolean
+          capacidad_maxima_unidades: number | null
+          colchon_cedi_semanas: number
+          created_at: string
+          es_cedi: boolean
+          es_outlet: boolean
+          id: string
+          location_id: string
+          mod_default: number
+          mod_por_categoria: Json | null
+          puede_ser_destino: boolean
+          puede_ser_origen: boolean
+          tier: string
+          updated_at: string
+          wos_objetivo_por_categoria: Json | null
+          wos_objetivo_semanas: number
+        }
+        Insert: {
+          activa?: boolean
+          capacidad_maxima_unidades?: number | null
+          colchon_cedi_semanas?: number
+          created_at?: string
+          es_cedi?: boolean
+          es_outlet?: boolean
+          id?: string
+          location_id: string
+          mod_default?: number
+          mod_por_categoria?: Json | null
+          puede_ser_destino?: boolean
+          puede_ser_origen?: boolean
+          tier: string
+          updated_at?: string
+          wos_objetivo_por_categoria?: Json | null
+          wos_objetivo_semanas?: number
+        }
+        Update: {
+          activa?: boolean
+          capacidad_maxima_unidades?: number | null
+          colchon_cedi_semanas?: number
+          created_at?: string
+          es_cedi?: boolean
+          es_outlet?: boolean
+          id?: string
+          location_id?: string
+          mod_default?: number
+          mod_por_categoria?: Json | null
+          puede_ser_destino?: boolean
+          puede_ser_origen?: boolean
+          tier?: string
+          updated_at?: string
+          wos_objetivo_por_categoria?: Json | null
+          wos_objetivo_semanas?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "store_allocation_params_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: true
+            referencedRelation: "locations"
+            referencedColumns: ["location_id"]
+          },
+          {
+            foreignKeyName: "store_allocation_params_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: true
+            referencedRelation: "v_locations_allocation_config"
+            referencedColumns: ["location_id"]
+          },
+          {
+            foreignKeyName: "store_allocation_params_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: true
+            referencedRelation: "v_ubicaciones_gestion"
+            referencedColumns: ["location_id"]
+          },
+        ]
+      }
+      transfer_cost_matrix: {
+        Row: {
+          costo_por_unidad_cop: number
+          created_at: string
+          destino_location_id: string
+          id: string
+          lead_time_dias: number
+          origen_location_id: string
+          prioridad: number
+          updated_at: string
+          zona_destino: string | null
+          zona_origen: string | null
+        }
+        Insert: {
+          costo_por_unidad_cop?: number
+          created_at?: string
+          destino_location_id: string
+          id?: string
+          lead_time_dias?: number
+          origen_location_id: string
+          prioridad?: number
+          updated_at?: string
+          zona_destino?: string | null
+          zona_origen?: string | null
+        }
+        Update: {
+          costo_por_unidad_cop?: number
+          created_at?: string
+          destino_location_id?: string
+          id?: string
+          lead_time_dias?: number
+          origen_location_id?: string
+          prioridad?: number
+          updated_at?: string
+          zona_destino?: string | null
+          zona_origen?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transfer_cost_matrix_destino_location_id_fkey"
+            columns: ["destino_location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["location_id"]
+          },
+          {
+            foreignKeyName: "transfer_cost_matrix_destino_location_id_fkey"
+            columns: ["destino_location_id"]
+            isOneToOne: false
+            referencedRelation: "v_locations_allocation_config"
+            referencedColumns: ["location_id"]
+          },
+          {
+            foreignKeyName: "transfer_cost_matrix_destino_location_id_fkey"
+            columns: ["destino_location_id"]
+            isOneToOne: false
+            referencedRelation: "v_ubicaciones_gestion"
+            referencedColumns: ["location_id"]
+          },
+          {
+            foreignKeyName: "transfer_cost_matrix_origen_location_id_fkey"
+            columns: ["origen_location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["location_id"]
+          },
+          {
+            foreignKeyName: "transfer_cost_matrix_origen_location_id_fkey"
+            columns: ["origen_location_id"]
+            isOneToOne: false
+            referencedRelation: "v_locations_allocation_config"
+            referencedColumns: ["location_id"]
+          },
+          {
+            foreignKeyName: "transfer_cost_matrix_origen_location_id_fkey"
+            columns: ["origen_location_id"]
+            isOneToOne: false
+            referencedRelation: "v_ubicaciones_gestion"
+            referencedColumns: ["location_id"]
+          },
+        ]
       }
     }
     Views: {
@@ -791,6 +1322,55 @@ export type Database = {
         }
         Relationships: []
       }
+      v_locations_allocation_config: {
+        Row: {
+          activa: boolean | null
+          capacidad_maxima_unidades: number | null
+          colchon_cedi_semanas: number | null
+          es_cedi: boolean | null
+          es_outlet: boolean | null
+          location_id: string | null
+          location_name: string | null
+          mapeo_tipo: string | null
+          mod_default: number | null
+          netsuite_location_id: number | null
+          netsuite_location_name: string | null
+          puede_ser_destino: boolean | null
+          puede_ser_origen: boolean | null
+          tier: string | null
+          wos_objetivo_semanas: number | null
+        }
+        Relationships: []
+      }
+      v_ubicaciones_gestion: {
+        Row: {
+          allocation_activa: boolean | null
+          capacidad_maxima_unidades: number | null
+          codigo_oracle: number | null
+          colchon_cedi_semanas: number | null
+          dimension_m2: number | null
+          es_cedi: boolean | null
+          es_outlet: boolean | null
+          estado_config: string | null
+          location_activa: boolean | null
+          location_id: string | null
+          mapeo_notas: string | null
+          mapeo_tipo: string | null
+          mod_default: number | null
+          mod_por_categoria: Json | null
+          netsuite_location_name: string | null
+          nombre: string | null
+          params_updated_at: string | null
+          puede_ser_destino: boolean | null
+          puede_ser_origen: boolean | null
+          tier: string | null
+          tipo_tienda: string | null
+          wos_objetivo_por_categoria: Json | null
+          wos_objetivo_semanas: number | null
+          zona: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       _col_date_boundary: {
@@ -802,8 +1382,25 @@ export type Database = {
         Args: { min_variants?: number }
         Returns: string
       }
+      actualizar_params_ubicacion: {
+        Args: {
+          p_activa?: boolean
+          p_capacidad?: number
+          p_colchon_cedi?: number
+          p_location_id: string
+          p_mod_default?: number
+          p_mod_por_categoria?: Json
+          p_wos_objetivo?: number
+          p_wos_por_categoria?: Json
+        }
+        Returns: undefined
+      }
       actualizar_progreso_incentivo: {
         Args: { p_incentivo_id: string }
+        Returns: undefined
+      }
+      asignar_codigo_netsuite: {
+        Args: { p_location_id: string; p_netsuite_code: number }
         Returns: undefined
       }
       calcular_comisiones_periodo: {
@@ -837,6 +1434,39 @@ export type Database = {
           tipo: string
           venta_actual: number
           zona: string
+        }[]
+      }
+      crear_ubicacion_completa: {
+        Args: {
+          p_capacidad?: number
+          p_location_id: string
+          p_netsuite_code?: number
+          p_netsuite_name?: string
+          p_nombre: string
+          p_tipo_tienda: string
+          p_zona?: string
+        }
+        Returns: string
+      }
+      generar_export_netsuite: {
+        Args: {
+          p_empleado: string
+          p_fecha: string
+          p_id_externo: string
+          p_lineas: Json
+          p_subsidiaria?: number
+        }
+        Returns: {
+          cantidad: number
+          empleado: string
+          fecha: string
+          id_externo: string
+          id_interno_art: number
+          sku: string
+          subsidiaria: number
+          ubicacion_destino: number
+          ubicacion_origen: number
+          warning: string
         }[]
       }
       get_alertas_comerciales: {
@@ -876,6 +1506,33 @@ export type Database = {
           tipo_tienda: string
           upt: number
           venta_mtd: number
+        }[]
+      }
+      reporte_baja_rotacion_outlet: {
+        Args: {
+          p_sell_through_umbral?: number
+          p_snapshot_id?: string
+          p_ventana_semanas?: number
+          p_wos_umbral?: number
+        }
+        Returns: {
+          accion_sugerida: string
+          color: string
+          destino_sugerido_id: string
+          destino_sugerido_nombre: string
+          justificacion: string
+          linea: string
+          location_id: string
+          location_nombre: string
+          nombre: string
+          ritmo_ajustado: number
+          sell_through: number
+          sku: string
+          stock_actual: number
+          talla: string
+          unidades_a_mover: number
+          ventas_ventana: number
+          wos_actual: number
         }[]
       }
       reporte_cierre_coleccion_categoria_coleccion: {
@@ -1159,6 +1816,39 @@ export type Database = {
               uds_sugeridas: number
             }[]
           }
+      reporte_curva_traslados_v2: {
+        Args: {
+          p_consolidacion_wos_trigger?: number
+          p_destino_filter?: string[]
+          p_linea_filter?: string[]
+          p_snapshot_id?: string
+          p_ventana_semanas?: number
+        }
+        Returns: {
+          color: string
+          destino_location_id: string
+          destino_nombre: string
+          destino_tier: string
+          dias_con_stock_destino: number
+          justificacion: string
+          lead_time_dias: number
+          linea: string
+          nombre: string
+          origen_location_id: string
+          origen_nombre: string
+          origen_tipo: string
+          prioridad: number
+          ritmo_ajustado_destino: number
+          ritmo_semanal_destino: number
+          sku: string
+          stock_destino: number
+          stock_origen: number
+          talla: string
+          unidades_sugeridas: number
+          wos_actual_destino: number
+          wos_objetivo_destino: number
+        }[]
+      }
       reporte_desempeño_comercial:
         | {
             Args: { dias_atras: number }
@@ -2040,6 +2730,7 @@ export type Database = {
               venta_promedio_semanal: number
             }[]
           }
+      sincronizar_params_desde_tipo_tienda: { Args: never; Returns: number }
       stock_general_por_producto: {
         Args: never
         Returns: {
