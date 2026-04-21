@@ -130,8 +130,8 @@ export function IncentivosWizard({ open, onOpenChange, onCreated }: Props) {
       return false;
     }
 
-    if (tipoRegla === "venta_skus" && toStringArray(parametros.skus).length === 0) {
-      toast.error("Ingresa al menos un SKU");
+    if (tipoRegla === "venta_sku" && toStringArray(parametros.skus).length === 0) {
+      toast.error("Selecciona al menos un SKU");
       return false;
     }
 
