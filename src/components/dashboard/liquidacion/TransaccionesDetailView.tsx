@@ -194,7 +194,6 @@ export function TransaccionesDetailView({ campana, rows, vendedorMap, locMap }: 
           </Button>
         </div>
       </div>
-      </div>
 
       <div className="border rounded-lg overflow-hidden">
         <Table>
