@@ -322,9 +322,14 @@ export function IncentivosWizard({ open, onOpenChange, onCreated }: Props) {
               params={parametros}
               onChange={setParametros}
             />
-            <Button className="w-full" onClick={handleStep2} disabled={saving}>
-              {saving ? "Guardando..." : "Siguiente"}
-            </Button>
+            <div className="flex gap-2">
+              <Button variant="outline" className="flex-1" onClick={() => setStep(0)} disabled={saving}>
+                Atrás
+              </Button>
+              <Button className="flex-1" onClick={handleStep2} disabled={saving}>
+                {saving ? "Guardando..." : "Siguiente"}
+              </Button>
+            </div>
           </div>
         )}
 
@@ -350,9 +355,14 @@ export function IncentivosWizard({ open, onOpenChange, onCreated }: Props) {
               <Label>Tope Mínimo</Label>
               <Input type="number" placeholder="Ej: 0" value={topeMinimo} onChange={(e) => setTopeMinimo(e.target.value)} />
             </div>
-            <Button className="w-full" onClick={handleSave} disabled={saving}>
-              {saving ? "Guardando..." : "Guardar Incentivo"}
-            </Button>
+            <div className="flex gap-2">
+              <Button variant="outline" className="flex-1" onClick={() => setStep(1)} disabled={saving}>
+                Atrás
+              </Button>
+              <Button className="flex-1" onClick={handleSave} disabled={saving}>
+                {saving ? "Guardando..." : "Guardar Incentivo"}
+              </Button>
+            </div>
           </div>
         )}
       </DialogContent>
