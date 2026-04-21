@@ -97,6 +97,9 @@ export function IncentivosParametrosFields({ tipoRegla, params, onChange }: Prop
       ? (params.skus as string).split(",").map((s) => s.trim()).filter(Boolean)
       : [];
 
+  const tipoTicketValue = (params.tipo_ticket as string) || "minimo_real";
+  const isPresupuestoSemanal = normalizedTipo === "presupuesto_semanal_dual";
+
   return (
     <div className="space-y-3">
       <p className="text-xs text-muted-foreground">Parámetros específicos</p>
@@ -116,6 +119,30 @@ export function IncentivosParametrosFields({ tipoRegla, params, onChange }: Prop
             value={getDisplayValue(field.key)}
             onChange={(e) => handleChange(field.key, e.target.value, field.type)}
           />
+          {isPresupuestoSemanal && field.key === "ticket_meta" && (
+            <div className="mt-2 space-y-1.5">
+              <Label className="text-xs">Modo del Ticket</Label>
+              <Select
+                value={tipoTicketValue}
+                onValueChange={(v) => onChange({ ...params, tipo_ticket: v })}
+              >
+                <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="minimo_real">
+                    Ticket Mínimo Real (filtra pedidos &lt; ticket)
+                  </SelectItem>
+                  <SelectItem value="promedio_esperado">
+                    Ticket Promedio Esperado (solo divisor para tx)
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-[11px] text-muted-foreground leading-snug">
+                {tipoTicketValue === "minimo_real"
+                  ? "Solo se cuentan pedidos cuyo valor neto ≥ ticket. Pedidos pequeños no suman ni a venta ni a transacciones."
+                  : "Se suman todos los pedidos. El ticket solo divide la meta para calcular cuántas transacciones se requieren."}
+              </p>
+            </div>
+          )}
         </div>
       ))}
       {showTipoVenta && (
