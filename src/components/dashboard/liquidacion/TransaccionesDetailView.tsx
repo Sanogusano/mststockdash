@@ -1,12 +1,16 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Download } from "lucide-react";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { exportToCSV } from "@/lib/csv-export";
 import type { LiquidacionRow, CampanaResumen } from "./types";
+
+type FilterCumple = "todos" | "cumple" | "no_cumple";
 
 interface Props {
   campana: CampanaResumen;
@@ -30,6 +34,7 @@ const pct = (l: number, m: number) => (m > 0 ? Math.min((l / m) * 100, 100) : 0)
  */
 export function TransaccionesDetailView({ campana, rows, vendedorMap, locMap }: Props) {
   const [exporting, setExporting] = useState(false);
+  const [filterCumple, setFilterCumple] = useState<FilterCumple>("todos");
   const tipo = campana.tipo_regla;
   const isAsesor = campana.alcance === "vendedor" || campana.alcance === "asesor";
   const tipoVenta = campana.parametros?.tipo_venta === "full_price" ? "Full Price" : "Cualquiera";
@@ -55,7 +60,7 @@ export function TransaccionesDetailView({ campana, rows, vendedorMap, locMap }: 
       : `${fmt(recompensa.valor)} al cumplir meta`
     : "—";
 
-  const participantes = rows
+  const participantesAll = rows
     .map((r) => {
       const p = r.progreso_actual ?? {};
       const id = isAsesor ? r.vendedor_id ?? "" : r.location_id ?? "";
@@ -71,7 +76,6 @@ export function TransaccionesDetailView({ campana, rows, vendedorMap, locMap }: 
         total = Number(p.tx_totales ?? 0);
         extra = total > 0 ? `${((logrado / total) * 100).toFixed(0)}% de ${total}` : "—";
       } else {
-        // numero_pedidos
         logrado = Number(p.pedidos_totales ?? 0);
         total = logrado;
         extra = `Ticket prom: ${fmt(Number(p.ticket_promedio ?? 0))}`;
@@ -79,6 +83,7 @@ export function TransaccionesDetailView({ campana, rows, vendedorMap, locMap }: 
 
       return {
         id: r.id,
+        refId: id,
         nombre,
         logrado,
         total,
@@ -90,6 +95,14 @@ export function TransaccionesDetailView({ campana, rows, vendedorMap, locMap }: 
     })
     .sort((a, b) => b.logrado - a.logrado);
 
+  const participantes = useMemo(
+    () =>
+      filterCumple === "todos"
+        ? participantesAll
+        : participantesAll.filter((v) => (filterCumple === "cumple" ? v.cumple_meta : !v.cumple_meta)),
+    [participantesAll, filterCumple]
+  );
+
   const totalLogrado = participantes.reduce((s, v) => s + v.logrado, 0);
   const cumplen = participantes.filter((v) => v.cumple_meta).length;
   const totalGanado = participantes.reduce((s, v) => s + v.monto_ganado, 0);
@@ -100,19 +113,48 @@ export function TransaccionesDetailView({ campana, rows, vendedorMap, locMap }: 
   const exportExcel = async () => {
     setExporting(true);
     try {
-      const data = participantes.map((v, i) => ({
+      const summaryRows = participantes.map((v, i) => ({
         "#": i + 1,
         [isAsesor ? "Vendedor" : "Tienda"]: v.nombre,
-        [colLogrado]: v.logrado,
+        Condición: condicionLabel,
+        Desde: campana.fecha_inicio,
+        Hasta: campana.fecha_fin,
         Meta: v.meta,
+        [colLogrado]: v.logrado,
         [colExtra]: v.extra,
         "¿Cumple?": v.cumple_meta ? "Sí" : "No",
-        Ganado: v.monto_ganado,
+        "Monto Ganado": v.monto_ganado,
       }));
+
+      // Pedidos del periodo de los participantes filtrados
+      let orderRows: Record<string, unknown>[] = [];
+      const refIds = [...new Set(participantes.map((p) => p.refId).filter(Boolean))];
+      if (refIds.length > 0) {
+        const q = supabase
+          .from("orders")
+          .select("order_number, created_at, total_price, location_id, user_id, financial_status")
+          .gte("created_at", campana.fecha_inicio)
+          .lte("created_at", campana.fecha_fin + "T23:59:59")
+          .in("financial_status", ["paid", "partially_refunded", "partially_paid"])
+          .order("created_at", { ascending: false })
+          .limit(10000);
+        const res = isAsesor ? await q.in("user_id", refIds) : await q.in("location_id", refIds);
+        const nameMap = new Map(participantes.map((p) => [p.refId, p.nombre]));
+        orderRows = (res.data ?? []).map((o) => ({
+          [isAsesor ? "Vendedor" : "Tienda"]:
+            nameMap.get((isAsesor ? o.user_id : o.location_id) ?? "") ?? "—",
+          Pedido: o.order_number,
+          Fecha: new Date(o.created_at).toLocaleDateString("es-CO"),
+          Valor: o.total_price,
+        }));
+      }
+
       const XLSX = await import("xlsx");
       const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(data), "Resumen");
-      XLSX.writeFile(wb, `liquidacion_${campana.nombre}.xlsx`);
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(summaryRows), "Liquidación");
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(orderRows), "Pedidos");
+      const sufijo = filterCumple === "cumple" ? "_cumplen" : filterCumple === "no_cumple" ? "_no_cumplen" : "";
+      XLSX.writeFile(wb, `liquidacion_${campana.nombre}${sufijo}.xlsx`);
     } finally {
       setExporting(false);
     }
@@ -137,13 +179,20 @@ export function TransaccionesDetailView({ campana, rows, vendedorMap, locMap }: 
         <Card><CardContent className="p-3"><p className="text-[11px] text-muted-foreground">Total a Pagar</p><p className="text-xl font-semibold tabular-nums">{fmt(totalGanado)}</p></CardContent></Card>
       </div>
 
-      <div className="flex justify-end gap-2">
-        <Button variant="outline" size="sm" className="gap-1.5" onClick={() => exportToCSV(participantes.map((v, i) => ({ "#": i + 1, Nombre: v.nombre, [colLogrado]: v.logrado, Meta: v.meta, [colExtra]: v.extra, Cumple: v.cumple_meta ? "Sí" : "No", Ganado: v.monto_ganado })), `liquidacion_${campana.nombre}`)}>
-          <Download className="h-3.5 w-3.5" /> CSV
-        </Button>
-        <Button variant="outline" size="sm" className="gap-1.5" onClick={exportExcel} disabled={exporting}>
-          <Download className="h-3.5 w-3.5" /> Excel
-        </Button>
+      <div className="flex justify-between items-center gap-2">
+        <ToggleGroup type="single" value={filterCumple} onValueChange={(v) => v && setFilterCumple(v as FilterCumple)} size="sm">
+          <ToggleGroupItem value="todos" className="text-xs">Todos</ToggleGroupItem>
+          <ToggleGroupItem value="cumple" className="text-xs">Cumplen</ToggleGroupItem>
+          <ToggleGroupItem value="no_cumple" className="text-xs">No cumplen</ToggleGroupItem>
+        </ToggleGroup>
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm" className="gap-1.5" onClick={() => exportToCSV(participantes.map((v, i) => ({ "#": i + 1, Nombre: v.nombre, [colLogrado]: v.logrado, Meta: v.meta, [colExtra]: v.extra, Cumple: v.cumple_meta ? "Sí" : "No", Ganado: v.monto_ganado })), `liquidacion_${campana.nombre}`)}>
+            <Download className="h-3.5 w-3.5" /> CSV
+          </Button>
+          <Button variant="outline" size="sm" className="gap-1.5" onClick={exportExcel} disabled={exporting}>
+            <Download className="h-3.5 w-3.5" /> Excel
+          </Button>
+        </div>
       </div>
 
       <div className="border rounded-lg overflow-hidden">

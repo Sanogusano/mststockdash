@@ -1,12 +1,15 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Download } from "lucide-react";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { exportToCSV } from "@/lib/csv-export";
 import type { LiquidacionRow, CampanaResumen } from "./types";
+
+type FilterCumple = "todos" | "cumple" | "no_cumple";
 
 interface WeekRow {
   id: string;
@@ -48,6 +51,7 @@ const pct = (l: number, m: number) => (m > 0 ? Math.min((l / m) * 100, 100) : 0)
 
 export function SemanalDetailView({ campana, rows, locMap }: Props) {
   const [exporting, setExporting] = useState(false);
+  const [filterCumple, setFilterCumple] = useState<FilterCumple>("todos");
 
   const weekRows: WeekRow[] = rows.map((r) => {
     const p = r.progreso_actual ?? {};
@@ -77,12 +81,12 @@ export function SemanalDetailView({ campana, rows, locMap }: Props) {
     map.get(r.location_id)!.push(r);
   });
 
-  const groups: StoreGroup[] = [];
+  const groupsAll: StoreGroup[] = [];
   map.forEach((weeks) => {
     weeks.sort((a, b) => a.semana - b.semana);
     const totalLogrado = weeks.reduce((s, w) => s + w.logrado, 0);
     const totalTxLog = weeks.reduce((s, w) => s + w.tx_logradas, 0);
-    groups.push({
+    groupsAll.push({
       tienda: weeks[0].tienda,
       location_id: weeks[0].location_id,
       weeks,
@@ -91,7 +95,17 @@ export function SemanalDetailView({ campana, rows, locMap }: Props) {
       semanasCumplidas: weeks.filter((w) => w.cumple_meta).length,
     });
   });
-  groups.sort((a, b) => a.tienda.localeCompare(b.tienda));
+  groupsAll.sort((a, b) => a.tienda.localeCompare(b.tienda));
+
+  const groups = useMemo(() => {
+    if (filterCumple === "todos") return groupsAll;
+    return groupsAll
+      .map((g) => ({
+        ...g,
+        weeks: g.weeks.filter((w) => (filterCumple === "cumple" ? w.cumple_meta : !w.cumple_meta)),
+      }))
+      .filter((g) => g.weeks.length > 0);
+  }, [groupsAll, filterCumple]);
 
   const exportCSV = () => {
     const data = groups.flatMap((g) =>
@@ -99,10 +113,14 @@ export function SemanalDetailView({ campana, rows, locMap }: Props) {
         Tienda: g.tienda,
         Campaña: campana.nombre,
         Semana: w.semana,
+        Desde: w.semana_inicio,
+        Hasta: w.semana_fin,
         "Meta Semanal": Math.round(w.meta),
         "Venta Lograda": Math.round(w.logrado),
         "% Avance": Math.round(pct(w.logrado, w.meta)),
-        "Ticket Promedio": Math.round(w.ticket_promedio),
+        "Tx Req": w.tx_requeridas,
+        "Tx Log": w.tx_logradas,
+        "Ticket Prom": Math.round(w.ticket_promedio),
         "¿Cumple?": w.cumple_meta ? "Sí" : "No",
         "Monto Ganado": w.monto_ganado ?? 0,
       }))
@@ -113,24 +131,7 @@ export function SemanalDetailView({ campana, rows, locMap }: Props) {
   const exportExcel = async () => {
     setExporting(true);
     try {
-      const locationIds = [...new Set(groups.map((g) => g.location_id).filter(Boolean))];
-      const { data: orders } = await supabase
-        .from("orders")
-        .select("order_number, created_at, total_price, location_id, financial_status")
-        .in("location_id", locationIds)
-        .gte("created_at", campana.fecha_inicio)
-        .lte("created_at", campana.fecha_fin + "T23:59:59")
-        .in("financial_status", ["paid", "partially_refunded", "partially_paid"])
-        .order("created_at", { ascending: false })
-        .limit(5000);
-
-      const orderRows = (orders ?? []).map((o) => ({
-        "Número de Pedido": o.order_number,
-        Fecha: new Date(o.created_at).toLocaleDateString("es-CO"),
-        Valor: o.total_price,
-        Tienda: locMap.get(o.location_id ?? "") ?? o.location_id ?? "—",
-      }));
-
+      // Resumen / Overview con TODAS las columnas pedidas
       const summaryRows = groups.flatMap((g) =>
         g.weeks.map((w) => ({
           Tienda: g.tienda,
@@ -148,11 +149,59 @@ export function SemanalDetailView({ campana, rows, locMap }: Props) {
         }))
       );
 
+      // Detalle de pedidos: SOLO de las semanas que aparecen en la vista filtrada
+      // (cuando el filtro es "cumple", solo trae pedidos de semanas cumplidas)
+      const ventanas: { location_id: string; tienda: string; desde: string; hasta: string }[] = [];
+      groups.forEach((g) => {
+        g.weeks.forEach((w) => {
+          if (w.semana_inicio && w.semana_fin) {
+            ventanas.push({
+              location_id: g.location_id,
+              tienda: g.tienda,
+              desde: w.semana_inicio,
+              hasta: w.semana_fin,
+            });
+          }
+        });
+      });
+
+      let orderRows: Record<string, unknown>[] = [];
+      if (ventanas.length > 0) {
+        const locationIds = [...new Set(ventanas.map((v) => v.location_id).filter(Boolean))];
+        const minDesde = ventanas.reduce((m, v) => (v.desde < m ? v.desde : m), ventanas[0].desde);
+        const maxHasta = ventanas.reduce((m, v) => (v.hasta > m ? v.hasta : m), ventanas[0].hasta);
+
+        const { data: orders } = await supabase
+          .from("orders")
+          .select("order_number, created_at, total_price, location_id, financial_status")
+          .in("location_id", locationIds)
+          .gte("created_at", minDesde)
+          .lte("created_at", maxHasta + "T23:59:59")
+          .in("financial_status", ["paid", "partially_refunded", "partially_paid"])
+          .order("created_at", { ascending: false })
+          .limit(10000);
+
+        orderRows = (orders ?? [])
+          .filter((o) => {
+            const fecha = (o.created_at ?? "").substring(0, 10);
+            return ventanas.some(
+              (v) => v.location_id === o.location_id && fecha >= v.desde && fecha <= v.hasta
+            );
+          })
+          .map((o) => ({
+            Tienda: locMap.get(o.location_id ?? "") ?? o.location_id ?? "—",
+            Pedido: o.order_number,
+            Fecha: new Date(o.created_at).toLocaleDateString("es-CO"),
+            Valor: o.total_price,
+          }));
+      }
+
       const XLSX = await import("xlsx");
       const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(summaryRows), "Resumen Semanal");
-      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(orderRows), "Detalle Pedidos");
-      XLSX.writeFile(wb, `liquidacion_${campana.nombre}.xlsx`);
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(summaryRows), "Liquidación");
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(orderRows), "Pedidos");
+      const sufijo = filterCumple === "cumple" ? "_cumplen" : filterCumple === "no_cumple" ? "_no_cumplen" : "";
+      XLSX.writeFile(wb, `liquidacion_${campana.nombre}${sufijo}.xlsx`);
     } finally {
       setExporting(false);
     }
@@ -160,13 +209,20 @@ export function SemanalDetailView({ campana, rows, locMap }: Props) {
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-end gap-2">
-        <Button variant="outline" size="sm" className="gap-1.5" onClick={exportCSV}>
-          <Download className="h-3.5 w-3.5" /> CSV
-        </Button>
-        <Button variant="outline" size="sm" className="gap-1.5" onClick={exportExcel} disabled={exporting}>
-          <Download className="h-3.5 w-3.5" /> Excel
-        </Button>
+      <div className="flex justify-between items-center gap-2">
+        <ToggleGroup type="single" value={filterCumple} onValueChange={(v) => v && setFilterCumple(v as FilterCumple)} size="sm">
+          <ToggleGroupItem value="todos" className="text-xs">Todos</ToggleGroupItem>
+          <ToggleGroupItem value="cumple" className="text-xs">Cumplen</ToggleGroupItem>
+          <ToggleGroupItem value="no_cumple" className="text-xs">No cumplen</ToggleGroupItem>
+        </ToggleGroup>
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm" className="gap-1.5" onClick={exportCSV}>
+            <Download className="h-3.5 w-3.5" /> CSV
+          </Button>
+          <Button variant="outline" size="sm" className="gap-1.5" onClick={exportExcel} disabled={exporting}>
+            <Download className="h-3.5 w-3.5" /> Excel
+          </Button>
+        </div>
       </div>
 
       <div className="space-y-6">
