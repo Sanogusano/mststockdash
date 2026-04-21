@@ -28,16 +28,22 @@ const pct = (l: number, m: number) => (m > 0 ? Math.min((l / m) * 100, 100) : 0)
 
 export function SkuDetailView({ campana, rows, vendedorMap, locMap }: Props) {
   const [exporting, setExporting] = useState(false);
+  const [filterCumple, setFilterCumple] = useState<FilterCumple>("todos");
 
   const skus = Array.isArray(campana.parametros?.skus)
     ? campana.parametros.skus.join(", ")
     : campana.parametros?.skus ?? "—";
   const tipoVenta = campana.parametros?.tipo_venta === "full_price" ? "Full Price" : "Cualquiera";
+  const skusList: string[] = Array.isArray(campana.parametros?.skus)
+    ? campana.parametros.skus
+    : campana.parametros?.skus
+    ? [campana.parametros.skus]
+    : [];
   const metaUnidades = campana.valor_objetivo;
   const recompensa = campana.recompensa;
   const isAsesor = campana.alcance === "vendedor" || campana.alcance === "asesor";
 
-  const participantes = rows
+  const participantesAll = rows
     .map((r) => {
       const p = r.progreso_actual ?? {};
       const unidades = p.unidades_vendidas ?? 0;
@@ -46,9 +52,17 @@ export function SkuDetailView({ campana, rows, vendedorMap, locMap }: Props) {
       const nombre = isAsesor
         ? vendedorMap.get(id) ?? id ?? "—"
         : locMap.get(id) ?? id ?? "—";
-      return { id: r.id, nombre, unidades, meta, cumple_meta: r.cumple_meta, monto_ganado: r.monto_ganado ?? 0 };
+      return { id: r.id, refId: id, nombre, unidades, meta, cumple_meta: r.cumple_meta, monto_ganado: r.monto_ganado ?? 0 };
     })
     .sort((a, b) => b.unidades - a.unidades);
+
+  const participantes = useMemo(
+    () =>
+      filterCumple === "todos"
+        ? participantesAll
+        : participantesAll.filter((v) => (filterCumple === "cumple" ? v.cumple_meta : !v.cumple_meta)),
+    [participantesAll, filterCumple]
+  );
 
   const totalUnidades = participantes.reduce((s, v) => s + v.unidades, 0);
   const cumplen = participantes.filter((v) => v.cumple_meta).length;
@@ -65,19 +79,64 @@ export function SkuDetailView({ campana, rows, vendedorMap, locMap }: Props) {
   const exportExcel = async () => {
     setExporting(true);
     try {
-      const data = participantes.map((v, i) => ({
+      const summaryRows = participantes.map((v, i) => ({
         "#": i + 1,
         [isAsesor ? "Vendedor" : "Tienda"]: v.nombre,
-        "Unidades Vendidas": v.unidades,
+        SKUs: skus,
+        Desde: campana.fecha_inicio,
+        Hasta: campana.fecha_fin,
         Meta: v.meta,
+        "Unidades Vendidas": v.unidades,
         "% Avance": Math.round(pct(v.unidades, v.meta)),
         "¿Cumple?": v.cumple_meta ? "Sí" : "No",
-        Ganado: v.monto_ganado,
+        "Monto Ganado": v.monto_ganado,
       }));
+
+      // Pedidos asociados a los SKUs vendidos por participantes filtrados
+      let orderRows: Record<string, unknown>[] = [];
+      const refIds = [...new Set(participantes.map((p) => p.refId).filter(Boolean))];
+      if (refIds.length > 0 && skusList.length > 0) {
+        const ordersQuery = supabase
+          .from("orders")
+          .select("order_number, created_at, total_price, location_id, user_id, financial_status")
+          .gte("created_at", campana.fecha_inicio)
+          .lte("created_at", campana.fecha_fin + "T23:59:59")
+          .in("financial_status", ["paid", "partially_refunded", "partially_paid"])
+          .order("created_at", { ascending: false })
+          .limit(10000);
+
+        const filtered = isAsesor
+          ? await ordersQuery.in("user_id", refIds)
+          : await ordersQuery.in("location_id", refIds);
+        const ordersData = filtered.data ?? [];
+
+        // Filtrar por items con SKUs configurados
+        const orderIds = ordersData.map((o) => o.order_number);
+        if (orderIds.length > 0) {
+          const { data: items } = await supabase
+            .from("order_items")
+            .select("shopify_order_id, sku, quantity, price")
+            .in("sku", skusList);
+          const validOrderIds = new Set((items ?? []).map((i) => i.shopify_order_id));
+          const nameMap = new Map(participantes.map((p) => [p.refId, p.nombre]));
+          orderRows = ordersData
+            .filter((o) => validOrderIds.has(o.order_number))
+            .map((o) => ({
+              [isAsesor ? "Vendedor" : "Tienda"]:
+                nameMap.get((isAsesor ? o.user_id : o.location_id) ?? "") ?? "—",
+              Pedido: o.order_number,
+              Fecha: new Date(o.created_at).toLocaleDateString("es-CO"),
+              Valor: o.total_price,
+            }));
+        }
+      }
+
       const XLSX = await import("xlsx");
       const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(data), "Resumen");
-      XLSX.writeFile(wb, `liquidacion_${campana.nombre}.xlsx`);
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(summaryRows), "Liquidación");
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(orderRows), "Pedidos");
+      const sufijo = filterCumple === "cumple" ? "_cumplen" : filterCumple === "no_cumple" ? "_no_cumplen" : "";
+      XLSX.writeFile(wb, `liquidacion_${campana.nombre}${sufijo}.xlsx`);
     } finally {
       setExporting(false);
     }
@@ -102,13 +161,20 @@ export function SkuDetailView({ campana, rows, vendedorMap, locMap }: Props) {
         <Card><CardContent className="p-3"><p className="text-[11px] text-muted-foreground">Total a Pagar</p><p className="text-xl font-semibold tabular-nums">{fmt(totalGanado)}</p></CardContent></Card>
       </div>
 
-      <div className="flex justify-end gap-2">
-        <Button variant="outline" size="sm" className="gap-1.5" onClick={() => exportToCSV(participantes.map((v, i) => ({ "#": i + 1, Nombre: v.nombre, Unidades: v.unidades, Meta: v.meta, Cumple: v.cumple_meta ? "Sí" : "No", Ganado: v.monto_ganado })), `liquidacion_${campana.nombre}`)}>
-          <Download className="h-3.5 w-3.5" /> CSV
-        </Button>
-        <Button variant="outline" size="sm" className="gap-1.5" onClick={exportExcel} disabled={exporting}>
-          <Download className="h-3.5 w-3.5" /> Excel
-        </Button>
+      <div className="flex justify-between items-center gap-2">
+        <ToggleGroup type="single" value={filterCumple} onValueChange={(v) => v && setFilterCumple(v as FilterCumple)} size="sm">
+          <ToggleGroupItem value="todos" className="text-xs">Todos</ToggleGroupItem>
+          <ToggleGroupItem value="cumple" className="text-xs">Cumplen</ToggleGroupItem>
+          <ToggleGroupItem value="no_cumple" className="text-xs">No cumplen</ToggleGroupItem>
+        </ToggleGroup>
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm" className="gap-1.5" onClick={() => exportToCSV(participantes.map((v, i) => ({ "#": i + 1, Nombre: v.nombre, Unidades: v.unidades, Meta: v.meta, Cumple: v.cumple_meta ? "Sí" : "No", Ganado: v.monto_ganado })), `liquidacion_${campana.nombre}`)}>
+            <Download className="h-3.5 w-3.5" /> CSV
+          </Button>
+          <Button variant="outline" size="sm" className="gap-1.5" onClick={exportExcel} disabled={exporting}>
+            <Download className="h-3.5 w-3.5" /> Excel
+          </Button>
+        </div>
       </div>
 
       <div className="border rounded-lg overflow-hidden">
