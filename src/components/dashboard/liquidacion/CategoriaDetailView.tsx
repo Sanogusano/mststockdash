@@ -181,13 +181,20 @@ export function CategoriaDetailView({ campana, rows, vendedorMap }: Props) {
         </CardContent></Card>
       </div>
 
-      <div className="flex justify-end gap-2">
-        <Button variant="outline" size="sm" className="gap-1.5" onClick={exportCSV}>
-          <Download className="h-3.5 w-3.5" /> CSV
-        </Button>
-        <Button variant="outline" size="sm" className="gap-1.5" onClick={exportExcel} disabled={exporting}>
-          <Download className="h-3.5 w-3.5" /> Excel
-        </Button>
+      <div className="flex justify-between items-center gap-2">
+        <ToggleGroup type="single" value={filterCumple} onValueChange={(v) => v && setFilterCumple(v as FilterCumple)} size="sm">
+          <ToggleGroupItem value="todos" className="text-xs">Todos</ToggleGroupItem>
+          <ToggleGroupItem value="cumple" className="text-xs">Cumplen</ToggleGroupItem>
+          <ToggleGroupItem value="no_cumple" className="text-xs">No cumplen</ToggleGroupItem>
+        </ToggleGroup>
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm" className="gap-1.5" onClick={exportCSV}>
+            <Download className="h-3.5 w-3.5" /> CSV
+          </Button>
+          <Button variant="outline" size="sm" className="gap-1.5" onClick={exportExcel} disabled={exporting}>
+            <Download className="h-3.5 w-3.5" /> Excel
+          </Button>
+        </div>
       </div>
 
       <div className="border rounded-lg overflow-hidden">
