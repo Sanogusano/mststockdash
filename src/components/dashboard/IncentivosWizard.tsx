@@ -305,7 +305,7 @@ export function IncentivosWizard({ open, onOpenChange, onCreated }: Props) {
                   <SelectItem value="presupuesto">Presupuesto</SelectItem>
                   <SelectItem value="presupuesto_semanal_dual">Presupuesto Semanal Dual</SelectItem>
                   <SelectItem value="venta_categoria">Venta por Categoría</SelectItem>
-                  <SelectItem value="venta_skus">Venta por SKUs</SelectItem>
+                  <SelectItem value="venta_sku">Venta por SKUs</SelectItem>
                   <SelectItem value="ticket_minimo">Ticket Mínimo</SelectItem>
                   <SelectItem value="metodo_pago">Método de Pago</SelectItem>
                 </SelectContent>
