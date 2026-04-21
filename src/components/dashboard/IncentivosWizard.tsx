@@ -88,7 +88,7 @@ export function IncentivosWizard({ open, onOpenChange, onCreated }: Props) {
         };
       case "venta_categoria":
         return { categorias: toStringArray(parametros.categorias) };
-      case "venta_skus":
+      case "venta_sku":
         return { skus: toStringArray(parametros.skus) };
       case "ticket_minimo":
         return { ticket_minimo: toNumber(parametros.ticket_minimo) };
