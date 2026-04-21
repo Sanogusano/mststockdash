@@ -53,6 +53,10 @@ export function SemanalDetailView({ campana, rows, locMap }: Props) {
   const [exporting, setExporting] = useState(false);
   const [filterCumple, setFilterCumple] = useState<FilterCumple>("todos");
 
+  const firstProgreso = rows[0]?.progreso_actual as Record<string, unknown> | null;
+  const tipoTicket = (firstProgreso?.tipo_ticket as string | undefined) ?? "promedio_esperado";
+  const ticketMeta = firstProgreso?.ticket_meta as number | undefined;
+
   const weekRows: WeekRow[] = rows.map((r) => {
     const p = r.progreso_actual ?? {};
     const meta = p.meta_semanal ?? p.meta_semanal_dinamica ?? 0;
