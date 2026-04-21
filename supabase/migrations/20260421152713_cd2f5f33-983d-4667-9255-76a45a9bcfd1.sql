@@ -1,0 +1,2 @@
+ALTER TABLE public.presupuestos_config DROP CONSTRAINT presupuestos_config_tipo_check;
+ALTER TABLE public.presupuestos_config ADD CONSTRAINT presupuestos_config_tipo_check CHECK (tipo = ANY (ARRAY['tienda'::text, 'canal'::text, 'vendedor'::text]));
