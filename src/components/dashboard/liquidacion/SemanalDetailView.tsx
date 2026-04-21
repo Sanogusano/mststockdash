@@ -213,12 +213,18 @@ export function SemanalDetailView({ campana, rows, locMap }: Props) {
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-between items-center gap-2">
-        <ToggleGroup type="single" value={filterCumple} onValueChange={(v) => v && setFilterCumple(v as FilterCumple)} size="sm">
-          <ToggleGroupItem value="todos" className="text-xs">Todos</ToggleGroupItem>
-          <ToggleGroupItem value="cumple" className="text-xs">Cumplen</ToggleGroupItem>
-          <ToggleGroupItem value="no_cumple" className="text-xs">No cumplen</ToggleGroupItem>
-        </ToggleGroup>
+      <div className="flex justify-between items-center gap-2 flex-wrap">
+        <div className="flex items-center gap-2 flex-wrap">
+          <ToggleGroup type="single" value={filterCumple} onValueChange={(v) => v && setFilterCumple(v as FilterCumple)} size="sm">
+            <ToggleGroupItem value="todos" className="text-xs">Todos</ToggleGroupItem>
+            <ToggleGroupItem value="cumple" className="text-xs">Cumplen</ToggleGroupItem>
+            <ToggleGroupItem value="no_cumple" className="text-xs">No cumplen</ToggleGroupItem>
+          </ToggleGroup>
+          <Badge variant="outline" className="text-[11px] font-normal">
+            {tipoTicket === "minimo_real" ? "Ticket Mínimo Real" : "Ticket Promedio Esperado"}
+            {ticketMeta ? `: ${fmt(ticketMeta)}` : ""}
+          </Badge>
+        </div>
         <div className="flex gap-2">
           <Button variant="outline" size="sm" className="gap-1.5" onClick={exportCSV}>
             <Download className="h-3.5 w-3.5" /> CSV
@@ -228,6 +234,7 @@ export function SemanalDetailView({ campana, rows, locMap }: Props) {
           </Button>
         </div>
       </div>
+
 
       <div className="space-y-6">
         {groups.map((g) => (
