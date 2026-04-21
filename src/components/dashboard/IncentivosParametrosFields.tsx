@@ -69,10 +69,13 @@ const RULE_FIELDS: Record<string, FieldDef[]> = {
 const RULES_WITH_TIPO_VENTA = ["venta_categoria", "venta_sku", "ticket_minimo", "upt_minimo", "numero_pedidos"];
 
 export function IncentivosParametrosFields({ tipoRegla, params, onChange }: Props) {
-  const fields = RULE_FIELDS[tipoRegla];
-  const showTipoVenta = RULES_WITH_TIPO_VENTA.includes(tipoRegla);
+  // Normalize alias: some places used "venta_skus" (plural) historically
+  const normalizedTipo = tipoRegla === "venta_skus" ? "venta_sku" : tipoRegla;
+  const fields = RULE_FIELDS[normalizedTipo];
+  const showTipoVenta = RULES_WITH_TIPO_VENTA.includes(normalizedTipo);
+  const isSkuRule = normalizedTipo === "venta_sku";
 
-  if ((!fields || fields.length === 0) && !showTipoVenta) return null;
+  if ((!fields || fields.length === 0) && !showTipoVenta && !isSkuRule) return null;
 
   const handleChange = (key: string, value: string, type: "number" | "text") => {
     const parsed: unknown = type === "number" ? (value === "" ? 0 : Number(value)) : value;
@@ -88,10 +91,23 @@ export function IncentivosParametrosFields({ tipoRegla, params, onChange }: Prop
 
   const tipoVentaValue = (params.tipo_venta as string) || "cualquiera";
 
+  const skusSelected: string[] = Array.isArray(params.skus)
+    ? (params.skus as unknown[]).map(String)
+    : typeof params.skus === "string" && params.skus
+      ? (params.skus as string).split(",").map((s) => s.trim()).filter(Boolean)
+      : [];
+
   return (
     <div className="space-y-3">
       <p className="text-xs text-muted-foreground">Parámetros específicos</p>
-      {fields?.map((field) => (
+      {isSkuRule && (
+        <SkuSearchPicker
+          label="SKUs incluidos"
+          selected={skusSelected}
+          onChange={(skus) => onChange({ ...params, skus })}
+        />
+      )}
+      {!isSkuRule && fields?.map((field) => (
         <div key={field.key}>
           <Label>{field.label}</Label>
           <Input
