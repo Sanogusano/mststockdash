@@ -88,7 +88,7 @@ export function IncentivosWizard({ open, onOpenChange, onCreated }: Props) {
         };
       case "venta_categoria":
         return { categorias: toStringArray(parametros.categorias) };
-      case "venta_skus":
+      case "venta_sku":
         return { skus: toStringArray(parametros.skus) };
       case "ticket_minimo":
         return { ticket_minimo: toNumber(parametros.ticket_minimo) };
@@ -130,8 +130,8 @@ export function IncentivosWizard({ open, onOpenChange, onCreated }: Props) {
       return false;
     }
 
-    if (tipoRegla === "venta_skus" && toStringArray(parametros.skus).length === 0) {
-      toast.error("Ingresa al menos un SKU");
+    if (tipoRegla === "venta_sku" && toStringArray(parametros.skus).length === 0) {
+      toast.error("Selecciona al menos un SKU");
       return false;
     }
 
@@ -305,7 +305,7 @@ export function IncentivosWizard({ open, onOpenChange, onCreated }: Props) {
                   <SelectItem value="presupuesto">Presupuesto</SelectItem>
                   <SelectItem value="presupuesto_semanal_dual">Presupuesto Semanal Dual</SelectItem>
                   <SelectItem value="venta_categoria">Venta por Categoría</SelectItem>
-                  <SelectItem value="venta_skus">Venta por SKUs</SelectItem>
+                  <SelectItem value="venta_sku">Venta por SKUs</SelectItem>
                   <SelectItem value="ticket_minimo">Ticket Mínimo</SelectItem>
                   <SelectItem value="metodo_pago">Método de Pago</SelectItem>
                 </SelectContent>
