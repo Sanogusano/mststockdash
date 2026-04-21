@@ -27,6 +27,7 @@ const pct = (l: number, m: number) => (m > 0 ? Math.min((l / m) * 100, 100) : 0)
 
 export function CategoriaDetailView({ campana, rows, vendedorMap }: Props) {
   const [exporting, setExporting] = useState(false);
+  const [filterCumple, setFilterCumple] = useState<FilterCumple>("todos");
 
   const categorias = Array.isArray(campana.parametros?.categorias)
     ? campana.parametros.categorias.join(", ")
@@ -34,7 +35,7 @@ export function CategoriaDetailView({ campana, rows, vendedorMap }: Props) {
   const metaUnidades = campana.valor_objetivo;
   const recompensa = campana.recompensa;
 
-  const vendedores = rows
+  const vendedoresAll = rows
     .map((r) => {
       const p = r.progreso_actual ?? {};
       const unidades = p.unidades_vendidas ?? 0;
@@ -50,6 +51,14 @@ export function CategoriaDetailView({ campana, rows, vendedorMap }: Props) {
       };
     })
     .sort((a, b) => b.unidades - a.unidades);
+
+  const vendedores = useMemo(
+    () =>
+      filterCumple === "todos"
+        ? vendedoresAll
+        : vendedoresAll.filter((v) => (filterCumple === "cumple" ? v.cumple_meta : !v.cumple_meta)),
+    [vendedoresAll, filterCumple]
+  );
 
   const totalUnidades = vendedores.reduce((s, v) => s + v.unidades, 0);
   const cumplen = vendedores.filter((v) => v.cumple_meta).length;
@@ -79,19 +88,48 @@ export function CategoriaDetailView({ campana, rows, vendedorMap }: Props) {
   const exportExcel = async () => {
     setExporting(true);
     try {
-      const data = vendedores.map((v, i) => ({
+      const summaryRows = vendedores.map((v, i) => ({
         "#": i + 1,
         Vendedor: v.nombre,
-        "Unidades Vendidas": v.unidades,
+        Categoría: categorias,
+        Desde: campana.fecha_inicio,
+        Hasta: campana.fecha_fin,
         Meta: v.meta,
+        "Unidades Vendidas": v.unidades,
         "% Avance": Math.round(pct(v.unidades, v.meta)),
         "¿Cumple?": v.cumple_meta ? "Sí" : "No",
-        Ganado: v.monto_ganado,
+        "Monto Ganado": v.monto_ganado,
       }));
+
+      // Pedidos de los vendedores filtrados
+      const vendedorIds = [...new Set(vendedores.map((v) => v.vendedor_id).filter(Boolean))];
+      let orderRows: Record<string, unknown>[] = [];
+      if (vendedorIds.length > 0) {
+        const { data: orders } = await supabase
+          .from("orders")
+          .select("order_number, created_at, total_price, user_id, location_id, financial_status")
+          .in("user_id", vendedorIds)
+          .gte("created_at", campana.fecha_inicio)
+          .lte("created_at", campana.fecha_fin + "T23:59:59")
+          .in("financial_status", ["paid", "partially_refunded", "partially_paid"])
+          .order("created_at", { ascending: false })
+          .limit(10000);
+
+        const vendedorNombre = new Map(vendedores.map((v) => [v.vendedor_id, v.nombre]));
+        orderRows = (orders ?? []).map((o) => ({
+          Vendedor: vendedorNombre.get(o.user_id ?? "") ?? o.user_id ?? "—",
+          Pedido: o.order_number,
+          Fecha: new Date(o.created_at).toLocaleDateString("es-CO"),
+          Valor: o.total_price,
+        }));
+      }
+
       const XLSX = await import("xlsx");
       const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(data), "Vendedores");
-      XLSX.writeFile(wb, `liquidacion_${campana.nombre}.xlsx`);
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(summaryRows), "Liquidación");
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(orderRows), "Pedidos");
+      const sufijo = filterCumple === "cumple" ? "_cumplen" : filterCumple === "no_cumple" ? "_no_cumplen" : "";
+      XLSX.writeFile(wb, `liquidacion_${campana.nombre}${sufijo}.xlsx`);
     } finally {
       setExporting(false);
     }
