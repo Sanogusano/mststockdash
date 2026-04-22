@@ -24,6 +24,7 @@ import CierreColeccionPage from "./pages/CierreColeccion";
 import RendimientoVendedoresPage from "./pages/RendimientoVendedores";
 import ComisionesPage from "./pages/Comisiones";
 import VendedoresPage from "./pages/Vendedores";
+import ConfiguracionUbicacionesPage from "./pages/ConfiguracionUbicaciones";
 
 
 const queryClient = new QueryClient();
@@ -54,6 +55,7 @@ const App = () => (
           <Route path="/rendimiento-vendedores" element={<ProtectedRoute><RendimientoVendedoresPage /></ProtectedRoute>} />
           <Route path="/comisiones" element={<ProtectedRoute><ComisionesPage /></ProtectedRoute>} />
           <Route path="/vendedores" element={<ProtectedRoute><VendedoresPage /></ProtectedRoute>} />
+          <Route path="/configuracion/ubicaciones" element={<ProtectedRoute><ConfiguracionUbicacionesPage /></ProtectedRoute>} />
           
           <Route path="*" element={<NotFound />} />
         </Routes>
