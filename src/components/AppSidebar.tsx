@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { BarChart3, TrendingUp, ArrowLeftRight, Package, Tag, Layers, Target, Zap, Trophy, Archive, Users, Calculator, UserCog, Briefcase, ChevronDown } from "lucide-react";
+import { BarChart3, TrendingUp, ArrowLeftRight, Package, Tag, Layers, Target, Zap, Trophy, Archive, Users, Calculator, UserCog, Briefcase, ChevronDown, Settings, MapPin } from "lucide-react";
+import { useUserRole } from "@/hooks/useUserRole";
 import { useLocation, Link } from "react-router-dom";
 import monasteryLogoWhite from "@/assets/monastery-logo-white.jpg";
 import {
@@ -40,10 +41,17 @@ const gestionComercialItems: NavItem[] = [
   { title: "Equipo Comercial", url: "/vendedores", icon: UserCog, description: "Gestión de vendedores" },
 ];
 
+const configuracionItems: NavItem[] = [
+  { title: "Ubicaciones", url: "/configuracion/ubicaciones", icon: MapPin, description: "Tiendas, CEDIs y outlets" },
+];
+
 export function AppSidebar() {
   const location = useLocation();
+  const { isAdmin } = useUserRole();
   const isGestionActive = gestionComercialItems.some((i) => location.pathname === i.url);
+  const isConfigActive = configuracionItems.some((i) => location.pathname === i.url);
   const [gestionOpen, setGestionOpen] = useState(isGestionActive);
+  const [configOpen, setConfigOpen] = useState(isConfigActive);
 
   const renderItem = (item: NavItem, indent = false) => {
     const isActive = location.pathname === item.url;
@@ -110,6 +118,34 @@ export function AppSidebar() {
               </SidebarMenuItem>
 
               {gestionOpen && gestionComercialItems.map((item) => renderItem(item, true))}
+
+              {/* Configuración — solo admin */}
+              {isAdmin && (
+                <>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton asChild>
+                      <button
+                        onClick={() => setConfigOpen((v) => !v)}
+                        className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-150 ${
+                          isConfigActive
+                            ? "bg-primary/8 text-primary font-medium"
+                            : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                        }`}
+                      >
+                        <Settings className={`h-4 w-4 shrink-0 ${isConfigActive ? "text-primary" : ""}`} />
+                        <div className="flex flex-col min-w-0 flex-1 text-left">
+                          <span className="text-sm leading-tight">Configuración</span>
+                          <span className="text-[10px] text-muted-foreground/60 truncate">Administración del sistema</span>
+                        </div>
+                        <ChevronDown
+                          className={`h-3.5 w-3.5 shrink-0 transition-transform ${configOpen ? "rotate-180" : ""}`}
+                        />
+                      </button>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                  {configOpen && configuracionItems.map((item) => renderItem(item, true))}
+                </>
+              )}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
