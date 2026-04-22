@@ -1,7 +1,9 @@
 import { useState } from "react";
-import { BarChart3, TrendingUp, ArrowLeftRight, Package, Tag, Layers, Target, Zap, Trophy, Archive, Users, Calculator, UserCog, Briefcase, ChevronDown, Settings, MapPin, Upload } from "lucide-react";
+import { BarChart3, TrendingUp, ArrowLeftRight, Package, Tag, Layers, Target, Zap, Trophy, Archive, Users, Calculator, UserCog, Briefcase, ChevronDown, Settings, MapPin, Upload, LogOut } from "lucide-react";
 import { useUserRole } from "@/hooks/useUserRole";
-import { useLocation, Link } from "react-router-dom";
+import { useAuth } from "@/hooks/useAuth";
+import { useLocation, Link, useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 import monasteryLogoWhite from "@/assets/monastery-logo-white.jpg";
 import {
   Sidebar,
@@ -13,6 +15,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarHeader,
+  SidebarFooter,
 } from "@/components/ui/sidebar";
 
 type NavItem = {
@@ -48,11 +51,26 @@ const configuracionItems: NavItem[] = [
 
 export function AppSidebar() {
   const location = useLocation();
+  const navigate = useNavigate();
   const { isAdmin } = useUserRole();
+  const { signOut, session } = useAuth();
   const isGestionActive = gestionComercialItems.some((i) => location.pathname === i.url);
   const isConfigActive = configuracionItems.some((i) => location.pathname === i.url);
   const [gestionOpen, setGestionOpen] = useState(isGestionActive);
   const [configOpen, setConfigOpen] = useState(isConfigActive);
+
+  const userEmail = session?.user?.email || "";
+  const userInitial = userEmail.charAt(0).toUpperCase() || "U";
+
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+      toast.success("Sesión cerrada");
+      navigate("/login");
+    } catch (e) {
+      toast.error("Error al cerrar sesión");
+    }
+  };
 
   const renderItem = (item: NavItem, indent = false) => {
     const isActive = location.pathname === item.url;
@@ -61,19 +79,16 @@ export function AppSidebar() {
         <SidebarMenuButton asChild>
           <Link
             to={item.url}
-            className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-150 group ${
+            className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-150 ${
               indent ? "ml-3" : ""
             } ${
               isActive
-                ? "bg-primary/8 text-primary font-medium"
-                : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
+                : "text-sidebar-foreground/70 hover:bg-sidebar-accent/40 hover:text-sidebar-foreground"
             }`}
           >
-            <item.icon className={`h-4 w-4 shrink-0 ${isActive ? "text-primary" : ""}`} />
-            <div className="flex flex-col min-w-0">
-              <span className="text-sm leading-tight">{item.title}</span>
-              <span className="text-[10px] text-muted-foreground/60 truncate">{item.description}</span>
-            </div>
+            <item.icon className="h-[18px] w-[18px] shrink-0" />
+            <span className="text-sm leading-tight truncate">{item.title}</span>
           </Link>
         </SidebarMenuButton>
       </SidebarMenuItem>
@@ -82,17 +97,17 @@ export function AppSidebar() {
 
   return (
     <Sidebar className="border-r border-sidebar-border bg-sidebar">
-      <SidebarHeader className="px-6 py-5">
-        <img src={monasteryLogoWhite} alt="Monastery Logo" className="w-40 h-auto" />
+      <SidebarHeader className="px-6 py-6 border-b border-sidebar-border/40">
+        <img src={monasteryLogoWhite} alt="Monastery Logo" className="w-36 h-auto" />
       </SidebarHeader>
 
-      <SidebarContent className="px-3">
+      <SidebarContent className="px-3 py-4">
         <SidebarGroup>
-          <SidebarGroupLabel className="text-[10px] font-semibold tracking-widest uppercase text-muted-foreground/60 px-3 mb-2">
+          <SidebarGroupLabel className="text-[10px] font-semibold tracking-widest uppercase text-sidebar-foreground/40 px-3 mb-2">
             Análisis
           </SidebarGroupLabel>
           <SidebarGroupContent>
-            <SidebarMenu>
+            <SidebarMenu className="gap-0.5">
               {navItems.map((item) => renderItem(item))}
 
               {/* Gestión Comercial — submenú colapsable */}
@@ -102,15 +117,12 @@ export function AppSidebar() {
                     onClick={() => setGestionOpen((v) => !v)}
                     className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-150 ${
                       isGestionActive
-                        ? "bg-primary/8 text-primary font-medium"
-                        : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                        ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
+                        : "text-sidebar-foreground/70 hover:bg-sidebar-accent/40 hover:text-sidebar-foreground"
                     }`}
                   >
-                    <Briefcase className={`h-4 w-4 shrink-0 ${isGestionActive ? "text-primary" : ""}`} />
-                    <div className="flex flex-col min-w-0 flex-1 text-left">
-                      <span className="text-sm leading-tight">Gestión Comercial</span>
-                      <span className="text-[10px] text-muted-foreground/60 truncate">Incentivos, vendedores & comisiones</span>
-                    </div>
+                    <Briefcase className="h-[18px] w-[18px] shrink-0" />
+                    <span className="text-sm leading-tight flex-1 text-left truncate">Gestión Comercial</span>
                     <ChevronDown
                       className={`h-3.5 w-3.5 shrink-0 transition-transform ${gestionOpen ? "rotate-180" : ""}`}
                     />
@@ -129,15 +141,12 @@ export function AppSidebar() {
                         onClick={() => setConfigOpen((v) => !v)}
                         className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-150 ${
                           isConfigActive
-                            ? "bg-primary/8 text-primary font-medium"
-                            : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                            ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
+                            : "text-sidebar-foreground/70 hover:bg-sidebar-accent/40 hover:text-sidebar-foreground"
                         }`}
                       >
-                        <Settings className={`h-4 w-4 shrink-0 ${isConfigActive ? "text-primary" : ""}`} />
-                        <div className="flex flex-col min-w-0 flex-1 text-left">
-                          <span className="text-sm leading-tight">Configuración</span>
-                          <span className="text-[10px] text-muted-foreground/60 truncate">Administración del sistema</span>
-                        </div>
+                        <Settings className="h-[18px] w-[18px] shrink-0" />
+                        <span className="text-sm leading-tight flex-1 text-left truncate">Configuración</span>
                         <ChevronDown
                           className={`h-3.5 w-3.5 shrink-0 transition-transform ${configOpen ? "rotate-180" : ""}`}
                         />
@@ -152,11 +161,26 @@ export function AppSidebar() {
         </SidebarGroup>
       </SidebarContent>
 
-      <div className="mt-auto px-6 py-4 border-t border-sidebar-border">
-        <p className="text-[10px] text-muted-foreground/40 text-center tracking-wide">
+      <SidebarFooter className="px-3 py-3 border-t border-sidebar-border/40 gap-2">
+        {userEmail && (
+          <div className="flex items-center gap-2.5 px-3 py-2">
+            <div className="h-8 w-8 rounded-full bg-sidebar-accent flex items-center justify-center text-sidebar-accent-foreground text-xs font-semibold shrink-0">
+              {userInitial}
+            </div>
+            <span className="text-xs text-sidebar-foreground/70 truncate flex-1">{userEmail}</span>
+          </div>
+        )}
+        <button
+          onClick={handleSignOut}
+          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg bg-destructive/10 text-destructive hover:bg-destructive hover:text-destructive-foreground transition-all duration-150 text-sm font-medium"
+        >
+          <LogOut className="h-[18px] w-[18px] shrink-0" />
+          <span>Cerrar sesión</span>
+        </button>
+        <p className="text-[10px] text-sidebar-foreground/30 text-center tracking-wide pt-1">
           Monastery BI © 2025
         </p>
-      </div>
+      </SidebarFooter>
     </Sidebar>
   );
 }
