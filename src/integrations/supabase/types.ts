@@ -1516,23 +1516,23 @@ export type Database = {
           p_wos_umbral?: number
         }
         Returns: {
-          accion_sugerida: string
-          color: string
-          destino_sugerido_id: string
-          destino_sugerido_nombre: string
-          justificacion: string
-          linea: string
-          location_id: string
-          location_nombre: string
-          nombre: string
-          ritmo_ajustado: number
-          sell_through: number
-          sku: string
-          stock_actual: number
-          talla: string
-          unidades_a_mover: number
-          ventas_ventana: number
-          wos_actual: number
+          r_accion_sugerida: string
+          r_color: string
+          r_destino_sugerido_id: string
+          r_destino_sugerido_nombre: string
+          r_justificacion: string
+          r_linea: string
+          r_location_id: string
+          r_location_nombre: string
+          r_nombre: string
+          r_ritmo_ajustado: number
+          r_sell_through: number
+          r_sku: string
+          r_stock_actual: number
+          r_talla: string
+          r_unidades_a_mover: number
+          r_ventas_ventana: number
+          r_wos_actual: number
         }[]
       }
       reporte_cierre_coleccion_categoria_coleccion: {
@@ -1825,28 +1825,28 @@ export type Database = {
           p_ventana_semanas?: number
         }
         Returns: {
-          color: string
-          destino_location_id: string
-          destino_nombre: string
-          destino_tier: string
-          dias_con_stock_destino: number
-          justificacion: string
-          lead_time_dias: number
-          linea: string
-          nombre: string
-          origen_location_id: string
-          origen_nombre: string
-          origen_tipo: string
-          prioridad: number
-          ritmo_ajustado_destino: number
-          ritmo_semanal_destino: number
-          sku: string
-          stock_destino: number
-          stock_origen: number
-          talla: string
-          unidades_sugeridas: number
-          wos_actual_destino: number
-          wos_objetivo_destino: number
+          r_color: string
+          r_destino_location_id: string
+          r_destino_nombre: string
+          r_destino_tier: string
+          r_dias_con_stock_destino: number
+          r_justificacion: string
+          r_lead_time_dias: number
+          r_linea: string
+          r_nombre: string
+          r_origen_location_id: string
+          r_origen_nombre: string
+          r_origen_tipo: string
+          r_prioridad: number
+          r_ritmo_ajustado_destino: number
+          r_ritmo_semanal_destino: number
+          r_sku: string
+          r_stock_destino: number
+          r_stock_origen: number
+          r_talla: string
+          r_unidades_sugeridas: number
+          r_wos_actual_destino: number
+          r_wos_objetivo_destino: number
         }[]
       }
       reporte_desempeño_comercial:

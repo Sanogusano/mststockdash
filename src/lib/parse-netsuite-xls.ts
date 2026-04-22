@@ -37,6 +37,18 @@ export interface NetsuiteSnapshotData {
 }
 
 const NUM_COLS = 60;
+
+/**
+ * Normaliza el SKU. NetSuite a veces lo entrega como "VARIANT_ID:SKU".
+ * Si contiene ':', se queda con la parte después del ':'.
+ */
+function normalizeSku(raw: string): string {
+  if (!raw) return "";
+  if (raw.includes(":")) {
+    return raw.split(":")[1].trim();
+  }
+  return raw.trim();
+}
 const HEADER_ROW_INDEX = 6;
 const DATA_START_ROW = 8;
 const LOCATION_COL_START = 10;
@@ -105,14 +117,18 @@ export async function parseNetsuiteXls(
   const locationUnits: Record<string, number> = {};
   const lineaUnits: Record<string, number> = {};
   let totalUnits = 0;
+  let normalizedCount = 0;
 
   for (let i = DATA_START_ROW; i < rows.length; i++) {
     const cells = parseRow(rows[i], NUM_COLS);
     const subTipo = cells[0];
-    const sku = cells[3];
+    const rawSku = cells[3];
+    const sku = normalizeSku(rawSku);
 
     if (!sku || subTipo === "Total") continue;
     if (subTipo !== "PRENDAS") continue;
+
+    if (rawSku && rawSku.includes(":")) normalizedCount++;
 
     for (let col = LOCATION_COL_START; col < LOCATION_COL_END; col++) {
       const qtyStr = cells[col];
@@ -166,6 +182,10 @@ export async function parseNetsuiteXls(
 
   const today = new Date();
   const snapshotDate = today.toISOString().slice(0, 10);
+
+  console.log(
+    `[Parser] Total SKUs: ${lines.length}, normalizados (tenían ':'): ${normalizedCount}`
+  );
 
   return {
     fileName: file.name,
