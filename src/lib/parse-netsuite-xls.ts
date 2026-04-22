@@ -122,10 +122,13 @@ export async function parseNetsuiteXls(
   for (let i = DATA_START_ROW; i < rows.length; i++) {
     const cells = parseRow(rows[i], NUM_COLS);
     const subTipo = cells[0];
-    const sku = cells[3];
+    const rawSku = cells[3];
+    const sku = normalizeSku(rawSku);
 
     if (!sku || subTipo === "Total") continue;
     if (subTipo !== "PRENDAS") continue;
+
+    if (rawSku && rawSku.includes(":")) normalizedCount++;
 
     for (let col = LOCATION_COL_START; col < LOCATION_COL_END; col++) {
       const qtyStr = cells[col];
