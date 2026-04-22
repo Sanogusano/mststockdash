@@ -25,6 +25,7 @@ import RendimientoVendedoresPage from "./pages/RendimientoVendedores";
 import ComisionesPage from "./pages/Comisiones";
 import VendedoresPage from "./pages/Vendedores";
 import ConfiguracionUbicacionesPage from "./pages/ConfiguracionUbicaciones";
+import NetsuiteUploadPage from "./pages/NetsuiteUpload";
 
 
 const queryClient = new QueryClient();
@@ -56,6 +57,7 @@ const App = () => (
           <Route path="/comisiones" element={<ProtectedRoute><ComisionesPage /></ProtectedRoute>} />
           <Route path="/vendedores" element={<ProtectedRoute><VendedoresPage /></ProtectedRoute>} />
           <Route path="/configuracion/ubicaciones" element={<ProtectedRoute><ConfiguracionUbicacionesPage /></ProtectedRoute>} />
+          <Route path="/configuracion/netsuite-upload" element={<ProtectedRoute><NetsuiteUploadPage /></ProtectedRoute>} />
           
           <Route path="*" element={<NotFound />} />
         </Routes>
