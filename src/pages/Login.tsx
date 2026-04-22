@@ -74,7 +74,6 @@ export default function LoginPage() {
       <div className="w-full max-w-sm space-y-6">
         <div className="text-center space-y-4">
           <img src={monasteryLogo} alt="Monastery logo" className="h-10 mx-auto" />
-          <h1 className="font-display text-2xl font-bold text-foreground">Monastery</h1>
           <p className="text-sm text-muted-foreground">
             {mode === "login" ? "Ingresa a tu dashboard" : "Recuperar contraseña"}
           </p>
@@ -83,7 +82,13 @@ export default function LoginPage() {
         {resetSent ? (
           <div className="glass-card rounded-xl p-6 text-center space-y-3">
             <p className="text-sm text-foreground">📧 Revisa tu correo electrónico para restablecer tu contraseña.</p>
-            <Button variant="outline" onClick={() => { setMode("login"); setResetSent(false); }}>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setMode("login");
+                setResetSent(false);
+              }}
+            >
               Volver al login
             </Button>
           </div>
@@ -128,7 +133,10 @@ export default function LoginPage() {
                 <button
                   type="button"
                   className="text-xs text-muted-foreground hover:text-foreground transition-colors"
-                  onClick={() => { setMode("reset"); setError(""); }}
+                  onClick={() => {
+                    setMode("reset");
+                    setError("");
+                  }}
                 >
                   ¿Olvidaste tu contraseña?
                 </button>
@@ -136,7 +144,10 @@ export default function LoginPage() {
                 <button
                   type="button"
                   className="text-xs text-muted-foreground hover:text-foreground transition-colors"
-                  onClick={() => { setMode("login"); setError(""); }}
+                  onClick={() => {
+                    setMode("login");
+                    setError("");
+                  }}
                 >
                   Volver al login
                 </button>
