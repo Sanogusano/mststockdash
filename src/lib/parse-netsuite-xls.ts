@@ -117,6 +117,7 @@ export async function parseNetsuiteXls(
   const locationUnits: Record<string, number> = {};
   const lineaUnits: Record<string, number> = {};
   let totalUnits = 0;
+  let normalizedCount = 0;
 
   for (let i = DATA_START_ROW; i < rows.length; i++) {
     const cells = parseRow(rows[i], NUM_COLS);
