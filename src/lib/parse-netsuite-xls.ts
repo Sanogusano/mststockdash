@@ -37,6 +37,18 @@ export interface NetsuiteSnapshotData {
 }
 
 const NUM_COLS = 60;
+
+/**
+ * Normaliza el SKU. NetSuite a veces lo entrega como "VARIANT_ID:SKU".
+ * Si contiene ':', se queda con la parte después del ':'.
+ */
+function normalizeSku(raw: string): string {
+  if (!raw) return "";
+  if (raw.includes(":")) {
+    return raw.split(":")[1].trim();
+  }
+  return raw.trim();
+}
 const HEADER_ROW_INDEX = 6;
 const DATA_START_ROW = 8;
 const LOCATION_COL_START = 10;
