@@ -183,6 +183,10 @@ export async function parseNetsuiteXls(
   const today = new Date();
   const snapshotDate = today.toISOString().slice(0, 10);
 
+  console.log(
+    `[Parser] Total SKUs: ${lines.length}, normalizados (tenían ':'): ${normalizedCount}`
+  );
+
   return {
     fileName: file.name,
     snapshotDate,
