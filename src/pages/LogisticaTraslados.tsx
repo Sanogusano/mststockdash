@@ -270,12 +270,27 @@ export default function LogisticaTrasladosPage() {
           </header>
 
           {/* Contenido */}
+          <TooltipProvider delayDuration={150}>
           <div className="flex-1 px-4 sm:px-6 py-4 sm:py-6 space-y-4">
+            {/* Panel educativo "¿Cómo funciona?" */}
+            <PanelComoFunciona />
+
             {/* Parámetros */}
-            <Card className="p-3">
+            <Card className="p-3 space-y-3">
+              <p className="text-xs text-muted-foreground">
+                💡 Ajusta los parámetros y presiona <strong>"Correr motor"</strong> para ver las
+                sugerencias. Los valores default funcionan bien para la operación normal. Cambia la
+                ventana a 8 semanas para decisiones más estables, o a 2 semanas para capturar
+                tendencias muy recientes.
+              </p>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 items-end">
                 <div>
-                  <Label className="text-[10px] uppercase">Ventana semanas</Label>
+                  <Label className="text-[10px] uppercase flex items-center">
+                    Ventana de análisis
+                    <InfoTooltip
+                      content={`Cuántas semanas de historial de ventas usar para calcular el ritmo de venta.\n\n• Corta (4 sem): más reactiva a tendencias recientes\n• Larga (8-12 sem): más estable, menos sensible a ventas atípicas\n\nRecomendación: empezar con 4 semanas.`}
+                    />
+                  </Label>
                   <Select
                     value={String(ventanaSemanas)}
                     onValueChange={(v) => setVentanaSemanas(Number(v))}
@@ -293,7 +308,12 @@ export default function LogisticaTrasladosPage() {
                   </Select>
                 </div>
                 <div>
-                  <Label className="text-[10px] uppercase">Mín unidades/línea</Label>
+                  <Label className="text-[10px] uppercase flex items-center">
+                    Mín unidades/traslado
+                    <InfoTooltip
+                      content={`El motor no sugerirá traslados con menos de este número de unidades.\n\n¿Por qué? Mover 1-2 unidades entre ciudades suele costar más que el valor del producto.\n\n• 1 und: muchísimas sugerencias\n• 3 und: balance entre volumen y rentabilidad\n• 5+ und: solo traslados "grandes"`}
+                    />
+                  </Label>
                   <Input
                     type="number"
                     min={1}
@@ -303,7 +323,12 @@ export default function LogisticaTrasladosPage() {
                   />
                 </div>
                 <div>
-                  <Label className="text-[10px] uppercase">WOS trigger consolidación</Label>
+                  <Label className="text-[10px] uppercase flex items-center">
+                    Umbral consolidación lateral
+                    <InfoTooltip
+                      content={`Una tienda se considera "sobrestockeada" cuando tiene más semanas de cobertura del SKU que este valor. Solo entonces puede ceder unidades a otras tiendas.\n\n• 20 sem (default): conservador, solo pide a tiendas con >5 meses\n• 12-16 sem: más agresivo en mover entre tiendas\n• 30+ sem: casi nunca mueve entre tiendas, solo desde CEDI`}
+                    />
+                  </Label>
                   <Input
                     type="number"
                     min={1}
@@ -346,6 +371,24 @@ export default function LogisticaTrasladosPage() {
                 <Loader2 className="h-8 w-8 animate-spin mx-auto mb-3 text-muted-foreground" />
                 <p className="text-sm text-muted-foreground">
                   Corriendo motor de allocation… esto puede tomar unos segundos.
+                </p>
+              </Card>
+            )}
+
+            {/* Texto descriptivo cuando hay resultados en dashboard */}
+            {sugerencias.length > 0 && !destinoSeleccionado && !corriendo && (
+              <Card className="p-3 bg-muted/20 border-dashed">
+                <p className="text-xs text-muted-foreground">
+                  📊 Se encontraron <strong>{sugerencias.length} sugerencias</strong> totalizando{" "}
+                  <strong>
+                    {sugerencias
+                      .reduce((a, s) => a + (s.r_unidades_sugeridas || 0), 0)
+                      .toLocaleString()}{" "}
+                    unidades
+                  </strong>
+                  . Ordenadas por prioridad — las más urgentes primero. Las sugerencias vienen
+                  principalmente de los CEDIs; algunas tiendas pueden aparecer como origen si tienen
+                  sobrestock real de un SKU (consolidación lateral).
                 </p>
               </Card>
             )}
