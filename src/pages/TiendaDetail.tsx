@@ -190,6 +190,13 @@ export default function TiendaDetailPage() {
 
   const supplyTotal = supplyStock.reduce((s, r) => s + r.available, 0);
 
+  // Validación de scope: si el usuario tiene scope acotado y esta tienda no está en él,
+  // redirigir al inicio. Admin / scope=null pasan siempre.
+  if (!scopeLoading && id && scope !== null && !scope.includes(id)) {
+    toast.error("No tienes acceso a esta tienda");
+    return <Navigate to="/" replace />;
+  }
+
   return (
     <SidebarProvider>
       <div className="flex min-h-screen w-full bg-background">
