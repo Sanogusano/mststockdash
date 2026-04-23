@@ -2,9 +2,22 @@
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { ChevronRight, Layers, Package } from "lucide-react";
 import type { AgrupacionDestino } from "@/lib/traslados-api";
-import { colorPrioridad, colorTier, colorOrigen, nombreOrigen } from "./visual-helpers";
+import {
+  colorPrioridad,
+  colorTier,
+  colorOrigen,
+  nombreOrigen,
+  descripcionTier,
+  descripcionOrigen,
+} from "./visual-helpers";
 
 interface Props {
   agrupaciones: AgrupacionDestino[];
