@@ -174,14 +174,15 @@ export function PresupuestosWizard({ onSaved, editPeriod }: WizardProps) {
     setSaving(true);
     try {
       const rows: any[] = [];
+      // Trim defensivo: la BD tiene un CHECK que rechaza nombres con espacios al inicio/fin
       Object.entries(storeBudgets).forEach(([name, monto]) => {
-        if (monto > 0) rows.push({ nombre_identificador: name, mes, anio, monto, tipo: "tienda", updated_at: new Date().toISOString() });
+        if (monto > 0) rows.push({ nombre_identificador: name.trim(), mes, anio, monto, tipo: "tienda", updated_at: new Date().toISOString() });
       });
       Object.entries(channelBudgets).forEach(([name, monto]) => {
-        if (monto > 0) rows.push({ nombre_identificador: name, mes, anio, monto, tipo: "canal", updated_at: new Date().toISOString() });
+        if (monto > 0) rows.push({ nombre_identificador: name.trim(), mes, anio, monto, tipo: "canal", updated_at: new Date().toISOString() });
       });
       Object.entries(sellerBudgets).forEach(([id, monto]) => {
-        if (monto > 0) rows.push({ nombre_identificador: id, mes, anio, monto, tipo: "vendedor", updated_at: new Date().toISOString() });
+        if (monto > 0) rows.push({ nombre_identificador: id.trim(), mes, anio, monto, tipo: "vendedor", updated_at: new Date().toISOString() });
       });
 
       if (rows.length === 0) {
