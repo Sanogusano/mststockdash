@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { BarChart3, TrendingUp, ArrowLeftRight, Package, Tag, Layers, Target, Zap, Trophy, Archive, Users, Calculator, UserCog, Briefcase, ChevronDown, Settings, MapPin, Upload, LogOut } from "lucide-react";
+import { BarChart3, TrendingUp, ArrowLeftRight, Package, Tag, Layers, Target, Zap, Trophy, Archive, Users, Calculator, UserCog, Briefcase, ChevronDown, Settings, MapPin, Upload, LogOut, Truck } from "lucide-react";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useAuth } from "@/hooks/useAuth";
 import { useLocation, Link, useNavigate } from "react-router-dom";
@@ -30,8 +30,7 @@ const navItems: NavItem[] = [
   { title: "Inventarios & Salud", url: "/inventarios", icon: BarChart3, description: "WOS por tienda" },
   { title: "Salud de Producto", url: "/producto", icon: Tag, description: "Sell-through & WOS" },
   { title: "Desempeño por Línea", url: "/lineas", icon: Layers, description: "Categorías & canales" },
-  { title: "Logística & Traslados", url: "/logistica", icon: ArrowLeftRight, description: "Allocation & movimientos" },
-  { title: "Traslados (NetSuite)", url: "/logistica-traslados", icon: ArrowLeftRight, description: "Allocation v2 & exportación" },
+  
   { title: "Gestión de Insumos", url: "/insumos", icon: Package, description: "CEDI & reorden" },
   { title: "Cierre de Colecciones", url: "/cierre-coleccion", icon: Archive, description: "Desempeño por colección & remanentes" },
   { title: "Presupuestos", url: "/presupuestos", icon: Target, description: "Metas de venta" },
@@ -43,6 +42,11 @@ const gestionComercialItems: NavItem[] = [
   { title: "Rendimiento Equipo", url: "/rendimiento-vendedores", icon: Users, description: "Desempeño por vendedor" },
   { title: "Liquidación Comisiones", url: "/comisiones", icon: Calculator, description: "Cálculo y aprobación" },
   { title: "Equipo Comercial", url: "/vendedores", icon: UserCog, description: "Gestión de vendedores" },
+];
+
+const logisticaItems: NavItem[] = [
+  { title: "Allocation & Movimientos", url: "/logistica", icon: ArrowLeftRight, description: "Allocation & movimientos" },
+  { title: "Traslados (NetSuite)", url: "/logistica-traslados", icon: Truck, description: "Allocation v2 & exportación" },
 ];
 
 const configuracionItems: NavItem[] = [
@@ -57,8 +61,10 @@ export function AppSidebar() {
   const { signOut, session } = useAuth();
   const isGestionActive = gestionComercialItems.some((i) => location.pathname === i.url);
   const isConfigActive = configuracionItems.some((i) => location.pathname === i.url);
+  const isLogisticaActive = logisticaItems.some((i) => location.pathname === i.url);
   const [gestionOpen, setGestionOpen] = useState(isGestionActive);
   const [configOpen, setConfigOpen] = useState(isConfigActive);
+  const [logisticaOpen, setLogisticaOpen] = useState(isLogisticaActive);
 
   const userEmail = session?.user?.email || "";
   const userInitial = userEmail.charAt(0).toUpperCase() || "U";
@@ -109,7 +115,30 @@ export function AppSidebar() {
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu className="gap-0.5">
-              {navItems.map((item) => renderItem(item))}
+              {navItems.slice(0, 4).map((item) => renderItem(item))}
+
+              {/* Logística — submenú colapsable */}
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild>
+                  <button
+                    onClick={() => setLogisticaOpen((v) => !v)}
+                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-150 ${
+                      isLogisticaActive
+                        ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
+                        : "text-sidebar-foreground/70 hover:bg-sidebar-accent/40 hover:text-sidebar-foreground"
+                    }`}
+                  >
+                    <Truck className="h-[18px] w-[18px] shrink-0" />
+                    <span className="text-sm leading-tight flex-1 text-left truncate">Logística & Traslados</span>
+                    <ChevronDown
+                      className={`h-3.5 w-3.5 shrink-0 transition-transform ${logisticaOpen ? "rotate-180" : ""}`}
+                    />
+                  </button>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              {logisticaOpen && logisticaItems.map((item) => renderItem(item, true))}
+
+              {navItems.slice(4).map((item) => renderItem(item))}
 
               {/* Gestión Comercial — submenú colapsable */}
               <SidebarMenuItem>
