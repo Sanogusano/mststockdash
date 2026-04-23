@@ -57,6 +57,12 @@ export function EditarUsuarioModal({ open, onOpenChange, usuario, roles }: Props
   const originalRole = roles.find((r) => r.key === usuario?.role_key);
   const roleChanged = roleId && originalRole && roleId !== originalRole.id;
 
+  // Roles que requieren scope obligatorio (mín 1 ubicación). El resto puede tener scope=null.
+  const ROLES_CON_SCOPE_OBLIGATORIO = new Set(["tienda"]);
+  const selectedRole = roles.find((r) => r.id === roleId);
+  const scopeRequerido = selectedRole ? ROLES_CON_SCOPE_OBLIGATORIO.has(selectedRole.key) : false;
+  const scopeInvalido = scopeRequerido && (!scope || scope.length === 0);
+
   const saveMutation = useMutation({
     mutationFn: async () => {
       if (!usuario) throw new Error("Sin usuario");
@@ -64,6 +70,13 @@ export function EditarUsuarioModal({ open, onOpenChange, usuario, roles }: Props
       // Bloqueo: no puedes desactivarte a ti mismo
       if (isSelf && !isActive) {
         throw new Error("No puedes desactivarte a ti mismo");
+      }
+
+      // Validación de scope obligatorio para roles tipo "tienda"
+      if (scopeInvalido) {
+        throw new Error(
+          `Los usuarios con rol ${selectedRole?.name} deben tener al menos 1 ubicación asignada`,
+        );
       }
 
       // Update perfil (nombre, scope, activo)
