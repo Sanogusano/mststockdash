@@ -61,8 +61,10 @@ export function AppSidebar() {
   const { signOut, session } = useAuth();
   const isGestionActive = gestionComercialItems.some((i) => location.pathname === i.url);
   const isConfigActive = configuracionItems.some((i) => location.pathname === i.url);
+  const isLogisticaActive = logisticaItems.some((i) => location.pathname === i.url);
   const [gestionOpen, setGestionOpen] = useState(isGestionActive);
   const [configOpen, setConfigOpen] = useState(isConfigActive);
+  const [logisticaOpen, setLogisticaOpen] = useState(isLogisticaActive);
 
   const userEmail = session?.user?.email || "";
   const userInitial = userEmail.charAt(0).toUpperCase() || "U";
