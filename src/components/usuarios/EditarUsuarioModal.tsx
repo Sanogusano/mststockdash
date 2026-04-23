@@ -145,7 +145,7 @@ export function EditarUsuarioModal({ open, onOpenChange, usuario, roles }: Props
                 </SelectContent>
               </Select>
               {roleChanged && (
-                <p className="text-xs text-amber-600 dark:text-amber-500 mt-1">
+                <p className="text-xs text-amber-600 mt-1">
                   ⚠️ {isSelf ? "Tu sesión se cerrará para aplicar el nuevo rol." : "El usuario debe re-loguearse para aplicar el nuevo rol."}
                 </p>
               )}
