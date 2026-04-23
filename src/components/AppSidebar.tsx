@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { BarChart3, TrendingUp, ArrowLeftRight, Package, Tag, Layers, Target, Zap, Trophy, Archive, Users, Calculator, UserCog, Briefcase, ChevronDown, Settings, MapPin, Upload, LogOut } from "lucide-react";
+import { BarChart3, TrendingUp, ArrowLeftRight, Package, Tag, Layers, Target, Zap, Trophy, Archive, Users, Calculator, UserCog, Briefcase, ChevronDown, Settings, MapPin, Upload, LogOut, Truck } from "lucide-react";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useAuth } from "@/hooks/useAuth";
 import { useLocation, Link, useNavigate } from "react-router-dom";
