@@ -78,6 +78,7 @@ function KpiCard({ label, value, prefix = "", icon: Icon, className }: {
 
 export default function TiendaDetailPage() {
   const { id } = useParams<{ id: string }>();
+  const { scope, loading: scopeLoading } = useUserScope();
   const [days, setDays] = useState(30);
   const [data, setData] = useState<WosCategoryRow[]>([]);
   const [wosCatData, setWosCatData] = useState<WosCatGlobalRow[]>([]);
