@@ -92,6 +92,13 @@ export type Database = {
             referencedColumns: ["location_id"]
           },
           {
+            foreignKeyName: "allocation_runs_generated_by_fkey"
+            columns: ["generated_by"]
+            isOneToOne: false
+            referencedRelation: "v_usuarios_gestion"
+            referencedColumns: ["user_id"]
+          },
+          {
             foreignKeyName: "allocation_runs_origen_location_id_fkey"
             columns: ["origen_location_id"]
             isOneToOne: false
@@ -690,7 +697,15 @@ export type Database = {
           uploaded_at?: string
           uploaded_by?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "netsuite_inventory_snapshots_uploaded_by_fkey"
+            columns: ["uploaded_by"]
+            isOneToOne: false
+            referencedRelation: "v_usuarios_gestion"
+            referencedColumns: ["user_id"]
+          },
+        ]
       }
       netsuite_location_mapping: {
         Row: {
@@ -879,6 +894,42 @@ export type Database = {
           },
         ]
       }
+      permission_catalog: {
+        Row: {
+          action_key: string
+          action_name: string
+          action_order: number
+          description: string | null
+          id: string
+          module_group: string | null
+          module_key: string
+          module_name: string
+          module_order: number
+        }
+        Insert: {
+          action_key: string
+          action_name: string
+          action_order?: number
+          description?: string | null
+          id?: string
+          module_group?: string | null
+          module_key: string
+          module_name: string
+          module_order?: number
+        }
+        Update: {
+          action_key?: string
+          action_name?: string
+          action_order?: number
+          description?: string | null
+          id?: string
+          module_group?: string | null
+          module_key?: string
+          module_name?: string
+          module_order?: number
+        }
+        Relationships: []
+      }
       presupuestos_config: {
         Row: {
           anio: number
@@ -966,6 +1017,68 @@ export type Database = {
           updated_at?: string | null
           variant_id?: string | null
           variant_name?: string | null
+        }
+        Relationships: []
+      }
+      role_permissions: {
+        Row: {
+          action_key: string
+          granted: boolean
+          id: string
+          module_key: string
+          role_id: string
+        }
+        Insert: {
+          action_key: string
+          granted?: boolean
+          id?: string
+          module_key: string
+          role_id: string
+        }
+        Update: {
+          action_key?: string
+          granted?: boolean
+          id?: string
+          module_key?: string
+          role_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "role_permissions_role_id_fkey"
+            columns: ["role_id"]
+            isOneToOne: false
+            referencedRelation: "roles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      roles: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          is_system_role: boolean
+          key: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_system_role?: boolean
+          key: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_system_role?: boolean
+          key?: string
+          name?: string
+          updated_at?: string
         }
         Relationships: []
       }
@@ -1275,6 +1388,115 @@ export type Database = {
           },
         ]
       }
+      user_permission_overrides: {
+        Row: {
+          action_key: string
+          created_at: string
+          created_by: string | null
+          granted: boolean
+          id: string
+          module_key: string
+          reason: string | null
+          user_id: string
+        }
+        Insert: {
+          action_key: string
+          created_at?: string
+          created_by?: string | null
+          granted: boolean
+          id?: string
+          module_key: string
+          reason?: string | null
+          user_id: string
+        }
+        Update: {
+          action_key?: string
+          created_at?: string
+          created_by?: string | null
+          granted?: boolean
+          id?: string
+          module_key?: string
+          reason?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_permission_overrides_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "v_usuarios_gestion"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "user_permission_overrides_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "v_usuarios_gestion"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
+      user_profiles: {
+        Row: {
+          created_at: string
+          full_name: string | null
+          invited_at: string | null
+          invited_by: string | null
+          is_active: boolean
+          last_login_at: string | null
+          role_id: string | null
+          scope_location_ids: string[] | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          full_name?: string | null
+          invited_at?: string | null
+          invited_by?: string | null
+          is_active?: boolean
+          last_login_at?: string | null
+          role_id?: string | null
+          scope_location_ids?: string[] | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          full_name?: string | null
+          invited_at?: string | null
+          invited_by?: string | null
+          is_active?: boolean
+          last_login_at?: string | null
+          role_id?: string | null
+          scope_location_ids?: string[] | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_profiles_invited_by_fkey"
+            columns: ["invited_by"]
+            isOneToOne: false
+            referencedRelation: "v_usuarios_gestion"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "user_profiles_role_id_fkey"
+            columns: ["role_id"]
+            isOneToOne: false
+            referencedRelation: "roles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_profiles_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "v_usuarios_gestion"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
     }
     Views: {
       allocation_suggestions: {
@@ -1368,6 +1590,24 @@ export type Database = {
           wos_objetivo_por_categoria: Json | null
           wos_objetivo_semanas: number | null
           zona: string | null
+        }
+        Relationships: []
+      }
+      v_usuarios_gestion: {
+        Row: {
+          created_at: string | null
+          email: string | null
+          full_name: string | null
+          invited_at: string | null
+          is_active: boolean | null
+          last_login_at: string | null
+          last_sign_in_at: string | null
+          overrides_count: number | null
+          role_key: string | null
+          role_name: string | null
+          scope_descripcion: string | null
+          scope_location_ids: string[] | null
+          user_id: string | null
         }
         Relationships: []
       }
@@ -1508,6 +1748,16 @@ export type Database = {
           venta_mtd: number
         }[]
       }
+      get_user_permissions: {
+        Args: { p_user_id?: string }
+        Returns: {
+          action_key: string
+          granted: boolean
+          module_key: string
+          source: string
+        }[]
+      }
+      get_user_scope: { Args: { p_user_id?: string }; Returns: string[] }
       reporte_baja_rotacion_outlet: {
         Args: {
           p_sell_through_umbral?: number
@@ -2752,6 +3002,10 @@ export type Database = {
       upsert_product_catalog_safe: {
         Args: { products_json: Json }
         Returns: undefined
+      }
+      user_has_permission: {
+        Args: { p_action_key: string; p_module_key: string; p_user_id: string }
+        Returns: boolean
       }
     }
     Enums: {
