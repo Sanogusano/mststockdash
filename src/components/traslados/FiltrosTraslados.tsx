@@ -11,6 +11,8 @@ import {
 } from "@/components/ui/select";
 import { Search } from "lucide-react";
 import type { SugerenciaTraslado, OrigenTipo } from "@/lib/traslados-api";
+import { TooltipProvider } from "@/components/ui/tooltip";
+import { InfoTooltip } from "./InfoTooltip";
 
 export interface FiltrosState {
   linea: string; // "todas" o nombre de línea
@@ -47,9 +49,13 @@ export function FiltrosTraslados({ sugerencias, filtros, onChange }: Props) {
   ];
 
   return (
+    <TooltipProvider>
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 p-3 rounded-md border bg-muted/20">
       <div>
-        <label className="text-[10px] uppercase text-muted-foreground">Línea</label>
+        <label className="text-[10px] uppercase text-muted-foreground">
+          Línea
+          <InfoTooltip content="Filtra las sugerencias por categoría de producto (jeans, t-shirts, etc.)." />
+        </label>
         <Select value={filtros.linea} onValueChange={(v) => onChange({ ...filtros, linea: v })}>
           <SelectTrigger className="h-9">
             <SelectValue />
@@ -66,7 +72,12 @@ export function FiltrosTraslados({ sugerencias, filtros, onChange }: Props) {
       </div>
 
       <div>
-        <label className="text-[10px] uppercase text-muted-foreground">Origen</label>
+        <label className="text-[10px] uppercase text-muted-foreground">
+          Origen
+          <InfoTooltip
+            content={`Filtra por el tipo de ubicación que cede el stock:\n• CEDI Principal: centro de distribución principal\n• CEDI Guayabal: CEDI que vende e-commerce\n• Consolidación: otra tienda con sobrestock del SKU`}
+          />
+        </label>
         <Select
           value={filtros.origenTipo}
           onValueChange={(v) => onChange({ ...filtros, origenTipo: v })}
@@ -88,6 +99,7 @@ export function FiltrosTraslados({ sugerencias, filtros, onChange }: Props) {
       <div>
         <label className="text-[10px] uppercase text-muted-foreground">
           Prioridad mín: {filtros.prioridadMin}
+          <InfoTooltip content="Oculta sugerencias con prioridad menor a este umbral. Sube el slider para enfocarte solo en lo más urgente (>50)." />
         </label>
         <div className="pt-3">
           <Slider
@@ -101,7 +113,10 @@ export function FiltrosTraslados({ sugerencias, filtros, onChange }: Props) {
       </div>
 
       <div>
-        <label className="text-[10px] uppercase text-muted-foreground">Buscar SKU/nombre</label>
+        <label className="text-[10px] uppercase text-muted-foreground">
+          Buscar SKU/nombre
+          <InfoTooltip content="Busca por código SKU completo/parcial o por nombre del producto." />
+        </label>
         <div className="relative">
           <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
@@ -113,5 +128,6 @@ export function FiltrosTraslados({ sugerencias, filtros, onChange }: Props) {
         </div>
       </div>
     </div>
+    </TooltipProvider>
   );
 }
