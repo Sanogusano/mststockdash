@@ -34,6 +34,9 @@ import {
 } from "@/components/traslados/FiltrosTraslados";
 import { TablaSugerenciasTraslados } from "@/components/traslados/TablaSugerenciasTraslados";
 import { WizardExportacion } from "@/components/traslados/WizardExportacion";
+import { PanelComoFunciona } from "@/components/traslados/PanelComoFunciona";
+import { InfoTooltip } from "@/components/traslados/InfoTooltip";
+import { TooltipProvider } from "@/components/ui/tooltip";
 import { useAuth } from "@/hooks/useAuth";
 
 const STORAGE_KEY = "traslados_v2_state";
