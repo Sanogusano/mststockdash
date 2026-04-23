@@ -21,7 +21,13 @@ import {
 import { X, Info } from "lucide-react";
 import type { SugerenciaTraslado } from "@/lib/traslados-api";
 import { lineaId } from "@/lib/traslados-api";
-import { colorOrigen, colorPrioridad, nombreOrigen } from "./visual-helpers";
+import {
+  colorOrigen,
+  colorPrioridad,
+  nombreOrigen,
+  descripcionOrigen,
+} from "./visual-helpers";
+import { InfoTooltip } from "./InfoTooltip";
 
 interface Props {
   sugerencias: SugerenciaTraslado[];
@@ -69,12 +75,30 @@ export function TablaSugerenciasTraslados({
                   />
                 </TableHead>
                 <TableHead>Producto</TableHead>
-                <TableHead>Origen</TableHead>
-                <TableHead className="text-right">Stock dest</TableHead>
-                <TableHead className="text-right">Ritmo/sem</TableHead>
-                <TableHead className="text-right">WOS</TableHead>
-                <TableHead className="text-right">Unidades</TableHead>
-                <TableHead className="text-right">Prio</TableHead>
+                <TableHead>
+                  Origen
+                  <InfoTooltip content={`La ubicación que cede stock.\n\n• CEDI Principal: centro de distribución principal\n• CEDI Guayabal: CEDI que vende online\n• Consolidación: tienda con sobrestock del SKU`} />
+                </TableHead>
+                <TableHead className="text-right">
+                  Stock dest
+                  <InfoTooltip content="Unidades actuales en la tienda destino según el último snapshot de NetSuite." />
+                </TableHead>
+                <TableHead className="text-right">
+                  Ritmo/sem
+                  <InfoTooltip content={`Unidades vendidas por semana en promedio, calculado en la ventana de análisis configurada.\n\nFórmula: ventas_ventana ÷ semanas_ventana`} />
+                </TableHead>
+                <TableHead className="text-right">
+                  WOS
+                  <InfoTooltip content={`Weeks of Stock — cuántas semanas aguanta el stock al ritmo actual.\n\nFórmula: stock_actual ÷ ritmo_semanal\n\nSe muestra como WOS_actual / WOS_objetivo. Si el actual es menor al objetivo, la tienda necesita resurtido.`} />
+                </TableHead>
+                <TableHead className="text-right">
+                  Unidades
+                  <InfoTooltip content={`Cantidad sugerida a trasladar.\n\nFórmula: max(WOS_objetivo × ritmo, MOD) − stock_destino\nLimitado por el stock cedible en el origen.\n\nPuedes editarla manualmente.`} />
+                </TableHead>
+                <TableHead className="text-right">
+                  Prio
+                  <InfoTooltip content={`Score de urgencia.\n\nFórmula: (WOS_objetivo − WOS_actual) × 10 + gap_unidades × 0.5\n\n🔴 >50 urgente · 🟠 20-50 importante · 🟡 <20 puede esperar`} />
+                </TableHead>
                 <TableHead className="w-10"></TableHead>
               </TableRow>
             </TableHeader>
@@ -115,9 +139,16 @@ export function TablaSugerenciasTraslados({
                     </TableCell>
                     <TableCell>
                       <div className="flex flex-col gap-1">
-                        <Badge className={`${colorOrigen(s.r_origen_tipo)} text-[10px] w-fit`}>
-                          {nombreOrigen(s.r_origen_tipo)}
-                        </Badge>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Badge className={`${colorOrigen(s.r_origen_tipo)} text-[10px] w-fit cursor-help`}>
+                              {nombreOrigen(s.r_origen_tipo)}
+                            </Badge>
+                          </TooltipTrigger>
+                          <TooltipContent side="top" className="text-xs">
+                            {descripcionOrigen(s.r_origen_tipo)}
+                          </TooltipContent>
+                        </Tooltip>
                         <span
                           className="text-[10px] text-muted-foreground truncate max-w-[140px]"
                           title={s.r_origen_nombre}

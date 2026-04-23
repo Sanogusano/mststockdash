@@ -214,6 +214,11 @@ export function WizardExportacion({
             <h3 className="text-xs font-semibold uppercase text-muted-foreground mb-2">
               Paso 1 · Resumen
             </h3>
+            <p className="text-xs text-muted-foreground mb-2">
+              Cada archivo Excel contendrá los traslados de un mismo par origen→destino, porque
+              NetSuite procesa los traslados agrupados por este criterio. Se generará un ZIP con
+              todos los archivos para que los subas a NetSuite individualmente.
+            </p>
             <ResumenExportacion agrupaciones={agrupaciones} ajustes={ajustes} />
           </section>
 
@@ -222,6 +227,11 @@ export function WizardExportacion({
             <h3 className="text-xs font-semibold uppercase text-muted-foreground mb-2">
               Paso 2 · Datos comunes
             </h3>
+            <p className="text-xs text-muted-foreground mb-3">
+              El <strong>consecutivo</strong> es un número que identifica el lote de traslados en
+              NetSuite. Consulta con tu equipo el siguiente número disponible. Se incrementa
+              automáticamente por cada archivo (ej: 46125, 46126, 46127…).
+            </p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <Label htmlFor="consecutivo" className="text-xs">

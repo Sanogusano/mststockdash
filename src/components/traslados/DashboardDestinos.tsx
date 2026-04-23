@@ -2,9 +2,22 @@
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { ChevronRight, Layers, Package } from "lucide-react";
 import type { AgrupacionDestino } from "@/lib/traslados-api";
-import { colorPrioridad, colorTier, colorOrigen, nombreOrigen } from "./visual-helpers";
+import {
+  colorPrioridad,
+  colorTier,
+  colorOrigen,
+  nombreOrigen,
+  descripcionTier,
+  descripcionOrigen,
+} from "./visual-helpers";
 
 interface Props {
   agrupaciones: AgrupacionDestino[];
@@ -28,6 +41,7 @@ export function DashboardDestinos({ agrupaciones, onSeleccionarDestino }: Props)
   const undUrgentes = urgentes.reduce((a, l) => a + (l.r_unidades_sugeridas || 0), 0);
 
   return (
+    <TooltipProvider>
     <div className="space-y-4">
       {urgentes.length > 0 && (
         <Card className="p-4 border-red-200 bg-red-50/40">
@@ -56,9 +70,16 @@ export function DashboardDestinos({ agrupaciones, onSeleccionarDestino }: Props)
                 <h3 className="font-semibold text-foreground truncate" title={g.destino_nombre}>
                   {g.destino_nombre}
                 </h3>
-                <Badge className={`${colorTier(g.destino_tier)} mt-1 text-[10px]`}>
-                  {g.destino_tier || "—"}
-                </Badge>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Badge className={`${colorTier(g.destino_tier)} mt-1 text-[10px] cursor-help`}>
+                      {g.destino_tier || "—"}
+                    </Badge>
+                  </TooltipTrigger>
+                  <TooltipContent side="top" className="text-xs">
+                    {descripcionTier(g.destino_tier)}
+                  </TooltipContent>
+                </Tooltip>
               </div>
               <Badge className={`${colorPrioridad(g.prioridadPromedio)} text-[10px]`}>
                 P {g.prioridadPromedio}
@@ -86,13 +107,18 @@ export function DashboardDestinos({ agrupaciones, onSeleccionarDestino }: Props)
               <p className="text-[10px] text-muted-foreground uppercase">Orígenes</p>
               <div className="flex flex-wrap gap-1">
                 {g.origenes.slice(0, 3).map((o) => (
-                  <Badge
-                    key={o.nombre}
-                    className={`${colorOrigen(o.tipo)} text-[10px]`}
-                    title={o.nombre}
-                  >
-                    {nombreOrigen(o.tipo)} ({o.lineas})
-                  </Badge>
+                  <Tooltip key={o.nombre}>
+                    <TooltipTrigger asChild>
+                      <Badge
+                        className={`${colorOrigen(o.tipo)} text-[10px] cursor-help`}
+                      >
+                        {nombreOrigen(o.tipo)} ({o.lineas})
+                      </Badge>
+                    </TooltipTrigger>
+                    <TooltipContent side="top" className="text-xs">
+                      {descripcionOrigen(o.tipo)} · {o.nombre}
+                    </TooltipContent>
+                  </Tooltip>
                 ))}
               </div>
             </div>
@@ -105,5 +131,6 @@ export function DashboardDestinos({ agrupaciones, onSeleccionarDestino }: Props)
         ))}
       </div>
     </div>
+    </TooltipProvider>
   );
 }

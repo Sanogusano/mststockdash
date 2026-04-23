@@ -1,4 +1,4 @@
-// Helpers visuales: colores por tipo de origen, tier y prioridad.
+// Helpers visuales: colores y descripciones por tipo de origen, tier y prioridad.
 import type { OrigenTipo } from "@/lib/traslados-api";
 
 export function colorOrigen(tipo: OrigenTipo): string {
@@ -52,5 +52,38 @@ export function nombreOrigen(tipo: OrigenTipo): string {
       return "CEDI Otro";
     case "consolidacion_lateral":
       return "Consolidación";
+  }
+}
+
+// Descripción textual para tooltips de tier
+export function descripcionTier(tier: string): string {
+  switch ((tier || "").toLowerCase()) {
+    case "cedi":
+      return "Centro de distribución: colchón de red 4 sem";
+    case "flagship":
+      return "Tienda tipo A: WOS objetivo 6 sem, MOD 4 und";
+    case "regular":
+      return "Tienda tipo B: WOS objetivo 4 sem, MOD 2 und";
+    case "pequena":
+    case "pequeña":
+      return "Tienda tipo C: WOS objetivo 3 sem, MOD 1 und";
+    case "outlet":
+      return "Tienda outlet: WOS objetivo 2 sem, solo recibe";
+    default:
+      return "Tier no clasificado";
+  }
+}
+
+// Descripción textual para tooltips de tipo de origen
+export function descripcionOrigen(tipo: OrigenTipo): string {
+  switch (tipo) {
+    case "cedi_principal":
+      return "Centro de distribución principal";
+    case "cedi_guayabal":
+      return "CEDI que vende e-commerce";
+    case "cedi_otro":
+      return "Centro de distribución secundario";
+    case "consolidacion_lateral":
+      return "Tienda con sobrestock del SKU que cede unidades";
   }
 }
