@@ -115,7 +115,30 @@ export function AppSidebar() {
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu className="gap-0.5">
-              {navItems.map((item) => renderItem(item))}
+              {navItems.slice(0, 4).map((item) => renderItem(item))}
+
+              {/* Logística — submenú colapsable */}
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild>
+                  <button
+                    onClick={() => setLogisticaOpen((v) => !v)}
+                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-150 ${
+                      isLogisticaActive
+                        ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
+                        : "text-sidebar-foreground/70 hover:bg-sidebar-accent/40 hover:text-sidebar-foreground"
+                    }`}
+                  >
+                    <Truck className="h-[18px] w-[18px] shrink-0" />
+                    <span className="text-sm leading-tight flex-1 text-left truncate">Logística & Traslados</span>
+                    <ChevronDown
+                      className={`h-3.5 w-3.5 shrink-0 transition-transform ${logisticaOpen ? "rotate-180" : ""}`}
+                    />
+                  </button>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              {logisticaOpen && logisticaItems.map((item) => renderItem(item, true))}
+
+              {navItems.slice(4).map((item) => renderItem(item))}
 
               {/* Gestión Comercial — submenú colapsable */}
               <SidebarMenuItem>
