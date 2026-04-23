@@ -31,6 +31,7 @@ const navItems: NavItem[] = [
   { title: "Salud de Producto", url: "/producto", icon: Tag, description: "Sell-through & WOS" },
   { title: "Desempeño por Línea", url: "/lineas", icon: Layers, description: "Categorías & canales" },
   { title: "Logística & Traslados", url: "/logistica", icon: ArrowLeftRight, description: "Allocation & movimientos" },
+  { title: "Traslados (NetSuite)", url: "/logistica-traslados", icon: ArrowLeftRight, description: "Allocation v2 & exportación" },
   { title: "Gestión de Insumos", url: "/insumos", icon: Package, description: "CEDI & reorden" },
   { title: "Cierre de Colecciones", url: "/cierre-coleccion", icon: Archive, description: "Desempeño por colección & remanentes" },
   { title: "Presupuestos", url: "/presupuestos", icon: Target, description: "Metas de venta" },

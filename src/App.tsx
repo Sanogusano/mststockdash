@@ -7,6 +7,7 @@ import { ProtectedRoute } from "@/components/ProtectedRoute";
 import Index from "./pages/Index";
 import InventariosPage from "./pages/Inventarios";
 import LogisticaPage from "./pages/Logistica";
+import LogisticaTrasladosPage from "./pages/LogisticaTraslados";
 import InsumosPage from "./pages/Insumos";
 import ComportamientoProductoPage from "./pages/ComportamientoProducto";
 import LineasProductoPage from "./pages/LineasProducto";
@@ -44,6 +45,7 @@ const App = () => (
           <Route path="/inventarios" element={<ProtectedRoute><InventariosPage /></ProtectedRoute>} />
           <Route path="/tienda/:id" element={<ProtectedRoute><TiendaDetailPage /></ProtectedRoute>} />
           <Route path="/logistica" element={<ProtectedRoute><LogisticaPage /></ProtectedRoute>} />
+          <Route path="/logistica-traslados" element={<ProtectedRoute><LogisticaTrasladosPage /></ProtectedRoute>} />
           <Route path="/producto" element={<ProtectedRoute><ComportamientoProductoPage /></ProtectedRoute>} />
           <Route path="/lineas" element={<ProtectedRoute><LineasProductoPage /></ProtectedRoute>} />
           <Route path="/desempeno-productos" element={<ProtectedRoute><DesempenoProductosPage /></ProtectedRoute>} />
