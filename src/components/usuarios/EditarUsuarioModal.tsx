@@ -181,6 +181,11 @@ export function EditarUsuarioModal({ open, onOpenChange, usuario, roles }: Props
             <div>
               <Label>Scope de ubicaciones</Label>
               <ScopeUbicacionesSelector value={scope} onChange={setScope} />
+              {scopeRequerido && (
+                <p className="text-xs text-amber-600 mt-1">
+                  ⚠️ Los usuarios con rol {selectedRole?.name} deben tener al menos 1 ubicación asignada.
+                </p>
+              )}
             </div>
           </TabsContent>
 
@@ -204,7 +209,7 @@ export function EditarUsuarioModal({ open, onOpenChange, usuario, roles }: Props
           <Button variant="ghost" onClick={() => onOpenChange(false)} disabled={saveMutation.isPending}>
             Cancelar
           </Button>
-          <Button onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending}>
+          <Button onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending || scopeInvalido}>
             {saveMutation.isPending ? "Guardando..." : "Guardar cambios"}
           </Button>
         </DialogFooter>
