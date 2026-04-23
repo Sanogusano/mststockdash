@@ -185,7 +185,7 @@ export function OverridesPermissionsPanel({ userId }: Props) {
             className="flex items-center gap-3 border border-border rounded-lg p-2.5 text-sm"
           >
             {o.granted ? (
-              <ShieldCheck className="h-4 w-4 text-emerald-600" />
+              <ShieldCheck className="h-4 w-4 text-primary" />
             ) : (
               <ShieldOff className="h-4 w-4 text-destructive" />
             )}
