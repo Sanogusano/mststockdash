@@ -446,6 +446,7 @@ export default function LogisticaTrasladosPage() {
               </div>
             )}
           </div>
+          </TooltipProvider>
 
           {/* Wizard */}
           <WizardExportacion
