@@ -1821,7 +1821,10 @@ export type Database = {
           p_consolidacion_wos_trigger?: number
           p_destino_filter?: string[]
           p_linea_filter?: string[]
+          p_minimo_unidades_por_linea?: number
+          p_minimo_ventas_sobrestock?: number
           p_snapshot_id?: string
+          p_ventana_productos_activos_dias?: number
           p_ventana_semanas?: number
         }
         Returns: {
