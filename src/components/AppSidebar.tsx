@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { BarChart3, TrendingUp, ArrowLeftRight, Package, Tag, Layers, Target, Zap, Trophy, Archive, Users, Calculator, UserCog, Briefcase, ChevronDown, Settings, MapPin, Upload, LogOut, Truck, Shield } from "lucide-react";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useAuth } from "@/hooks/useAuth";
+import { useUserPermissions } from "@/hooks/useUserPermissions";
 import { useLocation, Link, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import monasteryLogoWhite from "@/assets/monastery-logo-white.jpg";
@@ -23,53 +24,71 @@ type NavItem = {
   url: string;
   icon: any;
   description: string;
+  module: string;
+  action: string;
 };
 
 const navItems: NavItem[] = [
-  { title: "Resumen Ejecutivo", url: "/", icon: TrendingUp, description: "Desempeño comercial" },
-  { title: "Inventarios & Salud", url: "/inventarios", icon: BarChart3, description: "WOS por tienda" },
-  { title: "Salud de Producto", url: "/producto", icon: Tag, description: "Sell-through & WOS" },
-  { title: "Desempeño por Línea", url: "/lineas", icon: Layers, description: "Categorías & canales" },
-  
-  { title: "Gestión de Insumos", url: "/insumos", icon: Package, description: "CEDI & reorden" },
-  { title: "Cierre de Colecciones", url: "/cierre-coleccion", icon: Archive, description: "Desempeño por colección & remanentes" },
-  { title: "Presupuestos", url: "/presupuestos", icon: Target, description: "Metas de venta" },
-  { title: "Centro de Acción", url: "/centro-accion", icon: Zap, description: "Alertas comerciales" },
+  { title: "Resumen Ejecutivo", url: "/", icon: TrendingUp, description: "Desempeño comercial", module: "dashboards.resumen_ejecutivo", action: "view" },
+  { title: "Inventarios & Salud", url: "/inventarios", icon: BarChart3, description: "WOS por tienda", module: "dashboards.inventario_salud", action: "view" },
+  { title: "Salud de Producto", url: "/producto", icon: Tag, description: "Sell-through & WOS", module: "dashboards.salud_producto", action: "view" },
+  { title: "Desempeño por Línea", url: "/lineas", icon: Layers, description: "Categorías & canales", module: "dashboards.desempeno_linea", action: "view" },
+
+  { title: "Gestión de Insumos", url: "/insumos", icon: Package, description: "CEDI & reorden", module: "dashboards.gestion_insumos", action: "view" },
+  { title: "Cierre de Colecciones", url: "/cierre-coleccion", icon: Archive, description: "Desempeño por colección & remanentes", module: "dashboards.cierre_colecciones", action: "view" },
+  { title: "Presupuestos", url: "/presupuestos", icon: Target, description: "Metas de venta", module: "dashboards.presupuestos", action: "view" },
+  { title: "Centro de Acción", url: "/centro-accion", icon: Zap, description: "Alertas comerciales", module: "dashboards.centro_accion", action: "view" },
 ];
 
 const gestionComercialItems: NavItem[] = [
-  { title: "Gestión de Incentivos", url: "/incentivos", icon: Trophy, description: "Campañas & liquidaciones" },
-  { title: "Rendimiento Equipo", url: "/rendimiento-vendedores", icon: Users, description: "Desempeño por vendedor" },
-  { title: "Liquidación Comisiones", url: "/comisiones", icon: Calculator, description: "Cálculo y aprobación" },
-  { title: "Equipo Comercial", url: "/vendedores", icon: UserCog, description: "Gestión de vendedores" },
+  { title: "Gestión de Incentivos", url: "/incentivos", icon: Trophy, description: "Campañas & liquidaciones", module: "incentivos", action: "view" },
+  { title: "Rendimiento Equipo", url: "/rendimiento-vendedores", icon: Users, description: "Desempeño por vendedor", module: "dashboards.rendimiento_vendedores", action: "view" },
+  { title: "Liquidación Comisiones", url: "/comisiones", icon: Calculator, description: "Cálculo y aprobación", module: "comisiones", action: "view" },
+  { title: "Equipo Comercial", url: "/vendedores", icon: UserCog, description: "Gestión de vendedores", module: "vendedores", action: "view" },
 ];
 
 const logisticaItems: NavItem[] = [
-  { title: "Allocation & Movimientos", url: "/logistica", icon: ArrowLeftRight, description: "Allocation & movimientos" },
-  { title: "Traslados (NetSuite)", url: "/logistica-traslados", icon: Truck, description: "Allocation v2 & exportación" },
+  { title: "Allocation & Movimientos", url: "/logistica", icon: ArrowLeftRight, description: "Allocation & movimientos", module: "dashboards.logistica_traslados", action: "view" },
+  { title: "Traslados (NetSuite)", url: "/logistica-traslados", icon: Truck, description: "Allocation v2 & exportación", module: "dashboards.logistica_traslados", action: "view" },
 ];
 
 const configuracionItems: NavItem[] = [
-  { title: "Ubicaciones", url: "/configuracion/ubicaciones", icon: MapPin, description: "Tiendas, CEDIs y outlets" },
-  { title: "Inventario NetSuite", url: "/configuracion/netsuite-upload", icon: Upload, description: "Subir snapshot de inventario" },
-  { title: "Usuarios", url: "/configuracion/usuarios", icon: Users, description: "Gestión de usuarios y accesos" },
-  { title: "Roles y Permisos", url: "/configuracion/roles", icon: Shield, description: "Matriz de permisos por rol" },
+  { title: "Ubicaciones", url: "/configuracion/ubicaciones", icon: MapPin, description: "Tiendas, CEDIs y outlets", module: "config.ubicaciones", action: "view" },
+  { title: "Inventario NetSuite", url: "/configuracion/netsuite-upload", icon: Upload, description: "Subir snapshot de inventario", module: "inventario_netsuite", action: "view" },
+  { title: "Usuarios", url: "/configuracion/usuarios", icon: Users, description: "Gestión de usuarios y accesos", module: "config.usuarios", action: "view" },
+  { title: "Roles y Permisos", url: "/configuracion/roles", icon: Shield, description: "Matriz de permisos por rol", module: "config.roles", action: "view" },
 ];
 
 export function AppSidebar() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { isAdmin } = useUserRole();
+  const { isAdmin, role } = useUserRole();
   const { signOut, session } = useAuth();
-  const isGestionActive = gestionComercialItems.some((i) => location.pathname === i.url);
-  const isConfigActive = configuracionItems.some((i) => location.pathname === i.url);
-  const isLogisticaActive = logisticaItems.some((i) => location.pathname === i.url);
+  const { data: permissions } = useUserPermissions();
+
+  // Filtro por permisos. Admin: failsafe → ve todo.
+  const can = (module: string, action: string) => {
+    if (isAdmin) return true;
+    return (permissions ?? []).some(
+      (p) => p.module_key === module && p.action_key === action && p.granted === true,
+    );
+  };
+
+  const visibleNav = useMemo(() => navItems.filter((i) => can(i.module, i.action)), [permissions, isAdmin]);
+  const visibleGestion = useMemo(() => gestionComercialItems.filter((i) => can(i.module, i.action)), [permissions, isAdmin]);
+  const visibleLogistica = useMemo(() => logisticaItems.filter((i) => can(i.module, i.action)), [permissions, isAdmin]);
+  const visibleConfig = useMemo(() => configuracionItems.filter((i) => can(i.module, i.action)), [permissions, isAdmin]);
+
+  const isGestionActive = visibleGestion.some((i) => location.pathname === i.url);
+  const isConfigActive = visibleConfig.some((i) => location.pathname === i.url);
+  const isLogisticaActive = visibleLogistica.some((i) => location.pathname === i.url);
   const [gestionOpen, setGestionOpen] = useState(isGestionActive);
   const [configOpen, setConfigOpen] = useState(isConfigActive);
   const [logisticaOpen, setLogisticaOpen] = useState(isLogisticaActive);
 
   const userEmail = session?.user?.email || "";
   const userInitial = userEmail.charAt(0).toUpperCase() || "U";
+  const roleLabel = role ? role.replace(/_/g, " ") : "sin rol";
 
   const handleSignOut = async () => {
     try {
@@ -104,6 +123,14 @@ export function AppSidebar() {
     );
   };
 
+  // Slice para mantener orden visual original (4 primeros, luego logística, luego resto, luego gestión)
+  const visibleFirstFour = visibleNav.filter((i) =>
+    ["/", "/inventarios", "/producto", "/lineas"].includes(i.url),
+  );
+  const visibleRest = visibleNav.filter(
+    (i) => !["/", "/inventarios", "/producto", "/lineas"].includes(i.url),
+  );
+
   return (
     <Sidebar className="border-r border-sidebar-border bg-sidebar">
       <SidebarHeader className="px-6 py-6 border-b border-sidebar-border/40">
@@ -117,55 +144,62 @@ export function AppSidebar() {
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu className="gap-0.5">
-              {navItems.slice(0, 4).map((item) => renderItem(item))}
+              {visibleFirstFour.map((item) => renderItem(item))}
 
-              {/* Logística — submenú colapsable */}
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild>
-                  <button
-                    onClick={() => setLogisticaOpen((v) => !v)}
-                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-150 ${
-                      isLogisticaActive
-                        ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
-                        : "text-sidebar-foreground/70 hover:bg-sidebar-accent/40 hover:text-sidebar-foreground"
-                    }`}
-                  >
-                    <Truck className="h-[18px] w-[18px] shrink-0" />
-                    <span className="text-sm leading-tight flex-1 text-left truncate">Logística & Traslados</span>
-                    <ChevronDown
-                      className={`h-3.5 w-3.5 shrink-0 transition-transform ${logisticaOpen ? "rotate-180" : ""}`}
-                    />
-                  </button>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              {logisticaOpen && logisticaItems.map((item) => renderItem(item, true))}
+              {/* Logística — solo si hay items visibles */}
+              {visibleLogistica.length > 0 && (
+                <>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton asChild>
+                      <button
+                        onClick={() => setLogisticaOpen((v) => !v)}
+                        className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-150 ${
+                          isLogisticaActive
+                            ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
+                            : "text-sidebar-foreground/70 hover:bg-sidebar-accent/40 hover:text-sidebar-foreground"
+                        }`}
+                      >
+                        <Truck className="h-[18px] w-[18px] shrink-0" />
+                        <span className="text-sm leading-tight flex-1 text-left truncate">Logística & Traslados</span>
+                        <ChevronDown
+                          className={`h-3.5 w-3.5 shrink-0 transition-transform ${logisticaOpen ? "rotate-180" : ""}`}
+                        />
+                      </button>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                  {logisticaOpen && visibleLogistica.map((item) => renderItem(item, true))}
+                </>
+              )}
 
-              {navItems.slice(4).map((item) => renderItem(item))}
+              {visibleRest.map((item) => renderItem(item))}
 
-              {/* Gestión Comercial — submenú colapsable */}
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild>
-                  <button
-                    onClick={() => setGestionOpen((v) => !v)}
-                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-150 ${
-                      isGestionActive
-                        ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
-                        : "text-sidebar-foreground/70 hover:bg-sidebar-accent/40 hover:text-sidebar-foreground"
-                    }`}
-                  >
-                    <Briefcase className="h-[18px] w-[18px] shrink-0" />
-                    <span className="text-sm leading-tight flex-1 text-left truncate">Gestión Comercial</span>
-                    <ChevronDown
-                      className={`h-3.5 w-3.5 shrink-0 transition-transform ${gestionOpen ? "rotate-180" : ""}`}
-                    />
-                  </button>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
+              {/* Gestión Comercial — solo si hay items visibles */}
+              {visibleGestion.length > 0 && (
+                <>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton asChild>
+                      <button
+                        onClick={() => setGestionOpen((v) => !v)}
+                        className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-150 ${
+                          isGestionActive
+                            ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
+                            : "text-sidebar-foreground/70 hover:bg-sidebar-accent/40 hover:text-sidebar-foreground"
+                        }`}
+                      >
+                        <Briefcase className="h-[18px] w-[18px] shrink-0" />
+                        <span className="text-sm leading-tight flex-1 text-left truncate">Gestión Comercial</span>
+                        <ChevronDown
+                          className={`h-3.5 w-3.5 shrink-0 transition-transform ${gestionOpen ? "rotate-180" : ""}`}
+                        />
+                      </button>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                  {gestionOpen && visibleGestion.map((item) => renderItem(item, true))}
+                </>
+              )}
 
-              {gestionOpen && gestionComercialItems.map((item) => renderItem(item, true))}
-
-              {/* Configuración — solo admin */}
-              {isAdmin && (
+              {/* Configuración — solo si hay items visibles */}
+              {visibleConfig.length > 0 && (
                 <>
                   <SidebarMenuItem>
                     <SidebarMenuButton asChild>
@@ -185,7 +219,7 @@ export function AppSidebar() {
                       </button>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
-                  {configOpen && configuracionItems.map((item) => renderItem(item, true))}
+                  {configOpen && visibleConfig.map((item) => renderItem(item, true))}
                 </>
               )}
             </SidebarMenu>
@@ -199,7 +233,12 @@ export function AppSidebar() {
             <div className="h-8 w-8 rounded-full bg-sidebar-accent flex items-center justify-center text-sidebar-accent-foreground text-xs font-semibold shrink-0">
               {userInitial}
             </div>
-            <span className="text-xs text-sidebar-foreground/70 truncate flex-1">{userEmail}</span>
+            <div className="min-w-0 flex-1">
+              <p className="text-xs text-sidebar-foreground/80 truncate">{userEmail}</p>
+              <p className="text-[10px] text-sidebar-foreground/50 capitalize truncate">
+                {roleLabel}
+              </p>
+            </div>
           </div>
         )}
         <button

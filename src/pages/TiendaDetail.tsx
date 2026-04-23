@@ -1,8 +1,10 @@
 import { useState, useEffect, useMemo } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, Navigate } from "react-router-dom";
+import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
+import { useUserScope } from "@/hooks/useUserScope";
 import { TimeFilter } from "@/components/dashboard/TimeFilter";
 import { LoadingState, EmptyState } from "@/components/dashboard/LoadingState";
 import { StatusBadge } from "@/components/dashboard/StatusBadge";
@@ -76,6 +78,7 @@ function KpiCard({ label, value, prefix = "", icon: Icon, className }: {
 
 export default function TiendaDetailPage() {
   const { id } = useParams<{ id: string }>();
+  const { scope, loading: scopeLoading } = useUserScope();
   const [days, setDays] = useState(30);
   const [data, setData] = useState<WosCategoryRow[]>([]);
   const [wosCatData, setWosCatData] = useState<WosCatGlobalRow[]>([]);
@@ -186,6 +189,13 @@ export default function TiendaDetailPage() {
   }, [wosCatData, selEstados, selStock, priceFilter]);
 
   const supplyTotal = supplyStock.reduce((s, r) => s + r.available, 0);
+
+  // Validación de scope: si el usuario tiene scope acotado y esta tienda no está en él,
+  // redirigir al inicio. Admin / scope=null pasan siempre.
+  if (!scopeLoading && id && scope !== null && !scope.includes(id)) {
+    toast.error("No tienes acceso a esta tienda");
+    return <Navigate to="/" replace />;
+  }
 
   return (
     <SidebarProvider>

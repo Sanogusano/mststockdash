@@ -50,6 +50,12 @@ export function InvitarUsuarioModal({ open, onOpenChange, roles }: Props) {
     },
   });
 
+  // Roles que requieren al menos 1 ubicación en su scope.
+  const ROLES_CON_SCOPE_OBLIGATORIO = new Set(["tienda"]);
+  const selectedRole = roles.find((r) => r.id === roleId);
+  const scopeRequerido = selectedRole ? ROLES_CON_SCOPE_OBLIGATORIO.has(selectedRole.key) : false;
+  const scopeInvalido = scopeRequerido && (!scope || scope.length === 0);
+
   const handleSubmit = () => {
     if (!email || !email.includes("@")) {
       toast.error("Email inválido");
@@ -63,10 +69,14 @@ export function InvitarUsuarioModal({ open, onOpenChange, roles }: Props) {
       toast.error("Selecciona un rol");
       return;
     }
+    if (scopeInvalido) {
+      toast.error(
+        `Los usuarios con rol ${selectedRole?.name} deben tener al menos 1 ubicación asignada`,
+      );
+      return;
+    }
     mutation.mutate({ email, fullName, roleId, scopeLocationIds: scope });
   };
-
-  const selectedRole = roles.find((r) => r.id === roleId);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -124,6 +134,11 @@ export function InvitarUsuarioModal({ open, onOpenChange, roles }: Props) {
           <div>
             <Label>Scope de ubicaciones</Label>
             <ScopeUbicacionesSelector value={scope} onChange={setScope} />
+            {scopeRequerido && (
+              <p className="text-xs text-amber-600 mt-1">
+                ⚠️ Los usuarios con rol {selectedRole?.name} deben tener al menos 1 ubicación asignada.
+              </p>
+            )}
           </div>
         </div>
 
@@ -131,7 +146,7 @@ export function InvitarUsuarioModal({ open, onOpenChange, roles }: Props) {
           <Button variant="ghost" onClick={() => onOpenChange(false)} disabled={mutation.isPending}>
             Cancelar
           </Button>
-          <Button onClick={handleSubmit} disabled={mutation.isPending}>
+          <Button onClick={handleSubmit} disabled={mutation.isPending || scopeInvalido}>
             {mutation.isPending ? "Enviando..." : "Enviar invitación"}
           </Button>
         </DialogFooter>
