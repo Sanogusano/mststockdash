@@ -23,12 +23,10 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
 
-    const { data: claimsData, error: claimsErr } = await supabaseAdmin.auth.getClaims(
-      token,
-    );
-    if (claimsErr || !claimsData?.claims) return json({ error: "Unauthorized" }, 401);
+    const { data: authData, error: authErr } = await supabaseAdmin.auth.getUser(token);
+    if (authErr || !authData?.user) return json({ error: "Unauthorized" }, 401);
 
-    const callerRole = (claimsData.claims as any)?.app_metadata?.role;
+    const callerRole = authData.user.app_metadata?.role;
     if (callerRole !== "admin") {
       return json({ error: "Solo admins pueden cambiar roles" }, 403);
     }
