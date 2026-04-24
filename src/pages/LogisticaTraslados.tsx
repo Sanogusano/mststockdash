@@ -34,6 +34,7 @@ import {
 } from "@/components/traslados/FiltrosTraslados";
 import { TablaSugerenciasTraslados } from "@/components/traslados/TablaSugerenciasTraslados";
 import { WizardExportacion } from "@/components/traslados/WizardExportacion";
+import { HistorialExportaciones } from "@/components/traslados/HistorialExportaciones";
 import { PanelComoFunciona } from "@/components/traslados/PanelComoFunciona";
 import { InfoTooltip } from "@/components/traslados/InfoTooltip";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -72,6 +73,7 @@ export default function LogisticaTrasladosPage() {
   const [adjustedLines, setAdjustedLines] = useState<Map<string, number>>(new Map());
 
   const [wizardAbierto, setWizardAbierto] = useState(false);
+  const [historialKey, setHistorialKey] = useState(0);
 
   // Cargar snapshot activo al montar
   useEffect(() => {
@@ -212,6 +214,7 @@ export default function LogisticaTrasladosPage() {
   const handleCompletadoExport = () => {
     setApprovedLines(new Set());
     setAdjustedLines(new Map());
+    setHistorialKey((k) => k + 1);
     // Mantener rejected para no volver a mostrarlas en esta sesión
   };
 
@@ -445,6 +448,9 @@ export default function LogisticaTrasladosPage() {
                 />
               </div>
             )}
+
+            {/* Historial reciente */}
+            <HistorialExportaciones refreshKey={historialKey} limite={10} />
           </div>
           </TooltipProvider>
 
