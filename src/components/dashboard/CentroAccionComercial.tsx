@@ -325,7 +325,7 @@ export function CentroAccionComercial() {
               </div>
 
               {/* Growth & Effort Row */}
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                 <GrowthMini label="MoM" value={store.crecimiento_mom} />
                 <GrowthMini label="YoY" value={store.crecimiento_yoy} />
                 <div className="rounded-lg p-2.5 border border-[hsl(var(--primary))]/20 bg-[hsl(var(--primary))]/5">

@@ -441,7 +441,7 @@ function VentasTipoCards({ days, canal, locationId, zona }: { days: number; cana
   const pctDesc = data?.pct_desc_promo ?? 0;
 
   return (
-    <div className="grid grid-cols-3 gap-4">
+    <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
       <KpiCard label="% Full Price" value={`${(data?.pct_full_price ?? 0).toFixed(1)}%`} icon={Star} className="text-emerald-600"
         onClick={() => navigate(`/pedidos?tipo=full_price${canalParam}&days=${daysParam}`)} />
       <KpiCard label="% Rebajas" value={`${(data?.pct_rebajas ?? 0).toFixed(1)}%`} icon={Tag} className="text-blue-500"
@@ -880,7 +880,7 @@ function StoreRankCard({ days, canal, locationId, locationName }: {
               </div>
             </div>
             {/* Row 2: Promedios diarios con comparativa */}
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
               <div className="p-3 rounded-lg bg-muted/30 border border-border">
                 <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Venta Prom/Día</p>
                 <p className="text-base font-semibold text-foreground">{fmtCurrency(extraMetrics?.venta_promedio_diaria_actual ?? 0)}</p>
@@ -1240,7 +1240,7 @@ function ChannelPanel({ days, canal, showLocationFilter, locationFilter, compari
         return (
           <div className="space-y-4">
             {/* Row 1: Ventas Netas + Ticket + Precio Promedio */}
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
               <KpiCard label="Ventas Netas" value={fmtCurrency(kpis?.ingresos_netos ?? 0)} icon={DollarSign}
                 actual={kpis?.ingresos_netos ?? 0} anterior={prevKpis?.ingresos_netos ?? 0} />
               <KpiCard label="Ticket Promedio" value={fmtCurrency(kpis?.ticket_promedio ?? 0)} icon={Receipt}
@@ -1253,7 +1253,7 @@ function ChannelPanel({ days, canal, showLocationFilter, locationFilter, compari
               })()}
             </div>
             {/* Row 2: Unidades Vendidas + UPT + Venta/m² */}
-            <div className={cn("grid gap-4", showM2 ? "grid-cols-3" : "grid-cols-2")}>
+            <div className={cn("grid gap-4", showM2 ? "grid-cols-2 sm:grid-cols-3" : "grid-cols-2")}>
               <KpiCard label="Unidades Vendidas" value={(kpis?.unidades_vendidas ?? 0).toLocaleString()} icon={Package}
                 actual={kpis?.unidades_vendidas ?? 0} anterior={prevKpis?.unidades_vendidas ?? 0} />
               <KpiCard label="UPT" value={(kpis?.upt ?? 0).toFixed(2)} icon={ShoppingBag}
@@ -1584,7 +1584,7 @@ function BrandOverviewPanel({ days, comparisonPeriod = "previous" }: { days: num
           />
         </div>
         {/* Row 1: Ventas Netas + Ticket + Precio Promedio */}
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
           <KpiCard label="Ventas Netas" value={fmtCurrency(kpis.ingresos_netos)} icon={DollarSign}
             actual={kpis.ingresos_netos} anterior={prevKpis.ingresos_netos} />
           <KpiCard label="Ticket Promedio" value={fmtCurrency(kpis.ticket_promedio)} icon={Receipt}
@@ -1594,7 +1594,7 @@ function BrandOverviewPanel({ days, comparisonPeriod = "previous" }: { days: num
             anterior={prevKpis.unidades_vendidas > 0 ? prevKpis.ingresos_netos / prevKpis.unidades_vendidas : 0} />
         </div>
         {/* Row 2: Unidades Vendidas + UPT + Venta m² Tienda */}
-        <div className={cn("grid gap-4 mt-4", showM2 ? "grid-cols-3" : "grid-cols-2")}>
+        <div className={cn("grid gap-4 mt-4", showM2 ? "grid-cols-2 sm:grid-cols-3" : "grid-cols-2")}>
           <KpiCard label="Unidades Vendidas" value={kpis.unidades_vendidas.toLocaleString()} icon={Package}
             actual={kpis.unidades_vendidas} anterior={prevKpis.unidades_vendidas} />
           <KpiCard label="UPT" value={kpis.upt.toFixed(2)} icon={ShoppingBag}
@@ -1800,7 +1800,7 @@ function ZonePanel({ days, locationFilter, comparisonPeriod = "previous" }: { da
           <h3 className="text-sm font-semibold text-foreground">📊 DESEMPEÑO POR ZONA</h3>
         </div>
         {/* Row 1 */}
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
           <KpiCard label="Ventas Netas" value={fmtCurrency(kpis?.ingresos_netos ?? 0)} icon={DollarSign}
             actual={kpis?.ingresos_netos ?? 0} anterior={prevKpis?.ingresos_netos ?? 0} />
           <KpiCard label="Ticket Promedio" value={fmtCurrency(kpis?.ticket_promedio ?? 0)} icon={Receipt}
@@ -1813,7 +1813,7 @@ function ZonePanel({ days, locationFilter, comparisonPeriod = "previous" }: { da
           })()}
         </div>
         {/* Row 2 */}
-        <div className="grid grid-cols-3 gap-4 mt-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mt-4">
           <KpiCard label="Unidades Vendidas" value={(kpis?.unidades_vendidas ?? 0).toLocaleString()} icon={Package}
             actual={kpis?.unidades_vendidas ?? 0} anterior={prevKpis?.unidades_vendidas ?? 0} />
           <KpiCard label="UPT" value={(kpis?.upt ?? 0).toFixed(2)} icon={ShoppingBag}
@@ -1859,7 +1859,7 @@ function ZonePanel({ days, locationFilter, comparisonPeriod = "previous" }: { da
               </div>
             </div>
             {/* Row 2: Daily averages with comparison */}
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
               <div className="p-3 rounded-lg bg-muted/30 border border-border">
                 <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Venta Prom/Día</p>
                 <p className="text-base font-semibold text-foreground">{fmtCurrency(zoneMetrics?.venta_promedio_diaria_actual ?? 0)}</p>
@@ -2076,7 +2076,7 @@ function ZoneStoreRankCard({ days, canal, locationId, locationName, allRanking, 
                 <p className="text-sm font-semibold text-foreground">{fmtCurrency(extraMetrics?.venta_promedio_finde ?? 0)}</p>
               </div>
             </div>
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
               <div className="p-3 rounded-lg bg-muted/30 border border-border">
                 <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Venta Prom/Día</p>
                 <p className="text-base font-semibold text-foreground">{fmtCurrency(extraMetrics?.venta_promedio_diaria_actual ?? 0)}</p>
