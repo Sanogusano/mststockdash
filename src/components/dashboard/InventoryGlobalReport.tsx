@@ -186,7 +186,7 @@ export function InventoryGlobalReport({ open, onOpenChange, days }: Props) {
           ) : (
             <div className="space-y-4">
               {/* Price Filter Cards */}
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <button
                   onClick={() => setPriceFilter(priceFilter === "full_price" ? "all" : "full_price")}
                   className={cn(
@@ -198,7 +198,7 @@ export function InventoryGlobalReport({ open, onOpenChange, days }: Props) {
                     <Star className="h-4 w-4 text-emerald-600" />
                     <span className="text-xs text-muted-foreground font-medium uppercase">Full Price</span>
                   </div>
-                  <p className="text-xl font-semibold text-foreground">{stockTotals.fullPrice.toLocaleString()} uds</p>
+                  <p className="text-xl font-semibold text-foreground whitespace-normal break-words tabular-nums">{stockTotals.fullPrice.toLocaleString()} uds</p>
                   <p className="text-sm text-emerald-600 font-medium">{stockTotals.fullPct.toFixed(1)}%</p>
                 </button>
                 <button
@@ -212,7 +212,7 @@ export function InventoryGlobalReport({ open, onOpenChange, days }: Props) {
                     <Tag className="h-4 w-4 text-orange-500" />
                     <span className="text-xs text-muted-foreground font-medium uppercase">Rebajado</span>
                   </div>
-                  <p className="text-xl font-semibold text-foreground">{stockTotals.rebajado.toLocaleString()} uds</p>
+                  <p className="text-xl font-semibold text-foreground whitespace-normal break-words tabular-nums">{stockTotals.rebajado.toLocaleString()} uds</p>
                   <p className="text-sm text-orange-500 font-medium">{stockTotals.rebPct.toFixed(1)}%</p>
                 </button>
                 <button

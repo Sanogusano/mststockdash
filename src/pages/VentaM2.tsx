@@ -154,7 +154,7 @@ export default function VentaM2Page() {
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <div className="glass-card p-5">
                     <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Promedio Venta / m²</p>
-                    <p className="text-2xl font-semibold text-foreground mt-0.5">{fmtCurrency(avgVentaM2)}</p>
+                    <p className="text-2xl font-semibold text-foreground mt-0.5 whitespace-normal break-words tabular-nums">{fmtCurrency(avgVentaM2)}</p>
                     {(() => {
                       const status = getVentaM2Status(avgVentaM2, avgVentaM2);
                       return (
@@ -166,7 +166,7 @@ export default function VentaM2Page() {
                   </div>
                   <div className="glass-card p-5">
                     <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Total Superficie</p>
-                    <p className="text-2xl font-semibold text-foreground mt-0.5">{totalM2.toLocaleString()} m²</p>
+                    <p className="text-2xl font-semibold text-foreground mt-0.5 whitespace-normal break-words tabular-nums">{totalM2.toLocaleString()} m²</p>
                   </div>
                   <div className="glass-card p-5">
                     <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Tiendas Analizadas</p>

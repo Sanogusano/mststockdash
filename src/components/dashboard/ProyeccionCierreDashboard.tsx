@@ -18,6 +18,13 @@ function fmtCOP(n: number) {
   return "$" + Math.round(n).toLocaleString("es-CO");
 }
 
+function fmtCOPCompact(n: number) {
+  const abs = Math.abs(n);
+  if (abs >= 1_000_000_000) return `$${(n / 1_000_000_000).toLocaleString("es-CO", { maximumFractionDigits: 2 })}MM`;
+  if (abs >= 1_000_000) return `$${(n / 1_000_000).toLocaleString("es-CO", { maximumFractionDigits: 3 })}M`;
+  return fmtCOP(n);
+}
+
 function pctColor(pct: number) {
   if (pct >= 100) return "text-[hsl(var(--success))]";
   if (pct >= 80) return "text-[hsl(var(--warning))]";
@@ -257,9 +264,9 @@ export function ProyeccionCierreDashboard() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-xl font-bold text-foreground">{fmtCOP(totals.ventaActual)}</p>
+              <p className="text-xl font-bold text-foreground whitespace-normal break-words tabular-nums"><span className="sm:hidden">{fmtCOPCompact(totals.ventaActual)}</span><span className="hidden sm:inline">{fmtCOP(totals.ventaActual)}</span></p>
               <p className="text-[10px] text-muted-foreground mt-1">
-                Presupuesto: {fmtCOP(totals.presupuesto)}
+                Presupuesto: <span className="sm:hidden">{fmtCOPCompact(totals.presupuesto)}</span><span className="hidden sm:inline">{fmtCOP(totals.presupuesto)}</span>
               </p>
             </CardContent>
           </Card>
@@ -274,7 +281,7 @@ export function ProyeccionCierreDashboard() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-xl font-bold text-foreground">{fmtCOP(totals.conservador)}</p>
+                  <p className="text-xl font-bold text-foreground whitespace-normal break-words tabular-nums"><span className="sm:hidden">{fmtCOPCompact(totals.conservador)}</span><span className="hidden sm:inline">{fmtCOP(totals.conservador)}</span></p>
                   <p className={`text-[10px] mt-1 font-medium ${pctColor(pctPresupConservador)}`}>
                     {pctPresupConservador.toFixed(1)}% del presupuesto
                   </p>
@@ -296,7 +303,7 @@ export function ProyeccionCierreDashboard() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-xl font-bold text-foreground">{fmtCOP(totals.probable)}</p>
+                  <p className="text-xl font-bold text-foreground whitespace-normal break-words tabular-nums"><span className="sm:hidden">{fmtCOPCompact(totals.probable)}</span><span className="hidden sm:inline">{fmtCOP(totals.probable)}</span></p>
                   <p className={`text-[10px] mt-1 font-medium ${pctColor(pctPresupProbable)}`}>
                     {pctPresupProbable.toFixed(1)}% del presupuesto
                   </p>
@@ -318,7 +325,7 @@ export function ProyeccionCierreDashboard() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-xl font-bold text-foreground">{fmtCOP(totals.optimista)}</p>
+                  <p className="text-xl font-bold text-foreground whitespace-normal break-words tabular-nums"><span className="sm:hidden">{fmtCOPCompact(totals.optimista)}</span><span className="hidden sm:inline">{fmtCOP(totals.optimista)}</span></p>
                   <p className={`text-[10px] mt-1 font-medium ${pctColor(pctPresupOptimista)}`}>
                     {pctPresupOptimista.toFixed(1)}% del presupuesto
                   </p>

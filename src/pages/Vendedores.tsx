@@ -214,7 +214,7 @@ export default function VendedoresPage() {
 
           <div className="p-6 space-y-6">
             {/* KPIs */}
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
               <KpiCard icon={Users} label="Total activos" value={kpis.total} />
               <KpiCard icon={Briefcase} label="Vendedores" value={kpis.vendedores} />
               <KpiCard icon={UserCog} label="Personal Shoppers" value={kpis.personalShoppers} />
@@ -446,7 +446,7 @@ function KpiCard({ icon: Icon, label, value }: { icon: any; label: string; value
           <Icon className="h-3.5 w-3.5 text-muted-foreground" />
           <span className="text-[10px] font-medium tracking-wide uppercase text-muted-foreground">{label}</span>
         </div>
-        <p className="text-2xl font-semibold text-foreground">{value}</p>
+        <p className="text-2xl font-semibold text-foreground whitespace-normal break-words tabular-nums">{value}</p>
       </CardContent>
     </Card>
   );

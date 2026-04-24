@@ -19,6 +19,12 @@ const YEARS = [2024, 2025, 2026, 2027, 2028, 2029, 2030];
 function fmtCOP(n: number) {
   return "$" + Math.round(n).toLocaleString("es-CO");
 }
+function fmtCOPCompact(n: number) {
+  const abs = Math.abs(n);
+  if (abs >= 1_000_000_000) return `$${(n / 1_000_000_000).toLocaleString("es-CO", { maximumFractionDigits: 2 })}MM`;
+  if (abs >= 1_000_000) return `$${(n / 1_000_000).toLocaleString("es-CO", { maximumFractionDigits: 3 })}M`;
+  return fmtCOP(n);
+}
 function fmtPct(n: number, decimals = 1) {
   return `${(n * 100).toFixed(decimals)}%`;
 }
@@ -273,7 +279,7 @@ export function CentroAccionComercial() {
             : "border-[hsl(var(--warning))]/30";
 
         return (
-          <Card key={store.nombre} className={`${borderColor} overflow-hidden`}>
+          <Card key={store.nombre} className={borderColor}>
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between flex-wrap gap-2">
                 <div className="flex items-center gap-3">
@@ -302,15 +308,18 @@ export function CentroAccionComercial() {
 
             <CardContent className="space-y-4">
               {/* KPIs Grid */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
                 <KpiMini
                   label="Venta MTD"
                   value={fmtCOP(store.venta_mtd)}
+                  mobileValue={fmtCOPCompact(store.venta_mtd)}
                   sub={`Meta: ${fmtCOP(store.presupuesto)}`}
+                  mobileSub={`Meta: ${fmtCOPCompact(store.presupuesto)}`}
                 />
                 <KpiMini
                   label="Ticket Promedio"
                   value={fmtCOP(store.ticket_promedio)}
+                  mobileValue={fmtCOPCompact(store.ticket_promedio)}
                 />
                 <KpiMini
                   label="UPT"
@@ -325,7 +334,7 @@ export function CentroAccionComercial() {
               </div>
 
               {/* Growth & Effort Row */}
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <GrowthMini label="MoM" value={store.crecimiento_mom} />
                 <GrowthMini label="YoY" value={store.crecimiento_yoy} />
                 <div className="rounded-lg p-2.5 border border-[hsl(var(--primary))]/20 bg-[hsl(var(--primary))]/5">
@@ -411,12 +420,16 @@ export function CentroAccionComercial() {
 function KpiMini({
   label,
   value,
+  mobileValue,
   sub,
+  mobileSub,
   alert,
 }: {
   label: string;
   value: string;
+  mobileValue?: string;
   sub?: string;
+  mobileSub?: string;
   alert?: boolean;
 }) {
   return (
@@ -429,13 +442,13 @@ function KpiMini({
     >
       <p className="text-[10px] text-muted-foreground uppercase tracking-wider">{label}</p>
       <p
-        className={`text-sm font-bold tabular-nums ${
+        className={`text-sm font-bold tabular-nums whitespace-normal break-words ${
           alert ? "text-[hsl(var(--danger))]" : "text-foreground"
         }`}
       >
-        {value}
+        {mobileValue ? <><span className="sm:hidden">{mobileValue}</span><span className="hidden sm:inline">{value}</span></> : value}
       </p>
-      {sub && <p className="text-[9px] text-muted-foreground">{sub}</p>}
+      {sub && <p className="text-[9px] text-muted-foreground whitespace-normal break-words">{mobileSub ? <><span className="sm:hidden">{mobileSub}</span><span className="hidden sm:inline">{sub}</span></> : sub}</p>}
     </div>
   );
 }

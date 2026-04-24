@@ -206,6 +206,12 @@ export function CierreColeccionDashboard({ days }: Props) {
   }, [categoriaTalla]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const fmt = (n: number) => new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 }).format(n);
+  const fmtCompact = (n: number) => {
+    const abs = Math.abs(n);
+    if (abs >= 1_000_000_000) return `$${(n / 1_000_000_000).toLocaleString("es-CO", { maximumFractionDigits: 2 })}MM`;
+    if (abs >= 1_000_000) return `$${(n / 1_000_000).toLocaleString("es-CO", { maximumFractionDigits: 3 })}M`;
+    return fmt(n);
+  };
   const fmtNum = (n: number) => new Intl.NumberFormat("es-CO").format(n);
 
   // Build category → collection breakdown map — only show ordered collections
@@ -276,10 +282,10 @@ export function CierreColeccionDashboard({ days }: Props) {
       ) : (
         <>
           {/* KPIs */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
             <KpiCard title="Sell-Through Global" value={`${kpis?.sell_through_pct ?? 0}%`} icon={<TrendingUp className="h-4 w-4" />} />
             <KpiCard title="Calidad de Venta" value={`${kpis?.calidad_venta_pct ?? 0}%`} subtitle="% Full Price" icon={<Award className="h-4 w-4" />} />
-            <KpiCard title="Ingreso Total" value={fmt(kpis?.ingreso_total ?? 0)} icon={<DollarSign className="h-4 w-4" />} />
+            <KpiCard title="Ingreso Total" value={fmt(kpis?.ingreso_total ?? 0)} mobileValue={fmtCompact(kpis?.ingreso_total ?? 0)} icon={<DollarSign className="h-4 w-4" />} />
             <KpiCard title="Stock Remanente" value={fmtNum(kpis?.stock_remanente ?? 0)} subtitle="unidades" icon={<Package className="h-4 w-4" />} />
           </div>
 
@@ -672,7 +678,7 @@ function ColorTreemap({ data, cleanColorName }: { data: TreemapColorRow[]; clean
   );
 }
 
-function KpiCard({ title, value, subtitle, icon }: { title: string; value: string; subtitle?: string; icon: React.ReactNode }) {
+function KpiCard({ title, value, mobileValue, subtitle, icon }: { title: string; value: string; mobileValue?: string; subtitle?: string; icon: React.ReactNode }) {
   return (
     <Card>
       <CardContent className="pt-5 pb-4 px-5">
@@ -680,7 +686,7 @@ function KpiCard({ title, value, subtitle, icon }: { title: string; value: strin
           <span className="text-xs text-muted-foreground">{title}</span>
           <span className="text-muted-foreground/50">{icon}</span>
         </div>
-        <p className="text-xl font-semibold text-foreground">{value}</p>
+        <p className="text-xl font-semibold text-foreground whitespace-normal break-words tabular-nums">{mobileValue ? <><span className="sm:hidden">{mobileValue}</span><span className="hidden sm:inline">{value}</span></> : value}</p>
         {subtitle && <p className="text-[10px] text-muted-foreground mt-0.5">{subtitle}</p>}
       </CardContent>
     </Card>

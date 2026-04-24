@@ -36,6 +36,14 @@ const fmtCOP = (v: number) =>
     maximumFractionDigits: 0,
   }).format(v ?? 0);
 
+const fmtCOPCompact = (v: number) => {
+  const value = v ?? 0;
+  const abs = Math.abs(value);
+  if (abs >= 1_000_000_000) return `$${(value / 1_000_000_000).toLocaleString("es-CO", { maximumFractionDigits: 2 })}MM`;
+  if (abs >= 1_000_000) return `$${(value / 1_000_000).toLocaleString("es-CO", { maximumFractionDigits: 3 })}M`;
+  return fmtCOP(value);
+};
+
 const fmtNum = (v: number) => new Intl.NumberFormat("es-CO").format(v ?? 0);
 
 const MONTHS = [
@@ -123,10 +131,12 @@ function CumplimientoBar({ pct }: { pct: number }) {
 function KpiCard({
   title,
   value,
+  mobileValue,
   icon: Icon,
 }: {
   title: string;
   value: string;
+  mobileValue?: string;
   icon: React.ComponentType<{ className?: string }>;
 }) {
   return (
@@ -138,7 +148,9 @@ function KpiCard({
         <Icon className="h-4 w-4 text-muted-foreground" />
       </CardHeader>
       <CardContent>
-        <div className="text-2xl font-semibold text-foreground">{value}</div>
+        <div className="text-2xl font-semibold text-foreground whitespace-normal break-words tabular-nums">
+          {mobileValue ? <><span className="sm:hidden">{mobileValue}</span><span className="hidden sm:inline">{value}</span></> : value}
+        </div>
       </CardContent>
     </Card>
   );
@@ -496,10 +508,10 @@ export default function RendimientoVendedoresPage() {
             </Card>
 
             {/* KPIs */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
               <KpiCard title="Vendedores activos" value={fmtNum(kpis.totalVend)} icon={Users} />
-              <KpiCard title="Venta total equipo" value={fmtCOP(kpis.ventaTotal)} icon={Trophy} />
-              <KpiCard title="Ticket promedio" value={fmtCOP(kpis.ticketProm)} icon={Receipt} />
+              <KpiCard title="Venta total equipo" value={fmtCOP(kpis.ventaTotal)} mobileValue={fmtCOPCompact(kpis.ventaTotal)} icon={Trophy} />
+              <KpiCard title="Ticket promedio" value={fmtCOP(kpis.ticketProm)} mobileValue={fmtCOPCompact(kpis.ticketProm)} icon={Receipt} />
               <KpiCard title="UPT promedio" value={kpis.uptProm.toFixed(2)} icon={Package} />
             </div>
 
@@ -629,10 +641,10 @@ export default function RendimientoVendedoresPage() {
           <div className="px-4 pb-6 overflow-y-auto space-y-6">
             {selected && (
               <>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                  <KpiCard title="Venta neta" value={fmtCOP(selected.venta_neta)} icon={Trophy} />
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                  <KpiCard title="Venta neta" value={fmtCOP(selected.venta_neta)} mobileValue={fmtCOPCompact(selected.venta_neta)} icon={Trophy} />
                   <KpiCard title="Pedidos" value={fmtNum(selected.total_pedidos)} icon={Receipt} />
-                  <KpiCard title="Venta diaria prom." value={fmtCOP(ventaDiariaPromedio)} icon={Target} />
+                  <KpiCard title="Venta diaria prom." value={fmtCOP(ventaDiariaPromedio)} mobileValue={fmtCOPCompact(ventaDiariaPromedio)} icon={Target} />
                   <KpiCard title="UPT" value={(selected.upt ?? 0).toFixed(2)} icon={Package} />
                 </div>
 
