@@ -76,7 +76,7 @@ Deno.serve(async (req) => {
     const { error: upErr } = await supabaseAdmin
       .from("user_profiles")
       .upsert(
-        { user_id: userId, role_id: newRoleId, updated_at: new Date().toISOString() },
+        { user_id: userId, role_id: role.id, updated_at: new Date().toISOString() },
         { onConflict: "user_id" },
       );
     if (upErr) return json({ error: upErr.message }, 400);
