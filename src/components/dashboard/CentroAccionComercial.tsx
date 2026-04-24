@@ -420,12 +420,16 @@ export function CentroAccionComercial() {
 function KpiMini({
   label,
   value,
+  mobileValue,
   sub,
+  mobileSub,
   alert,
 }: {
   label: string;
   value: string;
+  mobileValue?: string;
   sub?: string;
+  mobileSub?: string;
   alert?: boolean;
 }) {
   return (
@@ -438,13 +442,13 @@ function KpiMini({
     >
       <p className="text-[10px] text-muted-foreground uppercase tracking-wider">{label}</p>
       <p
-        className={`text-sm font-bold tabular-nums ${
+        className={`text-sm font-bold tabular-nums whitespace-normal break-words ${
           alert ? "text-[hsl(var(--danger))]" : "text-foreground"
         }`}
       >
-        {value}
+        {mobileValue ? <><span className="sm:hidden">{mobileValue}</span><span className="hidden sm:inline">{value}</span></> : value}
       </p>
-      {sub && <p className="text-[9px] text-muted-foreground">{sub}</p>}
+      {sub && <p className="text-[9px] text-muted-foreground whitespace-normal break-words">{mobileSub ? <><span className="sm:hidden">{mobileSub}</span><span className="hidden sm:inline">{sub}</span></> : sub}</p>}
     </div>
   );
 }
