@@ -137,16 +137,18 @@ export function WizardExportacion({
     Promise.all([
       obtenerMapeoSkus(skus),
       obtenerCodigosOracleUbicaciones(locs),
-      obtenerOperadoresDisponibles().catch(() => []),
+      obtenerOperadoresDisponibles().catch(() => [] as OperadorDisponible[]),
       userId
-        ? supabase
-            .from("user_profiles")
-            .select("full_name")
-            .eq("user_id", userId)
-            .maybeSingle()
-            .then(({ data }) => data?.full_name ?? null)
-            .catch(() => null)
-        : Promise.resolve(null),
+        ? Promise.resolve(
+            supabase
+              .from("user_profiles")
+              .select("full_name")
+              .eq("user_id", userId)
+              .maybeSingle(),
+          )
+            .then(({ data }) => (data?.full_name ?? null) as string | null)
+            .catch(() => null as string | null)
+        : Promise.resolve(null as string | null),
     ])
       .then(([s, o, ops, fullName]) => {
         setMapeoSkus(s);
