@@ -19,12 +19,19 @@ interface Props {
   days: number;
 }
 
-function KpiCard({ label, value, prefix = "" }: { label: string; value: string; prefix?: string }) {
+function formatCompactMoney(value: number) {
+  const abs = Math.abs(value);
+  if (abs >= 1_000_000_000) return `${(value / 1_000_000_000).toLocaleString("es-CO", { maximumFractionDigits: 2 })}MM`;
+  if (abs >= 1_000_000) return `${(value / 1_000_000).toLocaleString("es-CO", { maximumFractionDigits: 3 })}M`;
+  return value.toLocaleString("es-CO");
+}
+
+function KpiCard({ label, value, mobileValue, prefix = "" }: { label: string; value: string; mobileValue?: string; prefix?: string }) {
   return (
     <div className="glass-card rounded-xl p-5 flex flex-col gap-1">
       <p className="text-xs text-muted-foreground uppercase tracking-widest">{label}</p>
-      <p className="text-2xl font-display font-bold text-foreground">
-        {prefix}{value}
+      <p className="text-2xl font-display font-bold text-foreground whitespace-normal break-words tabular-nums">
+        {mobileValue ? <><span className="sm:hidden">{prefix}{mobileValue}</span><span className="hidden sm:inline">{prefix}{value}</span></> : <>{prefix}{value}</>}
       </p>
     </div>
   );
@@ -58,6 +65,7 @@ function ChannelTab({ row }: { row: ChannelRow }) {
         <KpiCard
           label="Ingresos Netos"
           value={(row.ingresos_netos ?? 0).toLocaleString()}
+          mobileValue={formatCompactMoney(row.ingresos_netos ?? 0)}
           prefix="$"
         />
         <KpiCard
@@ -67,6 +75,7 @@ function ChannelTab({ row }: { row: ChannelRow }) {
         <KpiCard
           label="Ticket Promedio"
           value={(row.ticket_promedio ?? 0).toLocaleString()}
+          mobileValue={formatCompactMoney(row.ticket_promedio ?? 0)}
           prefix="$"
         />
       </div>
@@ -128,7 +137,10 @@ export function ChannelPerformance({ days }: Props) {
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div className="glass-card rounded-xl p-4">
           <p className="text-xs text-muted-foreground uppercase tracking-widest mb-1">Ingresos Totales</p>
-          <p className="text-2xl font-display font-bold text-primary">${totalRevenue.toLocaleString()}</p>
+          <p className="text-2xl font-display font-bold text-primary whitespace-normal break-words tabular-nums">
+            <span className="sm:hidden">${formatCompactMoney(totalRevenue)}</span>
+            <span className="hidden sm:inline">${totalRevenue.toLocaleString()}</span>
+          </p>
         </div>
         <div className="glass-card rounded-xl p-4">
           <p className="text-xs text-muted-foreground uppercase tracking-widest mb-1">Unidades Totales</p>
