@@ -73,11 +73,13 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Actualizar perfil
+    // Actualizar perfil (upsert por si el usuario aún no tiene fila en user_profiles)
     const { error: upErr } = await supabaseAdmin
       .from("user_profiles")
-      .update({ role_id: newRoleId, updated_at: new Date().toISOString() })
-      .eq("user_id", userId);
+      .upsert(
+        { user_id: userId, role_id: newRoleId, updated_at: new Date().toISOString() },
+        { onConflict: "user_id" },
+      );
     if (upErr) return json({ error: upErr.message }, 400);
 
     // Sincronizar app_metadata.role
