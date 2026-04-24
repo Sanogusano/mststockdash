@@ -60,8 +60,15 @@ const getBarColor = (semanas: number | null) => {
   return "hsl(152,60%,40%)";
 };
 
-function KpiCard({ label, value, prefix = "", icon: Icon, className }: {
-  label: string; value: string; prefix?: string; icon: React.ElementType; className?: string;
+function formatCompactMoney(value: number) {
+  const abs = Math.abs(value);
+  if (abs >= 1_000_000_000) return `${(value / 1_000_000_000).toLocaleString("es-CO", { maximumFractionDigits: 2 })}MM`;
+  if (abs >= 1_000_000) return `${(value / 1_000_000).toLocaleString("es-CO", { maximumFractionDigits: 3 })}M`;
+  return value.toLocaleString("es-CO");
+}
+
+function KpiCard({ label, value, mobileValue, prefix = "", icon: Icon, className }: {
+  label: string; value: string; mobileValue?: string; prefix?: string; icon: React.ElementType; className?: string;
 }) {
   return (
     <div className="glass-card p-5 flex items-start gap-4">
@@ -70,7 +77,9 @@ function KpiCard({ label, value, prefix = "", icon: Icon, className }: {
       </div>
       <div>
         <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">{label}</p>
-        <p className={cn("text-2xl font-semibold text-foreground mt-0.5", className)}>{prefix}{value}</p>
+        <p className={cn("text-2xl font-semibold text-foreground mt-0.5 whitespace-normal break-words tabular-nums", className)}>
+          {mobileValue ? <><span className="sm:hidden">{prefix}{mobileValue}</span><span className="hidden sm:inline">{prefix}{value}</span></> : <>{prefix}{value}</>}
+        </p>
       </div>
     </div>
   );
@@ -221,14 +230,14 @@ export default function TiendaDetailPage() {
             ) : (
               <div className="space-y-6">
                 {/* KPI Cards */}
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                  <KpiCard label="Ventas Netas" value={(kpis?.ingresos_netos ?? 0).toLocaleString()} prefix="$" icon={DollarSign} />
-                  <KpiCard label="Ticket Promedio" value={(kpis?.ticket_promedio ?? 0).toLocaleString()} prefix="$" icon={Receipt} />
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <KpiCard label="Ventas Netas" value={(kpis?.ingresos_netos ?? 0).toLocaleString()} mobileValue={formatCompactMoney(kpis?.ingresos_netos ?? 0)} prefix="$" icon={DollarSign} />
+                  <KpiCard label="Ticket Promedio" value={(kpis?.ticket_promedio ?? 0).toLocaleString()} mobileValue={formatCompactMoney(kpis?.ticket_promedio ?? 0)} prefix="$" icon={Receipt} />
                   <KpiCard label="UPT" value={(kpis?.upt ?? 0).toFixed(2)} icon={ShoppingBag} />
                 </div>
 
                 {/* Price Filter & Supply Cards */}
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <button
                     onClick={() => setPriceFilter(priceFilter === "full_price" ? "all" : "full_price")}
                     className={cn(
