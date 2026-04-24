@@ -55,7 +55,7 @@ export function EditarUsuarioModal({ open, onOpenChange, usuario, roles }: Props
 
   const isSelf = usuario?.user_id === myUserId;
   const originalRole = roles.find((r) => r.key === usuario?.role_key);
-  const roleChanged = roleId && originalRole && roleId !== originalRole.id;
+  const roleChanged = Boolean(roleId && roleId !== (originalRole?.id ?? ""));
 
   // Roles que requieren scope obligatorio (mín 1 ubicación). El resto puede tener scope=null.
   const ROLES_CON_SCOPE_OBLIGATORIO = new Set(["tienda"]);
