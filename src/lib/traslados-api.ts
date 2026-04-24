@@ -194,6 +194,7 @@ export interface RegistroExport {
   total_unidades: number;
   total_lineas: number;
   subsidiaria?: number;
+  generated_by_user_id?: string | null;
 }
 
 export async function registrarExportacion(reg: RegistroExport): Promise<void> {
@@ -211,8 +212,105 @@ export async function registrarExportacion(reg: RegistroExport): Promise<void> {
     total_lineas: reg.total_lineas,
     subsidiaria: reg.subsidiaria ?? 2,
     status: "generated",
-  });
+    generated_by_user_id: reg.generated_by_user_id ?? null,
+  } as never);
   if (error) throw error;
+}
+
+// ===== Siguiente consecutivo por origen NetSuite =====
+export async function obtenerSiguienteConsecutivo(
+  origenNetsuiteId: number,
+): Promise<number> {
+  const { data, error } = await supabase.rpc(
+    "obtener_siguiente_consecutivo" as never,
+    { p_origen_netsuite_id: origenNetsuiteId } as never,
+  );
+  if (error) throw error;
+  return Number(data ?? 46125);
+}
+
+// Obtener mapa { netsuiteId: siguienteConsecutivo } para varios orígenes
+export async function obtenerSiguientesConsecutivos(
+  origenesNetsuiteIds: number[],
+): Promise<Record<number, number>> {
+  const unique = [...new Set(origenesNetsuiteIds.filter((n) => n != null))];
+  const result: Record<number, number> = {};
+  await Promise.all(
+    unique.map(async (id) => {
+      try {
+        result[id] = await obtenerSiguienteConsecutivo(id);
+      } catch (e) {
+        console.warn(`No se pudo obtener consecutivo para origen ${id}:`, e);
+        result[id] = 46125;
+      }
+    }),
+  );
+  return result;
+}
+
+// ===== Validación de id_externo duplicados =====
+export interface RegistroDuplicado {
+  id_externo: string;
+  generated_at: string;
+  empleado: string;
+}
+
+export async function validarIdExternosDuplicados(
+  idsExternos: string[],
+): Promise<RegistroDuplicado[]> {
+  if (idsExternos.length === 0) return [];
+  const { data, error } = await supabase
+    .from("allocation_runs")
+    .select("id_externo, generated_at, empleado")
+    .in("id_externo", idsExternos);
+  if (error) throw error;
+  return (data ?? []) as RegistroDuplicado[];
+}
+
+// ===== Operadores disponibles para asignar como empleado =====
+export interface OperadorDisponible {
+  user_id: string;
+  full_name: string;
+  email: string | null;
+}
+
+export async function obtenerOperadoresDisponibles(): Promise<OperadorDisponible[]> {
+  const { data, error } = await supabase
+    .from("v_usuarios_gestion")
+    .select("user_id, full_name, email, role_key, is_active")
+    .eq("is_active", true)
+    .in("role_key", ["admin", "operaciones", "gerencia"])
+    .order("full_name", { ascending: true });
+  if (error) throw error;
+  return (data ?? [])
+    .filter((r) => r.user_id && r.full_name)
+    .map((r) => ({
+      user_id: r.user_id as string,
+      full_name: r.full_name as string,
+      email: (r.email as string) ?? null,
+    }));
+}
+
+// ===== Historial reciente de exportaciones =====
+export interface HistorialExportacion {
+  id: string;
+  generated_at: string;
+  empleado: string;
+  id_externo: string;
+  total_lineas: number;
+  total_unidades: number;
+}
+
+export async function obtenerHistorialExportaciones(
+  limite = 10,
+): Promise<HistorialExportacion[]> {
+  const { data, error } = await supabase
+    .from("allocation_runs")
+    .select("id, generated_at, empleado, id_externo, total_lineas, total_unidades")
+    .order("generated_at", { ascending: false })
+    .limit(limite);
+  if (error) throw error;
+  return (data ?? []) as HistorialExportacion[];
 }
 
 // ===== Mapeo SKU → id_interno NetSuite =====
