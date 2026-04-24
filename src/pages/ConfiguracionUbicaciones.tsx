@@ -152,11 +152,11 @@ export default function ConfiguracionUbicacionesPage() {
 
           <div className="flex-1 px-4 sm:px-6 py-4 sm:py-6 space-y-5">
             {/* KPIs */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            <div className="grid grid-cols-1 lg:grid-cols-4 gap-3">
               <Card>
                 <CardContent className="p-4">
                   <p className="text-xs text-muted-foreground">Total ubicaciones</p>
-                  <p className="text-2xl font-semibold mt-1">{kpis.total}</p>
+                  <p className="text-2xl font-semibold mt-1 whitespace-normal break-words tabular-nums">{kpis.total}</p>
                 </CardContent>
               </Card>
               <Card>
@@ -165,7 +165,7 @@ export default function ConfiguracionUbicacionesPage() {
                     <CheckCircle2 className="h-3 w-3 text-emerald-600" />
                     Configuradas
                   </p>
-                  <p className="text-2xl font-semibold mt-1 text-emerald-700">{kpis.ok}</p>
+                  <p className="text-2xl font-semibold mt-1 text-emerald-700 whitespace-normal break-words tabular-nums">{kpis.ok}</p>
                 </CardContent>
               </Card>
               <Card>
