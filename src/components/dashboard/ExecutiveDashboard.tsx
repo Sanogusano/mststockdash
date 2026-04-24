@@ -441,7 +441,7 @@ function VentasTipoCards({ days, canal, locationId, zona }: { days: number; cana
   const pctDesc = data?.pct_desc_promo ?? 0;
 
   return (
-    <div className="grid grid-cols-3 gap-4">
+    <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
       <KpiCard label="% Full Price" value={`${(data?.pct_full_price ?? 0).toFixed(1)}%`} icon={Star} className="text-emerald-600"
         onClick={() => navigate(`/pedidos?tipo=full_price${canalParam}&days=${daysParam}`)} />
       <KpiCard label="% Rebajas" value={`${(data?.pct_rebajas ?? 0).toFixed(1)}%`} icon={Tag} className="text-blue-500"
