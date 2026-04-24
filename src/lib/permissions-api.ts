@@ -114,10 +114,14 @@ export async function actualizarPerfilUsuario(
     scope_location_ids?: string[] | null;
   }
 ) {
+  // Upsert: si el perfil no existe (usuario sin fila en user_profiles), lo crea.
+  // Sin esto, el UPDATE no afecta filas y los cambios (ej. is_active) no persisten.
   const { error } = await supabase
     .from("user_profiles")
-    .update({ ...payload, updated_at: new Date().toISOString() })
-    .eq("user_id", userId);
+    .upsert(
+      { user_id: userId, ...payload, updated_at: new Date().toISOString() },
+      { onConflict: "user_id" },
+    );
   if (error) throw error;
 }
 
