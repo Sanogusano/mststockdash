@@ -24,12 +24,10 @@ Deno.serve(async (req) => {
     );
 
     // Validar invitador
-    const { data: claimsData, error: claimsErr } = await supabaseAdmin.auth.getClaims(
-      token,
-    );
-    if (claimsErr || !claimsData?.claims) return json({ error: "Unauthorized" }, 401);
+    const { data: authData, error: authErr } = await supabaseAdmin.auth.getUser(token);
+    if (authErr || !authData?.user) return json({ error: "Unauthorized" }, 401);
 
-    const inviterRole = (claimsData.claims as any)?.app_metadata?.role;
+    const inviterRole = authData.user.app_metadata?.role;
     if (inviterRole !== "admin") {
       return json({ error: "Solo admins pueden invitar usuarios" }, 403);
     }
