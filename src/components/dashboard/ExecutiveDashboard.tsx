@@ -166,8 +166,8 @@ function getVentaM2Status(ventaM2: number, avgReference?: number): { label: stri
 }
 
 /* ── KPI Card with comparison ── */
-function KpiCard({ label, value, prefix = "", icon: Icon, className, onClick, actual, anterior, ventaM2Status }: {
-  label: string; value: string; prefix?: string; icon: React.ElementType; className?: string; onClick?: () => void;
+function KpiCard({ label, value, mobileValue, prefix = "", icon: Icon, className, onClick, actual, anterior, ventaM2Status }: {
+  label: string; value: string; mobileValue?: string; prefix?: string; icon: React.ElementType; className?: string; onClick?: () => void;
   actual?: number; anterior?: number;
   ventaM2Status?: { label: string; icon: React.ElementType; colorClass: string; bgClass: string; borderClass: string };
 }) {
@@ -188,7 +188,16 @@ function KpiCard({ label, value, prefix = "", icon: Icon, className, onClick, ac
             </span>
           )}
         </div>
-        <p className={cn("text-xl sm:text-2xl font-semibold text-foreground mt-0.5 truncate", className)}>{prefix}{value}</p>
+        <p className={cn("text-xl sm:text-2xl font-semibold text-foreground mt-0.5 whitespace-normal break-words tabular-nums", className)}>
+          {mobileValue ? (
+            <>
+              <span className="sm:hidden">{prefix}{mobileValue}</span>
+              <span className="hidden sm:inline">{prefix}{value}</span>
+            </>
+          ) : (
+            <>{prefix}{value}</>
+          )}
+        </p>
         {actual !== undefined && anterior !== undefined && (
           <ComparisonIndicator actual={actual} anterior={anterior} label="vs ant." />
         )}
@@ -441,7 +450,7 @@ function VentasTipoCards({ days, canal, locationId, zona }: { days: number; cana
   const pctDesc = data?.pct_desc_promo ?? 0;
 
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
       <KpiCard label="% Full Price" value={`${(data?.pct_full_price ?? 0).toFixed(1)}%`} icon={Star} className="text-emerald-600"
         onClick={() => navigate(`/pedidos?tipo=full_price${canalParam}&days=${daysParam}`)} />
       <KpiCard label="% Rebajas" value={`${(data?.pct_rebajas ?? 0).toFixed(1)}%`} icon={Tag} className="text-blue-500"
@@ -588,6 +597,13 @@ const translateDay = (d: string) => DAY_MAP[d] ?? d;
 
 const fmtCurrency = (v: number) =>
   new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(v);
+
+const fmtCurrencyCompact = (v: number) => {
+  const abs = Math.abs(v);
+  if (abs >= 1_000_000_000) return `$${(v / 1_000_000_000).toLocaleString("es-CO", { maximumFractionDigits: 2 })}MM`;
+  if (abs >= 1_000_000) return `$${(v / 1_000_000).toLocaleString("es-CO", { maximumFractionDigits: 3 })}M`;
+  return fmtCurrency(v);
+};
 
 /* ── Performance classification based on avg daily sales vs peers ── */
 function getPerformanceClass(storeSales: number, allSales: number[]) {
@@ -859,31 +875,31 @@ function StoreRankCard({ days, canal, locationId, locationName }: {
           </div>
           <div className="space-y-5">
             {/* Row 1: Días destacados + promedios por tipo de día */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
               <div className="p-3 rounded-lg bg-emerald-500/5 border border-emerald-500/20">
                 <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">🟢 Mejor Día</p>
                 <p className="text-sm font-semibold text-foreground">{translateDay(extraMetrics?.mejor_dia_semana ?? "N/A")}</p>
-                <p className="text-xs text-muted-foreground">{fmtCurrency(extraMetrics?.venta_mejor_dia ?? 0)}</p>
+                <p className="text-xs text-muted-foreground">{fmtCurrencyCompact(extraMetrics?.venta_mejor_dia ?? 0)}<span className="hidden sm:inline"> ({fmtCurrency(extraMetrics?.venta_mejor_dia ?? 0)})</span></p>
               </div>
               <div className="p-3 rounded-lg bg-destructive/5 border border-destructive/20">
                 <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">🔴 Peor Día</p>
                 <p className="text-sm font-semibold text-foreground">{translateDay(extraMetrics?.peor_dia_semana ?? "N/A")}</p>
-                <p className="text-xs text-muted-foreground">{fmtCurrency(extraMetrics?.venta_peor_dia ?? 0)}</p>
+                <p className="text-xs text-muted-foreground">{fmtCurrencyCompact(extraMetrics?.venta_peor_dia ?? 0)}<span className="hidden sm:inline"> ({fmtCurrency(extraMetrics?.venta_peor_dia ?? 0)})</span></p>
               </div>
               <div className="p-3 rounded-lg bg-muted/40 border border-border">
                 <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Prom. Lun-Vie</p>
-                <p className="text-sm font-semibold text-foreground">{fmtCurrency(extraMetrics?.venta_promedio_semana ?? 0)}</p>
+                <p className="text-sm font-semibold text-foreground">{fmtCurrencyCompact(extraMetrics?.venta_promedio_semana ?? 0)}<span className="hidden sm:inline"> ({fmtCurrency(extraMetrics?.venta_promedio_semana ?? 0)})</span></p>
               </div>
               <div className="p-3 rounded-lg bg-muted/40 border border-border">
                 <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Prom. Sáb-Dom</p>
-                <p className="text-sm font-semibold text-foreground">{fmtCurrency(extraMetrics?.venta_promedio_finde ?? 0)}</p>
+                <p className="text-sm font-semibold text-foreground">{fmtCurrencyCompact(extraMetrics?.venta_promedio_finde ?? 0)}<span className="hidden sm:inline"> ({fmtCurrency(extraMetrics?.venta_promedio_finde ?? 0)})</span></p>
               </div>
             </div>
             {/* Row 2: Promedios diarios con comparativa */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div className="p-3 rounded-lg bg-muted/30 border border-border">
                 <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Venta Prom/Día</p>
-                <p className="text-base font-semibold text-foreground">{fmtCurrency(extraMetrics?.venta_promedio_diaria_actual ?? 0)}</p>
+                <p className="text-base font-semibold text-foreground">{fmtCurrencyCompact(extraMetrics?.venta_promedio_diaria_actual ?? 0)}<span className="hidden sm:inline"> ({fmtCurrency(extraMetrics?.venta_promedio_diaria_actual ?? 0)})</span></p>
                 <ComparisonIndicator actual={extraMetrics?.venta_promedio_diaria_actual ?? 0} anterior={extraMetrics?.venta_promedio_diaria_anterior ?? 0} label="vs ant." />
               </div>
               <div className="p-3 rounded-lg bg-muted/30 border border-border">
@@ -989,30 +1005,30 @@ function DigitalChannelCard({ days }: { days: number }) {
             <h3 className="text-sm font-semibold text-foreground">Desempeño Comercial</h3>
           </div>
           <div className="space-y-5">
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
               <div className="p-3 rounded-lg bg-emerald-500/5 border border-emerald-500/20">
                 <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">🟢 Mejor Día</p>
                 <p className="text-sm font-semibold text-foreground">{translateDay(extraMetrics?.mejor_dia_semana ?? "N/A")}</p>
-                <p className="text-xs text-muted-foreground">{fmtCurrency(extraMetrics?.venta_mejor_dia ?? 0)}</p>
+                <p className="text-xs text-muted-foreground">{fmtCurrencyCompact(extraMetrics?.venta_mejor_dia ?? 0)}<span className="hidden sm:inline"> ({fmtCurrency(extraMetrics?.venta_mejor_dia ?? 0)})</span></p>
               </div>
               <div className="p-3 rounded-lg bg-destructive/5 border border-destructive/20">
                 <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">🔴 Peor Día</p>
                 <p className="text-sm font-semibold text-foreground">{translateDay(extraMetrics?.peor_dia_semana ?? "N/A")}</p>
-                <p className="text-xs text-muted-foreground">{fmtCurrency(extraMetrics?.venta_peor_dia ?? 0)}</p>
+                <p className="text-xs text-muted-foreground">{fmtCurrencyCompact(extraMetrics?.venta_peor_dia ?? 0)}<span className="hidden sm:inline"> ({fmtCurrency(extraMetrics?.venta_peor_dia ?? 0)})</span></p>
               </div>
               <div className="p-3 rounded-lg bg-muted/40 border border-border">
                 <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Prom. Lun-Vie</p>
-                <p className="text-sm font-semibold text-foreground">{fmtCurrency(extraMetrics?.venta_promedio_semana ?? 0)}</p>
+                <p className="text-sm font-semibold text-foreground">{fmtCurrencyCompact(extraMetrics?.venta_promedio_semana ?? 0)}<span className="hidden sm:inline"> ({fmtCurrency(extraMetrics?.venta_promedio_semana ?? 0)})</span></p>
               </div>
               <div className="p-3 rounded-lg bg-muted/40 border border-border">
                 <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Prom. Sáb-Dom</p>
-                <p className="text-sm font-semibold text-foreground">{fmtCurrency(extraMetrics?.venta_promedio_finde ?? 0)}</p>
+                <p className="text-sm font-semibold text-foreground">{fmtCurrencyCompact(extraMetrics?.venta_promedio_finde ?? 0)}<span className="hidden sm:inline"> ({fmtCurrency(extraMetrics?.venta_promedio_finde ?? 0)})</span></p>
               </div>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div className="p-3 rounded-lg bg-muted/30 border border-border">
                 <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Venta Prom/Día</p>
-                <p className="text-base font-semibold text-foreground">{fmtCurrency(extraMetrics?.venta_promedio_diaria_actual ?? 0)}</p>
+                <p className="text-base font-semibold text-foreground">{fmtCurrencyCompact(extraMetrics?.venta_promedio_diaria_actual ?? 0)}<span className="hidden sm:inline"> ({fmtCurrency(extraMetrics?.venta_promedio_diaria_actual ?? 0)})</span></p>
                 <ComparisonIndicator actual={extraMetrics?.venta_promedio_diaria_actual ?? 0} anterior={extraMetrics?.venta_promedio_diaria_anterior ?? 0} label="vs ant." />
               </div>
               <div className="p-3 rounded-lg bg-muted/30 border border-border">
@@ -1240,26 +1256,26 @@ function ChannelPanel({ days, canal, showLocationFilter, locationFilter, compari
         return (
           <div className="space-y-4">
             {/* Row 1: Ventas Netas + Ticket + Precio Promedio */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-              <KpiCard label="Ventas Netas" value={fmtCurrency(kpis?.ingresos_netos ?? 0)} icon={DollarSign}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <KpiCard label="Ventas Netas" value={fmtCurrency(kpis?.ingresos_netos ?? 0)} mobileValue={fmtCurrencyCompact(kpis?.ingresos_netos ?? 0)} icon={DollarSign}
                 actual={kpis?.ingresos_netos ?? 0} anterior={prevKpis?.ingresos_netos ?? 0} />
-              <KpiCard label="Ticket Promedio" value={fmtCurrency(kpis?.ticket_promedio ?? 0)} icon={Receipt}
+              <KpiCard label="Ticket Promedio" value={fmtCurrency(kpis?.ticket_promedio ?? 0)} mobileValue={fmtCurrencyCompact(kpis?.ticket_promedio ?? 0)} icon={Receipt}
                 actual={kpis?.ticket_promedio ?? 0} anterior={prevKpis?.ticket_promedio ?? 0} />
               {(() => {
                 const precioProm = (kpis?.unidades_vendidas ?? 0) > 0 ? (kpis?.ingresos_netos ?? 0) / (kpis?.unidades_vendidas ?? 1) : 0;
                 const prevPrecioProm = (prevKpis?.unidades_vendidas ?? 0) > 0 ? (prevKpis?.ingresos_netos ?? 0) / (prevKpis?.unidades_vendidas ?? 1) : 0;
-                return <KpiCard label="Precio Promedio" value={fmtCurrency(precioProm)} icon={Banknote}
+                return <KpiCard label="Precio Promedio" value={fmtCurrency(precioProm)} mobileValue={fmtCurrencyCompact(precioProm)} icon={Banknote}
                   actual={precioProm} anterior={prevPrecioProm} />;
               })()}
             </div>
             {/* Row 2: Unidades Vendidas + UPT + Venta/m² */}
-            <div className={cn("grid gap-4", showM2 ? "grid-cols-2 sm:grid-cols-3" : "grid-cols-2")}>
+            <div className={cn("grid gap-4", showM2 ? "grid-cols-1 sm:grid-cols-3" : "grid-cols-2")}>
               <KpiCard label="Unidades Vendidas" value={(kpis?.unidades_vendidas ?? 0).toLocaleString()} icon={Package}
                 actual={kpis?.unidades_vendidas ?? 0} anterior={prevKpis?.unidades_vendidas ?? 0} />
               <KpiCard label="UPT" value={(kpis?.upt ?? 0).toFixed(2)} icon={ShoppingBag}
                 actual={kpis?.upt ?? 0} anterior={prevKpis?.upt ?? 0} />
               {showM2 && (
-                <KpiCard label="Venta / m²" value={fmtCurrency(ventaM2)} icon={Ruler}
+                <KpiCard label="Venta / m²" value={fmtCurrency(ventaM2)} mobileValue={fmtCurrencyCompact(ventaM2)} icon={Ruler}
                   actual={ventaM2} anterior={prevVentaM2}
                   ventaM2Status={getVentaM2Status(ventaM2, ventaM2)}
                   onClick={() => navigate(`/venta-m2?days=${resolveDays(days)}&canal=${canal}`)} />
@@ -1584,23 +1600,23 @@ function BrandOverviewPanel({ days, comparisonPeriod = "previous" }: { days: num
           />
         </div>
         {/* Row 1: Ventas Netas + Ticket + Precio Promedio */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-          <KpiCard label="Ventas Netas" value={fmtCurrency(kpis.ingresos_netos)} icon={DollarSign}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <KpiCard label="Ventas Netas" value={fmtCurrency(kpis.ingresos_netos)} mobileValue={fmtCurrencyCompact(kpis.ingresos_netos)} icon={DollarSign}
             actual={kpis.ingresos_netos} anterior={prevKpis.ingresos_netos} />
-          <KpiCard label="Ticket Promedio" value={fmtCurrency(kpis.ticket_promedio)} icon={Receipt}
+          <KpiCard label="Ticket Promedio" value={fmtCurrency(kpis.ticket_promedio)} mobileValue={fmtCurrencyCompact(kpis.ticket_promedio)} icon={Receipt}
             actual={kpis.ticket_promedio} anterior={prevKpis.ticket_promedio} />
-          <KpiCard label="Precio Promedio" value={fmtCurrency(kpis.unidades_vendidas > 0 ? kpis.ingresos_netos / kpis.unidades_vendidas : 0)} icon={Banknote}
+          <KpiCard label="Precio Promedio" value={fmtCurrency(kpis.unidades_vendidas > 0 ? kpis.ingresos_netos / kpis.unidades_vendidas : 0)} mobileValue={fmtCurrencyCompact(kpis.unidades_vendidas > 0 ? kpis.ingresos_netos / kpis.unidades_vendidas : 0)} icon={Banknote}
             actual={kpis.unidades_vendidas > 0 ? kpis.ingresos_netos / kpis.unidades_vendidas : 0}
             anterior={prevKpis.unidades_vendidas > 0 ? prevKpis.ingresos_netos / prevKpis.unidades_vendidas : 0} />
         </div>
         {/* Row 2: Unidades Vendidas + UPT + Venta m² Tienda */}
-        <div className={cn("grid gap-4 mt-4", showM2 ? "grid-cols-2 sm:grid-cols-3" : "grid-cols-2")}>
+        <div className={cn("grid gap-4 mt-4", showM2 ? "grid-cols-1 sm:grid-cols-3" : "grid-cols-2")}>
           <KpiCard label="Unidades Vendidas" value={kpis.unidades_vendidas.toLocaleString()} icon={Package}
             actual={kpis.unidades_vendidas} anterior={prevKpis.unidades_vendidas} />
           <KpiCard label="UPT" value={kpis.upt.toFixed(2)} icon={ShoppingBag}
             actual={kpis.upt} anterior={prevKpis.upt} />
           {showM2 && (
-            <KpiCard label="Venta m² Tienda" value={fmtCurrency(ventaM2)} icon={Ruler}
+            <KpiCard label="Venta m² Tienda" value={fmtCurrency(ventaM2)} mobileValue={fmtCurrencyCompact(ventaM2)} icon={Ruler}
               actual={ventaM2} anterior={prevVentaM2}
               ventaM2Status={totalM2 > 0 ? getVentaM2Status(ventaM2, ventaM2) : undefined}
               onClick={() => navigate(`/venta-m2?days=${resolveDays(days)}`)} />
@@ -1800,25 +1816,25 @@ function ZonePanel({ days, locationFilter, comparisonPeriod = "previous" }: { da
           <h3 className="text-sm font-semibold text-foreground">📊 DESEMPEÑO POR ZONA</h3>
         </div>
         {/* Row 1 */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-          <KpiCard label="Ventas Netas" value={fmtCurrency(kpis?.ingresos_netos ?? 0)} icon={DollarSign}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <KpiCard label="Ventas Netas" value={fmtCurrency(kpis?.ingresos_netos ?? 0)} mobileValue={fmtCurrencyCompact(kpis?.ingresos_netos ?? 0)} icon={DollarSign}
             actual={kpis?.ingresos_netos ?? 0} anterior={prevKpis?.ingresos_netos ?? 0} />
-          <KpiCard label="Ticket Promedio" value={fmtCurrency(kpis?.ticket_promedio ?? 0)} icon={Receipt}
+          <KpiCard label="Ticket Promedio" value={fmtCurrency(kpis?.ticket_promedio ?? 0)} mobileValue={fmtCurrencyCompact(kpis?.ticket_promedio ?? 0)} icon={Receipt}
             actual={kpis?.ticket_promedio ?? 0} anterior={prevKpis?.ticket_promedio ?? 0} />
           {(() => {
             const precioPromZone = (kpis?.unidades_vendidas ?? 0) > 0 ? (kpis?.ingresos_netos ?? 0) / (kpis?.unidades_vendidas ?? 1) : 0;
             const prevPrecioPromZone = (prevKpis?.unidades_vendidas ?? 0) > 0 ? (prevKpis?.ingresos_netos ?? 0) / (prevKpis?.unidades_vendidas ?? 1) : 0;
-            return <KpiCard label="Precio Promedio" value={fmtCurrency(precioPromZone)} icon={Banknote}
+            return <KpiCard label="Precio Promedio" value={fmtCurrency(precioPromZone)} mobileValue={fmtCurrencyCompact(precioPromZone)} icon={Banknote}
               actual={precioPromZone} anterior={prevPrecioPromZone} />;
           })()}
         </div>
         {/* Row 2 */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mt-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-4">
           <KpiCard label="Unidades Vendidas" value={(kpis?.unidades_vendidas ?? 0).toLocaleString()} icon={Package}
             actual={kpis?.unidades_vendidas ?? 0} anterior={prevKpis?.unidades_vendidas ?? 0} />
           <KpiCard label="UPT" value={(kpis?.upt ?? 0).toFixed(2)} icon={ShoppingBag}
             actual={kpis?.upt ?? 0} anterior={prevKpis?.upt ?? 0} />
-          <KpiCard label="Venta / m²" value={fmtCurrency(ventaM2)} icon={Ruler}
+          <KpiCard label="Venta / m²" value={fmtCurrency(ventaM2)} mobileValue={fmtCurrencyCompact(ventaM2)} icon={Ruler}
             actual={ventaM2} anterior={prevVentaM2}
             ventaM2Status={channelM2 > 0 ? getVentaM2Status(ventaM2, ventaM2) : undefined}
             onClick={() => navigate(`/venta-m2?days=${resolveDays(days)}&canal=${canal}`)} />
@@ -1838,31 +1854,31 @@ function ZonePanel({ days, locationFilter, comparisonPeriod = "previous" }: { da
           </div>
           <div className="space-y-5">
             {/* Row 1: Mejor/Peor Día + Weekday/Weekend */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
               <div className="p-3 rounded-lg bg-emerald-500/5 border border-emerald-500/20">
                 <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">🟢 Mejor Día</p>
                 <p className="text-sm font-semibold text-foreground">{translateDay(zoneMetrics?.mejor_dia_semana ?? "N/A")}</p>
-                <p className="text-xs text-muted-foreground">{fmtCurrency(zoneMetrics?.venta_mejor_dia ?? 0)}</p>
+                <p className="text-xs text-muted-foreground">{fmtCurrencyCompact(zoneMetrics?.venta_mejor_dia ?? 0)}<span className="hidden sm:inline"> ({fmtCurrency(zoneMetrics?.venta_mejor_dia ?? 0)})</span></p>
               </div>
               <div className="p-3 rounded-lg bg-destructive/5 border border-destructive/20">
                 <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">🔴 Peor Día</p>
                 <p className="text-sm font-semibold text-foreground">{translateDay(zoneMetrics?.peor_dia_semana ?? "N/A")}</p>
-                <p className="text-xs text-muted-foreground">{fmtCurrency(zoneMetrics?.venta_peor_dia ?? 0)}</p>
+                <p className="text-xs text-muted-foreground">{fmtCurrencyCompact(zoneMetrics?.venta_peor_dia ?? 0)}<span className="hidden sm:inline"> ({fmtCurrency(zoneMetrics?.venta_peor_dia ?? 0)})</span></p>
               </div>
               <div className="p-3 rounded-lg bg-muted/40 border border-border">
                 <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Prom. Lun-Vie</p>
-                <p className="text-sm font-semibold text-foreground">{fmtCurrency(zoneMetrics?.venta_promedio_semana ?? 0)}</p>
+                <p className="text-sm font-semibold text-foreground">{fmtCurrencyCompact(zoneMetrics?.venta_promedio_semana ?? 0)}<span className="hidden sm:inline"> ({fmtCurrency(zoneMetrics?.venta_promedio_semana ?? 0)})</span></p>
               </div>
               <div className="p-3 rounded-lg bg-muted/40 border border-border">
                 <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Prom. Sáb-Dom</p>
-                <p className="text-sm font-semibold text-foreground">{fmtCurrency(zoneMetrics?.venta_promedio_finde ?? 0)}</p>
+                <p className="text-sm font-semibold text-foreground">{fmtCurrencyCompact(zoneMetrics?.venta_promedio_finde ?? 0)}<span className="hidden sm:inline"> ({fmtCurrency(zoneMetrics?.venta_promedio_finde ?? 0)})</span></p>
               </div>
             </div>
             {/* Row 2: Daily averages with comparison */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div className="p-3 rounded-lg bg-muted/30 border border-border">
                 <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Venta Prom/Día</p>
-                <p className="text-base font-semibold text-foreground">{fmtCurrency(zoneMetrics?.venta_promedio_diaria_actual ?? 0)}</p>
+                <p className="text-base font-semibold text-foreground">{fmtCurrencyCompact(zoneMetrics?.venta_promedio_diaria_actual ?? 0)}<span className="hidden sm:inline"> ({fmtCurrency(zoneMetrics?.venta_promedio_diaria_actual ?? 0)})</span></p>
                 <ComparisonIndicator actual={zoneMetrics?.venta_promedio_diaria_actual ?? 0} anterior={zoneMetrics?.venta_promedio_diaria_anterior ?? 0} label="vs ant." />
               </div>
               <div className="p-3 rounded-lg bg-muted/30 border border-border">
@@ -2056,30 +2072,30 @@ function ZoneStoreRankCard({ days, canal, locationId, locationName, allRanking, 
             <h3 className="text-sm font-semibold text-foreground">Desempeño Comercial</h3>
           </div>
           <div className="space-y-5">
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
               <div className="p-3 rounded-lg bg-emerald-500/5 border border-emerald-500/20">
                 <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">🟢 Mejor Día</p>
                 <p className="text-sm font-semibold text-foreground">{translateDay(extraMetrics?.mejor_dia_semana ?? "N/A")}</p>
-                <p className="text-xs text-muted-foreground">{fmtCurrency(extraMetrics?.venta_mejor_dia ?? 0)}</p>
+                <p className="text-xs text-muted-foreground">{fmtCurrencyCompact(extraMetrics?.venta_mejor_dia ?? 0)}<span className="hidden sm:inline"> ({fmtCurrency(extraMetrics?.venta_mejor_dia ?? 0)})</span></p>
               </div>
               <div className="p-3 rounded-lg bg-destructive/5 border border-destructive/20">
                 <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">🔴 Peor Día</p>
                 <p className="text-sm font-semibold text-foreground">{translateDay(extraMetrics?.peor_dia_semana ?? "N/A")}</p>
-                <p className="text-xs text-muted-foreground">{fmtCurrency(extraMetrics?.venta_peor_dia ?? 0)}</p>
+                <p className="text-xs text-muted-foreground">{fmtCurrencyCompact(extraMetrics?.venta_peor_dia ?? 0)}<span className="hidden sm:inline"> ({fmtCurrency(extraMetrics?.venta_peor_dia ?? 0)})</span></p>
               </div>
               <div className="p-3 rounded-lg bg-muted/40 border border-border">
                 <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Prom. Lun-Vie</p>
-                <p className="text-sm font-semibold text-foreground">{fmtCurrency(extraMetrics?.venta_promedio_semana ?? 0)}</p>
+                <p className="text-sm font-semibold text-foreground">{fmtCurrencyCompact(extraMetrics?.venta_promedio_semana ?? 0)}<span className="hidden sm:inline"> ({fmtCurrency(extraMetrics?.venta_promedio_semana ?? 0)})</span></p>
               </div>
               <div className="p-3 rounded-lg bg-muted/40 border border-border">
                 <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Prom. Sáb-Dom</p>
-                <p className="text-sm font-semibold text-foreground">{fmtCurrency(extraMetrics?.venta_promedio_finde ?? 0)}</p>
+                <p className="text-sm font-semibold text-foreground">{fmtCurrencyCompact(extraMetrics?.venta_promedio_finde ?? 0)}<span className="hidden sm:inline"> ({fmtCurrency(extraMetrics?.venta_promedio_finde ?? 0)})</span></p>
               </div>
             </div>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div className="p-3 rounded-lg bg-muted/30 border border-border">
                 <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Venta Prom/Día</p>
-                <p className="text-base font-semibold text-foreground">{fmtCurrency(extraMetrics?.venta_promedio_diaria_actual ?? 0)}</p>
+                <p className="text-base font-semibold text-foreground">{fmtCurrencyCompact(extraMetrics?.venta_promedio_diaria_actual ?? 0)}<span className="hidden sm:inline"> ({fmtCurrency(extraMetrics?.venta_promedio_diaria_actual ?? 0)})</span></p>
                 <ComparisonIndicator actual={extraMetrics?.venta_promedio_diaria_actual ?? 0} anterior={extraMetrics?.venta_promedio_diaria_anterior ?? 0} label="vs ant." />
               </div>
               <div className="p-3 rounded-lg bg-muted/30 border border-border">
