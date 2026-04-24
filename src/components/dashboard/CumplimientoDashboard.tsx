@@ -29,6 +29,13 @@ function fmtCOP(n: number) {
   return "$" + Math.round(n).toLocaleString("es-CO");
 }
 
+function fmtCOPCompact(n: number) {
+  const abs = Math.abs(n);
+  if (abs >= 1_000_000_000) return `$${(n / 1_000_000_000).toLocaleString("es-CO", { maximumFractionDigits: 2 })}MM`;
+  if (abs >= 1_000_000) return `$${(n / 1_000_000).toLocaleString("es-CO", { maximumFractionDigits: 3 })}M`;
+  return fmtCOP(n);
+}
+
 function pctColor(pct: number) {
   if (pct > 100) return "text-blue-600";
   if (pct >= 98) return "text-green-600";
@@ -516,8 +523,8 @@ export function CumplimientoDashboard() {
               })()}
             </div>
             <div className="flex justify-between mt-2 text-xs text-muted-foreground">
-              <span>Venta Neta: {fmtCOP(totalVentaNeta)}</span>
-              <span>Meta: {fmtCOP(totalBudget)}</span>
+              <span>Venta Neta: <span className="sm:hidden">{fmtCOPCompact(totalVentaNeta)}</span><span className="hidden sm:inline">{fmtCOP(totalVentaNeta)}</span></span>
+              <span>Meta: <span className="sm:hidden">{fmtCOPCompact(totalBudget)}</span><span className="hidden sm:inline">{fmtCOP(totalBudget)}</span></span>
             </div>
           </CardContent>
         </Card>
@@ -538,15 +545,15 @@ export function CumplimientoDashboard() {
               indicatorClassName={pctBg(pctToDate)}
             />
             <div className="flex justify-between mt-2 text-xs text-muted-foreground">
-              <span>Venta: {fmtCOP(totalVentaNeta)}</span>
-              <span>Meta día {daysElapsed}: {fmtCOP(budgetToDate)}</span>
+              <span>Venta: <span className="sm:hidden">{fmtCOPCompact(totalVentaNeta)}</span><span className="hidden sm:inline">{fmtCOP(totalVentaNeta)}</span></span>
+              <span>Meta día {daysElapsed}: <span className="sm:hidden">{fmtCOPCompact(budgetToDate)}</span><span className="hidden sm:inline">{fmtCOP(budgetToDate)}</span></span>
             </div>
           </CardContent>
         </Card>
       </div>
 
       {/* Secondary KPIs */}
-      <div data-pdf-section className="grid grid-cols-2 md:grid-cols-2 gap-4">
+      <div data-pdf-section className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Card>
           <CardContent className="py-4 text-center">
             <p className="text-xs text-muted-foreground mb-1">Unidades Vendidas</p>
@@ -556,7 +563,10 @@ export function CumplimientoDashboard() {
         <Card>
           <CardContent className="py-4 text-center">
             <p className="text-xs text-muted-foreground mb-1">Ticket Promedio</p>
-            <p className="text-xl font-bold text-foreground">{fmtCOP(ticketPromedio)}</p>
+            <p className="text-xl font-bold text-foreground whitespace-normal break-words tabular-nums">
+              <span className="sm:hidden">{fmtCOPCompact(ticketPromedio)}</span>
+              <span className="hidden sm:inline">{fmtCOP(ticketPromedio)}</span>
+            </p>
           </CardContent>
         </Card>
       </div>
