@@ -39,13 +39,14 @@ Deno.serve(async (req) => {
       return json({ error: "Campos requeridos: userId, newRoleId" }, 400);
     }
 
-    // Buscar el role.key
-    const { data: role, error: roleErr } = await supabaseAdmin
+    // Buscar el rol por id, key o name para tolerar valores enviados desde el selector
+    const { data: rolesData, error: roleErr } = await supabaseAdmin
       .from("roles")
-      .select("id, key")
-      .eq("id", newRoleId)
-      .maybeSingle();
-    if (roleErr || !role) return json({ error: "Rol no existe" }, 400);
+      .select("id, key, name")
+      .or(`id.eq.${newRoleId},key.eq.${newRoleId},name.eq.${newRoleId}`)
+      .limit(1);
+    const role = rolesData?.[0];
+    if (roleErr || !role) return json({ error: `Rol no existe: ${newRoleId}` }, 400);
 
     // Si es el último admin del sistema y le quitan admin, bloquear
     if (role.key !== "admin") {
