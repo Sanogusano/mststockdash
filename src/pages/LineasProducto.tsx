@@ -259,7 +259,7 @@ export default function LineasProductoPage() {
           </header>
           <div className="flex-1 px-4 sm:px-6 py-4 sm:py-6 space-y-4">
             {/* Summary Cards */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <button
                 onClick={() => setShowStockDetail(true)}
                 className="glass-card p-4 text-left transition-all border-2 border-transparent hover:border-border"
@@ -268,7 +268,7 @@ export default function LineasProductoPage() {
                   <Star className="h-4 w-4 text-emerald-600" />
                   <span className="text-xs text-muted-foreground font-medium uppercase">Stock Prendas</span>
                 </div>
-                <p className="text-xl font-semibold text-foreground">{stockTotals.total.toLocaleString()} uds</p>
+                <p className="text-xl font-semibold text-foreground whitespace-normal break-words tabular-nums">{stockTotals.total.toLocaleString()} uds</p>
                 <div className="flex items-center gap-3 mt-1.5">
                   <span className="flex items-center gap-1 text-[10px] text-muted-foreground">
                     <Hash className="h-3 w-3" /> {stockSkuCount.toLocaleString()} SKUs
@@ -294,7 +294,7 @@ export default function LineasProductoPage() {
                   <Package className="h-4 w-4 text-primary" />
                   <span className="text-xs text-muted-foreground font-medium uppercase">Insumos</span>
                 </div>
-                <p className="text-xl font-semibold text-foreground">{supplyTotal.toLocaleString()} uds</p>
+                <p className="text-xl font-semibold text-foreground whitespace-normal break-words tabular-nums">{supplyTotal.toLocaleString()} uds</p>
                 <p className="text-xs text-primary font-medium">{supplyStock.length} SKUs →</p>
               </button>
             </div>
