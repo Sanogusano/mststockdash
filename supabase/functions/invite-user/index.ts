@@ -83,7 +83,7 @@ Deno.serve(async (req) => {
           scope_location_ids: scopeLocationIds && scopeLocationIds.length > 0
             ? scopeLocationIds
             : null,
-          invited_by: (claimsData.claims as any).sub,
+          invited_by: authData.user.id,
           invited_at: new Date().toISOString(),
           is_active: true,
           updated_at: new Date().toISOString(),
