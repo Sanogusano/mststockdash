@@ -61,7 +61,7 @@ export default function ConfiguracionUsuariosPage() {
           </header>
 
           <main className="p-6 space-y-6">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
               <KpiCard icon={Users} label="Total" value={kpis.total} />
               <KpiCard icon={Activity} label="Activos" value={kpis.activos} />
               <KpiCard icon={ShieldCheck} label="Administradores" value={kpis.admins} />
@@ -92,7 +92,7 @@ function KpiCard({ icon: Icon, label, value }: { icon: any; label: string; value
       </div>
       <div>
         <p className="text-xs text-muted-foreground">{label}</p>
-        <p className="text-2xl font-semibold">{value}</p>
+        <p className="text-2xl font-semibold whitespace-normal break-words tabular-nums">{value}</p>
       </div>
     </Card>
   );
