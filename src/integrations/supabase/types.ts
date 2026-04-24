@@ -22,6 +22,7 @@ export type Database = {
           fecha_traslado: string
           generated_at: string
           generated_by: string | null
+          generated_by_user_id: string | null
           id: string
           id_externo: string
           lineas_json: Json
@@ -40,6 +41,7 @@ export type Database = {
           fecha_traslado: string
           generated_at?: string
           generated_by?: string | null
+          generated_by_user_id?: string | null
           id?: string
           id_externo: string
           lineas_json: Json
@@ -58,6 +60,7 @@ export type Database = {
           fecha_traslado?: string
           generated_at?: string
           generated_by?: string | null
+          generated_by_user_id?: string | null
           id?: string
           id_externo?: string
           lineas_json?: Json
@@ -94,6 +97,13 @@ export type Database = {
           {
             foreignKeyName: "allocation_runs_generated_by_fkey"
             columns: ["generated_by"]
+            isOneToOne: false
+            referencedRelation: "v_usuarios_gestion"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "allocation_runs_generated_by_user_id_fkey"
+            columns: ["generated_by_user_id"]
             isOneToOne: false
             referencedRelation: "v_usuarios_gestion"
             referencedColumns: ["user_id"]
@@ -1758,6 +1768,10 @@ export type Database = {
         }[]
       }
       get_user_scope: { Args: { p_user_id?: string }; Returns: string[] }
+      obtener_siguiente_consecutivo: {
+        Args: { p_origen_netsuite_id: number }
+        Returns: number
+      }
       reporte_baja_rotacion_outlet: {
         Args: {
           p_sell_through_umbral?: number
