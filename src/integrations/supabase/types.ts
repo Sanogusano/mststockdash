@@ -855,6 +855,7 @@ export type Database = {
           financial_status: string | null
           location_id: string | null
           order_number: string
+          payment_gateway: string | null
           shopify_order_id: string
           source_name: string | null
           total_price: number
@@ -865,6 +866,7 @@ export type Database = {
           financial_status?: string | null
           location_id?: string | null
           order_number: string
+          payment_gateway?: string | null
           shopify_order_id: string
           source_name?: string | null
           total_price: number
@@ -875,6 +877,7 @@ export type Database = {
           financial_status?: string | null
           location_id?: string | null
           order_number?: string
+          payment_gateway?: string | null
           shopify_order_id?: string
           source_name?: string | null
           total_price?: number
