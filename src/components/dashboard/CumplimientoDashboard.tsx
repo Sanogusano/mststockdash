@@ -639,16 +639,16 @@ export function CumplimientoDashboard() {
           </CardTitle>
         </CardHeader>
         <CardContent className="p-0 overflow-x-auto">
-          <Table>
+          <Table className="min-w-[820px]">
             <TableHeader>
               <TableRow className="bg-muted/50">
-                <TableHead className="font-semibold">Canal / Tienda</TableHead>
-                <TableHead className="text-right font-semibold">Presupuesto</TableHead>
-                <TableHead className="text-right font-semibold">Venta Neta</TableHead>
-                <TableHead className="text-right font-semibold">Cumpl. General %</TableHead>
-                <TableHead className="text-right font-semibold">% a la Fecha</TableHead>
-                <TableHead className="text-right font-semibold">Uds.</TableHead>
-                <TableHead className="text-right font-semibold">Ticket Prom.</TableHead>
+                <TableHead className="font-semibold sticky left-0 z-20 bg-muted/70 backdrop-blur min-w-[160px] max-w-[220px]">Canal / Tienda</TableHead>
+                <TableHead className="text-right font-semibold min-w-[110px]">Presupuesto</TableHead>
+                <TableHead className="text-right font-semibold min-w-[110px]">Venta Neta</TableHead>
+                <TableHead className="text-right font-semibold min-w-[110px]">Cumpl. General %</TableHead>
+                <TableHead className="text-right font-semibold min-w-[100px]">% a la Fecha</TableHead>
+                <TableHead className="text-right font-semibold min-w-[80px]">Uds.</TableHead>
+                <TableHead className="text-right font-semibold min-w-[110px]">Ticket Prom.</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
