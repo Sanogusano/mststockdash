@@ -38,6 +38,7 @@ const navItems: NavItem[] = [
   { title: "Cierre de Colecciones", url: "/cierre-coleccion", icon: Archive, description: "Desempeño por colección & remanentes", module: "dashboards.cierre_colecciones", action: "view" },
   { title: "Presupuestos", url: "/presupuestos", icon: Target, description: "Metas de venta", module: "dashboards.presupuestos", action: "view" },
   { title: "Centro de Acción", url: "/centro-accion", icon: Zap, description: "Alertas comerciales", module: "dashboards.centro_accion", action: "view" },
+  { title: "Rendimiento de Red", url: "/rendimiento-red", icon: TrendingUp, description: "Same-store, maduración y eficiencia", module: "dashboards.rendimiento_red", action: "view" },
 ];
 
 const gestionComercialItems: NavItem[] = [
