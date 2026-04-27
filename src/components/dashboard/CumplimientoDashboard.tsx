@@ -654,7 +654,7 @@ export function CumplimientoDashboard() {
             <TableBody>
               {/* Grand total row */}
               <TableRow className="bg-primary/5 font-bold border-b-2 border-primary/20">
-                <TableCell className="font-bold text-foreground">🏆 VENTA DIRECTA</TableCell>
+                <TableCell className="font-bold text-foreground sticky left-0 z-10 bg-primary/10 min-w-[160px] max-w-[220px] whitespace-normal break-words">🏆 VENTA DIRECTA</TableCell>
                 <TableCell className="text-right font-bold">{fmtCOP(totalBudget)}</TableCell>
                 <TableCell className="text-right font-bold">{fmtCOP(totalVentaNeta)}</TableCell>
                 <TableCell className="text-right">
