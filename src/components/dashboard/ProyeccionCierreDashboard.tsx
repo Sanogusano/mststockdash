@@ -76,14 +76,15 @@ export function ProyeccionCierreDashboard() {
     load();
   }, [anio, mes]);
 
-  // Global totals — solo tiendas (las ventas de canales ya están dentro de tiendas; sumar ambos duplica).
+  // Global totals — tiendas + canales (Personal Shopper, Tienda Online, etc.).
+  // Se excluyen presupuestos de tipo "vendedor" (metas individuales).
   const totals = useMemo(() => {
-    const stores = data.filter(r => r.tipo === "tienda");
-    const ventaActual = stores.reduce((s, r) => s + Number(r.venta_actual), 0);
-    const presupuesto = stores.reduce((s, r) => s + Number(r.presupuesto_mes), 0);
-    const conservador = stores.reduce((s, r) => s + Number(r.cierre_conservador), 0);
-    const probable = stores.reduce((s, r) => s + Number(r.cierre_probable), 0);
-    const optimista = stores.reduce((s, r) => s + Number(r.cierre_optimista), 0);
+    const rows = data.filter(r => r.tipo === "tienda" || r.tipo === "canal");
+    const ventaActual = rows.reduce((s, r) => s + Number(r.venta_actual), 0);
+    const presupuesto = rows.reduce((s, r) => s + Number(r.presupuesto_mes), 0);
+    const conservador = rows.reduce((s, r) => s + Number(r.cierre_conservador), 0);
+    const probable = rows.reduce((s, r) => s + Number(r.cierre_probable), 0);
+    const optimista = rows.reduce((s, r) => s + Number(r.cierre_optimista), 0);
     const diasTranscurridos = data[0]?.dias_transcurridos ?? 0;
     const diasMes = data[0]?.dias_mes ?? 30;
     return { ventaActual, presupuesto, conservador, probable, optimista, diasTranscurridos, diasMes };
