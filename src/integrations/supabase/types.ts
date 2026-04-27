@@ -2041,6 +2041,21 @@ export type Database = {
           unidades: number
         }[]
       }
+      reporte_curva_maduracion: {
+        Args: never
+        Returns: {
+          r_cohorte: string
+          r_location_id: string
+          r_mes_de_vida: number
+          r_mes_fecha: string
+          r_nombre: string
+          r_ordenes: number
+          r_ticket: number
+          r_tipo_tienda: string
+          r_ventas: number
+          r_vpm: number
+        }[]
+      }
       reporte_curva_traslados:
         | {
             Args: { dias_atras?: number; p_destino?: string; p_origen?: string }
@@ -2274,6 +2289,22 @@ export type Database = {
               wos: number
             }[]
           }
+      reporte_eficiencia_actual: {
+        Args: { p_dias?: number }
+        Returns: {
+          r_dimension_m2: number
+          r_location_id: string
+          r_meses_activa: number
+          r_nombre: string
+          r_ordenes: number
+          r_ticket: number
+          r_tipo_tienda: string
+          r_ventas: number
+          r_vpm: number
+          r_vpm_vs_red: number
+          r_zona: string
+        }[]
+      }
       reporte_ejecutivo_kpis:
         | {
             Args: {
@@ -2740,6 +2771,34 @@ export type Database = {
               ventas_totales: number
             }[]
           }
+      reporte_rendimiento_red: {
+        Args: {
+          p_fecha_desde_actual?: string
+          p_fecha_desde_base?: string
+          p_fecha_hasta_actual?: string
+          p_fecha_hasta_base?: string
+        }
+        Returns: {
+          r_crecimiento_ventas: number
+          r_crecimiento_vpm: number
+          r_dimension_m2: number
+          r_es_nueva: boolean
+          r_es_same_store: boolean
+          r_location_id: string
+          r_nombre: string
+          r_ordenes_actual: number
+          r_ordenes_base: number
+          r_semaforo: string
+          r_ticket_actual: number
+          r_ticket_base: number
+          r_tipo_tienda: string
+          r_ventas_actual: number
+          r_ventas_base: number
+          r_vpm_actual: number
+          r_vpm_base: number
+          r_zona: string
+        }[]
+      }
       reporte_reorden_insumos: {
         Args: never
         Returns: {
@@ -2775,6 +2834,32 @@ export type Database = {
               venta_promedio_semanal: number
             }[]
           }
+      reporte_same_store: {
+        Args: {
+          p_fecha_desde_actual?: string
+          p_fecha_desde_base?: string
+          p_fecha_hasta_actual?: string
+          p_fecha_hasta_base?: string
+        }
+        Returns: {
+          r_crecimiento_ventas: number
+          r_crecimiento_vpm: number
+          r_dimension_m2: number
+          r_location_id: string
+          r_nombre: string
+          r_ordenes_actual: number
+          r_ordenes_base: number
+          r_semaforo: string
+          r_ticket_actual: number
+          r_ticket_base: number
+          r_tipo_tienda: string
+          r_ventas_actual: number
+          r_ventas_base: number
+          r_vpm_actual: number
+          r_vpm_base: number
+          r_zona: string
+        }[]
+      }
       reporte_sugerencias_traslado:
         | {
             Args: { dias_atras: number }
