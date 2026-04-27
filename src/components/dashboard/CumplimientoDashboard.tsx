@@ -231,17 +231,18 @@ export function CumplimientoDashboard() {
   }, [anio, mes]);
 
   // ── Computed ──
-  const totalBudget = configs.reduce((s, c) => s + Number(c.monto), 0);
+  const storeConfigs = configs.filter(c => c.tipo === "tienda");
+  const channelConfigs = configs.filter(c => c.tipo === "canal");
+  const totalBudgetCanales = channelConfigs.reduce((s, c) => s + Number(c.monto), 0);
+  const totalBudgetTiendas = storeConfigs.reduce((s, c) => s + Number(c.monto), 0);
+  // Meta global = solo presupuestos de tiendas (incluye Tienda Online como ubicación).
+  // Sumar también canales duplicaría el monto, pues las ventas de canales ya están dentro de tiendas.
+  const totalBudget = totalBudgetTiendas;
   const totalVentaNeta = Object.values(salesByStore).reduce((s, v) => s + v.ventaNeta, 0);
   const totalPedidos = Object.values(salesByStore).reduce((s, v) => s + v.pedidos, 0);
   const totalUnidades = Object.values(salesByStore).reduce((s, v) => s + v.unidades, 0);
   const globalPct = totalBudget > 0 ? (totalVentaNeta / totalBudget) * 100 : 0;
   const ticketPromedio = totalPedidos > 0 ? totalVentaNeta / totalPedidos : 0;
-
-  const storeConfigs = configs.filter(c => c.tipo === "tienda");
-  const channelConfigs = configs.filter(c => c.tipo === "canal");
-  const totalBudgetCanales = channelConfigs.reduce((s, c) => s + Number(c.monto), 0);
-  const totalBudgetTiendas = storeConfigs.reduce((s, c) => s + Number(c.monto), 0);
   const totalVentaCanales = Object.entries(salesByChannel)
     .filter(([ch]) => ch !== "POS")
     .reduce((s, [, v]) => s + v.ventaNeta, 0);
