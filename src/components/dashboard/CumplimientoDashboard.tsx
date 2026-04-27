@@ -688,11 +688,11 @@ export function CumplimientoDashboard() {
                       ${zebraClass}
                     `}
                   >
-                    <TableCell className={`
-                      ${isGroup ? "font-semibold text-foreground" : ""}
-                      ${isTotalTiendas ? "font-bold text-foreground" : ""}
-                      ${isSubgroup ? "font-medium text-foreground pl-6" : ""}
-                      ${isItem ? "pl-10 text-sm text-muted-foreground" : ""}
+                    <TableCell className={`sticky left-0 z-10 min-w-[160px] max-w-[220px] whitespace-normal break-words
+                      ${isGroup ? "font-semibold text-foreground bg-muted/40" : ""}
+                      ${isTotalTiendas ? "font-bold text-foreground bg-accent/10" : ""}
+                      ${isSubgroup ? "font-medium text-foreground pl-6 bg-muted/25" : ""}
+                      ${isItem ? "pl-10 text-sm text-muted-foreground " + (idx % 2 === 0 ? "bg-muted/20" : "bg-background") : ""}
                     `}>
                       <span className="flex items-center gap-1">
                         {(row.level === "item" || row.level === "subgroup" || row.level === "total-tiendas") && row.pctToDate < 100 && (
