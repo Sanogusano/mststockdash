@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { BarChart3, TrendingUp, ArrowLeftRight, Package, Tag, Layers, Target, Zap, Trophy, Archive, Users, Calculator, UserCog, Briefcase, ChevronDown, Settings, MapPin, Upload, LogOut, Truck, Shield } from "lucide-react";
+import { BarChart3, TrendingUp, ArrowLeftRight, Package, Tag, Layers, Target, Zap, Trophy, Archive, Users, Calculator, UserCog, Briefcase, ChevronDown, Settings, MapPin, Upload, LogOut, Truck, Shield, Store } from "lucide-react";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useAuth } from "@/hooks/useAuth";
 import { useUserPermissions } from "@/hooks/useUserPermissions";
@@ -28,18 +28,18 @@ type NavItem = {
   action: string;
 };
 
-const navItems: NavItem[] = [
-  { title: "Resumen Ejecutivo", url: "/", icon: TrendingUp, description: "Desempeño comercial", module: "dashboards.resumen_ejecutivo", action: "view" },
-  { title: "Inventarios & Salud", url: "/inventarios", icon: BarChart3, description: "WOS por tienda", module: "dashboards.inventario_salud", action: "view" },
-  { title: "Salud de Producto", url: "/producto", icon: Tag, description: "Sell-through & WOS", module: "dashboards.salud_producto", action: "view" },
-  { title: "Desempeño por Línea", url: "/lineas", icon: Layers, description: "Categorías & canales", module: "dashboards.desempeno_linea", action: "view" },
+// Items principales en orden solicitado
+const resumenItem: NavItem = { title: "Resumen Ejecutivo", url: "/", icon: TrendingUp, description: "Desempeño comercial", module: "dashboards.resumen_ejecutivo", action: "view" };
+const presupuestoItem: NavItem = { title: "Presupuesto", url: "/presupuestos", icon: Target, description: "Metas de venta", module: "dashboards.presupuestos", action: "view" };
+const centroAccionItem: NavItem = { title: "Centro de Acciones", url: "/centro-accion", icon: Zap, description: "Alertas comerciales", module: "dashboards.centro_accion", action: "view" };
+const rendimientoTiendasItem: NavItem = { title: "Rendimiento Tiendas", url: "/rendimiento-red", icon: Store, description: "Same-store, maduración y eficiencia", module: "dashboards.rendimiento_red", action: "view" };
+const saludProductoItem: NavItem = { title: "Salud de Producto", url: "/producto", icon: Tag, description: "Sell-through & WOS", module: "dashboards.salud_producto", action: "view" };
+const desempenoLineaItem: NavItem = { title: "Desempeño por Línea", url: "/lineas", icon: Layers, description: "Categorías & canales", module: "dashboards.desempeno_linea", action: "view" };
+const cierreColeccionItem: NavItem = { title: "Cierre de Colecciones", url: "/cierre-coleccion", icon: Archive, description: "Desempeño por colección & remanentes", module: "dashboards.cierre_colecciones", action: "view" };
 
-  { title: "Gestión de Insumos", url: "/insumos", icon: Package, description: "CEDI & reorden", module: "dashboards.gestion_insumos", action: "view" },
-  { title: "Cierre de Colecciones", url: "/cierre-coleccion", icon: Archive, description: "Desempeño por colección & remanentes", module: "dashboards.cierre_colecciones", action: "view" },
-  { title: "Presupuestos", url: "/presupuestos", icon: Target, description: "Metas de venta", module: "dashboards.presupuestos", action: "view" },
-  { title: "Centro de Acción", url: "/centro-accion", icon: Zap, description: "Alertas comerciales", module: "dashboards.centro_accion", action: "view" },
-  { title: "Rendimiento de Red", url: "/rendimiento-red", icon: TrendingUp, description: "Same-store, maduración y eficiencia", module: "dashboards.rendimiento_red", action: "view" },
-];
+// Items adicionales (no listados explícitamente, se mantienen visibles al final del bloque de análisis)
+const inventariosItem: NavItem = { title: "Inventarios & Salud", url: "/inventarios", icon: BarChart3, description: "WOS por tienda", module: "dashboards.inventario_salud", action: "view" };
+const insumosItem: NavItem = { title: "Gestión de Insumos", url: "/insumos", icon: Package, description: "CEDI & reorden", module: "dashboards.gestion_insumos", action: "view" };
 
 const gestionComercialItems: NavItem[] = [
   { title: "Gestión de Incentivos", url: "/incentivos", icon: Trophy, description: "Campañas & liquidaciones", module: "incentivos", action: "view" },
@@ -67,7 +67,6 @@ export function AppSidebar() {
   const { signOut, session } = useAuth();
   const { data: permissions } = useUserPermissions();
 
-  // Filtro por permisos. Admin: failsafe → ve todo.
   const can = (module: string, action: string) => {
     if (isAdmin) return true;
     return (permissions ?? []).some(
@@ -75,17 +74,22 @@ export function AppSidebar() {
     );
   };
 
-  const visibleNav = useMemo(() => navItems.filter((i) => can(i.module, i.action)), [permissions, isAdmin]);
   const visibleGestion = useMemo(() => gestionComercialItems.filter((i) => can(i.module, i.action)), [permissions, isAdmin]);
   const visibleLogistica = useMemo(() => logisticaItems.filter((i) => can(i.module, i.action)), [permissions, isAdmin]);
   const visibleConfig = useMemo(() => configuracionItems.filter((i) => can(i.module, i.action)), [permissions, isAdmin]);
 
+  const canPresupuesto = can(presupuestoItem.module, presupuestoItem.action);
+  const canCentroAccion = can(centroAccionItem.module, centroAccionItem.action);
+
   const isGestionActive = visibleGestion.some((i) => location.pathname === i.url);
   const isConfigActive = visibleConfig.some((i) => location.pathname === i.url);
   const isLogisticaActive = visibleLogistica.some((i) => location.pathname === i.url);
+  const isPresupuestoActive = [presupuestoItem.url, centroAccionItem.url].includes(location.pathname);
+
   const [gestionOpen, setGestionOpen] = useState(isGestionActive);
   const [configOpen, setConfigOpen] = useState(isConfigActive);
   const [logisticaOpen, setLogisticaOpen] = useState(isLogisticaActive);
+  const [presupuestoOpen, setPresupuestoOpen] = useState(isPresupuestoActive);
 
   const userEmail = session?.user?.email || "";
   const userInitial = userEmail.charAt(0).toUpperCase() || "U";
@@ -124,14 +128,6 @@ export function AppSidebar() {
     );
   };
 
-  // Slice para mantener orden visual original (4 primeros, luego logística, luego resto, luego gestión)
-  const visibleFirstFour = visibleNav.filter((i) =>
-    ["/", "/inventarios", "/producto", "/lineas"].includes(i.url),
-  );
-  const visibleRest = visibleNav.filter(
-    (i) => !["/", "/inventarios", "/producto", "/lineas"].includes(i.url),
-  );
-
   return (
     <Sidebar className="border-r border-sidebar-border bg-sidebar">
       <SidebarHeader className="px-6 py-6 border-b border-sidebar-border/40">
@@ -145,9 +141,56 @@ export function AppSidebar() {
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu className="gap-0.5">
-              {visibleFirstFour.map((item) => renderItem(item))}
+              {/* 1 - Resumen Ejecutivo */}
+              {can(resumenItem.module, resumenItem.action) && renderItem(resumenItem)}
 
-              {/* Logística — solo si hay items visibles */}
+              {/* 2 - Presupuesto (con sub-item Centro de Acciones) */}
+              {canPresupuesto && (
+                <>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton asChild>
+                      <button
+                        onClick={() => setPresupuestoOpen((v) => !v)}
+                        className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-150 ${
+                          isPresupuestoActive
+                            ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
+                            : "text-sidebar-foreground/70 hover:bg-sidebar-accent/40 hover:text-sidebar-foreground"
+                        }`}
+                      >
+                        <Target className="h-[18px] w-[18px] shrink-0" />
+                        <span className="text-sm leading-tight flex-1 text-left truncate">Presupuesto</span>
+                        <ChevronDown
+                          className={`h-3.5 w-3.5 shrink-0 transition-transform ${presupuestoOpen ? "rotate-180" : ""}`}
+                        />
+                      </button>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                  {presupuestoOpen && (
+                    <>
+                      {renderItem(presupuestoItem, true)}
+                      {canCentroAccion && renderItem(centroAccionItem, true)}
+                    </>
+                  )}
+                </>
+              )}
+
+              {/* 3 - Rendimiento Tiendas */}
+              {can(rendimientoTiendasItem.module, rendimientoTiendasItem.action) && renderItem(rendimientoTiendasItem)}
+
+              {/* 4 - Salud Producto */}
+              {can(saludProductoItem.module, saludProductoItem.action) && renderItem(saludProductoItem)}
+
+              {/* 5 - Desempeño por Línea */}
+              {can(desempenoLineaItem.module, desempenoLineaItem.action) && renderItem(desempenoLineaItem)}
+
+              {/* 6 - Cierre de Colecciones */}
+              {can(cierreColeccionItem.module, cierreColeccionItem.action) && renderItem(cierreColeccionItem)}
+
+              {/* Items adicionales (Inventarios, Insumos) */}
+              {can(inventariosItem.module, inventariosItem.action) && renderItem(inventariosItem)}
+              {can(insumosItem.module, insumosItem.action) && renderItem(insumosItem)}
+
+              {/* 7 - Logística & Traslados */}
               {visibleLogistica.length > 0 && (
                 <>
                   <SidebarMenuItem>
@@ -172,9 +215,7 @@ export function AppSidebar() {
                 </>
               )}
 
-              {visibleRest.map((item) => renderItem(item))}
-
-              {/* Gestión Comercial — solo si hay items visibles */}
+              {/* 8 - Gestión Comercial */}
               {visibleGestion.length > 0 && (
                 <>
                   <SidebarMenuItem>
@@ -199,7 +240,7 @@ export function AppSidebar() {
                 </>
               )}
 
-              {/* Configuración — solo si hay items visibles */}
+              {/* 9 - Configuración */}
               {visibleConfig.length > 0 && (
                 <>
                   <SidebarMenuItem>
