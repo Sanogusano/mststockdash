@@ -408,7 +408,9 @@ export function ProyeccionCierreDashboard() {
                           : "hover:bg-muted/10"
                       }
                     >
-                      <TableCell className={`text-[11px] truncate ${row.level === "item" ? "pl-6" : ""}`}>
+                      <TableCell className={`text-[11px] sticky left-0 z-10 min-w-[140px] max-w-[200px] whitespace-normal break-words ${
+                        isGroup ? "bg-muted/40" : isSubgroup ? "bg-muted/20" : "bg-background"
+                      } ${row.level === "item" ? "pl-6" : ""}`}>
                         {row.label}
                       </TableCell>
                       <TableCell className="text-[11px] text-right tabular-nums">{fmtCOP(row.ventaActual)}</TableCell>
