@@ -76,13 +76,14 @@ export function ProyeccionCierreDashboard() {
     load();
   }, [anio, mes]);
 
-  // Global totals
+  // Global totals — solo tiendas (las ventas de canales ya están dentro de tiendas; sumar ambos duplica).
   const totals = useMemo(() => {
-    const ventaActual = data.reduce((s, r) => s + Number(r.venta_actual), 0);
-    const presupuesto = data.reduce((s, r) => s + Number(r.presupuesto_mes), 0);
-    const conservador = data.reduce((s, r) => s + Number(r.cierre_conservador), 0);
-    const probable = data.reduce((s, r) => s + Number(r.cierre_probable), 0);
-    const optimista = data.reduce((s, r) => s + Number(r.cierre_optimista), 0);
+    const stores = data.filter(r => r.tipo === "tienda");
+    const ventaActual = stores.reduce((s, r) => s + Number(r.venta_actual), 0);
+    const presupuesto = stores.reduce((s, r) => s + Number(r.presupuesto_mes), 0);
+    const conservador = stores.reduce((s, r) => s + Number(r.cierre_conservador), 0);
+    const probable = stores.reduce((s, r) => s + Number(r.cierre_probable), 0);
+    const optimista = stores.reduce((s, r) => s + Number(r.cierre_optimista), 0);
     const diasTranscurridos = data[0]?.dias_transcurridos ?? 0;
     const diasMes = data[0]?.dias_mes ?? 30;
     return { ventaActual, presupuesto, conservador, probable, optimista, diasTranscurridos, diasMes };
