@@ -639,22 +639,22 @@ export function CumplimientoDashboard() {
           </CardTitle>
         </CardHeader>
         <CardContent className="p-0 overflow-x-auto">
-          <Table>
+          <Table className="min-w-[820px]">
             <TableHeader>
               <TableRow className="bg-muted/50">
-                <TableHead className="font-semibold">Canal / Tienda</TableHead>
-                <TableHead className="text-right font-semibold">Presupuesto</TableHead>
-                <TableHead className="text-right font-semibold">Venta Neta</TableHead>
-                <TableHead className="text-right font-semibold">Cumpl. General %</TableHead>
-                <TableHead className="text-right font-semibold">% a la Fecha</TableHead>
-                <TableHead className="text-right font-semibold">Uds.</TableHead>
-                <TableHead className="text-right font-semibold">Ticket Prom.</TableHead>
+                <TableHead className="font-semibold sticky left-0 z-20 bg-muted/70 backdrop-blur min-w-[160px] max-w-[220px]">Canal / Tienda</TableHead>
+                <TableHead className="text-right font-semibold min-w-[110px]">Presupuesto</TableHead>
+                <TableHead className="text-right font-semibold min-w-[110px]">Venta Neta</TableHead>
+                <TableHead className="text-right font-semibold min-w-[110px]">Cumpl. General %</TableHead>
+                <TableHead className="text-right font-semibold min-w-[100px]">% a la Fecha</TableHead>
+                <TableHead className="text-right font-semibold min-w-[80px]">Uds.</TableHead>
+                <TableHead className="text-right font-semibold min-w-[110px]">Ticket Prom.</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {/* Grand total row */}
               <TableRow className="bg-primary/5 font-bold border-b-2 border-primary/20">
-                <TableCell className="font-bold text-foreground">🏆 VENTA DIRECTA</TableCell>
+                <TableCell className="font-bold text-foreground sticky left-0 z-10 bg-primary/10 min-w-[160px] max-w-[220px] whitespace-normal break-words">🏆 VENTA DIRECTA</TableCell>
                 <TableCell className="text-right font-bold">{fmtCOP(totalBudget)}</TableCell>
                 <TableCell className="text-right font-bold">{fmtCOP(totalVentaNeta)}</TableCell>
                 <TableCell className="text-right">
@@ -688,11 +688,11 @@ export function CumplimientoDashboard() {
                       ${zebraClass}
                     `}
                   >
-                    <TableCell className={`
-                      ${isGroup ? "font-semibold text-foreground" : ""}
-                      ${isTotalTiendas ? "font-bold text-foreground" : ""}
-                      ${isSubgroup ? "font-medium text-foreground pl-6" : ""}
-                      ${isItem ? "pl-10 text-sm text-muted-foreground" : ""}
+                    <TableCell className={`sticky left-0 z-10 min-w-[160px] max-w-[220px] whitespace-normal break-words
+                      ${isGroup ? "font-semibold text-foreground bg-muted/40" : ""}
+                      ${isTotalTiendas ? "font-bold text-foreground bg-accent/10" : ""}
+                      ${isSubgroup ? "font-medium text-foreground pl-6 bg-muted/25" : ""}
+                      ${isItem ? "pl-10 text-sm text-muted-foreground " + (idx % 2 === 0 ? "bg-muted/20" : "bg-background") : ""}
                     `}>
                       <span className="flex items-center gap-1">
                         {(row.level === "item" || row.level === "subgroup" || row.level === "total-tiendas") && row.pctToDate < 100 && (
