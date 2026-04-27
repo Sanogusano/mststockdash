@@ -30,6 +30,7 @@ import ConfiguracionUbicacionesPage from "./pages/ConfiguracionUbicaciones";
 import NetsuiteUploadPage from "./pages/NetsuiteUpload";
 import ConfiguracionUsuariosPage from "./pages/ConfiguracionUsuarios";
 import ConfiguracionRolesPage from "./pages/ConfiguracionRoles";
+import RendimientoRedPage from "./pages/RendimientoRed";
 
 
 const queryClient = new QueryClient();
