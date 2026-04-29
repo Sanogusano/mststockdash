@@ -213,10 +213,12 @@ export function CumplimientoDashboard() {
         };
       }
 
+      // Daily net sales: independent calculation per day (total_price / 1.19 to remove IVA).
+      // Do NOT use the global scaleFactor — it distorts days with non-uniform discounts/refunds.
       const byDay: DailySales = {};
       for (const [day, raw] of Object.entries(byDayRaw)) {
         byDay[day] = {
-          ventaNeta: raw.tp * scaleFactor,
+          ventaNeta: raw.tp / 1.19,
           pedidos: raw.pedidos,
           unidades: Math.round(raw.pedidos * unitsScaleFactor),
         };
