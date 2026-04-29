@@ -3022,6 +3022,21 @@ export type Database = {
               und_total: number
             }[]
           }
+      reporte_ventas_diarias: {
+        Args: {
+          p_canal?: string
+          p_desde: string
+          p_hasta: string
+          p_location_id?: string
+          p_zona?: string
+        }
+        Returns: {
+          dia: string
+          ingresos_netos: number
+          ordenes: number
+          unidades: number
+        }[]
+      }
       reporte_ventas_por_vendedor: {
         Args: {
           p_anio: number
