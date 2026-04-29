@@ -110,8 +110,12 @@ export function CumplimientoDashboard() {
       const endYear = mes === 12 ? anio + 1 : anio;
       const endDate = `${endYear}-${String(endMonth).padStart(2, "0")}-01`;
 
+      // End date for daily RPC: last day of the month (inclusive)
+      const lastDay = daysInMonth(anio, mes);
+      const dailyEndDate = `${anio}-${String(mes).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
+
       // Parallel fetches
-      const [cfgs, orders, locs, globalKpis] = await Promise.all([
+      const [cfgs, orders, locs, globalKpis, dailyRpc] = await Promise.all([
         supabase
           .from("presupuestos_config")
           .select("nombre_identificador, monto, tipo")
@@ -131,6 +135,13 @@ export function CumplimientoDashboard() {
         supabase.rpc("reporte_kpis_por_rango", {
           p_desde: startDate,
           p_hasta: endDate,
+        }).then(r => r.data || []),
+        supabase.rpc("reporte_ventas_diarias", {
+          p_desde: startDate,
+          p_hasta: dailyEndDate,
+          p_canal: null,
+          p_location_id: null,
+          p_zona: null,
         }).then(r => r.data || []),
       ]);
 
@@ -213,16 +224,16 @@ export function CumplimientoDashboard() {
         };
       }
 
-      // Daily net sales: independent calculation per day (total_price / 1.19 to remove IVA).
-      // Do NOT use the global scaleFactor — it distorts days with non-uniform discounts/refunds.
+      // Daily series: from RPC reporte_ventas_diarias (source of truth, no scaleFactor, no proration).
       const byDay: DailySales = {};
-      for (const [day, raw] of Object.entries(byDayRaw)) {
-        byDay[day] = {
-          ventaNeta: raw.tp / 1.19,
-          pedidos: raw.pedidos,
-          unidades: Math.round(raw.pedidos * unitsScaleFactor),
+      (dailyRpc as any[]).forEach((r) => {
+        if (!r?.dia) return;
+        byDay[r.dia] = {
+          ventaNeta: Number(r.ingresos_netos || 0),
+          pedidos: Number(r.ordenes || 0),
+          unidades: Number(r.unidades || 0),
         };
-      }
+      });
 
       setSalesByStore(byStore);
       setSalesByChannel(byChannel);
