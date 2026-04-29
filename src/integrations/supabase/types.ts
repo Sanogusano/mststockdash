@@ -851,36 +851,57 @@ export type Database = {
       }
       orders: {
         Row: {
+          checkout_id: string | null
+          checkout_token: string | null
           created_at: string
           financial_status: string | null
+          is_facturado: boolean | null
           location_id: string | null
           order_number: string
+          payment_authorization: string | null
           payment_gateway: string | null
+          payment_token: string | null
           shopify_order_id: string
           source_name: string | null
+          total_discount: number | null
           total_price: number
+          transaction_status: string | null
           user_id: string | null
         }
         Insert: {
+          checkout_id?: string | null
+          checkout_token?: string | null
           created_at: string
           financial_status?: string | null
+          is_facturado?: boolean | null
           location_id?: string | null
           order_number: string
+          payment_authorization?: string | null
           payment_gateway?: string | null
+          payment_token?: string | null
           shopify_order_id: string
           source_name?: string | null
+          total_discount?: number | null
           total_price: number
+          transaction_status?: string | null
           user_id?: string | null
         }
         Update: {
+          checkout_id?: string | null
+          checkout_token?: string | null
           created_at?: string
           financial_status?: string | null
+          is_facturado?: boolean | null
           location_id?: string | null
           order_number?: string
+          payment_authorization?: string | null
           payment_gateway?: string | null
+          payment_token?: string | null
           shopify_order_id?: string
           source_name?: string | null
+          total_discount?: number | null
           total_price?: number
+          transaction_status?: string | null
           user_id?: string | null
         }
         Relationships: [
