@@ -115,7 +115,7 @@ export function CumplimientoDashboard() {
       const dailyEndDate = `${anio}-${String(mes).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
 
       // Parallel fetches
-      const [cfgs, orders, locs, globalKpis, dailyRpc] = await Promise.all([
+      const [cfgs, orders, locs, globalKpis, dailyRpc, channelRpc] = await Promise.all([
         supabase
           .from("presupuestos_config")
           .select("nombre_identificador, monto, tipo")
@@ -142,6 +142,10 @@ export function CumplimientoDashboard() {
           p_canal: null,
           p_location_id: null,
           p_zona: null,
+        }).then(r => r.data || []),
+        supabase.rpc("reporte_ventas_por_canal", {
+          p_desde: startDate,
+          p_hasta: dailyEndDate,
         }).then(r => r.data || []),
       ]);
 
@@ -215,14 +219,16 @@ export function CumplimientoDashboard() {
         };
       }
 
+      // Channel data: use RPC (source of truth) instead of scaleFactor
       const byChannel: Record<string, SalesData> = {};
-      for (const [name, raw] of Object.entries(byChannelRaw)) {
-        byChannel[name] = {
-          ventaNeta: raw.tp * scaleFactor,
-          pedidos: raw.pedidos,
-          unidades: Math.round(raw.pedidos * unitsScaleFactor),
+      (channelRpc as any[]).forEach((r: any) => {
+        if (!r?.canal) return;
+        byChannel[r.canal] = {
+          ventaNeta: Number(r.ingresos_netos || 0),
+          pedidos: Number(r.ordenes || 0),
+          unidades: Number(r.unidades || 0),
         };
-      }
+      });
 
       // Daily series: from RPC reporte_ventas_diarias (source of truth, no scaleFactor, no proration).
       const byDay: DailySales = {};
