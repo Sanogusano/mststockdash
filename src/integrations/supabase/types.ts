@@ -3281,6 +3281,15 @@ export type Database = {
           unidades: number
         }[]
       }
+      reporte_ventas_por_canal: {
+        Args: { p_desde: string; p_hasta: string }
+        Returns: {
+          canal: string
+          ingresos_netos: number
+          ordenes: number
+          unidades: number
+        }[]
+      }
       reporte_ventas_por_vendedor: {
         Args: {
           p_anio: number
