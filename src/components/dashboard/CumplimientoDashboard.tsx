@@ -115,7 +115,7 @@ export function CumplimientoDashboard() {
       const dailyEndDate = `${anio}-${String(mes).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
 
       // Parallel fetches
-      const [cfgs, orders, locs, globalKpis, dailyRpc] = await Promise.all([
+      const [cfgs, orders, locs, globalKpis, dailyRpc, channelRpc] = await Promise.all([
         supabase
           .from("presupuestos_config")
           .select("nombre_identificador, monto, tipo")
@@ -142,6 +142,10 @@ export function CumplimientoDashboard() {
           p_canal: null,
           p_location_id: null,
           p_zona: null,
+        }).then(r => r.data || []),
+        supabase.rpc("reporte_ventas_por_canal", {
+          p_desde: startDate,
+          p_hasta: dailyEndDate,
         }).then(r => r.data || []),
       ]);
 
