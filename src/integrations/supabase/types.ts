@@ -14,6 +14,159 @@ export type Database = {
   }
   public: {
     Tables: {
+      addi_liquidaciones: {
+        Row: {
+          created_at: string | null
+          descuento_addi: number | null
+          descuento_comercio: number | null
+          email_vendedor: string | null
+          estado_pago: string | null
+          fecha_cancelacion: string | null
+          fecha_pago: string | null
+          fecha_venta: string | null
+          id: string
+          id_pedido: string | null
+          id_reporte: string | null
+          iva: number | null
+          nombre_aliado: string | null
+          nombre_tienda: string | null
+          rete_fuente: number | null
+          rete_ica: number | null
+          rete_iva: number | null
+          shopify_order_id: string | null
+          tarifa_addi_shop: number | null
+          tarifa_intermediacion: number | null
+          tarifa_marketplace: number | null
+          tipo_de_venta: string | null
+          total_a_pagar: number | null
+          total_cancelaciones: number | null
+          total_impuestos: number | null
+          total_tarifas: number | null
+          total_ventas: number | null
+          valor_neto: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          descuento_addi?: number | null
+          descuento_comercio?: number | null
+          email_vendedor?: string | null
+          estado_pago?: string | null
+          fecha_cancelacion?: string | null
+          fecha_pago?: string | null
+          fecha_venta?: string | null
+          id?: string
+          id_pedido?: string | null
+          id_reporte?: string | null
+          iva?: number | null
+          nombre_aliado?: string | null
+          nombre_tienda?: string | null
+          rete_fuente?: number | null
+          rete_ica?: number | null
+          rete_iva?: number | null
+          shopify_order_id?: string | null
+          tarifa_addi_shop?: number | null
+          tarifa_intermediacion?: number | null
+          tarifa_marketplace?: number | null
+          tipo_de_venta?: string | null
+          total_a_pagar?: number | null
+          total_cancelaciones?: number | null
+          total_impuestos?: number | null
+          total_tarifas?: number | null
+          total_ventas?: number | null
+          valor_neto?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          descuento_addi?: number | null
+          descuento_comercio?: number | null
+          email_vendedor?: string | null
+          estado_pago?: string | null
+          fecha_cancelacion?: string | null
+          fecha_pago?: string | null
+          fecha_venta?: string | null
+          id?: string
+          id_pedido?: string | null
+          id_reporte?: string | null
+          iva?: number | null
+          nombre_aliado?: string | null
+          nombre_tienda?: string | null
+          rete_fuente?: number | null
+          rete_ica?: number | null
+          rete_iva?: number | null
+          shopify_order_id?: string | null
+          tarifa_addi_shop?: number | null
+          tarifa_intermediacion?: number | null
+          tarifa_marketplace?: number | null
+          tipo_de_venta?: string | null
+          total_a_pagar?: number | null
+          total_cancelaciones?: number | null
+          total_impuestos?: number | null
+          total_tarifas?: number | null
+          total_ventas?: number | null
+          valor_neto?: number | null
+        }
+        Relationships: []
+      }
+      addi_transactions: {
+        Row: {
+          canal: string | null
+          cc: string | null
+          conciliado: boolean | null
+          created_at: string | null
+          email_vendedor: string | null
+          estado: string | null
+          fecha_creacion: string | null
+          id: string
+          id_credito: string | null
+          id_orden: string | null
+          id_transaccion: string | null
+          monto: number | null
+          nombre_cliente: string | null
+          nombre_tienda: string | null
+          shopify_order_id: string | null
+          sub_estado: string | null
+          tipo_de_venta: string | null
+        }
+        Insert: {
+          canal?: string | null
+          cc?: string | null
+          conciliado?: boolean | null
+          created_at?: string | null
+          email_vendedor?: string | null
+          estado?: string | null
+          fecha_creacion?: string | null
+          id?: string
+          id_credito?: string | null
+          id_orden?: string | null
+          id_transaccion?: string | null
+          monto?: number | null
+          nombre_cliente?: string | null
+          nombre_tienda?: string | null
+          shopify_order_id?: string | null
+          sub_estado?: string | null
+          tipo_de_venta?: string | null
+        }
+        Update: {
+          canal?: string | null
+          cc?: string | null
+          conciliado?: boolean | null
+          created_at?: string | null
+          email_vendedor?: string | null
+          estado?: string | null
+          fecha_creacion?: string | null
+          id?: string
+          id_credito?: string | null
+          id_orden?: string | null
+          id_transaccion?: string | null
+          monto?: number | null
+          nombre_cliente?: string | null
+          nombre_tienda?: string | null
+          shopify_order_id?: string | null
+          sub_estado?: string | null
+          tipo_de_venta?: string | null
+        }
+        Relationships: []
+      }
       allocation_runs: {
         Row: {
           destino_location_id: string
@@ -578,6 +731,96 @@ export type Database = {
           name?: string
           tipo_tienda?: string | null
           zona?: string | null
+        }
+        Relationships: []
+      }
+      netsuite_facturas: {
+        Row: {
+          base_gravable: number | null
+          canal: string | null
+          cliente_documento: string | null
+          cliente_nit: string | null
+          cliente_nombre: string | null
+          creado_por: string | null
+          created_at: string | null
+          cufe: string | null
+          discrepancia: number | null
+          estado_factura: string | null
+          fecha_factura: string | null
+          fecha_vencimiento: string | null
+          id: string
+          iva_facturado: number | null
+          location_id: string | null
+          netsuite_transaction_id: string | null
+          numero_factura: string | null
+          numero_pos: string | null
+          origen: string
+          shopify_order_id: string | null
+          shopify_order_number: string | null
+          tipo_discrepancia: string | null
+          ubicacion_netsuite: string | null
+          updated_at: string | null
+          valor_facturado: number | null
+          valor_shopify: number | null
+          vendedor: string | null
+        }
+        Insert: {
+          base_gravable?: number | null
+          canal?: string | null
+          cliente_documento?: string | null
+          cliente_nit?: string | null
+          cliente_nombre?: string | null
+          creado_por?: string | null
+          created_at?: string | null
+          cufe?: string | null
+          discrepancia?: number | null
+          estado_factura?: string | null
+          fecha_factura?: string | null
+          fecha_vencimiento?: string | null
+          id?: string
+          iva_facturado?: number | null
+          location_id?: string | null
+          netsuite_transaction_id?: string | null
+          numero_factura?: string | null
+          numero_pos?: string | null
+          origen?: string
+          shopify_order_id?: string | null
+          shopify_order_number?: string | null
+          tipo_discrepancia?: string | null
+          ubicacion_netsuite?: string | null
+          updated_at?: string | null
+          valor_facturado?: number | null
+          valor_shopify?: number | null
+          vendedor?: string | null
+        }
+        Update: {
+          base_gravable?: number | null
+          canal?: string | null
+          cliente_documento?: string | null
+          cliente_nit?: string | null
+          cliente_nombre?: string | null
+          creado_por?: string | null
+          created_at?: string | null
+          cufe?: string | null
+          discrepancia?: number | null
+          estado_factura?: string | null
+          fecha_factura?: string | null
+          fecha_vencimiento?: string | null
+          id?: string
+          iva_facturado?: number | null
+          location_id?: string | null
+          netsuite_transaction_id?: string | null
+          numero_factura?: string | null
+          numero_pos?: string | null
+          origen?: string
+          shopify_order_id?: string | null
+          shopify_order_number?: string | null
+          tipo_discrepancia?: string | null
+          ubicacion_netsuite?: string | null
+          updated_at?: string | null
+          valor_facturado?: number | null
+          valor_shopify?: number | null
+          vendedor?: string | null
         }
         Relationships: []
       }
@@ -1677,6 +1920,7 @@ export type Database = {
         Args: { p_location_id: string; p_netsuite_code: number }
         Returns: undefined
       }
+      bulk_update_payment_tokens: { Args: { records: Json }; Returns: number }
       calcular_comisiones_periodo: {
         Args: { p_anio: number; p_mes: number; p_reglas?: Json; p_rol?: string }
         Returns: {
