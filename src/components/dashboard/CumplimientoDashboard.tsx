@@ -219,14 +219,16 @@ export function CumplimientoDashboard() {
         };
       }
 
+      // Channel data: use RPC (source of truth) instead of scaleFactor
       const byChannel: Record<string, SalesData> = {};
-      for (const [name, raw] of Object.entries(byChannelRaw)) {
-        byChannel[name] = {
-          ventaNeta: raw.tp * scaleFactor,
-          pedidos: raw.pedidos,
-          unidades: Math.round(raw.pedidos * unitsScaleFactor),
+      (channelRpc as any[]).forEach((r: any) => {
+        if (!r?.canal) return;
+        byChannel[r.canal] = {
+          ventaNeta: Number(r.ingresos_netos || 0),
+          pedidos: Number(r.ordenes || 0),
+          unidades: Number(r.unidades || 0),
         };
-      }
+      });
 
       // Daily series: from RPC reporte_ventas_diarias (source of truth, no scaleFactor, no proration).
       const byDay: DailySales = {};
