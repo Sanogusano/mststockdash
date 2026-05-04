@@ -17,8 +17,7 @@ type LocMap = Record<string, { name: string; tipo: string | null }>;
 
 // ============== Tab Conciliación ==============
 function TabConciliacion() {
-  const today = new Date();
-  const [mes, setMes] = useState(`${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}`);
+  const [mes, setMes] = useState<string>("");
   const [filtroCanal, setFiltroCanal] = useState<string>("all");
   const [filtroTipo, setFiltroTipo] = useState<string>("all");
   const [filtroEstado, setFiltroEstado] = useState<string>("all");
@@ -27,7 +26,22 @@ function TabConciliacion() {
   const [rows, setRows] = useState<any[]>([]);
   const [locMap, setLocMap] = useState<LocMap>({});
 
+  // Inicializar mes con el último mes con datos disponibles
   useEffect(() => {
+    (async () => {
+      const { data } = await supabase
+        .from("addi_transactions")
+        .select("fecha_creacion")
+        .not("fecha_creacion", "is", null)
+        .order("fecha_creacion", { ascending: false })
+        .limit(1);
+      const last = data?.[0]?.fecha_creacion ? new Date(data[0].fecha_creacion as string) : new Date();
+      setMes(`${last.getFullYear()}-${String(last.getMonth() + 1).padStart(2, "0")}`);
+    })();
+  }, []);
+
+  useEffect(() => {
+    if (!mes) return;
     void cargar();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mes]);
