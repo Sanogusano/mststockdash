@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { BarChart3, TrendingUp, ArrowLeftRight, Package, Tag, Layers, Target, Zap, Trophy, Archive, Users, Calculator, UserCog, Briefcase, ChevronDown, Settings, MapPin, Upload, LogOut, Truck, Shield, Store } from "lucide-react";
+import { BarChart3, TrendingUp, ArrowLeftRight, Package, Tag, Layers, Target, Zap, Trophy, Archive, Users, Calculator, UserCog, Briefcase, ChevronDown, Settings, MapPin, Upload, LogOut, Truck, Shield, Store, Banknote, LayoutDashboard, CreditCard } from "lucide-react";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useAuth } from "@/hooks/useAuth";
 import { useUserPermissions } from "@/hooks/useUserPermissions";
@@ -53,6 +53,14 @@ const logisticaItems: NavItem[] = [
   { title: "Traslados (NetSuite)", url: "/logistica-traslados", icon: Truck, description: "Allocation v2 & exportación", module: "dashboards.logistica_traslados", action: "view" },
 ];
 
+const finanzasItems: NavItem[] = [
+  { title: "Dashboard Financiero", url: "/finanzas", icon: LayoutDashboard, description: "Vista general", module: "finanzas.view", action: "view" },
+  { title: "Conciliación Addi", url: "/finanzas/addi", icon: CreditCard, description: "Addi", module: "finanzas.addi", action: "view" },
+  { title: "Conciliación Wompi", url: "/finanzas/wompi", icon: CreditCard, description: "Wompi", module: "finanzas.wompi", action: "view" },
+  { title: "Conciliación Mercado Pago", url: "/finanzas/mercadopago", icon: CreditCard, description: "MP", module: "finanzas.mercadopago", action: "view" },
+  { title: "Conciliación Sistecredito", url: "/finanzas/sistecredito", icon: CreditCard, description: "Sistecredito", module: "finanzas.sistecredito", action: "view" },
+];
+
 const configuracionItems: NavItem[] = [
   { title: "Ubicaciones", url: "/configuracion/ubicaciones", icon: MapPin, description: "Tiendas, CEDIs y outlets", module: "config.ubicaciones", action: "view" },
   { title: "Inventario NetSuite", url: "/configuracion/netsuite-upload", icon: Upload, description: "Subir snapshot de inventario", module: "inventario_netsuite", action: "view" },
@@ -77,6 +85,7 @@ export function AppSidebar() {
   const visibleGestion = useMemo(() => gestionComercialItems.filter((i) => can(i.module, i.action)), [permissions, isAdmin]);
   const visibleLogistica = useMemo(() => logisticaItems.filter((i) => can(i.module, i.action)), [permissions, isAdmin]);
   const visibleConfig = useMemo(() => configuracionItems.filter((i) => can(i.module, i.action)), [permissions, isAdmin]);
+  const visibleFinanzas = useMemo(() => finanzasItems.filter((i) => can(i.module, i.action)), [permissions, isAdmin]);
 
   const canPresupuesto = can(presupuestoItem.module, presupuestoItem.action);
   const canCentroAccion = can(centroAccionItem.module, centroAccionItem.action);
@@ -84,11 +93,13 @@ export function AppSidebar() {
   const isGestionActive = visibleGestion.some((i) => location.pathname === i.url);
   const isConfigActive = visibleConfig.some((i) => location.pathname === i.url);
   const isLogisticaActive = visibleLogistica.some((i) => location.pathname === i.url);
+  const isFinanzasActive = visibleFinanzas.some((i) => location.pathname === i.url);
   const isPresupuestoActive = [presupuestoItem.url, centroAccionItem.url].includes(location.pathname);
 
   const [gestionOpen, setGestionOpen] = useState(isGestionActive);
   const [configOpen, setConfigOpen] = useState(isConfigActive);
   const [logisticaOpen, setLogisticaOpen] = useState(isLogisticaActive);
+  const [finanzasOpen, setFinanzasOpen] = useState(isFinanzasActive);
   const [presupuestoOpen, setPresupuestoOpen] = useState(isPresupuestoActive);
 
   const userEmail = session?.user?.email || "";
@@ -237,6 +248,31 @@ export function AppSidebar() {
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                   {gestionOpen && visibleGestion.map((item) => renderItem(item, true))}
+                </>
+              )}
+
+              {/* Finanzas */}
+              {visibleFinanzas.length > 0 && (
+                <>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton asChild>
+                      <button
+                        onClick={() => setFinanzasOpen((v) => !v)}
+                        className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-150 ${
+                          isFinanzasActive
+                            ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
+                            : "text-sidebar-foreground/70 hover:bg-sidebar-accent/40 hover:text-sidebar-foreground"
+                        }`}
+                      >
+                        <Banknote className="h-[18px] w-[18px] shrink-0" />
+                        <span className="text-sm leading-tight flex-1 text-left truncate">Finanzas</span>
+                        <ChevronDown
+                          className={`h-3.5 w-3.5 shrink-0 transition-transform ${finanzasOpen ? "rotate-180" : ""}`}
+                        />
+                      </button>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                  {finanzasOpen && visibleFinanzas.map((item) => renderItem(item, true))}
                 </>
               )}
 
