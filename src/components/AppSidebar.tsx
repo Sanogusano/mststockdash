@@ -53,6 +53,14 @@ const logisticaItems: NavItem[] = [
   { title: "Traslados (NetSuite)", url: "/logistica-traslados", icon: Truck, description: "Allocation v2 & exportación", module: "dashboards.logistica_traslados", action: "view" },
 ];
 
+const finanzasItems: NavItem[] = [
+  { title: "Dashboard Financiero", url: "/finanzas", icon: LayoutDashboard, description: "Vista general", module: "finanzas.view", action: "view" },
+  { title: "Conciliación Addi", url: "/finanzas/addi", icon: CreditCard, description: "Addi", module: "finanzas.addi", action: "view" },
+  { title: "Conciliación Wompi", url: "/finanzas/wompi", icon: CreditCard, description: "Wompi", module: "finanzas.wompi", action: "view" },
+  { title: "Conciliación Mercado Pago", url: "/finanzas/mercadopago", icon: CreditCard, description: "MP", module: "finanzas.mercadopago", action: "view" },
+  { title: "Conciliación Sistecredito", url: "/finanzas/sistecredito", icon: CreditCard, description: "Sistecredito", module: "finanzas.sistecredito", action: "view" },
+];
+
 const configuracionItems: NavItem[] = [
   { title: "Ubicaciones", url: "/configuracion/ubicaciones", icon: MapPin, description: "Tiendas, CEDIs y outlets", module: "config.ubicaciones", action: "view" },
   { title: "Inventario NetSuite", url: "/configuracion/netsuite-upload", icon: Upload, description: "Subir snapshot de inventario", module: "inventario_netsuite", action: "view" },
