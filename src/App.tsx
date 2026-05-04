@@ -31,6 +31,9 @@ import NetsuiteUploadPage from "./pages/NetsuiteUpload";
 import ConfiguracionUsuariosPage from "./pages/ConfiguracionUsuarios";
 import ConfiguracionRolesPage from "./pages/ConfiguracionRoles";
 import RendimientoRedPage from "./pages/RendimientoRed";
+import FinanzasDashboardPage from "./pages/finanzas/FinanzasDashboard";
+import AddiPage from "./pages/finanzas/AddiPage";
+import { WompiPage, MercadoPagoPage, SistecreditoPage } from "./pages/finanzas/PasarelaPlaceholder";
 
 
 const queryClient = new QueryClient();
@@ -84,6 +87,13 @@ const App = () => (
           <Route path="/comisiones" element={<Guard module="comisiones" action="view"><ComisionesPage /></Guard>} />
           <Route path="/vendedores" element={<Guard module="vendedores" action="view"><VendedoresPage /></Guard>} />
           <Route path="/rendimiento-red" element={<Guard module="dashboards.rendimiento_red" action="view"><RendimientoRedPage /></Guard>} />
+
+          {/* ===== Finanzas ===== */}
+          <Route path="/finanzas" element={<Guard module="finanzas.view" action="view"><FinanzasDashboardPage /></Guard>} />
+          <Route path="/finanzas/addi" element={<Guard module="finanzas.addi" action="view"><AddiPage /></Guard>} />
+          <Route path="/finanzas/wompi" element={<Guard module="finanzas.wompi" action="view"><WompiPage /></Guard>} />
+          <Route path="/finanzas/mercadopago" element={<Guard module="finanzas.mercadopago" action="view"><MercadoPagoPage /></Guard>} />
+          <Route path="/finanzas/sistecredito" element={<Guard module="finanzas.sistecredito" action="view"><SistecreditoPage /></Guard>} />
 
           {/* ===== Configuración (admin) ===== */}
           <Route path="/configuracion/ubicaciones" element={<Guard module="config.ubicaciones" action="view"><ConfiguracionUbicacionesPage /></Guard>} />
