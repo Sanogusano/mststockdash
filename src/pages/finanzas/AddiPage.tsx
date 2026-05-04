@@ -70,40 +70,53 @@ function TabConciliacion() {
         .lt("fecha_creacion", hasta);
       if (errAddi) throw errAddi;
 
-      const orderIds = Array.from(new Set((addi ?? []).map((a: any) => a.shopify_order_id).filter(Boolean)));
+      const shopifyIds = Array.from(new Set((addi ?? []).map((a: any) => a.shopify_order_id).filter(Boolean)));
+      const idOrdenes = Array.from(new Set((addi ?? []).map((a: any) => a.id_orden).filter(Boolean)));
 
-      // 3) Orders
-      let ordersMap: Record<string, any> = {};
-      if (orderIds.length) {
-        // chunks
-        const chunks: string[][] = [];
-        for (let i = 0; i < orderIds.length; i += 200) chunks.push(orderIds.slice(i, i + 200));
-        for (const c of chunks) {
-          const { data: ords } = await supabase
-            .from("orders")
-            .select("shopify_order_id,order_number,created_at,total_price,location_id,source_name,user_id")
-            .in("shopify_order_id", c);
-          (ords ?? []).forEach((o: any) => { ordersMap[o.shopify_order_id] = o; });
+      // 3) Orders — cruzar por shopify_order_id O por payment_token = id_orden
+      const ordersByShopifyId: Record<string, any> = {};
+      const ordersByPaymentToken: Record<string, any> = {};
+      const orderNumbersSet = new Set<string>();
+      const ORDER_COLS = "shopify_order_id,order_number,created_at,total_price,location_id,source_name,user_id,payment_token";
+
+      async function fetchOrdersIn(field: "shopify_order_id" | "payment_token", values: string[]) {
+        const out: any[] = [];
+        for (let i = 0; i < values.length; i += 200) {
+          const c = values.slice(i, i + 200);
+          const { data } = await supabase.from("orders").select(ORDER_COLS).in(field, c);
+          (data ?? []).forEach((o: any) => out.push(o));
         }
+        return out;
       }
 
-      // 4) Netsuite facturas
-      let nsMap: Record<string, any> = {};
-      if (orderIds.length) {
-        const chunks: string[][] = [];
-        for (let i = 0; i < orderIds.length; i += 200) chunks.push(orderIds.slice(i, i + 200));
-        for (const c of chunks) {
-          const { data: ns } = await supabase
-            .from("netsuite_facturas")
-            .select("shopify_order_id,numero_factura,valor_facturado,base_gravable,discrepancia,tipo_discrepancia,estado_factura")
-            .in("shopify_order_id", c);
-          (ns ?? []).forEach((n: any) => { nsMap[n.shopify_order_id] = n; });
-        }
+      const collectOrder = (o: any) => {
+        if (o.shopify_order_id) ordersByShopifyId[o.shopify_order_id] = o;
+        if (o.payment_token) ordersByPaymentToken[o.payment_token] = o;
+        if (o.order_number) orderNumbersSet.add(String(o.order_number));
+      };
+
+      if (shopifyIds.length) (await fetchOrdersIn("shopify_order_id", shopifyIds)).forEach(collectOrder);
+      if (idOrdenes.length) (await fetchOrdersIn("payment_token", idOrdenes)).forEach(collectOrder);
+
+      // 4) Netsuite facturas — cruzar por shopify_order_number = orders.order_number
+      const nsByOrderNumber: Record<string, any> = {};
+      const orderNumbers = Array.from(orderNumbersSet);
+      for (let i = 0; i < orderNumbers.length; i += 200) {
+        const c = orderNumbers.slice(i, i + 200);
+        const { data: ns } = await supabase
+          .from("netsuite_facturas")
+          .select("shopify_order_number,numero_factura,valor_facturado,base_gravable,discrepancia,tipo_discrepancia,estado_factura")
+          .in("shopify_order_number", c);
+        (ns ?? []).forEach((n: any) => { if (n.shopify_order_number) nsByOrderNumber[String(n.shopify_order_number)] = n; });
       }
 
       const merged = (addi ?? []).map((a: any) => {
-        const ord = a.shopify_order_id ? ordersMap[a.shopify_order_id] : null;
-        const ns = a.shopify_order_id ? nsMap[a.shopify_order_id] : null;
+        const ord =
+          (a.shopify_order_id && ordersByShopifyId[a.shopify_order_id]) ||
+          (a.id_orden && ordersByPaymentToken[a.id_orden]) ||
+          null;
+        const ns = ord?.order_number ? nsByOrderNumber[String(ord.order_number)] : null;
+
         const loc = ord?.location_id ? lm[ord.location_id] : null;
 
         // canal display
