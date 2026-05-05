@@ -62,73 +62,24 @@ function TabConciliacion() {
       (locs ?? []).forEach((l: any) => { lm[l.location_id] = { name: l.name, tipo: l.tipo_tienda }; });
       setLocMap(lm);
 
-      // 2) Addi transactions del mes
-      const { data: addi, error: errAddi } = await supabase
-        .from("addi_transactions")
-        .select("shopify_order_id,id_orden,canal,tipo_de_venta,monto,estado,fecha_creacion,email_vendedor,nombre_tienda")
-        .gte("fecha_creacion", desde)
-        .lt("fecha_creacion", hasta);
-      if (errAddi) throw errAddi;
+      // 2) Conciliación Addi → Shopify → NetSuite desde RPC con los JOINs oficiales
+      const { data: conciliacion, error: errConciliacion } = await (supabase as any)
+        .rpc("reporte_addi_conciliacion", { p_desde: desde, p_hasta: hasta });
+      if (errConciliacion) throw errConciliacion;
 
-      const shopifyIds = Array.from(new Set((addi ?? []).map((a: any) => a.shopify_order_id).filter(Boolean)));
-      const idOrdenes = Array.from(new Set((addi ?? []).map((a: any) => a.id_orden).filter(Boolean)));
-
-      // 3) Orders — cruzar por shopify_order_id O por payment_token = id_orden
-      const ordersByShopifyId: Record<string, any> = {};
-      const ordersByPaymentToken: Record<string, any> = {};
-      const orderNumbersSet = new Set<string>();
-      const ORDER_COLS = "shopify_order_id,order_number,created_at,total_price,location_id,source_name,user_id,payment_token";
-
-      async function fetchOrdersIn(field: "shopify_order_id" | "payment_token", values: string[]) {
-        const out: any[] = [];
-        for (let i = 0; i < values.length; i += 200) {
-          const c = values.slice(i, i + 200);
-          const { data } = await supabase.from("orders").select(ORDER_COLS).in(field, c);
-          (data ?? []).forEach((o: any) => out.push(o));
-        }
-        return out;
-      }
-
-      const collectOrder = (o: any) => {
-        if (o.shopify_order_id) ordersByShopifyId[o.shopify_order_id] = o;
-        if (o.payment_token) ordersByPaymentToken[o.payment_token] = o;
-        if (o.order_number) orderNumbersSet.add(String(o.order_number));
-      };
-
-      if (shopifyIds.length) (await fetchOrdersIn("shopify_order_id", shopifyIds)).forEach(collectOrder);
-      if (idOrdenes.length) (await fetchOrdersIn("payment_token", idOrdenes)).forEach(collectOrder);
-
-      // 4) Netsuite facturas — cruzar por shopify_order_number = orders.order_number
-      const nsByOrderNumber: Record<string, any> = {};
-      const orderNumbers = Array.from(orderNumbersSet);
-      for (let i = 0; i < orderNumbers.length; i += 200) {
-        const c = orderNumbers.slice(i, i + 200);
-        const { data: ns } = await supabase
-          .from("netsuite_facturas")
-          .select("shopify_order_number,numero_factura,valor_facturado,base_gravable,discrepancia,tipo_discrepancia,estado_factura")
-          .in("shopify_order_number", c);
-        (ns ?? []).forEach((n: any) => { if (n.shopify_order_number) nsByOrderNumber[String(n.shopify_order_number)] = n; });
-      }
-
-      const merged = (addi ?? []).map((a: any) => {
-        const ord =
-          (a.shopify_order_id && ordersByShopifyId[a.shopify_order_id]) ||
-          (a.id_orden && ordersByPaymentToken[a.id_orden]) ||
-          null;
-        const ns = ord?.order_number ? nsByOrderNumber[String(ord.order_number)] : null;
-
-        const loc = ord?.location_id ? lm[ord.location_id] : null;
+      const merged = (conciliacion ?? []).map((r: any) => {
+        const loc = r.location_id ? lm[r.location_id] : null;
 
         // canal display
         let canalLabel = "—";
         let canalIcon: "web" | "ps" | "tienda" = "web";
         let canalDetalle = "";
-        if (ord) {
-          const src = String(ord.source_name ?? "").toLowerCase();
+        if (r.order_number) {
+          const src = String(r.source_name ?? "").toLowerCase();
           if (src === "shopify_draft_order") {
             canalIcon = "ps";
             canalLabel = "Personal Shopper";
-            canalDetalle = ord.user_id ?? "";
+            canalDetalle = r.user_id ?? "";
           } else if (loc?.tipo === "ECOMMERCE" || ["web", "580111"].includes(src)) {
             canalIcon = "web";
             canalLabel = "E-Commerce";
@@ -138,27 +89,12 @@ function TabConciliacion() {
           }
         }
 
-        const tieneDiscrepancia = ns && ns.tipo_discrepancia && ns.tipo_discrepancia !== "sin_discrepancia";
-        let estadoFinal: "conciliado" | "discrepancia" | "sin_factura" | "sin_cruce";
-        if (!ord) estadoFinal = "sin_cruce";
-        else if (!ns) estadoFinal = "sin_factura";
-        else if (tieneDiscrepancia) estadoFinal = "discrepancia";
-        else estadoFinal = "conciliado";
-
         return {
-          ...a,
-          order_number: ord?.order_number ?? null,
-          fecha_pedido: ord?.created_at ?? a.fecha_creacion,
-          monto_shopify: ord?.total_price ?? null,
+          ...r,
+          estadoFinal: r.estado_final,
           canalLabel,
           canalIcon,
           canalDetalle,
-          ns_factura: ns?.numero_factura ?? null,
-          ns_valor: ns?.valor_facturado ?? null,
-          ns_base: ns?.base_gravable ?? (ns?.valor_facturado ? Number(ns.valor_facturado) / 1.19 : null),
-          ns_discrepancia: ns?.discrepancia ?? null,
-          ns_tipo_discrepancia: ns?.tipo_discrepancia ?? null,
-          estadoFinal,
         };
       });
 
