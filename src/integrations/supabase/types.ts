@@ -2040,6 +2040,34 @@ export type Database = {
         Args: { p_origen_netsuite_id: number }
         Returns: number
       }
+      reporte_addi_conciliacion: {
+        Args: { p_desde: string; p_hasta: string }
+        Returns: {
+          addi_id: string
+          canal: string
+          email_vendedor: string
+          estado: string
+          estado_final: string
+          fecha_creacion: string
+          fecha_pedido: string
+          id_orden: string
+          location_id: string
+          monto: number
+          monto_shopify: number
+          nombre_tienda: string
+          ns_base: number
+          ns_discrepancia: number
+          ns_factura: string
+          ns_tipo_discrepancia: string
+          ns_valor: number
+          order_number: string
+          payment_token: string
+          shopify_order_id: string
+          source_name: string
+          tipo_de_venta: string
+          user_id: string
+        }[]
+      }
       reporte_baja_rotacion_outlet: {
         Args: {
           p_sell_through_umbral?: number
