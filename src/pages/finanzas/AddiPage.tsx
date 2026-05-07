@@ -318,7 +318,7 @@ function TabConciliacion() {
             <div className="p-4 space-y-2">
               {Array.from({ length: 8 }).map((_, i) => <Skeleton key={i} className="h-10 w-full" />)}
             </div>
-          ) : filtered.length === 0 ? (
+          ) : rows.length === 0 ? (
             <div className="p-10 text-center text-sm text-muted-foreground">
               Sin transacciones para los filtros aplicados.
             </div>
@@ -343,7 +343,7 @@ function TabConciliacion() {
                   </tr>
                 </thead>
                 <tbody>
-                  {filtered.slice(0, 500).map((r, i) => (
+                  {rows.map((r, i) => (
                     <tr key={i} className="border-t hover:bg-muted/20">
                       <td className="px-3 py-2 sticky left-0 bg-background z-10 font-medium">{r.order_number ?? "—"}</td>
                       <td className="px-3 py-2 text-muted-foreground">{r.fecha_pedido ? new Date(r.fecha_pedido).toLocaleDateString("es-CO", { day: "2-digit", month: "2-digit", year: "numeric" }) : "—"}</td>
@@ -386,11 +386,42 @@ function TabConciliacion() {
                   ))}
                 </tbody>
               </table>
-              {filtered.length > 500 && (
-                <p className="px-4 py-2 text-xs text-muted-foreground border-t">
-                  Mostrando 500 de {fmtInt(filtered.length)}. Aplica filtros o exporta para ver todo.
+              <div className="flex flex-col gap-3 border-t px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+                <p className="text-xs text-muted-foreground">
+                  Mostrando {fmtInt(rowStart)}–{fmtInt(rowEnd)} de {fmtInt(kpis.total)} registros · Página {fmtInt(page)} de {fmtInt(totalPaginas)}
                 </p>
-              )}
+                <div className="flex flex-wrap items-center gap-3">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-muted-foreground">Registros por página</span>
+                    <Select value={String(pageSize)} onValueChange={(value) => { setPage(1); setPageSize(Number(value)); }}>
+                      <SelectTrigger className="h-8 w-20"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {PAGE_SIZE_OPTIONS.map((option) => (
+                          <SelectItem key={option} value={String(option)}>{option}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <Pagination className="mx-0 w-auto">
+                    <PaginationContent>
+                      <PaginationItem>
+                        <PaginationPrevious
+                          aria-disabled={page <= 1}
+                          className={page <= 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                          onClick={(e) => { e.preventDefault(); setPage((p) => Math.max(1, p - 1)); }}
+                        />
+                      </PaginationItem>
+                      <PaginationItem>
+                        <PaginationNext
+                          aria-disabled={page >= totalPaginas}
+                          className={page >= totalPaginas ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                          onClick={(e) => { e.preventDefault(); setPage((p) => Math.min(totalPaginas, p + 1)); }}
+                        />
+                      </PaginationItem>
+                    </PaginationContent>
+                  </Pagination>
+                </div>
+              </div>
             </div>
           )}
         </CardContent>
