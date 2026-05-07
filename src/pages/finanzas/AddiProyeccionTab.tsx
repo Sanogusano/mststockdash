@@ -289,8 +289,8 @@ export function TabProyeccionPagos() {
                   </tr>
                 </thead>
                 <tbody>
-                  {tablaConSubtotales.map((row, i) => {
-                    if ("_subtotal" in row) {
+                  {tablaConSubtotales.map((row: any, i) => {
+                    if (row._subtotal) {
                       return (
                         <tr key={`s-${i}`} className="bg-muted/40 font-medium">
                           <td colSpan={2} className="px-3 py-2">Subtotal Semana {row.semana}</td>
