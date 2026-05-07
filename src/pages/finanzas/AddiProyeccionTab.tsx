@@ -30,8 +30,7 @@ const fmtFechaCorta = (d: string) =>
 
 function nextMonthDefault() {
   const now = new Date();
-  const next = new Date(now.getFullYear(), now.getMonth() + 1, 1);
-  return `${next.getFullYear()}-${String(next.getMonth() + 1).padStart(2, "0")}`;
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
 }
 
 function getRange(mes: string) {
