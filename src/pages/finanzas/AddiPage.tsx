@@ -7,7 +7,6 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
-import { Pagination, PaginationContent, PaginationItem, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
 import { Construction, Download, Upload, Globe, User, Store as StoreIcon } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { fmtCOP, fmtInt } from "@/lib/finanzas-format";
@@ -82,8 +81,8 @@ function TabConciliacion() {
 
     return {
       pMes: `${mes}-01`,
-      desde: `${anioStr}-${mesStr}-01T00:00:00-05:00`,
-      hasta: `${nextAnio}-${String(nextMes).padStart(2, "0")}-01T00:00:00-05:00`,
+      desde: `${anioStr}-${mesStr}-01T00:00:00.000Z`,
+      hasta: `${nextAnio}-${String(nextMes).padStart(2, "0")}-01T00:00:00.000Z`,
     };
   }
 
