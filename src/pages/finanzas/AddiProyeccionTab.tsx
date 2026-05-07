@@ -133,7 +133,7 @@ export function TabProyeccionPagos() {
   }, [rows, mes]);
 
   const tablaConSubtotales = useMemo(() => {
-    type T = Row & { _subtotal?: false };
+    type T = Row;
     type S = { _subtotal: true; semana: number; transacciones: number; monto_bruto: number; tarifas_estimadas: number; monto_neto_estimado: number };
     const sorted = [...rows].sort((a, b) => a.fecha_pago_estimada.localeCompare(b.fecha_pago_estimada));
     const out: (T | S)[] = [];
