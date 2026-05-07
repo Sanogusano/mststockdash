@@ -453,6 +453,7 @@ export default function AddiPage() {
           <TabsTrigger value="resumen" className="data-[state=active]:bg-emerald-600 data-[state=active]:text-white">Resumen</TabsTrigger>
           <TabsTrigger value="conciliacion" className="data-[state=active]:bg-emerald-600 data-[state=active]:text-white">Conciliación</TabsTrigger>
           <TabsTrigger value="liquidaciones" className="data-[state=active]:bg-emerald-600 data-[state=active]:text-white">Liquidaciones</TabsTrigger>
+          <TabsTrigger value="proyeccion" className="data-[state=active]:bg-emerald-600 data-[state=active]:text-white">Proyección de Pagos</TabsTrigger>
           <TabsTrigger value="cargar" className="gap-1.5 data-[state=active]:bg-emerald-600 data-[state=active]:text-white">
             <Upload className="h-3.5 w-3.5" /> Cargar Archivo
           </TabsTrigger>
@@ -460,6 +461,7 @@ export default function AddiPage() {
         <TabsContent value="resumen"><TabSoon msg="KPIs, tendencia mensual y participación por canal — próxima iteración." /></TabsContent>
         <TabsContent value="conciliacion"><TabConciliacion /></TabsContent>
         <TabsContent value="liquidaciones"><TabSoon msg="Liquidaciones contables con desglose de tarifas y retenciones — próxima iteración." /></TabsContent>
+        <TabsContent value="proyeccion"><TabProyeccionPagos /></TabsContent>
         <TabsContent value="cargar"><TabSoon msg="Carga de archivos Excel de transacciones y liquidaciones — próxima iteración." /></TabsContent>
       </Tabs>
     </FinanzasLayout>
