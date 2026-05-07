@@ -12,6 +12,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { fmtCOP, fmtInt } from "@/lib/finanzas-format";
 import { exportToXLS } from "@/lib/xls-export";
 import { toast } from "sonner";
+import { TabProyeccionPagos } from "./AddiProyeccionTab";
 
 type LocMap = Record<string, { name: string; tipo: string | null }>;
 type AddiKpis = {
