@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { FinanzasLayout } from "./FinanzasLayout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
@@ -7,10 +7,9 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
-import { Pagination, PaginationContent, PaginationItem, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
 import { Construction, Download, Upload, Globe, User, Store as StoreIcon } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { fmtCOP, fmtInt, fmtFecha } from "@/lib/finanzas-format";
+import { fmtCOP, fmtInt } from "@/lib/finanzas-format";
 import { exportToXLS } from "@/lib/xls-export";
 import { toast } from "sonner";
 
@@ -258,7 +257,7 @@ function TabConciliacion() {
               <SelectContent>
                 <SelectItem value="all">Todos</SelectItem>
                 <SelectItem value="Crédito">Crédito</SelectItem>
-                <SelectItem value="Débito PSE">Débito PSE</SelectItem>
+                <SelectItem value="Débito (PSE)">Débito PSE</SelectItem>
               </SelectContent>
             </Select>
           </div>
