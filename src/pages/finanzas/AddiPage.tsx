@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { FinanzasLayout } from "./FinanzasLayout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
@@ -9,11 +9,34 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Construction, Download, Upload, Globe, User, Store as StoreIcon } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { fmtCOP, fmtInt, fmtFecha } from "@/lib/finanzas-format";
+import { fmtCOP, fmtInt } from "@/lib/finanzas-format";
 import { exportToXLS } from "@/lib/xls-export";
 import { toast } from "sonner";
 
 type LocMap = Record<string, { name: string; tipo: string | null }>;
+type AddiKpis = {
+  total: number;
+  conc: number;
+  pctConc: number;
+  disc: number;
+  discMonto: number;
+  sinFact: number;
+  sinCruce: number;
+};
+
+const emptyKpis: AddiKpis = {
+  total: 0,
+  conc: 0,
+  pctConc: 0,
+  disc: 0,
+  discMonto: 0,
+  sinFact: 0,
+  sinCruce: 0,
+};
+
+const PAGE_SIZE_OPTIONS = [50, 100, 200];
+
+const toNumber = (value: unknown) => Number(value ?? 0);
 
 // ============== Tab Conciliación ==============
 function TabConciliacion() {
@@ -24,6 +47,9 @@ function TabConciliacion() {
   const [filtroDiscrepancia, setFiltroDiscrepancia] = useState<string>("all");
   const [loading, setLoading] = useState(true);
   const [rows, setRows] = useState<any[]>([]);
+  const [kpis, setKpis] = useState<AddiKpis>(emptyKpis);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(50);
   const [locMap, setLocMap] = useState<LocMap>({});
 
   // Inicializar mes con el último mes con datos disponibles
@@ -44,105 +70,140 @@ function TabConciliacion() {
     if (!mes) return;
     void cargar();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mes]);
+  }, [mes, page, pageSize, filtroCanal, filtroTipo, filtroEstado, filtroDiscrepancia]);
+
+  function getMonthRange() {
+    const [anioStr, mesStr] = mes.split("-");
+    const anio = Number(anioStr);
+    const m = Number(mesStr);
+    const nextAnio = m === 12 ? anio + 1 : anio;
+    const nextMes = m === 12 ? 1 : m + 1;
+
+    return {
+      pMes: `${mes}-01`,
+      desde: `${anioStr}-${mesStr}-01T00:00:00.000Z`,
+      hasta: `${nextAnio}-${String(nextMes).padStart(2, "0")}-01T00:00:00.000Z`,
+    };
+  }
+
+  function applyServerFilters(query: any) {
+    let q = query;
+    if (filtroCanal !== "all") q = q.eq("canal", filtroCanal);
+    if (filtroTipo !== "all") q = q.eq("tipo_de_venta", filtroTipo);
+    if (filtroEstado !== "all") q = q.eq("estado_final", filtroEstado);
+    if (filtroDiscrepancia !== "all") {
+      q = filtroDiscrepancia === "sin_discrepancia"
+        ? q.or("ns_tipo_discrepancia.is.null,ns_tipo_discrepancia.eq.sin_discrepancia")
+        : q.eq("ns_tipo_discrepancia", filtroDiscrepancia);
+    }
+    return q;
+  }
+
+  function mapConciliacionRows(conciliacion: any[], lm: LocMap) {
+    return (conciliacion ?? []).map((r: any) => {
+      const loc = r.location_id ? lm[r.location_id] : null;
+
+      let canalLabel = "—";
+      let canalIcon: "web" | "ps" | "tienda" = "web";
+      let canalDetalle = "";
+      if (r.order_number) {
+        const src = String(r.source_name ?? "").toLowerCase();
+        if (src === "shopify_draft_order") {
+          canalIcon = "ps";
+          canalLabel = "Personal Shopper";
+          canalDetalle = r.user_id ?? "";
+        } else if (loc?.tipo === "ECOMMERCE" || ["web", "580111"].includes(src)) {
+          canalIcon = "web";
+          canalLabel = "E-Commerce";
+        } else if (loc) {
+          canalIcon = "tienda";
+          canalLabel = loc.name;
+        }
+      }
+
+      return {
+        ...r,
+        estadoFinal: r.estado_final,
+        canalLabel,
+        canalIcon,
+        canalDetalle,
+      };
+    });
+  }
+
+  function normalizeKpis(raw: any): AddiKpis {
+    const total = toNumber(raw?.total);
+    const conc = toNumber(raw?.conciliadas);
+    return {
+      total,
+      conc,
+      pctConc: total ? (conc / total) * 100 : 0,
+      disc: toNumber(raw?.con_discrepancia),
+      discMonto: toNumber(raw?.monto_discrepancia),
+      sinFact: toNumber(raw?.sin_factura_ns),
+      sinCruce: toNumber(raw?.sin_cruce),
+    };
+  }
 
   async function cargar() {
     setLoading(true);
     try {
-      const [anioStr, mesStr] = mes.split("-");
-      const anio = Number(anioStr);
-      const m = Number(mesStr);
-      const desde = new Date(anio, m - 1, 1).toISOString();
-      const hastaDate = new Date(anio, m, 1);
-      const hasta = hastaDate.toISOString();
+      const { pMes, desde, hasta } = getMonthRange();
+      const from = (page - 1) * pageSize;
+      const to = from + pageSize - 1;
 
-      // 1) Locations
-      const { data: locs } = await supabase.from("locations").select("location_id,name,tipo_tienda");
+      const detalleQuery = applyServerFilters(
+        (supabase as any).rpc("reporte_addi_conciliacion", { p_desde: desde, p_hasta: hasta }, { count: "exact" })
+      ).range(from, to);
+
+      const [locResult, kpiResult, detalleResult] = await Promise.all([
+        supabase.from("locations").select("location_id,name,tipo_tienda"),
+        (supabase as any).rpc("get_addi_conciliacion_kpis", {
+          p_mes: pMes,
+          p_canal: filtroCanal,
+          p_tipo: filtroTipo,
+          p_estado: filtroEstado,
+          p_discrepancia: filtroDiscrepancia,
+        }),
+        detalleQuery,
+      ]);
+
+      if (locResult.error) throw locResult.error;
+      if (kpiResult.error) throw kpiResult.error;
+      if (detalleResult.error) throw detalleResult.error;
+
+      const locs = locResult.data;
       const lm: LocMap = {};
       (locs ?? []).forEach((l: any) => { lm[l.location_id] = { name: l.name, tipo: l.tipo_tienda }; });
       setLocMap(lm);
 
-      // 2) Conciliación Addi → Shopify → NetSuite desde RPC con los JOINs oficiales
-      const { data: conciliacion, error: errConciliacion } = await (supabase as any)
-        .rpc("reporte_addi_conciliacion", { p_desde: desde, p_hasta: hasta });
-      if (errConciliacion) throw errConciliacion;
-
-      const merged = (conciliacion ?? []).map((r: any) => {
-        const loc = r.location_id ? lm[r.location_id] : null;
-
-        // canal display
-        let canalLabel = "—";
-        let canalIcon: "web" | "ps" | "tienda" = "web";
-        let canalDetalle = "";
-        if (r.order_number) {
-          const src = String(r.source_name ?? "").toLowerCase();
-          if (src === "shopify_draft_order") {
-            canalIcon = "ps";
-            canalLabel = "Personal Shopper";
-            canalDetalle = r.user_id ?? "";
-          } else if (loc?.tipo === "ECOMMERCE" || ["web", "580111"].includes(src)) {
-            canalIcon = "web";
-            canalLabel = "E-Commerce";
-          } else if (loc) {
-            canalIcon = "tienda";
-            canalLabel = loc.name;
-          }
-        }
-
-        return {
-          ...r,
-          estadoFinal: r.estado_final,
-          canalLabel,
-          canalIcon,
-          canalDetalle,
-        };
-      });
-
-      setRows(merged);
+      const rawKpi = Array.isArray(kpiResult.data) ? kpiResult.data[0] : kpiResult.data;
+      setKpis(normalizeKpis(rawKpi));
+      setRows(mapConciliacionRows(detalleResult.data ?? [], lm));
     } catch (e: any) {
       toast.error(`Error cargando conciliación Addi: ${e.message ?? e}`);
       setRows([]);
+      setKpis(emptyKpis);
     } finally {
       setLoading(false);
     }
   }
 
-  const filtered = useMemo(() => {
-    return rows.filter((r) => {
-      if (filtroCanal !== "all" && r.canal !== filtroCanal) return false;
-      if (filtroTipo !== "all" && r.tipo_de_venta !== filtroTipo) return false;
-      if (filtroEstado !== "all" && r.estadoFinal !== filtroEstado) return false;
-      if (filtroDiscrepancia !== "all") {
-        if (filtroDiscrepancia === "sin_discrepancia" && r.ns_tipo_discrepancia && r.ns_tipo_discrepancia !== "sin_discrepancia") return false;
-        if (filtroDiscrepancia !== "sin_discrepancia" && r.ns_tipo_discrepancia !== filtroDiscrepancia) return false;
+  async function exportar() {
+    try {
+      const { desde, hasta } = getMonthRange();
+      const chunkSize = 1000;
+      const allRows: any[] = [];
+
+      for (let from = 0; from < kpis.total; from += chunkSize) {
+        const { data, error } = await applyServerFilters(
+          (supabase as any).rpc("reporte_addi_conciliacion", { p_desde: desde, p_hasta: hasta })
+        ).range(from, from + chunkSize - 1);
+        if (error) throw error;
+        allRows.push(...mapConciliacionRows(data ?? [], locMap));
       }
-      return true;
-    });
-  }, [rows, filtroCanal, filtroTipo, filtroEstado, filtroDiscrepancia]);
 
-  const kpis = useMemo(() => {
-    const total = filtered.length;
-    const conc = filtered.filter(
-      (r) => r.order_number && r.ns_factura && r.ns_tipo_discrepancia === "sin_discrepancia"
-    ).length;
-    const disc = filtered.filter(
-      (r) => r.ns_tipo_discrepancia === "mayor_valor" || r.ns_tipo_discrepancia === "menor_valor"
-    );
-    const sinFact = filtered.filter((r) => r.order_number && !r.ns_factura).length;
-    const sinCruce = filtered.filter((r) => !r.order_number).length;
-    return {
-      total,
-      conc,
-      pctConc: total ? (conc / total) * 100 : 0,
-      disc: disc.length,
-      discMonto: disc.reduce((s, r) => s + Math.abs(Number(r.ns_discrepancia ?? 0)), 0),
-      sinFact,
-      sinCruce,
-    };
-  }, [filtered]);
-
-  function exportar() {
-    const data = filtered.map((r) => ({
+      const data = allRows.map((r) => ({
       order_number: r.order_number ?? "",
       fecha: r.fecha_pedido ? new Date(r.fecha_pedido).toISOString().slice(0, 10) : "",
       canal: r.canalLabel,
@@ -159,7 +220,14 @@ function TabConciliacion() {
       estado_conciliacion: r.estadoFinal,
     }));
     exportToXLS(data, `conciliacion-addi-${mes}`, "Conciliación");
+    } catch (e: any) {
+      toast.error(`Error exportando conciliación Addi: ${e.message ?? e}`);
+    }
   }
+
+  const totalPaginas = Math.max(1, Math.ceil(kpis.total / pageSize));
+  const rowStart = kpis.total === 0 ? 0 : (page - 1) * pageSize + 1;
+  const rowEnd = Math.min(page * pageSize, kpis.total);
 
   return (
     <div className="space-y-4">
@@ -168,11 +236,11 @@ function TabConciliacion() {
         <CardContent className="p-4 flex flex-wrap gap-3 items-end">
           <div>
             <label className="text-xs text-muted-foreground block mb-1">Mes</label>
-            <Input type="month" value={mes} onChange={(e) => setMes(e.target.value)} className="h-9 w-40" />
+            <Input type="month" value={mes} onChange={(e) => { setPage(1); setMes(e.target.value); }} className="h-9 w-40" />
           </div>
           <div>
             <label className="text-xs text-muted-foreground block mb-1">Canal Addi</label>
-            <Select value={filtroCanal} onValueChange={setFiltroCanal}>
+            <Select value={filtroCanal} onValueChange={(value) => { setPage(1); setFiltroCanal(value); }}>
               <SelectTrigger className="h-9 w-44"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todos</SelectItem>
@@ -184,18 +252,18 @@ function TabConciliacion() {
           </div>
           <div>
             <label className="text-xs text-muted-foreground block mb-1">Tipo</label>
-            <Select value={filtroTipo} onValueChange={setFiltroTipo}>
+            <Select value={filtroTipo} onValueChange={(value) => { setPage(1); setFiltroTipo(value); }}>
               <SelectTrigger className="h-9 w-36"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todos</SelectItem>
                 <SelectItem value="Crédito">Crédito</SelectItem>
-                <SelectItem value="Débito PSE">Débito PSE</SelectItem>
+                <SelectItem value="Débito (PSE)">Débito PSE</SelectItem>
               </SelectContent>
             </Select>
           </div>
           <div>
             <label className="text-xs text-muted-foreground block mb-1">Estado</label>
-            <Select value={filtroEstado} onValueChange={setFiltroEstado}>
+            <Select value={filtroEstado} onValueChange={(value) => { setPage(1); setFiltroEstado(value); }}>
               <SelectTrigger className="h-9 w-44"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todos</SelectItem>
@@ -208,7 +276,7 @@ function TabConciliacion() {
           </div>
           <div>
             <label className="text-xs text-muted-foreground block mb-1">Discrepancia</label>
-            <Select value={filtroDiscrepancia} onValueChange={setFiltroDiscrepancia}>
+            <Select value={filtroDiscrepancia} onValueChange={(value) => { setPage(1); setFiltroDiscrepancia(value); }}>
               <SelectTrigger className="h-9 w-44"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todas</SelectItem>
@@ -249,7 +317,7 @@ function TabConciliacion() {
             <div className="p-4 space-y-2">
               {Array.from({ length: 8 }).map((_, i) => <Skeleton key={i} className="h-10 w-full" />)}
             </div>
-          ) : filtered.length === 0 ? (
+          ) : rows.length === 0 ? (
             <div className="p-10 text-center text-sm text-muted-foreground">
               Sin transacciones para los filtros aplicados.
             </div>
@@ -274,7 +342,7 @@ function TabConciliacion() {
                   </tr>
                 </thead>
                 <tbody>
-                  {filtered.slice(0, 500).map((r, i) => (
+                  {rows.map((r, i) => (
                     <tr key={i} className="border-t hover:bg-muted/20">
                       <td className="px-3 py-2 sticky left-0 bg-background z-10 font-medium">{r.order_number ?? "—"}</td>
                       <td className="px-3 py-2 text-muted-foreground">{r.fecha_pedido ? new Date(r.fecha_pedido).toLocaleDateString("es-CO", { day: "2-digit", month: "2-digit", year: "numeric" }) : "—"}</td>
@@ -317,11 +385,44 @@ function TabConciliacion() {
                   ))}
                 </tbody>
               </table>
-              {filtered.length > 500 && (
-                <p className="px-4 py-2 text-xs text-muted-foreground border-t">
-                  Mostrando 500 de {fmtInt(filtered.length)}. Aplica filtros o exporta para ver todo.
+              <div className="flex flex-col gap-3 border-t px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+                <p className="text-xs text-muted-foreground">
+                  Mostrando {fmtInt(rowStart)}–{fmtInt(rowEnd)} de {fmtInt(kpis.total)} registros · Página {fmtInt(page)} de {fmtInt(totalPaginas)}
                 </p>
-              )}
+                <div className="flex flex-wrap items-center gap-3">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-muted-foreground">Registros por página</span>
+                    <Select value={String(pageSize)} onValueChange={(value) => { setPage(1); setPageSize(Number(value)); }}>
+                      <SelectTrigger className="h-8 w-20"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {PAGE_SIZE_OPTIONS.map((option) => (
+                          <SelectItem key={option} value={String(option)}>{option}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      disabled={page <= 1}
+                      onClick={() => setPage((p) => Math.max(1, p - 1))}
+                    >
+                      Anterior
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      disabled={page >= totalPaginas}
+                      onClick={() => setPage((p) => Math.min(totalPaginas, p + 1))}
+                    >
+                      Siguiente
+                    </Button>
+                  </div>
+                </div>
+              </div>
             </div>
           )}
         </CardContent>
