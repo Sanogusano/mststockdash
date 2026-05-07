@@ -1987,6 +1987,23 @@ export type Database = {
           warning: string
         }[]
       }
+      get_addi_conciliacion_kpis: {
+        Args: {
+          p_canal?: string
+          p_discrepancia?: string
+          p_estado?: string
+          p_mes: string
+          p_tipo?: string
+        }
+        Returns: {
+          con_discrepancia: number
+          conciliadas: number
+          monto_discrepancia: number
+          sin_cruce: number
+          sin_factura_ns: number
+          total: number
+        }[]
+      }
       get_alertas_comerciales: {
         Args: { p_anio: number; p_mes: number }
         Returns: {
