@@ -237,11 +237,11 @@ function TabConciliacion() {
         <CardContent className="p-4 flex flex-wrap gap-3 items-end">
           <div>
             <label className="text-xs text-muted-foreground block mb-1">Mes</label>
-            <Input type="month" value={mes} onChange={(e) => setMes(e.target.value)} className="h-9 w-40" />
+            <Input type="month" value={mes} onChange={(e) => { setPage(1); setMes(e.target.value); }} className="h-9 w-40" />
           </div>
           <div>
             <label className="text-xs text-muted-foreground block mb-1">Canal Addi</label>
-            <Select value={filtroCanal} onValueChange={setFiltroCanal}>
+            <Select value={filtroCanal} onValueChange={(value) => { setPage(1); setFiltroCanal(value); }}>
               <SelectTrigger className="h-9 w-44"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todos</SelectItem>
@@ -253,7 +253,7 @@ function TabConciliacion() {
           </div>
           <div>
             <label className="text-xs text-muted-foreground block mb-1">Tipo</label>
-            <Select value={filtroTipo} onValueChange={setFiltroTipo}>
+            <Select value={filtroTipo} onValueChange={(value) => { setPage(1); setFiltroTipo(value); }}>
               <SelectTrigger className="h-9 w-36"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todos</SelectItem>
@@ -264,7 +264,7 @@ function TabConciliacion() {
           </div>
           <div>
             <label className="text-xs text-muted-foreground block mb-1">Estado</label>
-            <Select value={filtroEstado} onValueChange={setFiltroEstado}>
+            <Select value={filtroEstado} onValueChange={(value) => { setPage(1); setFiltroEstado(value); }}>
               <SelectTrigger className="h-9 w-44"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todos</SelectItem>
@@ -277,7 +277,7 @@ function TabConciliacion() {
           </div>
           <div>
             <label className="text-xs text-muted-foreground block mb-1">Discrepancia</label>
-            <Select value={filtroDiscrepancia} onValueChange={setFiltroDiscrepancia}>
+            <Select value={filtroDiscrepancia} onValueChange={(value) => { setPage(1); setFiltroDiscrepancia(value); }}>
               <SelectTrigger className="h-9 w-44"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todas</SelectItem>
