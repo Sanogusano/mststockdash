@@ -33,6 +33,26 @@ function nextMonthDefault() {
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
 }
 
+// Probe up to 6 months back/forward from "now" to find one with projection data
+async function findMonthWithData(): Promise<string> {
+  const now = new Date();
+  const candidates: string[] = [];
+  // Try current, then forward 2, then back up to 6
+  for (const offset of [0, 1, 2, -1, -2, -3, -4, -5, -6]) {
+    const d = new Date(now.getFullYear(), now.getMonth() + offset, 1);
+    candidates.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`);
+  }
+  for (const m of candidates) {
+    const { desde, hasta } = getRange(m);
+    const { data, error } = await (supabase as any).rpc("proyeccion_pagos_addi", {
+      p_fecha_desde: desde,
+      p_fecha_hasta: hasta,
+    });
+    if (!error && Array.isArray(data) && data.length > 0) return m;
+  }
+  return nextMonthDefault();
+}
+
 function getRange(mes: string) {
   const [y, m] = mes.split("-").map(Number);
   const desde = `${y}-${String(m).padStart(2, "0")}-01`;
@@ -53,6 +73,16 @@ export function TabProyeccionPagos() {
   const [loading, setLoading] = useState(true);
   const [rows, setRows] = useState<Row[]>([]);
 
+  // On mount: auto-pick a month with data
+  useEffect(() => {
+    let cancel = false;
+    (async () => {
+      const m = await findMonthWithData();
+      if (!cancel) setMes(m);
+    })();
+    return () => { cancel = true; };
+  }, []);
+
   useEffect(() => {
     void cargar();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -62,13 +92,16 @@ export function TabProyeccionPagos() {
     setLoading(true);
     try {
       const { desde, hasta } = getRange(mes);
+      console.log("[Proyección Addi] RPC params:", { p_fecha_desde: desde, p_fecha_hasta: hasta });
       const { data, error } = await (supabase as any).rpc("proyeccion_pagos_addi", {
         p_fecha_desde: desde,
         p_fecha_hasta: hasta,
       });
       if (error) throw error;
+      console.log("[Proyección Addi] rows:", (data ?? []).length);
       setRows((data ?? []) as Row[]);
     } catch (e: any) {
+      console.error("[Proyección Addi] error:", e);
       toast.error(`Error cargando proyección: ${e.message ?? e}`);
       setRows([]);
     } finally {
