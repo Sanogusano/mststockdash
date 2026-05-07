@@ -2057,6 +2057,19 @@ export type Database = {
         Args: { p_origen_netsuite_id: number }
         Returns: number
       }
+      proyeccion_pagos_addi: {
+        Args: { p_fecha_desde: string; p_fecha_hasta: string }
+        Returns: {
+          esta_recibido: boolean
+          fecha_pago_estimada: string
+          monto_bruto: number
+          monto_neto_estimado: number
+          recibido_real: number
+          tarifas_estimadas: number
+          tipo_venta: string
+          transacciones: number
+        }[]
+      }
       reporte_addi_conciliacion: {
         Args: { p_desde: string; p_hasta: string }
         Returns: {
