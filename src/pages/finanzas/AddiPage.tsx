@@ -259,11 +259,12 @@ function TabConciliacion() {
                 <thead className="bg-muted/50 text-xs uppercase">
                   <tr className="text-left">
                     <th className="px-3 py-2 sticky left-0 bg-muted/50 z-10 min-w-[120px]">Orden</th>
-                    <th className="px-3 py-2 min-w-[110px]">Fecha</th>
+                    <th className="px-3 py-2 min-w-[110px]">Fecha pedido</th>
                     <th className="px-3 py-2 min-w-[200px]">Canal</th>
                     <th className="px-3 py-2 text-right min-w-[110px]">Shopify</th>
                     <th className="px-3 py-2 min-w-[90px]">Estado Addi</th>
                     <th className="px-3 py-2 min-w-[100px]">Tipo</th>
+                    <th className="px-3 py-2 min-w-[100px]">Tipo crédito</th>
                     <th className="px-3 py-2 text-right min-w-[110px]">Addi</th>
                     <th className="px-3 py-2 min-w-[120px]">Factura NS</th>
                     <th className="px-3 py-2 text-right min-w-[110px]">Facturado</th>
