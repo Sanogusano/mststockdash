@@ -259,11 +259,12 @@ function TabConciliacion() {
                 <thead className="bg-muted/50 text-xs uppercase">
                   <tr className="text-left">
                     <th className="px-3 py-2 sticky left-0 bg-muted/50 z-10 min-w-[120px]">Orden</th>
-                    <th className="px-3 py-2 min-w-[110px]">Fecha</th>
+                    <th className="px-3 py-2 min-w-[110px]">Fecha pedido</th>
                     <th className="px-3 py-2 min-w-[200px]">Canal</th>
                     <th className="px-3 py-2 text-right min-w-[110px]">Shopify</th>
                     <th className="px-3 py-2 min-w-[90px]">Estado Addi</th>
                     <th className="px-3 py-2 min-w-[100px]">Tipo</th>
+                    <th className="px-3 py-2 min-w-[100px]">Tipo crédito</th>
                     <th className="px-3 py-2 text-right min-w-[110px]">Addi</th>
                     <th className="px-3 py-2 min-w-[120px]">Factura NS</th>
                     <th className="px-3 py-2 text-right min-w-[110px]">Facturado</th>
@@ -276,7 +277,7 @@ function TabConciliacion() {
                   {filtered.slice(0, 500).map((r, i) => (
                     <tr key={i} className="border-t hover:bg-muted/20">
                       <td className="px-3 py-2 sticky left-0 bg-background z-10 font-medium">{r.order_number ?? "—"}</td>
-                      <td className="px-3 py-2 text-muted-foreground">{fmtFecha(r.fecha_pedido)}</td>
+                      <td className="px-3 py-2 text-muted-foreground">{r.fecha_pedido ? new Date(r.fecha_pedido).toLocaleDateString("es-CO", { day: "2-digit", month: "2-digit", year: "numeric" }) : "—"}</td>
                       <td className="px-3 py-2">
                         <span className="inline-flex items-center gap-1.5">
                           {r.canalIcon === "web" && <Globe className="h-3.5 w-3.5 text-sky-600" />}
@@ -291,6 +292,14 @@ function TabConciliacion() {
                         <Badge variant="outline" className={r.estado === "Exitosa" ? "bg-emerald-50 text-emerald-700 border-emerald-200" : ""}>{r.estado ?? "—"}</Badge>
                       </td>
                       <td className="px-3 py-2 text-muted-foreground">{r.tipo_de_venta ?? "—"}</td>
+                      <td className="px-3 py-2">
+                        {r.tipo_de_venta === "Crédito" && (
+                          <Badge className="bg-blue-100 text-blue-800 border-0">Crédito</Badge>
+                        )}
+                        {r.tipo_de_venta === "Débito (PSE)" && (
+                          <Badge className="bg-emerald-100 text-emerald-800 border-0">PSE</Badge>
+                        )}
+                      </td>
                       <td className="px-3 py-2 text-right tabular-nums">{fmtCOP(r.monto)}</td>
                       <td className="px-3 py-2 font-mono text-xs">{r.ns_factura ?? <span className="text-muted-foreground">—</span>}</td>
                       <td className="px-3 py-2 text-right tabular-nums">{r.ns_valor != null ? fmtCOP(r.ns_valor) : "—"}</td>
