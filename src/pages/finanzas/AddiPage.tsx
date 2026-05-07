@@ -122,10 +122,14 @@ function TabConciliacion() {
 
   const kpis = useMemo(() => {
     const total = filtered.length;
-    const conc = filtered.filter((r) => r.estadoFinal === "conciliado").length;
-    const disc = filtered.filter((r) => r.estadoFinal === "discrepancia");
-    const sinFact = filtered.filter((r) => r.estadoFinal === "sin_factura").length;
-    const sinCruce = filtered.filter((r) => r.estadoFinal === "sin_cruce").length;
+    const conc = filtered.filter(
+      (r) => r.order_number && r.ns_factura && r.ns_tipo_discrepancia === "sin_discrepancia"
+    ).length;
+    const disc = filtered.filter(
+      (r) => r.ns_tipo_discrepancia === "mayor_valor" || r.ns_tipo_discrepancia === "menor_valor"
+    );
+    const sinFact = filtered.filter((r) => r.order_number && !r.ns_factura).length;
+    const sinCruce = filtered.filter((r) => !r.order_number).length;
     return {
       total,
       conc,
