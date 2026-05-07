@@ -277,7 +277,7 @@ function TabConciliacion() {
                   {filtered.slice(0, 500).map((r, i) => (
                     <tr key={i} className="border-t hover:bg-muted/20">
                       <td className="px-3 py-2 sticky left-0 bg-background z-10 font-medium">{r.order_number ?? "—"}</td>
-                      <td className="px-3 py-2 text-muted-foreground">{fmtFecha(r.fecha_pedido)}</td>
+                      <td className="px-3 py-2 text-muted-foreground">{r.fecha_pedido ? new Date(r.fecha_pedido).toLocaleDateString("es-CO", { day: "2-digit", month: "2-digit", year: "numeric" }) : "—"}</td>
                       <td className="px-3 py-2">
                         <span className="inline-flex items-center gap-1.5">
                           {r.canalIcon === "web" && <Globe className="h-3.5 w-3.5 text-sky-600" />}
