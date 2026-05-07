@@ -401,24 +401,26 @@ function TabConciliacion() {
                       </SelectContent>
                     </Select>
                   </div>
-                  <Pagination className="mx-0 w-auto">
-                    <PaginationContent>
-                      <PaginationItem>
-                        <PaginationPrevious
-                          aria-disabled={page <= 1}
-                          className={page <= 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
-                          onClick={(e) => { e.preventDefault(); setPage((p) => Math.max(1, p - 1)); }}
-                        />
-                      </PaginationItem>
-                      <PaginationItem>
-                        <PaginationNext
-                          aria-disabled={page >= totalPaginas}
-                          className={page >= totalPaginas ? "pointer-events-none opacity-50" : "cursor-pointer"}
-                          onClick={(e) => { e.preventDefault(); setPage((p) => Math.min(totalPaginas, p + 1)); }}
-                        />
-                      </PaginationItem>
-                    </PaginationContent>
-                  </Pagination>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      disabled={page <= 1}
+                      onClick={() => setPage((p) => Math.max(1, p - 1))}
+                    >
+                      Anterior
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      disabled={page >= totalPaginas}
+                      onClick={() => setPage((p) => Math.min(totalPaginas, p + 1))}
+                    >
+                      Siguiente
+                    </Button>
+                  </div>
                 </div>
               </div>
             </div>
