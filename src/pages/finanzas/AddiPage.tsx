@@ -292,6 +292,14 @@ function TabConciliacion() {
                         <Badge variant="outline" className={r.estado === "Exitosa" ? "bg-emerald-50 text-emerald-700 border-emerald-200" : ""}>{r.estado ?? "—"}</Badge>
                       </td>
                       <td className="px-3 py-2 text-muted-foreground">{r.tipo_de_venta ?? "—"}</td>
+                      <td className="px-3 py-2">
+                        {r.tipo_de_venta === "Crédito" && (
+                          <Badge className="bg-blue-100 text-blue-800 border-0">Crédito</Badge>
+                        )}
+                        {r.tipo_de_venta === "Débito (PSE)" && (
+                          <Badge className="bg-emerald-100 text-emerald-800 border-0">PSE</Badge>
+                        )}
+                      </td>
                       <td className="px-3 py-2 text-right tabular-nums">{fmtCOP(r.monto)}</td>
                       <td className="px-3 py-2 font-mono text-xs">{r.ns_factura ?? <span className="text-muted-foreground">—</span>}</td>
                       <td className="px-3 py-2 text-right tabular-nums">{r.ns_valor != null ? fmtCOP(r.ns_valor) : "—"}</td>
