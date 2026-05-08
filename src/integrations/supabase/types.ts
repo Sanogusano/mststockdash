@@ -167,6 +167,48 @@ export type Database = {
         }
         Relationships: []
       }
+      addi_upload_history: {
+        Row: {
+          cruzados: number
+          detalle: Json | null
+          errores: number
+          id: string
+          nombre_archivo: string
+          sin_cruce: number
+          tipo: string
+          total_registros: number
+          uploaded_at: string
+          uploaded_by: string | null
+          uploaded_by_email: string | null
+        }
+        Insert: {
+          cruzados?: number
+          detalle?: Json | null
+          errores?: number
+          id?: string
+          nombre_archivo: string
+          sin_cruce?: number
+          tipo: string
+          total_registros?: number
+          uploaded_at?: string
+          uploaded_by?: string | null
+          uploaded_by_email?: string | null
+        }
+        Update: {
+          cruzados?: number
+          detalle?: Json | null
+          errores?: number
+          id?: string
+          nombre_archivo?: string
+          sin_cruce?: number
+          tipo?: string
+          total_registros?: number
+          uploaded_at?: string
+          uploaded_by?: string | null
+          uploaded_by_email?: string | null
+        }
+        Relationships: []
+      }
       allocation_runs: {
         Row: {
           destino_location_id: string
@@ -1966,6 +2008,7 @@ export type Database = {
         }
         Returns: string
       }
+      cruzar_addi_con_shopify: { Args: never; Returns: undefined }
       generar_export_netsuite: {
         Args: {
           p_empleado: string
