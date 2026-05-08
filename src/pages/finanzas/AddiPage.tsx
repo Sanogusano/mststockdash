@@ -13,6 +13,7 @@ import { fmtCOP, fmtInt } from "@/lib/finanzas-format";
 import { exportToXLS } from "@/lib/xls-export";
 import { toast } from "sonner";
 import { TabProyeccionPagos } from "./AddiProyeccionTab";
+import { TabCargarArchivo } from "./AddiCargarTab";
 
 type LocMap = Record<string, { name: string; tipo: string | null }>;
 type AddiKpis = {
@@ -462,7 +463,7 @@ export default function AddiPage() {
         <TabsContent value="conciliacion"><TabConciliacion /></TabsContent>
         <TabsContent value="liquidaciones"><TabSoon msg="Liquidaciones contables con desglose de tarifas y retenciones — próxima iteración." /></TabsContent>
         <TabsContent value="proyeccion"><TabProyeccionPagos /></TabsContent>
-        <TabsContent value="cargar"><TabSoon msg="Carga de archivos Excel de transacciones y liquidaciones — próxima iteración." /></TabsContent>
+        <TabsContent value="cargar"><TabCargarArchivo /></TabsContent>
       </Tabs>
     </FinanzasLayout>
   );
