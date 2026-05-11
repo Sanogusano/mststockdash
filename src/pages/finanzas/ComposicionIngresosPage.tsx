@@ -350,6 +350,81 @@ export default function ComposicionIngresosPage() {
     }
   };
 
+  const exportMetodo = () => {
+    const dStr = format(desde, "yyyy-MM-dd");
+    const hStr = format(hasta, "yyyy-MM-dd");
+    const data: any[] = Object.entries(totals.byMetodo)
+      .sort((a, b) => b[1].brutas - a[1].brutas)
+      .map(([m, v]) => ({
+        "Método de Pago": m,
+        Órdenes: v.ordenes,
+        "Ventas Brutas": v.brutas,
+        "Ventas Sin IVA": v.sinIva,
+        "% Participación": totals.brutas ? Number(((v.brutas / totals.brutas) * 100).toFixed(2)) : 0,
+      }));
+    if (!data.length) return toast.warning("Sin datos para exportar");
+    data.push({
+      "Método de Pago": "TOTAL",
+      Órdenes: totals.ordenes,
+      "Ventas Brutas": totals.brutas,
+      "Ventas Sin IVA": totals.sinIva,
+      "% Participación": 100,
+    });
+    exportToXLS(data, `informe_metodo_pago_${dStr}_${hStr}`, "Método de Pago");
+  };
+
+  const exportCanal = () => {
+    const dStr = format(desde, "yyyy-MM-dd");
+    const hStr = format(hasta, "yyyy-MM-dd");
+    const data: any[] = Object.entries(totals.byCanal)
+      .sort((a, b) => b[1].brutas - a[1].brutas)
+      .map(([c, v]) => ({
+        Canal: displayCanal(c),
+        Órdenes: v.ordenes,
+        "Ventas Brutas": v.brutas,
+        "Ventas Sin IVA": v.sinIva,
+        "Ticket Promedio": v.ordenes ? Math.round(v.brutas / v.ordenes) : 0,
+        "% Participación": totals.brutas ? Number(((v.brutas / totals.brutas) * 100).toFixed(2)) : 0,
+      }));
+    if (!data.length) return toast.warning("Sin datos para exportar");
+    data.push({
+      Canal: "TOTAL",
+      Órdenes: totals.ordenes,
+      "Ventas Brutas": totals.brutas,
+      "Ventas Sin IVA": totals.sinIva,
+      "Ticket Promedio": totals.ordenes ? Math.round(totals.brutas / totals.ordenes) : 0,
+      "% Participación": 100,
+    });
+    exportToXLS(data, `informe_canal_${dStr}_${hStr}`, "Canal");
+  };
+
+  const exportTienda = () => {
+    const dStr = format(desde, "yyyy-MM-dd");
+    const hStr = format(hasta, "yyyy-MM-dd");
+    const data: any[] = Object.entries(totals.byTienda)
+      .sort((a, b) => b[1].brutas - a[1].brutas)
+      .map(([t, v]) => ({
+        Tienda: t,
+        Canal: displayCanal(v.canal),
+        Órdenes: v.ordenes,
+        "Ventas Brutas": v.brutas,
+        "Ventas Sin IVA": v.sinIva,
+        "Ticket Promedio": v.ordenes ? Math.round(v.brutas / v.ordenes) : 0,
+        "% Participación": totals.brutas ? Number(((v.brutas / totals.brutas) * 100).toFixed(2)) : 0,
+      }));
+    if (!data.length) return toast.warning("Sin datos para exportar");
+    data.push({
+      Tienda: "TOTAL",
+      Canal: "",
+      Órdenes: totals.ordenes,
+      "Ventas Brutas": totals.brutas,
+      "Ventas Sin IVA": totals.sinIva,
+      "Ticket Promedio": totals.ordenes ? Math.round(totals.brutas / totals.ordenes) : 0,
+      "% Participación": 100,
+    });
+    exportToXLS(data, `informe_tienda_${dStr}_${hStr}`, "Tienda");
+  };
+
   const pctPos = totals.brutas ? (totals.pos.brutas / totals.brutas) * 100 : 0;
   const pctDig = totals.brutas ? (totals.dig.brutas / totals.brutas) * 100 : 0;
 
@@ -747,7 +822,13 @@ export default function ComposicionIngresosPage() {
       {/* Informe General por Método de Pago */}
       <Card className="mt-6">
         <CardHeader>
-          <CardTitle className="text-base">Informe General · Método de Pago</CardTitle>
+          <div className="flex items-center justify-between gap-2">
+            <CardTitle className="text-base">Informe General · Método de Pago</CardTitle>
+            <Button size="sm" variant="outline" onClick={exportMetodo} disabled={loading}>
+              <Download className="mr-2 h-4 w-4" />
+              Exportar Excel
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
           {loading ? (
@@ -800,7 +881,13 @@ export default function ComposicionIngresosPage() {
       {/* Informe por Canal */}
       <Card className="mt-6">
         <CardHeader>
-          <CardTitle className="text-base">Informe por Canal</CardTitle>
+          <div className="flex items-center justify-between gap-2">
+            <CardTitle className="text-base">Informe por Canal</CardTitle>
+            <Button size="sm" variant="outline" onClick={exportCanal} disabled={loading}>
+              <Download className="mr-2 h-4 w-4" />
+              Exportar Excel
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
           {loading ? (
@@ -862,7 +949,13 @@ export default function ComposicionIngresosPage() {
       {/* Informe por Tienda */}
       <Card className="mt-6">
         <CardHeader>
-          <CardTitle className="text-base">Informe por Tienda</CardTitle>
+          <div className="flex items-center justify-between gap-2">
+            <CardTitle className="text-base">Informe por Tienda</CardTitle>
+            <Button size="sm" variant="outline" onClick={exportTienda} disabled={loading}>
+              <Download className="mr-2 h-4 w-4" />
+              Exportar Excel
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
           {loading ? (
