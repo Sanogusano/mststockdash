@@ -743,6 +743,186 @@ export default function ComposicionIngresosPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* Informe General por Método de Pago */}
+      <Card className="mt-6">
+        <CardHeader>
+          <CardTitle className="text-base">Informe General · Método de Pago</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {loading ? (
+            <Skeleton className="h-40 w-full" />
+          ) : (
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Método de Pago</TableHead>
+                    <TableHead className="text-right">Órdenes</TableHead>
+                    <TableHead className="text-right">Ventas Brutas</TableHead>
+                    <TableHead className="text-right">Ventas Sin IVA</TableHead>
+                    <TableHead className="text-right">% Participación</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {Object.entries(totals.byMetodo)
+                    .sort((a, b) => b[1].brutas - a[1].brutas)
+                    .map(([m, v]) => (
+                      <TableRow key={`gm-${m}`}>
+                        <TableCell>
+                          <Badge variant="outline">{m}</Badge>
+                        </TableCell>
+                        <TableCell className="text-right">{fmtInt(v.ordenes)}</TableCell>
+                        <TableCell className="text-right">{fmtCOP(v.brutas)}</TableCell>
+                        <TableCell className="text-right">{fmtCOP(v.sinIva)}</TableCell>
+                        <TableCell className="text-right">
+                          {totals.brutas
+                            ? ((v.brutas / totals.brutas) * 100).toFixed(2)
+                            : "0.00"}
+                          %
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  <TableRow className="border-t-2 bg-muted font-bold">
+                    <TableCell>TOTAL</TableCell>
+                    <TableCell className="text-right">{fmtInt(totals.ordenes)}</TableCell>
+                    <TableCell className="text-right">{fmtCOP(totals.brutas)}</TableCell>
+                    <TableCell className="text-right">{fmtCOP(totals.sinIva)}</TableCell>
+                    <TableCell className="text-right">100.00%</TableCell>
+                  </TableRow>
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Informe por Canal */}
+      <Card className="mt-6">
+        <CardHeader>
+          <CardTitle className="text-base">Informe por Canal</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {loading ? (
+            <Skeleton className="h-40 w-full" />
+          ) : (
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Canal</TableHead>
+                    <TableHead className="text-right">Órdenes</TableHead>
+                    <TableHead className="text-right">Ventas Brutas</TableHead>
+                    <TableHead className="text-right">Ventas Sin IVA</TableHead>
+                    <TableHead className="text-right">Ticket Promedio</TableHead>
+                    <TableHead className="text-right">% Participación</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {Object.entries(totals.byCanal)
+                    .sort((a, b) => b[1].brutas - a[1].brutas)
+                    .map(([c, v]) => (
+                      <TableRow key={`gc-${c}`}>
+                        <TableCell>
+                          <Badge className={canalBadge(c)} variant="secondary">
+                            {displayCanal(c)}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-right">{fmtInt(v.ordenes)}</TableCell>
+                        <TableCell className="text-right">{fmtCOP(v.brutas)}</TableCell>
+                        <TableCell className="text-right">{fmtCOP(v.sinIva)}</TableCell>
+                        <TableCell className="text-right">
+                          {v.ordenes ? fmtCOP(v.brutas / v.ordenes) : "—"}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          {totals.brutas
+                            ? ((v.brutas / totals.brutas) * 100).toFixed(2)
+                            : "0.00"}
+                          %
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  <TableRow className="border-t-2 bg-muted font-bold">
+                    <TableCell>TOTAL</TableCell>
+                    <TableCell className="text-right">{fmtInt(totals.ordenes)}</TableCell>
+                    <TableCell className="text-right">{fmtCOP(totals.brutas)}</TableCell>
+                    <TableCell className="text-right">{fmtCOP(totals.sinIva)}</TableCell>
+                    <TableCell className="text-right">
+                      {totals.ordenes ? fmtCOP(totals.brutas / totals.ordenes) : "—"}
+                    </TableCell>
+                    <TableCell className="text-right">100.00%</TableCell>
+                  </TableRow>
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Informe por Tienda */}
+      <Card className="mt-6">
+        <CardHeader>
+          <CardTitle className="text-base">Informe por Tienda</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {loading ? (
+            <Skeleton className="h-40 w-full" />
+          ) : (
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Tienda</TableHead>
+                    <TableHead>Canal</TableHead>
+                    <TableHead className="text-right">Órdenes</TableHead>
+                    <TableHead className="text-right">Ventas Brutas</TableHead>
+                    <TableHead className="text-right">Ventas Sin IVA</TableHead>
+                    <TableHead className="text-right">Ticket Promedio</TableHead>
+                    <TableHead className="text-right">% Participación</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {Object.entries(totals.byTienda)
+                    .sort((a, b) => b[1].brutas - a[1].brutas)
+                    .map(([t, v]) => (
+                      <TableRow key={`gt-${t}`}>
+                        <TableCell className="font-medium">{t}</TableCell>
+                        <TableCell>
+                          <Badge className={canalBadge(v.canal)} variant="secondary">
+                            {displayCanal(v.canal)}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-right">{fmtInt(v.ordenes)}</TableCell>
+                        <TableCell className="text-right">{fmtCOP(v.brutas)}</TableCell>
+                        <TableCell className="text-right">{fmtCOP(v.sinIva)}</TableCell>
+                        <TableCell className="text-right">
+                          {v.ordenes ? fmtCOP(v.brutas / v.ordenes) : "—"}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          {totals.brutas
+                            ? ((v.brutas / totals.brutas) * 100).toFixed(2)
+                            : "0.00"}
+                          %
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  <TableRow className="border-t-2 bg-muted font-bold">
+                    <TableCell>TOTAL</TableCell>
+                    <TableCell />
+                    <TableCell className="text-right">{fmtInt(totals.ordenes)}</TableCell>
+                    <TableCell className="text-right">{fmtCOP(totals.brutas)}</TableCell>
+                    <TableCell className="text-right">{fmtCOP(totals.sinIva)}</TableCell>
+                    <TableCell className="text-right">
+                      {totals.ordenes ? fmtCOP(totals.brutas / totals.ordenes) : "—"}
+                    </TableCell>
+                    <TableCell className="text-right">100.00%</TableCell>
+                  </TableRow>
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </FinanzasLayout>
   );
 }
