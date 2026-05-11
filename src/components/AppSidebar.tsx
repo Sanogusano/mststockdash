@@ -55,6 +55,7 @@ const logisticaItems: NavItem[] = [
 
 const finanzasItems: NavItem[] = [
   { title: "Dashboard Financiero", url: "/finanzas", icon: LayoutDashboard, description: "Vista general", module: "finanzas.view", action: "view" },
+  { title: "Medios de Pago", url: "/finanzas/medios-de-pago", icon: CreditCard, description: "Análisis por método y canal", module: "finanzas.view", action: "view" },
   { title: "Conciliación Addi", url: "/finanzas/addi", icon: CreditCard, description: "Addi", module: "finanzas.addi", action: "view" },
   { title: "Conciliación Wompi", url: "/finanzas/wompi", icon: CreditCard, description: "Wompi", module: "finanzas.wompi", action: "view" },
   { title: "Conciliación Mercado Pago", url: "/finanzas/mercadopago", icon: CreditCard, description: "MP", module: "finanzas.mercadopago", action: "view" },
