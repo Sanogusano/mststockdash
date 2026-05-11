@@ -236,7 +236,8 @@ export default function MediosDePagoPage() {
 
   // Vista 2 — Barras apiladas por mes y canal (últimos 6 meses incluyendo el seleccionado)
   const barrasMensuales = useMemo(() => {
-    const [y, m] = mes.split("-").map(Number);
+    const anchor = hastaSel;
+    const y = anchor.getFullYear(); const m = anchor.getMonth() + 1;
     const meses: { key: string; label: string; data: Record<string, number> }[] = [];
     for (let i = 5; i >= 0; i--) {
       const d = new Date(y, m - 1 - i, 1);
@@ -247,21 +248,21 @@ export default function MediosDePagoPage() {
       });
     }
     const idx: Record<string, number> = {};
-    meses.forEach((m, i) => (idx[m.key] = i));
+    meses.forEach((mm, i) => (idx[mm.key] = i));
     for (const o of ordenesEnriched) {
       const k = `${o._date.getFullYear()}-${String(o._date.getMonth() + 1).padStart(2, "0")}`;
       const i = idx[k];
       if (i == null) continue;
       meses[i].data[o.canal] = (meses[i].data[o.canal] || 0) + o.total;
     }
-    return meses.map((m) => ({
-      mes: m.label,
-      "POS Tienda": m.data["POS Tienda"] || 0,
-      "Tienda Online": m.data["Tienda Online"] || 0,
-      "Personal Shopper": m.data["Personal Shopper"] || 0,
-      "Addi Marketplace": m.data["Addi Marketplace"] || 0,
+    return meses.map((mm) => ({
+      mes: mm.label,
+      "POS Tienda": mm.data["POS Tienda"] || 0,
+      "Tienda Online": mm.data["Tienda Online"] || 0,
+      "Personal Shopper": mm.data["Personal Shopper"] || 0,
+      "Addi Marketplace": mm.data["Addi Marketplace"] || 0,
     }));
-  }, [ordenesEnriched, mes]);
+  }, [ordenesEnriched, hastaSel]);
 
   // Vista 3 — Tabla detallada (Método x Canal con tendencia vs mes anterior)
   type FilaTabla = {
