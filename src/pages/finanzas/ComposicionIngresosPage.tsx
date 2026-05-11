@@ -178,6 +178,7 @@ export default function ComposicionIngresosPage() {
     const byCanal: Record<string, Agg> = {};
     const byMetodo: Record<string, Agg> = {};
     const byCanalMetodo: Record<string, Record<string, Agg>> = {};
+    const byTienda: Record<string, Agg & { canal: string | null; location_id: string | null }> = {};
     rows.forEach((r) => {
       const b = Number(r.r_ventas_brutas ?? 0);
       const s = Number(r.r_ventas_sin_iva ?? 0);
