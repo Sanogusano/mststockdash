@@ -186,11 +186,11 @@ export default function MediosDePagoPage() {
   }, [orders]);
 
   const ordenesMes = useMemo(() => {
-    return ordenesEnriched.filter((o) => o._date >= desdeSel && o._date < hastaSel);
+    return ordenesEnriched.filter((o) => o._date >= desdeSel && o._date <= hastaSel);
   }, [ordenesEnriched, desdeSel, hastaSel]);
 
   const ordenesMesPrev = useMemo(() => {
-    return ordenesEnriched.filter((o) => o._date >= desdePrev && o._date < hastaPrev);
+    return ordenesEnriched.filter((o) => o._date >= desdePrev && o._date <= hastaPrev);
   }, [ordenesEnriched, desdePrev, hastaPrev]);
 
   const ordenesMesFiltradas = useMemo(() => {
