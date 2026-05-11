@@ -1,19 +1,53 @@
 import { useEffect, useMemo, useState } from "react";
 import { FinanzasLayout } from "./FinanzasLayout";
 import { Card, CardContent } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Download, ArrowUp, ArrowDown, Minus } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { Download, ArrowUp, ArrowDown, Minus, CalendarIcon } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { fmtCOP, fmtInt } from "@/lib/finanzas-format";
 import { exportToXLS } from "@/lib/xls-export";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
+import { format } from "date-fns";
+import { es } from "date-fns/locale";
 import {
   PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer,
   BarChart, Bar, XAxis, YAxis, CartesianGrid, LineChart, Line,
 } from "recharts";
+
+type Preset = "hoy" | "7d" | "14d" | "mes_anterior" | "custom";
+const PRESETS: { value: Preset; label: string }[] = [
+  { value: "hoy", label: "Hoy" },
+  { value: "7d", label: "Últimos 7 días" },
+  { value: "14d", label: "Últimos 14 días" },
+  { value: "mes_anterior", label: "Mes anterior" },
+  { value: "custom", label: "Personalizado" },
+];
+
+function startOfDay(d: Date) { const x = new Date(d); x.setHours(0, 0, 0, 0); return x; }
+function endOfDay(d: Date) { const x = new Date(d); x.setHours(23, 59, 59, 999); return x; }
+function addDays(d: Date, n: number) { const x = new Date(d); x.setDate(x.getDate() + n); return x; }
+
+function resolvePreset(p: Preset, customDesde?: Date, customHasta?: Date): { desde: Date; hasta: Date } {
+  const today = startOfDay(new Date());
+  if (p === "hoy") return { desde: today, hasta: endOfDay(today) };
+  if (p === "7d") return { desde: addDays(today, -6), hasta: endOfDay(today) };
+  if (p === "14d") return { desde: addDays(today, -13), hasta: endOfDay(today) };
+  if (p === "mes_anterior") {
+    const first = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+    const last = new Date(today.getFullYear(), today.getMonth(), 0);
+    return { desde: first, hasta: endOfDay(last) };
+  }
+  // custom
+  const d = customDesde ? startOfDay(customDesde) : today;
+  const h = customHasta ? endOfDay(customHasta) : endOfDay(today);
+  return { desde: d, hasta: h };
+}
+
 
 type RawOrder = {
   created_at: string;
