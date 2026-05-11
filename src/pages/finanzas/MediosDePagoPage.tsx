@@ -470,6 +470,7 @@ export default function MediosDePagoPage() {
           <div className="text-xs text-muted-foreground self-end pb-2">
             {format(desdeSel, "dd MMM", { locale: es })} – {format(hastaSel, "dd MMM yyyy", { locale: es })}
           </div>
+          <div>
             <label className="text-xs text-muted-foreground block mb-1">Canal</label>
             <Select value={canalFiltro} onValueChange={setCanalFiltro}>
               <SelectTrigger className="h-9 w-48"><SelectValue /></SelectTrigger>
