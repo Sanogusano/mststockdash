@@ -93,6 +93,7 @@ const App = () => (
           {/* ===== Finanzas ===== */}
           <Route path="/finanzas" element={<Guard module="finanzas.view" action="view"><FinanzasDashboardPage /></Guard>} />
           <Route path="/finanzas/medios-de-pago" element={<Guard module="finanzas.view" action="view"><MediosDePagoPage /></Guard>} />
+          <Route path="/finanzas/composicion-ingresos" element={<Guard module="finanzas.view" action="view"><ComposicionIngresosPage /></Guard>} />
           <Route path="/finanzas/addi" element={<Guard module="finanzas.addi" action="view"><AddiPage /></Guard>} />
           <Route path="/finanzas/wompi" element={<Guard module="finanzas.wompi" action="view"><WompiPage /></Guard>} />
           <Route path="/finanzas/mercadopago" element={<Guard module="finanzas.mercadopago" action="view"><MercadoPagoPage /></Guard>} />
