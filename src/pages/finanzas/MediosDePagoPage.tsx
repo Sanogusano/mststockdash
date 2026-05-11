@@ -405,10 +405,71 @@ export default function MediosDePagoPage() {
       <Card className="mb-4">
         <CardContent className="p-4 flex flex-wrap gap-3 items-end">
           <div>
-            <label className="text-xs text-muted-foreground block mb-1">Mes</label>
-            <Input type="month" value={mes} onChange={(e) => setMes(e.target.value)} className="h-9 w-40" />
+            <label className="text-xs text-muted-foreground block mb-1">Período</label>
+            <Select value={preset} onValueChange={(v) => setPreset(v as Preset)}>
+              <SelectTrigger className="h-9 w-44"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {PRESETS.map((p) => (
+                  <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
-          <div>
+          {preset === "custom" && (
+            <>
+              <div>
+                <label className="text-xs text-muted-foreground block mb-1">Desde</label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn("h-9 w-40 justify-start font-normal", !customDesde && "text-muted-foreground")}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {customDesde ? format(customDesde, "dd MMM yyyy", { locale: es }) : "Elegir"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={customDesde}
+                      onSelect={setCustomDesde}
+                      locale={es}
+                      initialFocus
+                      className={cn("p-3 pointer-events-auto")}
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground block mb-1">Hasta</label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn("h-9 w-40 justify-start font-normal", !customHasta && "text-muted-foreground")}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {customHasta ? format(customHasta, "dd MMM yyyy", { locale: es }) : "Elegir"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={customHasta}
+                      onSelect={setCustomHasta}
+                      locale={es}
+                      initialFocus
+                      className={cn("p-3 pointer-events-auto")}
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+            </>
+          )}
+          <div className="text-xs text-muted-foreground self-end pb-2">
+            {format(desdeSel, "dd MMM", { locale: es })} – {format(hastaSel, "dd MMM yyyy", { locale: es })}
+          </div>
             <label className="text-xs text-muted-foreground block mb-1">Canal</label>
             <Select value={canalFiltro} onValueChange={setCanalFiltro}>
               <SelectTrigger className="h-9 w-48"><SelectValue /></SelectTrigger>
