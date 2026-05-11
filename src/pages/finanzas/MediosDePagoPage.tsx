@@ -637,39 +637,5 @@ export default function MediosDePagoPage() {
         )}
       </CardContent></Card>
 
-      {/* Vista 4 — Líneas ticket promedio */}
-      <Card><CardContent className="p-4">
-        <p className="text-sm font-medium mb-2">Evolución mensual del ticket promedio por canal</p>
-        <div className="h-72">
-          {loading ? <Skeleton className="h-full w-full" /> : (
-            <ResponsiveContainer>
-              <LineChart data={lineasTicket}>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                <XAxis dataKey="mes" fontSize={12} />
-                <YAxis tickFormatter={(v) => `${(v / 1_000).toFixed(0)}K`} fontSize={12} />
-                <Tooltip formatter={(v: any) => v == null ? "—" : fmtCOP(Number(v))} />
-                <Legend />
-                {Object.entries(CANAL_COLORS).map(([canal, color]) => (
-                  <Line key={canal} type="monotone" dataKey={canal} stroke={color} dot connectNulls={false} />
-                ))}
-              </LineChart>
-            </ResponsiveContainer>
-          )}
-        </div>
-        {!loading && (
-          <div className="mt-3 text-xs text-muted-foreground space-y-1">
-            {insights.topMet && (
-              <p>El ticket más alto es <strong className="text-foreground">{insights.topMet.k}</strong> con {fmtCOP(insights.topMet.t)} promedio.</p>
-            )}
-            {insights.topDig && (
-              <p>El canal digital con mejor ticket es <strong className="text-foreground">{insights.topDig.k}</strong> con {fmtCOP(insights.topDig.t)}.</p>
-            )}
-            {insights.ticketAddi != null && (
-              <p>Addi Marketplace tiene un ticket promedio de {fmtCOP(insights.ticketAddi)}.</p>
-            )}
-          </div>
-        )}
-      </CardContent></Card>
-    </FinanzasLayout>
   );
 }
