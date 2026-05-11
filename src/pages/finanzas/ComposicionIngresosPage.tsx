@@ -201,6 +201,18 @@ export default function ComposicionIngresosPage() {
       byCanalMetodo[c][m].brutas += b;
       byCanalMetodo[c][m].sinIva += s;
       byCanalMetodo[c][m].ordenes += o;
+      const tKey = r.r_tienda ?? r.r_location_id ?? "Sin tienda";
+      if (!byTienda[tKey])
+        byTienda[tKey] = {
+          brutas: 0,
+          sinIva: 0,
+          ordenes: 0,
+          canal: r.r_canal,
+          location_id: r.r_location_id,
+        };
+      byTienda[tKey].brutas += b;
+      byTienda[tKey].sinIva += s;
+      byTienda[tKey].ordenes += o;
     });
     const pos: Agg = byCanal["POS Tienda"] ?? { brutas: 0, sinIva: 0, ordenes: 0 };
     const dig: Agg = ["Tienda Online", "Personal Shopper", "Addi Marketplace"].reduce<Agg>(
@@ -214,7 +226,7 @@ export default function ComposicionIngresosPage() {
       },
       { brutas: 0, sinIva: 0, ordenes: 0 },
     );
-    return { brutas, sinIva, ordenes, byCanal, byMetodo, byCanalMetodo, pos, dig };
+    return { brutas, sinIva, ordenes, byCanal, byMetodo, byCanalMetodo, byTienda, pos, dig };
   }, [rows]);
 
   const sortedRows = useMemo(() => {
