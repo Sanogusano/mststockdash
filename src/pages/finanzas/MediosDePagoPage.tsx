@@ -387,7 +387,8 @@ export default function MediosDePagoPage() {
       ticket_promedio: Math.round(f.ticketProm),
       tendencia_pct: f.tendencia == null ? "" : Number(f.tendencia.toFixed(2)),
     }));
-    exportToXLS(data, `medios-de-pago-${mes}`, "Medios de pago");
+    const tag = `${format(desdeSel, "yyyy-MM-dd")}_${format(hastaSel, "yyyy-MM-dd")}`;
+    exportToXLS(data, `medios-de-pago-${tag}`, "Medios de pago");
   }
 
   function toggleSort(k: keyof FilaTabla) {
