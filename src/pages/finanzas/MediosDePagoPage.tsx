@@ -319,7 +319,8 @@ export default function MediosDePagoPage() {
 
   // Vista 4 — Líneas por canal (ticket promedio mensual)
   const lineasTicket = useMemo(() => {
-    const [y, m] = mes.split("-").map(Number);
+    const anchor = hastaSel;
+    const y = anchor.getFullYear(); const m = anchor.getMonth() + 1;
     const meses: { key: string; label: string }[] = [];
     for (let i = 5; i >= 0; i--) {
       const d = new Date(y, m - 1 - i, 1);
@@ -343,7 +344,7 @@ export default function MediosDePagoPage() {
       }
       return out;
     });
-  }, [ordenesEnriched, mes]);
+  }, [ordenesEnriched, hastaSel]);
 
   // Insights
   const insights = useMemo(() => {
