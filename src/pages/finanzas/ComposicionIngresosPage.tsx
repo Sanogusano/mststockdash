@@ -60,6 +60,11 @@ const METODOS = [
   "Otros",
 ];
 
+function displayCanal(canal: string | null): string {
+  if (canal === "POS Tienda") return "Tiendas Físicas";
+  return canal ?? "Otros";
+}
+
 function canalBadge(canal: string | null) {
   switch (canal) {
     case "POS Tienda":
@@ -73,13 +78,6 @@ function canalBadge(canal: string | null) {
     default:
       return "bg-muted text-muted-foreground";
   }
-}
-
-function liqBadge(d: number | null | undefined) {
-  const v = Number(d ?? 0);
-  if (v <= 1) return { cls: "bg-green-100 text-green-800 hover:bg-green-100", label: `D+${v}` };
-  if (v === 2) return { cls: "bg-yellow-100 text-yellow-800 hover:bg-yellow-100", label: `D+${v}` };
-  return { cls: "bg-red-100 text-red-800 hover:bg-red-100", label: `D+${v}` };
 }
 
 function classifyCanal(source: string | null): string {
