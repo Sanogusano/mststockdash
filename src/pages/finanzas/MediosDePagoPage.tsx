@@ -636,6 +636,6 @@ export default function MediosDePagoPage() {
           </div>
         )}
       </CardContent></Card>
-
+    </FinanzasLayout>
   );
 }
