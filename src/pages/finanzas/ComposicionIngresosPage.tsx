@@ -396,7 +396,7 @@ export default function ComposicionIngresosPage() {
                   <SelectItem value="__all__">Todos</SelectItem>
                   {CANALES.map((c) => (
                     <SelectItem key={c} value={c}>
-                      {c}
+                      {displayCanal(c)}
                     </SelectItem>
                   ))}
                 </SelectContent>
