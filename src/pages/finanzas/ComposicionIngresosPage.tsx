@@ -949,7 +949,13 @@ export default function ComposicionIngresosPage() {
       {/* Informe por Tienda */}
       <Card className="mt-6">
         <CardHeader>
-          <CardTitle className="text-base">Informe por Tienda</CardTitle>
+          <div className="flex items-center justify-between gap-2">
+            <CardTitle className="text-base">Informe por Tienda</CardTitle>
+            <Button size="sm" variant="outline" onClick={exportTienda} disabled={loading}>
+              <Download className="mr-2 h-4 w-4" />
+              Exportar Excel
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
           {loading ? (
