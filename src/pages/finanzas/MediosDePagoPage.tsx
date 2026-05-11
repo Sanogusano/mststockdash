@@ -1,19 +1,53 @@
 import { useEffect, useMemo, useState } from "react";
 import { FinanzasLayout } from "./FinanzasLayout";
 import { Card, CardContent } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Download, ArrowUp, ArrowDown, Minus } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { Download, ArrowUp, ArrowDown, Minus, CalendarIcon } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { fmtCOP, fmtInt } from "@/lib/finanzas-format";
 import { exportToXLS } from "@/lib/xls-export";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
+import { format } from "date-fns";
+import { es } from "date-fns/locale";
 import {
   PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer,
   BarChart, Bar, XAxis, YAxis, CartesianGrid, LineChart, Line,
 } from "recharts";
+
+type Preset = "hoy" | "7d" | "14d" | "mes_anterior" | "custom";
+const PRESETS: { value: Preset; label: string }[] = [
+  { value: "hoy", label: "Hoy" },
+  { value: "7d", label: "Últimos 7 días" },
+  { value: "14d", label: "Últimos 14 días" },
+  { value: "mes_anterior", label: "Mes anterior" },
+  { value: "custom", label: "Personalizado" },
+];
+
+function startOfDay(d: Date) { const x = new Date(d); x.setHours(0, 0, 0, 0); return x; }
+function endOfDay(d: Date) { const x = new Date(d); x.setHours(23, 59, 59, 999); return x; }
+function addDays(d: Date, n: number) { const x = new Date(d); x.setDate(x.getDate() + n); return x; }
+
+function resolvePreset(p: Preset, customDesde?: Date, customHasta?: Date): { desde: Date; hasta: Date } {
+  const today = startOfDay(new Date());
+  if (p === "hoy") return { desde: today, hasta: endOfDay(today) };
+  if (p === "7d") return { desde: addDays(today, -6), hasta: endOfDay(today) };
+  if (p === "14d") return { desde: addDays(today, -13), hasta: endOfDay(today) };
+  if (p === "mes_anterior") {
+    const first = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+    const last = new Date(today.getFullYear(), today.getMonth(), 0);
+    return { desde: first, hasta: endOfDay(last) };
+  }
+  // custom
+  const d = customDesde ? startOfDay(customDesde) : today;
+  const h = customHasta ? endOfDay(customHasta) : endOfDay(today);
+  return { desde: d, hasta: h };
+}
+
 
 type RawOrder = {
   created_at: string;
@@ -100,24 +134,36 @@ async function fetchAllOrders(desdeISO: string): Promise<RawOrder[]> {
 }
 
 export default function MediosDePagoPage() {
-  const [mes, setMes] = useState<string>(thisMonthDefault());
+  const [preset, setPreset] = useState<Preset>("mes_anterior");
+  const [customDesde, setCustomDesde] = useState<Date | undefined>();
+  const [customHasta, setCustomHasta] = useState<Date | undefined>();
   const [canalFiltro, setCanalFiltro] = useState<string>("todos");
   const [agruparPor, setAgruparPor] = useState<"metodo" | "canal">("metodo");
   const [loading, setLoading] = useState(true);
   const [orders, setOrders] = useState<RawOrder[]>([]);
 
+  // Rango seleccionado y rango previo (mismo largo, justo antes)
+  const { desdeSel, hastaSel, desdePrev, hastaPrev } = useMemo(() => {
+    const { desde, hasta } = resolvePreset(preset, customDesde, customHasta);
+    const lenMs = hasta.getTime() - desde.getTime();
+    const hastaPrev = new Date(desde.getTime() - 1);
+    const desdePrev = new Date(hastaPrev.getTime() - lenMs);
+    return { desdeSel: desde, hastaSel: hasta, desdePrev, hastaPrev };
+  }, [preset, customDesde, customHasta]);
+
+  // Fetch: 6 meses atrás del fin del rango (para barras y líneas)
   useEffect(() => {
     void cargar();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mes]);
+  }, [hastaSel.getTime()]);
 
   async function cargar() {
     setLoading(true);
     try {
-      // Fetch desde 6 meses atrás del mes seleccionado para tendencia
-      const [y, m] = mes.split("-").map(Number);
-      const desde = new Date(y, m - 6, 1).toISOString();
-      const data = await fetchAllOrders(desde);
+      const fetchDesde = new Date(hastaSel.getFullYear(), hastaSel.getMonth() - 5, 1);
+      // También cubrir el rango previo si es muy antiguo
+      const fetchDesdeFinal = desdePrev < fetchDesde ? desdePrev : fetchDesde;
+      const data = await fetchAllOrders(fetchDesdeFinal.toISOString());
       setOrders(data);
     } catch (e: any) {
       console.error("[MediosDePago] error:", e);
@@ -128,14 +174,6 @@ export default function MediosDePagoPage() {
     }
   }
 
-  // Derived: agregaciones del mes seleccionado
-  const { desde: desdeSel, hasta: hastaSel } = useMemo(() => monthRange(mes), [mes]);
-  const prevMes = useMemo(() => {
-    const [y, m] = mes.split("-").map(Number);
-    const d = new Date(y, m - 2, 1);
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-  }, [mes]);
-  const { desde: desdePrev, hasta: hastaPrev } = useMemo(() => monthRange(prevMes), [prevMes]);
 
   const ordenesEnriched = useMemo(() => {
     return orders.map((o) => ({
@@ -148,11 +186,11 @@ export default function MediosDePagoPage() {
   }, [orders]);
 
   const ordenesMes = useMemo(() => {
-    return ordenesEnriched.filter((o) => o._date >= desdeSel && o._date < hastaSel);
+    return ordenesEnriched.filter((o) => o._date >= desdeSel && o._date <= hastaSel);
   }, [ordenesEnriched, desdeSel, hastaSel]);
 
   const ordenesMesPrev = useMemo(() => {
-    return ordenesEnriched.filter((o) => o._date >= desdePrev && o._date < hastaPrev);
+    return ordenesEnriched.filter((o) => o._date >= desdePrev && o._date <= hastaPrev);
   }, [ordenesEnriched, desdePrev, hastaPrev]);
 
   const ordenesMesFiltradas = useMemo(() => {
@@ -198,7 +236,8 @@ export default function MediosDePagoPage() {
 
   // Vista 2 — Barras apiladas por mes y canal (últimos 6 meses incluyendo el seleccionado)
   const barrasMensuales = useMemo(() => {
-    const [y, m] = mes.split("-").map(Number);
+    const anchor = hastaSel;
+    const y = anchor.getFullYear(); const m = anchor.getMonth() + 1;
     const meses: { key: string; label: string; data: Record<string, number> }[] = [];
     for (let i = 5; i >= 0; i--) {
       const d = new Date(y, m - 1 - i, 1);
@@ -209,21 +248,21 @@ export default function MediosDePagoPage() {
       });
     }
     const idx: Record<string, number> = {};
-    meses.forEach((m, i) => (idx[m.key] = i));
+    meses.forEach((mm, i) => (idx[mm.key] = i));
     for (const o of ordenesEnriched) {
       const k = `${o._date.getFullYear()}-${String(o._date.getMonth() + 1).padStart(2, "0")}`;
       const i = idx[k];
       if (i == null) continue;
       meses[i].data[o.canal] = (meses[i].data[o.canal] || 0) + o.total;
     }
-    return meses.map((m) => ({
-      mes: m.label,
-      "POS Tienda": m.data["POS Tienda"] || 0,
-      "Tienda Online": m.data["Tienda Online"] || 0,
-      "Personal Shopper": m.data["Personal Shopper"] || 0,
-      "Addi Marketplace": m.data["Addi Marketplace"] || 0,
+    return meses.map((mm) => ({
+      mes: mm.label,
+      "POS Tienda": mm.data["POS Tienda"] || 0,
+      "Tienda Online": mm.data["Tienda Online"] || 0,
+      "Personal Shopper": mm.data["Personal Shopper"] || 0,
+      "Addi Marketplace": mm.data["Addi Marketplace"] || 0,
     }));
-  }, [ordenesEnriched, mes]);
+  }, [ordenesEnriched, hastaSel]);
 
   // Vista 3 — Tabla detallada (Método x Canal con tendencia vs mes anterior)
   type FilaTabla = {
@@ -280,7 +319,8 @@ export default function MediosDePagoPage() {
 
   // Vista 4 — Líneas por canal (ticket promedio mensual)
   const lineasTicket = useMemo(() => {
-    const [y, m] = mes.split("-").map(Number);
+    const anchor = hastaSel;
+    const y = anchor.getFullYear(); const m = anchor.getMonth() + 1;
     const meses: { key: string; label: string }[] = [];
     for (let i = 5; i >= 0; i--) {
       const d = new Date(y, m - 1 - i, 1);
@@ -304,7 +344,7 @@ export default function MediosDePagoPage() {
       }
       return out;
     });
-  }, [ordenesEnriched, mes]);
+  }, [ordenesEnriched, hastaSel]);
 
   // Insights
   const insights = useMemo(() => {
@@ -347,7 +387,8 @@ export default function MediosDePagoPage() {
       ticket_promedio: Math.round(f.ticketProm),
       tendencia_pct: f.tendencia == null ? "" : Number(f.tendencia.toFixed(2)),
     }));
-    exportToXLS(data, `medios-de-pago-${mes}`, "Medios de pago");
+    const tag = `${format(desdeSel, "yyyy-MM-dd")}_${format(hastaSel, "yyyy-MM-dd")}`;
+    exportToXLS(data, `medios-de-pago-${tag}`, "Medios de pago");
   }
 
   function toggleSort(k: keyof FilaTabla) {
@@ -364,8 +405,70 @@ export default function MediosDePagoPage() {
       <Card className="mb-4">
         <CardContent className="p-4 flex flex-wrap gap-3 items-end">
           <div>
-            <label className="text-xs text-muted-foreground block mb-1">Mes</label>
-            <Input type="month" value={mes} onChange={(e) => setMes(e.target.value)} className="h-9 w-40" />
+            <label className="text-xs text-muted-foreground block mb-1">Período</label>
+            <Select value={preset} onValueChange={(v) => setPreset(v as Preset)}>
+              <SelectTrigger className="h-9 w-44"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {PRESETS.map((p) => (
+                  <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          {preset === "custom" && (
+            <>
+              <div>
+                <label className="text-xs text-muted-foreground block mb-1">Desde</label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn("h-9 w-40 justify-start font-normal", !customDesde && "text-muted-foreground")}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {customDesde ? format(customDesde, "dd MMM yyyy", { locale: es }) : "Elegir"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={customDesde}
+                      onSelect={setCustomDesde}
+                      locale={es}
+                      initialFocus
+                      className={cn("p-3 pointer-events-auto")}
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground block mb-1">Hasta</label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn("h-9 w-40 justify-start font-normal", !customHasta && "text-muted-foreground")}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {customHasta ? format(customHasta, "dd MMM yyyy", { locale: es }) : "Elegir"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={customHasta}
+                      onSelect={setCustomHasta}
+                      locale={es}
+                      initialFocus
+                      className={cn("p-3 pointer-events-auto")}
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+            </>
+          )}
+          <div className="text-xs text-muted-foreground self-end pb-2">
+            {format(desdeSel, "dd MMM", { locale: es })} – {format(hastaSel, "dd MMM yyyy", { locale: es })}
           </div>
           <div>
             <label className="text-xs text-muted-foreground block mb-1">Canal</label>
