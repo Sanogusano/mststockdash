@@ -134,24 +134,36 @@ async function fetchAllOrders(desdeISO: string): Promise<RawOrder[]> {
 }
 
 export default function MediosDePagoPage() {
-  const [mes, setMes] = useState<string>(thisMonthDefault());
+  const [preset, setPreset] = useState<Preset>("mes_anterior");
+  const [customDesde, setCustomDesde] = useState<Date | undefined>();
+  const [customHasta, setCustomHasta] = useState<Date | undefined>();
   const [canalFiltro, setCanalFiltro] = useState<string>("todos");
   const [agruparPor, setAgruparPor] = useState<"metodo" | "canal">("metodo");
   const [loading, setLoading] = useState(true);
   const [orders, setOrders] = useState<RawOrder[]>([]);
 
+  // Rango seleccionado y rango previo (mismo largo, justo antes)
+  const { desdeSel, hastaSel, desdePrev, hastaPrev } = useMemo(() => {
+    const { desde, hasta } = resolvePreset(preset, customDesde, customHasta);
+    const lenMs = hasta.getTime() - desde.getTime();
+    const hastaPrev = new Date(desde.getTime() - 1);
+    const desdePrev = new Date(hastaPrev.getTime() - lenMs);
+    return { desdeSel: desde, hastaSel: hasta, desdePrev, hastaPrev };
+  }, [preset, customDesde, customHasta]);
+
+  // Fetch: 6 meses atrás del fin del rango (para barras y líneas)
   useEffect(() => {
     void cargar();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mes]);
+  }, [hastaSel.getTime()]);
 
   async function cargar() {
     setLoading(true);
     try {
-      // Fetch desde 6 meses atrás del mes seleccionado para tendencia
-      const [y, m] = mes.split("-").map(Number);
-      const desde = new Date(y, m - 6, 1).toISOString();
-      const data = await fetchAllOrders(desde);
+      const fetchDesde = new Date(hastaSel.getFullYear(), hastaSel.getMonth() - 5, 1);
+      // También cubrir el rango previo si es muy antiguo
+      const fetchDesdeFinal = desdePrev < fetchDesde ? desdePrev : fetchDesde;
+      const data = await fetchAllOrders(fetchDesdeFinal.toISOString());
       setOrders(data);
     } catch (e: any) {
       console.error("[MediosDePago] error:", e);
@@ -162,14 +174,6 @@ export default function MediosDePagoPage() {
     }
   }
 
-  // Derived: agregaciones del mes seleccionado
-  const { desde: desdeSel, hasta: hastaSel } = useMemo(() => monthRange(mes), [mes]);
-  const prevMes = useMemo(() => {
-    const [y, m] = mes.split("-").map(Number);
-    const d = new Date(y, m - 2, 1);
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-  }, [mes]);
-  const { desde: desdePrev, hasta: hastaPrev } = useMemo(() => monthRange(prevMes), [prevMes]);
 
   const ordenesEnriched = useMemo(() => {
     return orders.map((o) => ({
