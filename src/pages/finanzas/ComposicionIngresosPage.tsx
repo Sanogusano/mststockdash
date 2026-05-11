@@ -822,7 +822,13 @@ export default function ComposicionIngresosPage() {
       {/* Informe General por Método de Pago */}
       <Card className="mt-6">
         <CardHeader>
-          <CardTitle className="text-base">Informe General · Método de Pago</CardTitle>
+          <div className="flex items-center justify-between gap-2">
+            <CardTitle className="text-base">Informe General · Método de Pago</CardTitle>
+            <Button size="sm" variant="outline" onClick={exportMetodo} disabled={loading}>
+              <Download className="mr-2 h-4 w-4" />
+              Exportar Excel
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
           {loading ? (
