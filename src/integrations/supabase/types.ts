@@ -2399,6 +2399,26 @@ export type Database = {
               unidades: number
             }[]
           }
+      reporte_composicion_ingresos: {
+        Args: {
+          p_canal?: string
+          p_desde?: string
+          p_hasta?: string
+          p_location_id?: string
+          p_metodo_pago?: string
+        }
+        Returns: {
+          r_canal: string
+          r_dias_liquidacion: number
+          r_location_id: string
+          r_metodo_grupo: string
+          r_metodo_pago: string
+          r_ordenes: number
+          r_tienda: string
+          r_ventas_brutas: number
+          r_ventas_sin_iva: number
+        }[]
+      }
       reporte_composicion_inventario_coleccion: {
         Args: { p_location_id?: string }
         Returns: {
