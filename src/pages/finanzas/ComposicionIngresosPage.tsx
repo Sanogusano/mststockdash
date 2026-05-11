@@ -170,11 +170,14 @@ export default function ComposicionIngresosPage() {
     })();
   }, [desde, hasta, canal, locationId, metodo]);
 
+  type Agg = { brutas: number; sinIva: number; ordenes: number };
   const totals = useMemo(() => {
     let brutas = 0,
       sinIva = 0,
       ordenes = 0;
-    const byCanal: Record<string, { brutas: number; sinIva: number; ordenes: number }> = {};
+    const byCanal: Record<string, Agg> = {};
+    const byMetodo: Record<string, Agg> = {};
+    const byCanalMetodo: Record<string, Record<string, Agg>> = {};
     rows.forEach((r) => {
       const b = Number(r.r_ventas_brutas ?? 0);
       const s = Number(r.r_ventas_sin_iva ?? 0);
@@ -183,13 +186,23 @@ export default function ComposicionIngresosPage() {
       sinIva += s;
       ordenes += o;
       const c = r.r_canal ?? "Otros";
+      const m = r.r_metodo_grupo ?? "Otros";
       if (!byCanal[c]) byCanal[c] = { brutas: 0, sinIva: 0, ordenes: 0 };
       byCanal[c].brutas += b;
       byCanal[c].sinIva += s;
       byCanal[c].ordenes += o;
+      if (!byMetodo[m]) byMetodo[m] = { brutas: 0, sinIva: 0, ordenes: 0 };
+      byMetodo[m].brutas += b;
+      byMetodo[m].sinIva += s;
+      byMetodo[m].ordenes += o;
+      if (!byCanalMetodo[c]) byCanalMetodo[c] = {};
+      if (!byCanalMetodo[c][m]) byCanalMetodo[c][m] = { brutas: 0, sinIva: 0, ordenes: 0 };
+      byCanalMetodo[c][m].brutas += b;
+      byCanalMetodo[c][m].sinIva += s;
+      byCanalMetodo[c][m].ordenes += o;
     });
-    const pos = byCanal["POS Tienda"] ?? { brutas: 0, sinIva: 0, ordenes: 0 };
-    const dig = ["Tienda Online", "Personal Shopper", "Addi Marketplace"].reduce(
+    const pos: Agg = byCanal["POS Tienda"] ?? { brutas: 0, sinIva: 0, ordenes: 0 };
+    const dig: Agg = ["Tienda Online", "Personal Shopper", "Addi Marketplace"].reduce<Agg>(
       (acc, c) => {
         const x = byCanal[c] ?? { brutas: 0, sinIva: 0, ordenes: 0 };
         return {
@@ -200,7 +213,7 @@ export default function ComposicionIngresosPage() {
       },
       { brutas: 0, sinIva: 0, ordenes: 0 },
     );
-    return { brutas, sinIva, ordenes, byCanal, pos, dig };
+    return { brutas, sinIva, ordenes, byCanal, byMetodo, byCanalMetodo, pos, dig };
   }, [rows]);
 
   const sortedRows = useMemo(() => {
