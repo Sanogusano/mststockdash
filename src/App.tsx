@@ -34,6 +34,7 @@ import RendimientoRedPage from "./pages/RendimientoRed";
 import FinanzasDashboardPage from "./pages/finanzas/FinanzasDashboard";
 import AddiPage from "./pages/finanzas/AddiPage";
 import MediosDePagoPage from "./pages/finanzas/MediosDePagoPage";
+import ComposicionIngresosPage from "./pages/finanzas/ComposicionIngresosPage";
 import { WompiPage, MercadoPagoPage, SistecreditoPage } from "./pages/finanzas/PasarelaPlaceholder";
 
 
