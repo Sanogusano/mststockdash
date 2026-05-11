@@ -60,6 +60,11 @@ const METODOS = [
   "Otros",
 ];
 
+function displayCanal(canal: string | null): string {
+  if (canal === "POS Tienda") return "Tiendas Físicas";
+  return canal ?? "Otros";
+}
+
 function canalBadge(canal: string | null) {
   switch (canal) {
     case "POS Tienda":
@@ -73,13 +78,6 @@ function canalBadge(canal: string | null) {
     default:
       return "bg-muted text-muted-foreground";
   }
-}
-
-function liqBadge(d: number | null | undefined) {
-  const v = Number(d ?? 0);
-  if (v <= 1) return { cls: "bg-green-100 text-green-800 hover:bg-green-100", label: `D+${v}` };
-  if (v === 2) return { cls: "bg-yellow-100 text-yellow-800 hover:bg-yellow-100", label: `D+${v}` };
-  return { cls: "bg-red-100 text-red-800 hover:bg-red-100", label: `D+${v}` };
 }
 
 function classifyCanal(source: string | null): string {
@@ -172,11 +170,14 @@ export default function ComposicionIngresosPage() {
     })();
   }, [desde, hasta, canal, locationId, metodo]);
 
+  type Agg = { brutas: number; sinIva: number; ordenes: number };
   const totals = useMemo(() => {
     let brutas = 0,
       sinIva = 0,
       ordenes = 0;
-    const byCanal: Record<string, { brutas: number; sinIva: number; ordenes: number }> = {};
+    const byCanal: Record<string, Agg> = {};
+    const byMetodo: Record<string, Agg> = {};
+    const byCanalMetodo: Record<string, Record<string, Agg>> = {};
     rows.forEach((r) => {
       const b = Number(r.r_ventas_brutas ?? 0);
       const s = Number(r.r_ventas_sin_iva ?? 0);
@@ -185,13 +186,23 @@ export default function ComposicionIngresosPage() {
       sinIva += s;
       ordenes += o;
       const c = r.r_canal ?? "Otros";
+      const m = r.r_metodo_grupo ?? "Otros";
       if (!byCanal[c]) byCanal[c] = { brutas: 0, sinIva: 0, ordenes: 0 };
       byCanal[c].brutas += b;
       byCanal[c].sinIva += s;
       byCanal[c].ordenes += o;
+      if (!byMetodo[m]) byMetodo[m] = { brutas: 0, sinIva: 0, ordenes: 0 };
+      byMetodo[m].brutas += b;
+      byMetodo[m].sinIva += s;
+      byMetodo[m].ordenes += o;
+      if (!byCanalMetodo[c]) byCanalMetodo[c] = {};
+      if (!byCanalMetodo[c][m]) byCanalMetodo[c][m] = { brutas: 0, sinIva: 0, ordenes: 0 };
+      byCanalMetodo[c][m].brutas += b;
+      byCanalMetodo[c][m].sinIva += s;
+      byCanalMetodo[c][m].ordenes += o;
     });
-    const pos = byCanal["POS Tienda"] ?? { brutas: 0, sinIva: 0, ordenes: 0 };
-    const dig = ["Tienda Online", "Personal Shopper", "Addi Marketplace"].reduce(
+    const pos: Agg = byCanal["POS Tienda"] ?? { brutas: 0, sinIva: 0, ordenes: 0 };
+    const dig: Agg = ["Tienda Online", "Personal Shopper", "Addi Marketplace"].reduce<Agg>(
       (acc, c) => {
         const x = byCanal[c] ?? { brutas: 0, sinIva: 0, ordenes: 0 };
         return {
@@ -202,7 +213,7 @@ export default function ComposicionIngresosPage() {
       },
       { brutas: 0, sinIva: 0, ordenes: 0 },
     );
-    return { brutas, sinIva, ordenes, byCanal, pos, dig };
+    return { brutas, sinIva, ordenes, byCanal, byMetodo, byCanalMetodo, pos, dig };
   }, [rows]);
 
   const sortedRows = useMemo(() => {
@@ -385,7 +396,7 @@ export default function ComposicionIngresosPage() {
                   <SelectItem value="__all__">Todos</SelectItem>
                   {CANALES.map((c) => (
                     <SelectItem key={c} value={c}>
-                      {c}
+                      {displayCanal(c)}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -433,8 +444,8 @@ export default function ComposicionIngresosPage() {
         </CardContent>
       </Card>
 
-      {/* KPIs */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+      {/* KPIs Globales */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
@@ -470,58 +481,153 @@ export default function ComposicionIngresosPage() {
             )}
           </CardContent>
         </Card>
-
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-              Ventas POS Tienda
-              {!loading && (
-                <Badge variant="secondary">{pctPos.toFixed(1)}%</Badge>
-              )}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {loading ? (
-              <Skeleton className="h-8 w-32" />
-            ) : (
-              <>
-                <div className="text-2xl font-bold">{fmtCOP(totals.pos.brutas)}</div>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Sin IVA: {fmtCOP(totals.pos.sinIva)}
-                </p>
-              </>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-              Ventas Digitales
-              {!loading && (
-                <Badge variant="secondary">{pctDig.toFixed(1)}%</Badge>
-              )}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {loading ? (
-              <Skeleton className="h-8 w-32" />
-            ) : (
-              <>
-                <div className="text-2xl font-bold">{fmtCOP(totals.dig.brutas)}</div>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Sin IVA: {fmtCOP(totals.dig.sinIva)}
-                </p>
-              </>
-            )}
-          </CardContent>
-        </Card>
       </div>
 
-      {/* Tabla */}
+      {/* Sección Tiendas Físicas */}
+      <div className="mb-8">
+        <div className="flex items-center gap-3 mb-3">
+          <div className="h-2 w-2 rounded-full bg-blue-500" />
+          <h2 className="text-lg font-semibold">Ventas Tiendas Físicas</h2>
+          <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100" variant="secondary">
+            {pctPos.toFixed(1)}%
+          </Badge>
+        </div>
+        <div className="rounded-lg border-2 border-blue-200 bg-blue-50/30 p-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+            <Card className="border-blue-300 bg-background">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-xs font-semibold text-blue-700 uppercase tracking-wide">
+                  Total Tiendas Físicas
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {loading ? (
+                  <Skeleton className="h-7 w-28" />
+                ) : (
+                  <>
+                    <div className="text-xl font-bold">{fmtCOP(totals.pos.brutas)}</div>
+                    <p className="text-[11px] text-muted-foreground mt-1">
+                      Sin IVA: {fmtCOP(totals.pos.sinIva)}
+                    </p>
+                  </>
+                )}
+              </CardContent>
+            </Card>
+            {METODOS.map((m) => {
+              const v = totals.byCanalMetodo["POS Tienda"]?.[m];
+              if (!v || v.brutas === 0) return null;
+              const pct = totals.pos.brutas ? (v.brutas / totals.pos.brutas) * 100 : 0;
+              return (
+                <Card key={`pos-${m}`} className="bg-background">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-xs font-medium text-muted-foreground flex items-center justify-between gap-2">
+                      <span className="truncate">{m}</span>
+                      <Badge variant="outline" className="text-[10px]">
+                        {pct.toFixed(1)}%
+                      </Badge>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {loading ? (
+                      <Skeleton className="h-6 w-24" />
+                    ) : (
+                      <>
+                        <div className="text-base font-semibold">{fmtCOP(v.brutas)}</div>
+                        <p className="text-[11px] text-muted-foreground mt-0.5">
+                          {fmtInt(v.ordenes)} órdenes
+                        </p>
+                      </>
+                    )}
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+
+      {/* Sección Ventas Digitales */}
+      <div className="mb-8">
+        <div className="flex items-center gap-3 mb-3">
+          <div className="h-2 w-2 rounded-full bg-green-500" />
+          <h2 className="text-lg font-semibold">Ventas Digitales</h2>
+          <Badge className="bg-green-100 text-green-800 hover:bg-green-100" variant="secondary">
+            {pctDig.toFixed(1)}%
+          </Badge>
+          <span className="text-xs text-muted-foreground">
+            Tienda Online · Personal Shopper · Addi Marketplace
+          </span>
+        </div>
+        <div className="rounded-lg border-2 border-green-200 bg-green-50/30 p-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+            <Card className="border-green-300 bg-background">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-xs font-semibold text-green-700 uppercase tracking-wide">
+                  Total Digitales
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {loading ? (
+                  <Skeleton className="h-7 w-28" />
+                ) : (
+                  <>
+                    <div className="text-xl font-bold">{fmtCOP(totals.dig.brutas)}</div>
+                    <p className="text-[11px] text-muted-foreground mt-1">
+                      Sin IVA: {fmtCOP(totals.dig.sinIva)}
+                    </p>
+                  </>
+                )}
+              </CardContent>
+            </Card>
+            {(() => {
+              const aggDig: Record<string, Agg> = {};
+              ["Tienda Online", "Personal Shopper", "Addi Marketplace"].forEach((c) => {
+                const cm = totals.byCanalMetodo[c] ?? {};
+                Object.entries(cm).forEach(([m, v]) => {
+                  if (!aggDig[m]) aggDig[m] = { brutas: 0, sinIva: 0, ordenes: 0 };
+                  aggDig[m].brutas += v.brutas;
+                  aggDig[m].sinIva += v.sinIva;
+                  aggDig[m].ordenes += v.ordenes;
+                });
+              });
+              return METODOS.map((m) => {
+                const v = aggDig[m];
+                if (!v || v.brutas === 0) return null;
+                const pct = totals.dig.brutas ? (v.brutas / totals.dig.brutas) * 100 : 0;
+                return (
+                  <Card key={`dig-${m}`} className="bg-background">
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-xs font-medium text-muted-foreground flex items-center justify-between gap-2">
+                        <span className="truncate">{m}</span>
+                        <Badge variant="outline" className="text-[10px]">
+                          {pct.toFixed(1)}%
+                        </Badge>
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      {loading ? (
+                        <Skeleton className="h-6 w-24" />
+                      ) : (
+                        <>
+                          <div className="text-base font-semibold">{fmtCOP(v.brutas)}</div>
+                          <p className="text-[11px] text-muted-foreground mt-0.5">
+                            {fmtInt(v.ordenes)} órdenes
+                          </p>
+                        </>
+                      )}
+                    </CardContent>
+                  </Card>
+                );
+              });
+            })()}
+          </div>
+        </div>
+      </div>
+
+      {/* Tabla resumida por canal y método */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Detalle por canal, tienda y método</CardTitle>
+          <CardTitle className="text-base">Detalle por canal y método</CardTitle>
         </CardHeader>
         <CardContent>
           {loading ? (
@@ -535,131 +641,87 @@ export default function ComposicionIngresosPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="cursor-pointer" onClick={() => toggleSort("canal")}>
-                      Canal
-                    </TableHead>
-                    <TableHead className="cursor-pointer" onClick={() => toggleSort("tienda")}>
-                      Tienda
-                    </TableHead>
-                    <TableHead className="cursor-pointer" onClick={() => toggleSort("metodo")}>
-                      Método
-                    </TableHead>
-                    <TableHead className="text-right cursor-pointer" onClick={() => toggleSort("ordenes")}>
-                      Órdenes
-                    </TableHead>
-                    <TableHead className="text-right cursor-pointer" onClick={() => toggleSort("brutas")}>
-                      Ventas brutas
-                    </TableHead>
-                    <TableHead className="text-right cursor-pointer" onClick={() => toggleSort("sin_iva")}>
-                      Ventas sin IVA
-                    </TableHead>
-                    <TableHead className="text-right cursor-pointer" onClick={() => toggleSort("pct")}>
-                      % del total
-                    </TableHead>
-                    <TableHead className="text-center cursor-pointer" onClick={() => toggleSort("dias")}>
-                      Días liquidación
-                    </TableHead>
+                    <TableHead>Método de Pago</TableHead>
+                    <TableHead className="text-right">Órdenes</TableHead>
+                    <TableHead className="text-right">Ventas Brutas</TableHead>
+                    <TableHead className="text-right">Ventas Sin IVA</TableHead>
+                    <TableHead className="text-right">% Participación</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {groupedByCanal.map(([c, items]) => {
-                    const sub = items.reduce(
-                      (a, r) => ({
-                        brutas: a.brutas + Number(r.r_ventas_brutas ?? 0),
-                        sinIva: a.sinIva + Number(r.r_ventas_sin_iva ?? 0),
-                        ordenes: a.ordenes + Number(r.r_ordenes ?? 0),
-                      }),
-                      { brutas: 0, sinIva: 0, ordenes: 0 },
-                    );
-                    const open = openCanales[c] ?? true;
-                    return (
-                      <>
-                        <TableRow
-                          key={`g-${c}`}
-                          className="bg-muted/40 cursor-pointer"
-                          onClick={() => setOpenCanales((o) => ({ ...o, [c]: !open }))}
-                        >
-                          <TableCell colSpan={3} className="font-semibold">
-                            <span className="inline-flex items-center gap-2">
-                              {open ? (
-                                <ChevronDown className="h-4 w-4" />
-                              ) : (
-                                <ChevronRight className="h-4 w-4" />
-                              )}
-                              <Badge className={canalBadge(c)} variant="secondary">
-                                {c}
-                              </Badge>
-                              <span className="text-muted-foreground text-xs">
-                                ({items.length})
+                  {Object.entries(totals.byCanalMetodo)
+                    .sort((a, b) => (totals.byCanal[b[0]]?.brutas ?? 0) - (totals.byCanal[a[0]]?.brutas ?? 0))
+                    .map(([c, methods]) => {
+                      const sub = totals.byCanal[c] ?? { brutas: 0, sinIva: 0, ordenes: 0 };
+                      const open = openCanales[c] ?? true;
+                      const methodEntries = Object.entries(methods).sort(
+                        (a, b) => b[1].brutas - a[1].brutas,
+                      );
+                      return (
+                        <>
+                          <TableRow
+                            key={`g-${c}`}
+                            className="bg-muted/40 cursor-pointer"
+                            onClick={() => setOpenCanales((o) => ({ ...o, [c]: !open }))}
+                          >
+                            <TableCell className="font-semibold">
+                              <span className="inline-flex items-center gap-2">
+                                {open ? (
+                                  <ChevronDown className="h-4 w-4" />
+                                ) : (
+                                  <ChevronRight className="h-4 w-4" />
+                                )}
+                                <Badge className={canalBadge(c)} variant="secondary">
+                                  {displayCanal(c)}
+                                </Badge>
                               </span>
-                            </span>
-                          </TableCell>
-                          <TableCell className="text-right font-semibold">
-                            {fmtInt(sub.ordenes)}
-                          </TableCell>
-                          <TableCell className="text-right font-semibold">
-                            {fmtCOP(sub.brutas)}
-                          </TableCell>
-                          <TableCell className="text-right font-semibold">
-                            {fmtCOP(sub.sinIva)}
-                          </TableCell>
-                          <TableCell className="text-right font-semibold">
-                            {totals.brutas
-                              ? ((sub.brutas / totals.brutas) * 100).toFixed(1)
-                              : "0.0"}
-                            %
-                          </TableCell>
-                          <TableCell />
-                        </TableRow>
-                        {open &&
-                          items.map((r, i) => {
-                            const liq = liqBadge(r.r_dias_liquidacion);
-                            return (
-                              <TableRow key={`r-${c}-${i}`}>
-                                <TableCell>
-                                  <Badge className={canalBadge(r.r_canal)} variant="secondary">
-                                    {r.r_canal}
-                                  </Badge>
+                            </TableCell>
+                            <TableCell className="text-right font-semibold">
+                              {fmtInt(sub.ordenes)}
+                            </TableCell>
+                            <TableCell className="text-right font-semibold">
+                              {fmtCOP(sub.brutas)}
+                            </TableCell>
+                            <TableCell className="text-right font-semibold">
+                              {fmtCOP(sub.sinIva)}
+                            </TableCell>
+                            <TableCell className="text-right font-semibold">
+                              {totals.brutas
+                                ? ((sub.brutas / totals.brutas) * 100).toFixed(1)
+                                : "0.0"}
+                              %
+                            </TableCell>
+                          </TableRow>
+                          {open &&
+                            methodEntries.map(([m, v]) => (
+                              <TableRow key={`r-${c}-${m}`}>
+                                <TableCell className="pl-10">
+                                  <Badge variant="outline">{m}</Badge>
                                 </TableCell>
-                                <TableCell>{r.r_tienda}</TableCell>
-                                <TableCell>
-                                  <Badge variant="outline">{r.r_metodo_grupo}</Badge>
-                                </TableCell>
+                                <TableCell className="text-right">{fmtInt(v.ordenes)}</TableCell>
+                                <TableCell className="text-right">{fmtCOP(v.brutas)}</TableCell>
+                                <TableCell className="text-right">{fmtCOP(v.sinIva)}</TableCell>
                                 <TableCell className="text-right">
-                                  {fmtInt(r.r_ordenes)}
-                                </TableCell>
-                                <TableCell className="text-right">
-                                  {fmtCOP(r.r_ventas_brutas)}
-                                </TableCell>
-                                <TableCell className="text-right">
-                                  {fmtCOP(r.r_ventas_sin_iva)}
-                                </TableCell>
-                                <TableCell className="text-right">
-                                  {r.pct.toFixed(2)}%
-                                </TableCell>
-                                <TableCell className="text-center">
-                                  <Badge className={liq.cls} variant="secondary">
-                                    {liq.label}
-                                  </Badge>
+                                  {totals.brutas
+                                    ? ((v.brutas / totals.brutas) * 100).toFixed(2)
+                                    : "0.00"}
+                                  %
                                 </TableCell>
                               </TableRow>
-                            );
-                          })}
-                      </>
-                    );
-                  })}
-                  {/* Totales */}
+                            ))}
+                        </>
+                      );
+                    })}
                   <TableRow className="border-t-2 bg-muted font-bold">
-                    <TableCell colSpan={3}>TOTAL</TableCell>
+                    <TableCell>TOTAL</TableCell>
                     <TableCell className="text-right">{fmtInt(totals.ordenes)}</TableCell>
                     <TableCell className="text-right">{fmtCOP(totals.brutas)}</TableCell>
                     <TableCell className="text-right">{fmtCOP(totals.sinIva)}</TableCell>
                     <TableCell className="text-right">100.0%</TableCell>
-                    <TableCell />
                   </TableRow>
                 </TableBody>
               </Table>
-              {!sortedRows.length && (
+              {!rows.length && (
                 <div className="text-center text-muted-foreground py-8">
                   No hay datos para los filtros seleccionados.
                 </div>
