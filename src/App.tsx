@@ -104,6 +104,7 @@ const App = () => (
           <Route path="/configuracion/netsuite-upload" element={<Guard module="inventario_netsuite" action="view"><NetsuiteUploadPage /></Guard>} />
           <Route path="/configuracion/usuarios" element={<Guard module="config.usuarios" action="view"><ConfiguracionUsuariosPage /></Guard>} />
           <Route path="/configuracion/roles" element={<Guard module="config.roles" action="view"><ConfiguracionRolesPage /></Guard>} />
+          <Route path="/configuracion/notificaciones" element={<ProtectedRoute><ConfiguracionNotificacionesPage /></ProtectedRoute>} />
 
           <Route path="*" element={<NotFound />} />
         </Routes>
