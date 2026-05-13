@@ -1816,6 +1816,33 @@ export type Database = {
           },
         ]
       }
+      whatsapp_destinatarios: {
+        Row: {
+          activo: boolean | null
+          created_at: string | null
+          id: string
+          nombre: string
+          numero: string
+          reportes: Json | null
+        }
+        Insert: {
+          activo?: boolean | null
+          created_at?: string | null
+          id?: string
+          nombre: string
+          numero: string
+          reportes?: Json | null
+        }
+        Update: {
+          activo?: boolean | null
+          created_at?: string | null
+          id?: string
+          nombre?: string
+          numero?: string
+          reportes?: Json | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       allocation_suggestions: {
@@ -2426,6 +2453,10 @@ export type Database = {
           pct: number
           unidades: number
         }[]
+      }
+      reporte_cumplimiento_whatsapp: {
+        Args: { p_fecha?: string }
+        Returns: Json
       }
       reporte_curva_maduracion: {
         Args: never

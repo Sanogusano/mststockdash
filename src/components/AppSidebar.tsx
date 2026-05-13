@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { BarChart3, TrendingUp, ArrowLeftRight, Package, Tag, Layers, Target, Zap, Trophy, Archive, Users, Calculator, UserCog, Briefcase, ChevronDown, Settings, MapPin, Upload, LogOut, Truck, Shield, Store, Banknote, LayoutDashboard, CreditCard } from "lucide-react";
+import { BarChart3, TrendingUp, ArrowLeftRight, Package, Tag, Layers, Target, Zap, Trophy, Archive, Users, Calculator, UserCog, Briefcase, ChevronDown, Settings, MapPin, Upload, LogOut, Truck, Shield, Store, Banknote, LayoutDashboard, CreditCard, MessageCircle } from "lucide-react";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useAuth } from "@/hooks/useAuth";
 import { useUserPermissions } from "@/hooks/useUserPermissions";
@@ -67,6 +67,7 @@ const configuracionItems: NavItem[] = [
   { title: "Inventario NetSuite", url: "/configuracion/netsuite-upload", icon: Upload, description: "Subir snapshot de inventario", module: "inventario_netsuite", action: "view" },
   { title: "Usuarios", url: "/configuracion/usuarios", icon: Users, description: "Gestión de usuarios y accesos", module: "config.usuarios", action: "view" },
   { title: "Roles y Permisos", url: "/configuracion/roles", icon: Shield, description: "Matriz de permisos por rol", module: "config.roles", action: "view" },
+  { title: "Alertas WhatsApp", url: "/configuracion/notificaciones", icon: MessageCircle, description: "Destinatarios y reportes WhatsApp", module: "config.notificaciones", action: "view" },
 ];
 
 export function AppSidebar() {
