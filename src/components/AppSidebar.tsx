@@ -67,6 +67,7 @@ const configuracionItems: NavItem[] = [
   { title: "Inventario NetSuite", url: "/configuracion/netsuite-upload", icon: Upload, description: "Subir snapshot de inventario", module: "inventario_netsuite", action: "view" },
   { title: "Usuarios", url: "/configuracion/usuarios", icon: Users, description: "Gestión de usuarios y accesos", module: "config.usuarios", action: "view" },
   { title: "Roles y Permisos", url: "/configuracion/roles", icon: Shield, description: "Matriz de permisos por rol", module: "config.roles", action: "view" },
+  { title: "Alertas WhatsApp", url: "/configuracion/notificaciones", icon: MessageCircle, description: "Destinatarios y reportes WhatsApp", module: "config.notificaciones", action: "view" },
 ];
 
 export function AppSidebar() {
