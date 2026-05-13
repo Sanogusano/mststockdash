@@ -56,7 +56,7 @@ const METODOS = [
   "Addi",
   "Sistecredito",
   "Transferencia/Manual",
-  "Notas Crédito",
+  "Crédito Cliente",
   "Otros",
 ];
 
@@ -107,7 +107,7 @@ function classifyMetodo(gateway: string | null): string {
   if (g === "Addi Marketplace") return "Addi Marketplace";
   if (["Venta Sistecredito", "Sistecredito"].includes(g)) return "Sistecredito";
   if (["manual", "Transferencia Corporativa"].includes(g)) return "Transferencia/Manual";
-  if (g === "Saldos a favor") return "Notas Crédito";
+  if (g === "Saldos a favor") return "Crédito Cliente";
   return "Otros";
 }
 
