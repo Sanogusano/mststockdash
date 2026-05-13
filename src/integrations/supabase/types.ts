@@ -1816,6 +1816,33 @@ export type Database = {
           },
         ]
       }
+      whatsapp_destinatarios: {
+        Row: {
+          activo: boolean | null
+          created_at: string | null
+          id: string
+          nombre: string
+          numero: string
+          reportes: Json | null
+        }
+        Insert: {
+          activo?: boolean | null
+          created_at?: string | null
+          id?: string
+          nombre: string
+          numero: string
+          reportes?: Json | null
+        }
+        Update: {
+          activo?: boolean | null
+          created_at?: string | null
+          id?: string
+          nombre?: string
+          numero?: string
+          reportes?: Json | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       allocation_suggestions: {
