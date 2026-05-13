@@ -30,6 +30,7 @@ import ConfiguracionUbicacionesPage from "./pages/ConfiguracionUbicaciones";
 import NetsuiteUploadPage from "./pages/NetsuiteUpload";
 import ConfiguracionUsuariosPage from "./pages/ConfiguracionUsuarios";
 import ConfiguracionRolesPage from "./pages/ConfiguracionRoles";
+import ConfiguracionNotificacionesPage from "./pages/ConfiguracionNotificaciones";
 import RendimientoRedPage from "./pages/RendimientoRed";
 import FinanzasDashboardPage from "./pages/finanzas/FinanzasDashboard";
 import AddiPage from "./pages/finanzas/AddiPage";
