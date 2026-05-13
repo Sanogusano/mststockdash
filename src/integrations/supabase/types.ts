@@ -2427,6 +2427,10 @@ export type Database = {
           unidades: number
         }[]
       }
+      reporte_cumplimiento_whatsapp: {
+        Args: { p_fecha?: string }
+        Returns: Json
+      }
       reporte_curva_maduracion: {
         Args: never
         Returns: {
