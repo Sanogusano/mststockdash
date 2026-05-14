@@ -11,8 +11,16 @@ const meses: Record<string, number> = {
   jul: 7, ago: 8, sep: 9, oct: 10, nov: 11, dic: 12,
 };
 
-function parseFecha(s: string): string | null {
-  if (!s) return null;
+function parseFecha(value: unknown): string | null {
+  if (value === null || value === undefined || value === "") return null;
+  if (value instanceof Date && !isNaN(value.getTime())) return value.toISOString();
+  if (typeof value === "number" && isFinite(value)) {
+    const parsed = XLSX.SSF.parse_date_code(value);
+    if (parsed) {
+      return new Date(Date.UTC(parsed.y, parsed.m - 1, parsed.d, parsed.H, parsed.M, Math.floor(parsed.S))).toISOString();
+    }
+  }
+  const s = String(value);
   const lower = s.toLowerCase().trim();
   const m = lower.match(/(\d+)\s+(\w+)\s+(\d+),\s+(\d+):(\d+)\s+(a\.|p\.)\s*m\..*gmt([+-]\d+)/);
   if (m) {
@@ -27,6 +35,26 @@ function parseFecha(s: string): string | null {
   const d = new Date(s);
   if (!isNaN(d.getTime())) return d.toISOString();
   return null;
+}
+
+function parseNumero(value: unknown): number {
+  if (typeof value === "number") return Number.isFinite(value) ? value : 0;
+  const raw = String(value ?? "").trim();
+  if (!raw) return 0;
+  let s = raw.replace(/[^\d,.-]/g, "");
+  const lastComma = s.lastIndexOf(",");
+  const lastDot = s.lastIndexOf(".");
+  if (lastComma >= 0 && lastDot >= 0) {
+    s = lastComma > lastDot ? s.replace(/\./g, "").replace(",", ".") : s.replace(/,/g, "");
+  } else if (lastComma >= 0) {
+    const decimals = s.length - lastComma - 1;
+    s = decimals > 0 && decimals <= 2 ? s.replace(",", ".") : s.replace(/,/g, "");
+  } else if (lastDot >= 0) {
+    const decimals = s.length - lastDot - 1;
+    if ((s.match(/\./g)?.length ?? 0) > 1 || decimals === 3) s = s.replace(/\./g, "");
+  }
+  const n = Number(s);
+  return Number.isFinite(n) ? n : 0;
 }
 
 Deno.serve(async (req) => {
