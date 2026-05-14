@@ -87,7 +87,10 @@ Deno.serve(async (req) => {
       s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim().replace(/\s+/g, " ");
 
     if (tipoDetectado === "addi_transacciones") {
-      const rowsRaw = XLSX.utils.sheet_to_json(workbook.Sheets[primeraHoja]) as any[];
+      // Headers están en fila 1 (índice 1), no en fila 0. Datos arrancan en fila 2.
+      const rowsRaw = XLSX.utils.sheet_to_json(workbook.Sheets[primeraHoja], { range: 1 }) as any[];
+      console.log("Total rows:", rowsRaw.length);
+      console.log("Keys:", rowsRaw.length > 0 ? Object.keys(rowsRaw[0]).slice(0, 10) : []);
 
       // Re-mapear cada fila a claves normalizadas
       const rows = rowsRaw.map((r) => {
