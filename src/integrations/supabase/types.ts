@@ -1824,6 +1824,7 @@ export type Database = {
           nombre: string
           numero: string
           reportes: Json | null
+          tipo_reporte: string | null
         }
         Insert: {
           activo?: boolean | null
@@ -1832,6 +1833,7 @@ export type Database = {
           nombre: string
           numero: string
           reportes?: Json | null
+          tipo_reporte?: string | null
         }
         Update: {
           activo?: boolean | null
@@ -1840,6 +1842,7 @@ export type Database = {
           nombre?: string
           numero?: string
           reportes?: Json | null
+          tipo_reporte?: string | null
         }
         Relationships: []
       }
