@@ -80,28 +80,68 @@ Deno.serve(async (req) => {
       else if (headers.includes("# Factura") || headers.includes("numero_factura")) tipoDetectado = "netsuite";
     }
 
-    const resultado = { insertados: 0, actualizados: 0, sin_cruce: 0, errores: 0, tipo: tipoDetectado, total: 0 };
+    const resultado: any = { insertados: 0, actualizados: 0, sin_cruce: 0, errores: 0, tipo: tipoDetectado, total: 0 };
+
+    // Helper: normaliza claves quitando acentos, espacios extra y bajando a minúsculas
+    const norm = (s: string) =>
+      s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim().replace(/\s+/g, " ");
 
     if (tipoDetectado === "addi_transacciones") {
-      const rows = XLSX.utils.sheet_to_json(workbook.Sheets[primeraHoja]) as any[];
+      const rowsRaw = XLSX.utils.sheet_to_json(workbook.Sheets[primeraHoja]) as any[];
+
+      // Re-mapear cada fila a claves normalizadas
+      const rows = rowsRaw.map((r) => {
+        const out: Record<string, any> = {};
+        for (const k of Object.keys(r)) out[norm(k)] = r[k];
+        return out;
+      });
+
+      const get = (r: any, ...keys: string[]) => {
+        for (const k of keys) {
+          const v = r[norm(k)];
+          if (v !== undefined && v !== null && String(v).trim() !== "") return v;
+        }
+        return null;
+      };
+
+      // Diagnóstico: encabezados detectados y conteo por estado
+      const headersDetect = rowsRaw.length ? Object.keys(rowsRaw[0]) : [];
+      const estadosCount: Record<string, number> = {};
+      for (const r of rows) {
+        const e = String(get(r, "Estado") ?? "vacio").trim();
+        estadosCount[e] = (estadosCount[e] ?? 0) + 1;
+      }
+      console.log("Headers:", headersDetect);
+      console.log("Estados encontrados:", estadosCount);
+      console.log("Total filas hoja:", rows.length);
+      resultado.diagnostico = { headers: headersDetect, estadosCount, totalFilas: rows.length };
+
       const records = rows
-        .filter((r) => r["Estado"] === "Exitosa")
-        .map((r) => ({
-          id_transaccion: String(r["ID Transacción"] || ""),
-          cc: r["CC"] != null ? String(r["CC"]) : null,
-          nombre_cliente: r["Nombre Cliente"] ? String(r["Nombre Cliente"]) : null,
-          monto: parseFloat(r["Monto"]) || 0,
-          tipo_de_venta: r["Tipo de venta"] ? String(r["Tipo de venta"]) : null,
-          fecha_creacion: parseFecha(String(r["Fecha Creación"] || "")),
-          canal: r["Canal"] ? String(r["Canal"]) : null,
-          estado: r["Estado"] ? String(r["Estado"]) : null,
-          sub_estado: r["Sub-estado"] ? String(r["Sub-estado"]) : null,
-          nombre_tienda: r["Nombre Tienda"] ? String(r["Nombre Tienda"]) : null,
-          id_credito: r["ID Crédito"] ? String(r["ID Crédito"]) : null,
-          email_vendedor: r["Email vendedor"] ? String(r["Email vendedor"]) : null,
-          id_orden: r["ID Orden"] ? String(r["ID Orden"]) : null,
-          shopify_order_id: r["Canal"] === "PAY_LINK" ? String(r["ID Orden"] || "") || null : null,
-        }))
+        .filter((r) => {
+          const est = norm(String(get(r, "Estado") ?? ""));
+          // Aceptar "Exitosa", "EXITOSA", "Aprobada", "Aprobado"
+          return est === "exitosa" || est === "aprobada" || est === "aprobado";
+        })
+        .map((r) => {
+          const canal = get(r, "Canal");
+          const idOrden = get(r, "ID Orden", "Id Orden");
+          return {
+            id_transaccion: String(get(r, "ID Transacción", "ID Transaccion", "Id Transaccion") ?? ""),
+            cc: get(r, "CC") != null ? String(get(r, "CC")) : null,
+            nombre_cliente: get(r, "Nombre Cliente") ? String(get(r, "Nombre Cliente")) : null,
+            monto: parseFloat(String(get(r, "Monto") ?? "0")) || 0,
+            tipo_de_venta: get(r, "Tipo de venta") ? String(get(r, "Tipo de venta")) : null,
+            fecha_creacion: parseFecha(String(get(r, "Fecha Creación", "Fecha Creacion") ?? "")),
+            canal: canal ? String(canal) : null,
+            estado: get(r, "Estado") ? String(get(r, "Estado")) : null,
+            sub_estado: get(r, "Sub-estado", "Sub estado", "SubEstado") ? String(get(r, "Sub-estado", "Sub estado", "SubEstado")) : null,
+            nombre_tienda: get(r, "Nombre Tienda") ? String(get(r, "Nombre Tienda")) : null,
+            id_credito: get(r, "ID Crédito", "ID Credito") ? String(get(r, "ID Crédito", "ID Credito")) : null,
+            email_vendedor: get(r, "Email vendedor", "Email Vendedor") ? String(get(r, "Email vendedor", "Email Vendedor")) : null,
+            id_orden: idOrden ? String(idOrden) : null,
+            shopify_order_id: canal === "PAY_LINK" && idOrden ? String(idOrden) : null,
+          };
+        })
         .filter((r) => r.id_transaccion);
 
       resultado.total = records.length;
