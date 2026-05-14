@@ -87,7 +87,10 @@ Deno.serve(async (req) => {
       s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim().replace(/\s+/g, " ");
 
     if (tipoDetectado === "addi_transacciones") {
-      const rowsRaw = XLSX.utils.sheet_to_json(workbook.Sheets[primeraHoja]) as any[];
+      // Headers están en fila 1 (índice 1), no en fila 0. Datos arrancan en fila 2.
+      const rowsRaw = XLSX.utils.sheet_to_json(workbook.Sheets[primeraHoja], { range: 1 }) as any[];
+      console.log("Total rows:", rowsRaw.length);
+      console.log("Keys:", rowsRaw.length > 0 ? Object.keys(rowsRaw[0]).slice(0, 10) : []);
 
       // Re-mapear cada fila a claves normalizadas
       const rows = rowsRaw.map((r) => {
@@ -118,9 +121,13 @@ Deno.serve(async (req) => {
 
       const records = rows
         .filter((r) => {
-          const est = norm(String(get(r, "Estado") ?? ""));
-          // Aceptar "Exitosa", "EXITOSA", "Aprobada", "Aprobado"
-          return est === "exitosa" || est === "aprobada" || est === "aprobado";
+          // Buscar columna que contenga "transacci" o "estado" en su nombre
+          const entry = Object.entries(r).find(([k]) => {
+            const kl = k.toLowerCase();
+            return kl.includes("transacci") || kl.includes("estado");
+          });
+          const val = String(entry?.[1] ?? "");
+          return val.startsWith("Transacci");
         })
         .map((r) => {
           const canal = get(r, "Canal");
