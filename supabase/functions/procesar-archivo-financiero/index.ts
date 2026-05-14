@@ -99,7 +99,10 @@ Deno.serve(async (req) => {
     const workbook = XLSX.read(bytes, { type: "array" });
     const primeraHoja = workbook.SheetNames[0];
     const datosHeader = XLSX.utils.sheet_to_json(workbook.Sheets[primeraHoja], { header: 1 }) as any[];
-    const headers = ((datosHeader[0] as string[]) ?? []).map((h) => String(h || "").trim());
+    const headerRows = [0, 1]
+      .map((idx) => ((datosHeader[idx] as unknown[]) ?? []).map((h) => String(h || "").trim()))
+      .filter((row) => row.some(Boolean));
+    const headers = headerRows.flat();
 
     let tipoDetectado = tipo as string | undefined;
     if (!tipoDetectado) {
