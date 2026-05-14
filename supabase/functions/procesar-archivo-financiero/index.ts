@@ -121,9 +121,13 @@ Deno.serve(async (req) => {
 
       const records = rows
         .filter((r) => {
-          const est = norm(String(get(r, "Estado") ?? ""));
-          // Aceptar "Exitosa", "EXITOSA", "Aprobada", "Aprobado"
-          return est === "exitosa" || est === "aprobada" || est === "aprobado";
+          // Buscar columna que contenga "transacci" o "estado" en su nombre
+          const entry = Object.entries(r).find(([k]) => {
+            const kl = k.toLowerCase();
+            return kl.includes("transacci") || kl.includes("estado");
+          });
+          const val = String(entry?.[1] ?? "");
+          return val.startsWith("Transacci");
         })
         .map((r) => {
           const canal = get(r, "Canal");
