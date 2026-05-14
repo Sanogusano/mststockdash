@@ -134,7 +134,9 @@ Deno.serve(async (req) => {
 
       const get = (r: any, ...keys: string[]) => {
         for (const k of keys) {
-          const v = r[norm(k)];
+          const wanted = normCompact(k);
+          const found = Object.entries(r).find(([rk]) => normCompact(rk).includes(wanted) || wanted.includes(normCompact(rk)));
+          const v = found?.[1];
           if (v !== undefined && v !== null && String(v).trim() !== "") return v;
         }
         return null;
@@ -144,7 +146,7 @@ Deno.serve(async (req) => {
       const headersDetect = rowsRaw.length ? Object.keys(rowsRaw[0]) : [];
       const estadosCount: Record<string, number> = {};
       for (const r of rows) {
-        const e = String(get(r, "Estado") ?? "vacio").trim();
+        const e = String(get(r, "Estado de la transacción", "Estado") ?? "vacio").trim();
         estadosCount[e] = (estadosCount[e] ?? 0) + 1;
       }
       console.log("Headers:", headersDetect);
@@ -160,7 +162,7 @@ Deno.serve(async (req) => {
             return kl.includes("transacci") || kl.includes("estado");
           });
           const val = String(entry?.[1] ?? "");
-          return val.startsWith("Transacci");
+          return norm(val).startsWith("transacci");
         })
         .map((r) => {
           const canal = get(r, "Canal");
