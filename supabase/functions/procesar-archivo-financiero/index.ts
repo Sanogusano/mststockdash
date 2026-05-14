@@ -113,9 +113,11 @@ Deno.serve(async (req) => {
 
     const resultado: any = { insertados: 0, actualizados: 0, sin_cruce: 0, errores: 0, tipo: tipoDetectado, total: 0 };
 
-    // Helper: normaliza claves quitando acentos, espacios extra y bajando a minúsculas
+    // Helper: normaliza claves quitando acentos, saltos de línea, espacios extra y bajando a minúsculas
     const norm = (s: string) =>
-      s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim().replace(/\s+/g, " ");
+      s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim().replace(/[\r\n]+/g, " ").replace(/\s+/g, " ");
+
+    const normCompact = (s: string) => norm(s).replace(/[^a-z0-9]/g, "");
 
     if (tipoDetectado === "addi_transacciones") {
       // Headers están en fila 1 (índice 1), no en fila 0. Datos arrancan en fila 2.
