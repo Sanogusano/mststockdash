@@ -11,8 +11,16 @@ const meses: Record<string, number> = {
   jul: 7, ago: 8, sep: 9, oct: 10, nov: 11, dic: 12,
 };
 
-function parseFecha(s: string): string | null {
-  if (!s) return null;
+function parseFecha(value: unknown): string | null {
+  if (value === null || value === undefined || value === "") return null;
+  if (value instanceof Date && !isNaN(value.getTime())) return value.toISOString();
+  if (typeof value === "number" && isFinite(value)) {
+    const parsed = XLSX.SSF.parse_date_code(value);
+    if (parsed) {
+      return new Date(Date.UTC(parsed.y, parsed.m - 1, parsed.d, parsed.H, parsed.M, Math.floor(parsed.S))).toISOString();
+    }
+  }
+  const s = String(value);
   const lower = s.toLowerCase().trim();
   const m = lower.match(/(\d+)\s+(\w+)\s+(\d+),\s+(\d+):(\d+)\s+(a\.|p\.)\s*m\..*gmt([+-]\d+)/);
   if (m) {
@@ -27,6 +35,26 @@ function parseFecha(s: string): string | null {
   const d = new Date(s);
   if (!isNaN(d.getTime())) return d.toISOString();
   return null;
+}
+
+function parseNumero(value: unknown): number {
+  if (typeof value === "number") return Number.isFinite(value) ? value : 0;
+  const raw = String(value ?? "").trim();
+  if (!raw) return 0;
+  let s = raw.replace(/[^\d,.-]/g, "");
+  const lastComma = s.lastIndexOf(",");
+  const lastDot = s.lastIndexOf(".");
+  if (lastComma >= 0 && lastDot >= 0) {
+    s = lastComma > lastDot ? s.replace(/\./g, "").replace(",", ".") : s.replace(/,/g, "");
+  } else if (lastComma >= 0) {
+    const decimals = s.length - lastComma - 1;
+    s = decimals > 0 && decimals <= 2 ? s.replace(",", ".") : s.replace(/,/g, "");
+  } else if (lastDot >= 0) {
+    const decimals = s.length - lastDot - 1;
+    if ((s.match(/\./g)?.length ?? 0) > 1 || decimals === 3) s = s.replace(/\./g, "");
+  }
+  const n = Number(s);
+  return Number.isFinite(n) ? n : 0;
 }
 
 Deno.serve(async (req) => {
@@ -71,7 +99,10 @@ Deno.serve(async (req) => {
     const workbook = XLSX.read(bytes, { type: "array" });
     const primeraHoja = workbook.SheetNames[0];
     const datosHeader = XLSX.utils.sheet_to_json(workbook.Sheets[primeraHoja], { header: 1 }) as any[];
-    const headers = ((datosHeader[0] as string[]) ?? []).map((h) => String(h || "").trim());
+    const headerRows = [0, 1]
+      .map((idx) => ((datosHeader[idx] as unknown[]) ?? []).map((h) => String(h || "").trim()))
+      .filter((row) => row.some(Boolean));
+    const headers = headerRows.flat();
 
     let tipoDetectado = tipo as string | undefined;
     if (!tipoDetectado) {
@@ -82,9 +113,11 @@ Deno.serve(async (req) => {
 
     const resultado: any = { insertados: 0, actualizados: 0, sin_cruce: 0, errores: 0, tipo: tipoDetectado, total: 0 };
 
-    // Helper: normaliza claves quitando acentos, espacios extra y bajando a minúsculas
+    // Helper: normaliza claves quitando acentos, saltos de línea, espacios extra y bajando a minúsculas
     const norm = (s: string) =>
-      s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim().replace(/\s+/g, " ");
+      s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim().replace(/[\r\n]+/g, " ").replace(/\s+/g, " ");
+
+    const normCompact = (s: string) => norm(s).replace(/[^a-z0-9]/g, "");
 
     if (tipoDetectado === "addi_transacciones") {
       // Headers están en fila 1 (índice 1), no en fila 0. Datos arrancan en fila 2.
@@ -101,7 +134,9 @@ Deno.serve(async (req) => {
 
       const get = (r: any, ...keys: string[]) => {
         for (const k of keys) {
-          const v = r[norm(k)];
+          const wanted = normCompact(k);
+          const found = Object.entries(r).find(([rk]) => normCompact(rk).includes(wanted) || wanted.includes(normCompact(rk)));
+          const v = found?.[1];
           if (v !== undefined && v !== null && String(v).trim() !== "") return v;
         }
         return null;
@@ -111,7 +146,7 @@ Deno.serve(async (req) => {
       const headersDetect = rowsRaw.length ? Object.keys(rowsRaw[0]) : [];
       const estadosCount: Record<string, number> = {};
       for (const r of rows) {
-        const e = String(get(r, "Estado") ?? "vacio").trim();
+        const e = String(get(r, "Estado de la transacción", "Estado") ?? "vacio").trim();
         estadosCount[e] = (estadosCount[e] ?? 0) + 1;
       }
       console.log("Headers:", headersDetect);
@@ -127,22 +162,29 @@ Deno.serve(async (req) => {
             return kl.includes("transacci") || kl.includes("estado");
           });
           const val = String(entry?.[1] ?? "");
-          return val.startsWith("Transacci");
+          return norm(val).startsWith("transacci");
         })
         .map((r) => {
-          const canal = get(r, "Canal");
-          const idOrden = get(r, "ID Orden", "Id Orden");
+          const canalRaw = String(get(r, "Canal", "Nombre del aliado", "Nombre tienda") ?? "").trim();
+          const nombreTienda = get(r, "Nombre tienda", "Nombre Tienda");
+          const idOrden = get(r, "ID Orden", "Id Orden", "Id pedido", "ID pedido");
+          const idTransaccion = get(r, "ID Transacción", "ID Transaccion", "Id Transaccion", "ID Operación", "ID Operacion");
+          const estado = get(r, "Estado de la transacción", "Estado");
+          const tipoVenta = get(r, "Tipo de venta");
+          const canal = canalRaw.toUpperCase() === "ADDI" && String(nombreTienda ?? "").toUpperCase().includes("MARKETPLACE")
+            ? "ADDI_MARKETPLACE"
+            : canalRaw;
           return {
-            id_transaccion: String(get(r, "ID Transacción", "ID Transaccion", "Id Transaccion") ?? ""),
-            cc: get(r, "CC") != null ? String(get(r, "CC")) : null,
+            id_transaccion: String(idTransaccion ?? ""),
+            cc: get(r, "CC", "Número de documento", "Numero de documento") != null ? String(get(r, "CC", "Número de documento", "Numero de documento")) : null,
             nombre_cliente: get(r, "Nombre Cliente") ? String(get(r, "Nombre Cliente")) : null,
-            monto: parseFloat(String(get(r, "Monto") ?? "0")) || 0,
-            tipo_de_venta: get(r, "Tipo de venta") ? String(get(r, "Tipo de venta")) : null,
-            fecha_creacion: parseFecha(String(get(r, "Fecha Creación", "Fecha Creacion") ?? "")),
+            monto: parseNumero(get(r, "Monto", "Total Ventas", "Total Ventas (1)", "Total a pagar")),
+            tipo_de_venta: tipoVenta ? String(tipoVenta) : null,
+            fecha_creacion: parseFecha(get(r, "Fecha Creación", "Fecha Creacion", "Fecha de venta")),
             canal: canal ? String(canal) : null,
-            estado: get(r, "Estado") ? String(get(r, "Estado")) : null,
+            estado: estado ? String(estado) : null,
             sub_estado: get(r, "Sub-estado", "Sub estado", "SubEstado") ? String(get(r, "Sub-estado", "Sub estado", "SubEstado")) : null,
-            nombre_tienda: get(r, "Nombre Tienda") ? String(get(r, "Nombre Tienda")) : null,
+            nombre_tienda: nombreTienda ? String(nombreTienda) : null,
             id_credito: get(r, "ID Crédito", "ID Credito") ? String(get(r, "ID Crédito", "ID Credito")) : null,
             email_vendedor: get(r, "Email vendedor", "Email Vendedor") ? String(get(r, "Email vendedor", "Email Vendedor")) : null,
             id_orden: idOrden ? String(idOrden) : null,
