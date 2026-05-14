@@ -165,19 +165,26 @@ Deno.serve(async (req) => {
           return norm(val).startsWith("transacci");
         })
         .map((r) => {
-          const canal = get(r, "Canal");
-          const idOrden = get(r, "ID Orden", "Id Orden");
+          const canalRaw = String(get(r, "Canal", "Nombre del aliado", "Nombre tienda") ?? "").trim();
+          const nombreTienda = get(r, "Nombre tienda", "Nombre Tienda");
+          const idOrden = get(r, "ID Orden", "Id Orden", "Id pedido", "ID pedido");
+          const idTransaccion = get(r, "ID Transacción", "ID Transaccion", "Id Transaccion", "ID Operación", "ID Operacion");
+          const estado = get(r, "Estado de la transacción", "Estado");
+          const tipoVenta = get(r, "Tipo de venta");
+          const canal = canalRaw.toUpperCase() === "ADDI" && String(nombreTienda ?? "").toUpperCase().includes("MARKETPLACE")
+            ? "ADDI_MARKETPLACE"
+            : canalRaw;
           return {
-            id_transaccion: String(get(r, "ID Transacción", "ID Transaccion", "Id Transaccion") ?? ""),
-            cc: get(r, "CC") != null ? String(get(r, "CC")) : null,
+            id_transaccion: String(idTransaccion ?? ""),
+            cc: get(r, "CC", "Número de documento", "Numero de documento") != null ? String(get(r, "CC", "Número de documento", "Numero de documento")) : null,
             nombre_cliente: get(r, "Nombre Cliente") ? String(get(r, "Nombre Cliente")) : null,
-            monto: parseFloat(String(get(r, "Monto") ?? "0")) || 0,
-            tipo_de_venta: get(r, "Tipo de venta") ? String(get(r, "Tipo de venta")) : null,
-            fecha_creacion: parseFecha(String(get(r, "Fecha Creación", "Fecha Creacion") ?? "")),
+            monto: parseNumero(get(r, "Monto", "Total Ventas", "Total Ventas (1)", "Total a pagar")),
+            tipo_de_venta: tipoVenta ? String(tipoVenta) : null,
+            fecha_creacion: parseFecha(get(r, "Fecha Creación", "Fecha Creacion", "Fecha de venta")),
             canal: canal ? String(canal) : null,
-            estado: get(r, "Estado") ? String(get(r, "Estado")) : null,
+            estado: estado ? String(estado) : null,
             sub_estado: get(r, "Sub-estado", "Sub estado", "SubEstado") ? String(get(r, "Sub-estado", "Sub estado", "SubEstado")) : null,
-            nombre_tienda: get(r, "Nombre Tienda") ? String(get(r, "Nombre Tienda")) : null,
+            nombre_tienda: nombreTienda ? String(nombreTienda) : null,
             id_credito: get(r, "ID Crédito", "ID Credito") ? String(get(r, "ID Crédito", "ID Credito")) : null,
             email_vendedor: get(r, "Email vendedor", "Email Vendedor") ? String(get(r, "Email vendedor", "Email Vendedor")) : null,
             id_orden: idOrden ? String(idOrden) : null,
