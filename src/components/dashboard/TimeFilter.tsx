@@ -39,6 +39,9 @@ export function resolveDays(value: number): number {
     const prevEnd = endOfMonth(subMonths(now, 1));
     return differenceInCalendarDays(prevEnd, prevStart) + 1;
   }
+  if (value === YESTERDAY_SENTINEL) {
+    return 1;
+  }
   if (value === CUSTOM_SENTINEL) {
     return 30;
   }
@@ -52,7 +55,11 @@ export function resolveDays(value: number): number {
 export function getFilterEndDate(value: number): string | null {
   if (value === PREV_MONTH_SENTINEL) {
     const prevEnd = endOfMonth(subMonths(new Date(), 1));
-    return `${prevEnd.getFullYear()}-${String(prevEnd.getMonth() + 1).padStart(2, "0")}-${String(prevEnd.getDate()).padStart(2, "0")}`;
+    return toDateStr(prevEnd);
+  }
+  if (value === YESTERDAY_SENTINEL) {
+    const yesterday = subDays(new Date(), 1);
+    return toDateStr(yesterday);
   }
   return null;
 }
@@ -74,6 +81,11 @@ export function getDateRange(value: number, customFrom?: Date, customTo?: Date):
     const prevStart = startOfMonth(subMonths(now, 1));
     const prevEnd = endOfMonth(subMonths(now, 1));
     return { from: prevStart, to: prevEnd };
+  }
+
+  if (value === YESTERDAY_SENTINEL) {
+    const yesterday = subDays(now, 1);
+    return { from: yesterday, to: yesterday };
   }
 
   const effectiveDays = value;
