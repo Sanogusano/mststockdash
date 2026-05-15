@@ -3545,6 +3545,7 @@ export type Database = {
           titulo: string
         }[]
       }
+      top5_articulos_hoy: { Args: { p_fecha?: string }; Returns: Json }
       upsert_product_catalog_safe: {
         Args: { products_json: Json }
         Returns: undefined
