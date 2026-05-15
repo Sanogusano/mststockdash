@@ -13,10 +13,11 @@ import {
 export const THIS_MONTH_SENTINEL = -1;
 export const CUSTOM_SENTINEL = -2;
 export const PREV_MONTH_SENTINEL = -3;
+export const YESTERDAY_SENTINEL = -4;
 
 /** Returns true when the filter value requires explicit date-range RPCs instead of dias_atras */
 export function needsDateRange(value: number): boolean {
-  return value === THIS_MONTH_SENTINEL || value === PREV_MONTH_SENTINEL || value === CUSTOM_SENTINEL;
+  return value === THIS_MONTH_SENTINEL || value === PREV_MONTH_SENTINEL || value === CUSTOM_SENTINEL || value === YESTERDAY_SENTINEL;
 }
 
 /** Format a Date as "YYYY-MM-DD" using LOCAL components (avoids UTC shift). */
