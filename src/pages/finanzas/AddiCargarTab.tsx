@@ -132,6 +132,72 @@ function parseFecha(value: unknown): string | null {
   return Number.isNaN(d.getTime()) ? null : d.toISOString().substring(0, 10);
 }
 
+async function parseNetSuiteFile(file: File): Promise<{ facturas: NetSuiteFactura[]; filas_procesadas: number; headerIdx: number }> {
+  const workbook = XLSX.read(new Uint8Array(await file.arrayBuffer()), { type: "array" });
+  const sheet = workbook.Sheets[workbook.SheetNames[0]];
+  const allRows = XLSX.utils.sheet_to_json(sheet, { header: 1, raw: true }) as unknown[][];
+  const headerIdx = allRows.slice(0, 20).findIndex((row) =>
+    (row ?? []).some((c) => norm(String(c ?? "")).includes("ubicacion: nombre") || norm(String(c ?? "")) === "ubicacion nombre")
+  );
+  if (headerIdx < 0) throw new Error("No se encontró fila de encabezados (Ubicación: Nombre) en el archivo NetSuite");
+
+  const headerRow = (allRows[headerIdx] ?? []).map((c) => String(c ?? "").trim());
+  const colIdx = (...keys: string[]) => {
+    for (const k of keys) {
+      const idx = headerRow.findIndex((h) => normCompact(h) === normCompact(k));
+      if (idx >= 0) return idx;
+    }
+    return headerRow.findIndex((h) => keys.some((k) => normCompact(h).includes(normCompact(k))));
+  };
+
+  const cUbic = colIdx("Ubicación: Nombre", "Ubicacion: Nombre");
+  const cVendedor = colIdx("Vendedor");
+  const cClienteFact = colIdx("Nombre para facturación electrónica", "Nombre para facturacion electronica");
+  const cClienteTrabajo = colIdx("Cliente:Trabajo", "Cliente Trabajo");
+  const cNumDoc = colIdx("Número de documento", "Numero de documento");
+  const cResDian = colIdx("Número de Resolución DIAN", "Numero de Resolucion DIAN");
+  const cFecha = colIdx("Fecha");
+  const cIngresos = colIdx("Ingresos totales");
+  const cOC = colIdx("Número de OC", "Numero de OC");
+  const cCufe = colIdx("CUFE");
+  if (cNumDoc < 0 || cIngresos < 0) throw new Error("Faltan columnas requeridas: Número de documento o Ingresos totales");
+
+  const map = new Map<string, NetSuiteFactura>();
+  let filasProcesadas = 0;
+  for (let r = headerIdx + 1; r < allRows.length; r++) {
+    const row = allRows[r] ?? [];
+    if (row.every((c) => c === null || c === undefined || String(c).trim() === "")) continue;
+    const numeroFactura = String(row[cNumDoc] ?? "").trim();
+    if (!numeroFactura) continue;
+    filasProcesadas++;
+
+    const clienteTrabajo = String(row[cClienteTrabajo] ?? "").trim();
+    const m = clienteTrabajo.match(/^(.*?)[\s]+(\d{5,})$/);
+    const oc = row[cOC];
+    const ocStr = oc !== null && oc !== undefined && String(oc).trim() !== "" ? String(oc).replace(/\.0$/, "").trim() : null;
+    const prev = map.get(numeroFactura);
+    if (prev) {
+      prev.valor_facturado += parseNumero(row[cIngresos]);
+      if (!prev.shopify_order_number && ocStr) prev.shopify_order_number = ocStr;
+      continue;
+    }
+    map.set(numeroFactura, {
+      numero_factura: numeroFactura,
+      fecha_factura: parseFecha(row[cFecha]),
+      ubicacion_netsuite: String(row[cUbic] ?? "").trim() || null,
+      vendedor: String(row[cVendedor] ?? "").trim() || null,
+      cliente_nombre: (m ? m[1].trim() : String(row[cClienteFact] ?? "").trim() || clienteTrabajo) || null,
+      cliente_documento: m ? m[2] : null,
+      numero_pos: String(row[cResDian] ?? "").trim() || null,
+      shopify_order_number: ocStr,
+      cufe: String(row[cCufe] ?? "").trim() || null,
+      valor_facturado: parseNumero(row[cIngresos]),
+    });
+  }
+
+  return { facturas: Array.from(map.values()).map((f) => ({ ...f, valor_facturado: Math.round(f.valor_facturado * 100) / 100 })), filas_procesadas: filasProcesadas, headerIdx };
+}
+
 function UploaderCard({ cfg, onDone }: { cfg: UploaderConfig; onDone: () => void }) {
   const [file, setFile] = useState<File | null>(null);
   const [dragOver, setDragOver] = useState(false);
