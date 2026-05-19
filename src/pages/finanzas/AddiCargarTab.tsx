@@ -8,6 +8,7 @@ import { Upload, FileSpreadsheet, X, CheckCircle2, AlertCircle, Loader2 } from "
 import { supabase } from "@/integrations/supabase/client";
 import { fmtInt } from "@/lib/finanzas-format";
 import { toast } from "sonner";
+import * as XLSX from "xlsx";
 
 type Resultado = {
   insertados: number;
@@ -39,6 +40,19 @@ type UploaderConfig = {
   dropLabel: string;
   itemLabel: string; // p.ej. "transacciones", "facturas"
   accentClass: string; // tailwind border/bg on hover
+};
+
+type NetSuiteFactura = {
+  numero_factura: string;
+  fecha_factura: string | null;
+  ubicacion_netsuite: string | null;
+  vendedor: string | null;
+  cliente_nombre: string | null;
+  cliente_documento: string | null;
+  numero_pos: string | null;
+  shopify_order_number: string | null;
+  cufe: string | null;
+  valor_facturado: number;
 };
 
 const SECCIONES: UploaderConfig[] = [
