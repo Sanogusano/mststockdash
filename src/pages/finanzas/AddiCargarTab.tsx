@@ -8,6 +8,7 @@ import { Upload, FileSpreadsheet, X, CheckCircle2, AlertCircle, Loader2 } from "
 import { supabase } from "@/integrations/supabase/client";
 import { fmtInt } from "@/lib/finanzas-format";
 import { toast } from "sonner";
+import * as XLSX from "xlsx";
 
 type Resultado = {
   insertados: number;
@@ -30,6 +31,16 @@ type HistorialRow = {
   errores: number;
 };
 
+type SupabaseHistoryClient = {
+  from: (table: string) => {
+    select: (columns: string) => {
+      order: (column: string, options: { ascending: boolean }) => {
+        limit: (count: number) => Promise<{ data: HistorialRow[] | null; error: { message: string } | null }>;
+      };
+    };
+  };
+};
+
 type UploaderConfig = {
   tipo: string;
   titulo: string;
@@ -39,6 +50,19 @@ type UploaderConfig = {
   dropLabel: string;
   itemLabel: string; // p.ej. "transacciones", "facturas"
   accentClass: string; // tailwind border/bg on hover
+};
+
+type NetSuiteFactura = {
+  numero_factura: string;
+  fecha_factura: string | null;
+  ubicacion_netsuite: string | null;
+  vendedor: string | null;
+  cliente_nombre: string | null;
+  cliente_documento: string | null;
+  numero_pos: string | null;
+  shopify_order_number: string | null;
+  cufe: string | null;
+  valor_facturado: number;
 };
 
 const SECCIONES: UploaderConfig[] = [
@@ -91,6 +115,105 @@ async function fileToBase64(file: File): Promise<string> {
   return btoa(binary);
 }
 
+const norm = (s: string) =>
+  s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim().replace(/[\r\n]+/g, " ").replace(/\s+/g, " ");
+const normCompact = (s: string) => norm(s).replace(/[^a-z0-9]/g, "");
+
+function parseNumero(value: unknown): number {
+  if (typeof value === "number") return Number.isFinite(value) ? value : 0;
+  const raw = String(value ?? "").trim();
+  if (!raw) return 0;
+  let s = raw.replace(/[^\d,.-]/g, "");
+  const lastComma = s.lastIndexOf(",");
+  const lastDot = s.lastIndexOf(".");
+  if (lastComma >= 0 && lastDot >= 0) s = lastComma > lastDot ? s.replace(/\./g, "").replace(",", ".") : s.replace(/,/g, "");
+  else if (lastComma >= 0) {
+    const decimals = s.length - lastComma - 1;
+    s = decimals > 0 && decimals <= 2 ? s.replace(",", ".") : s.replace(/,/g, "");
+  } else if (lastDot >= 0) {
+    const decimals = s.length - lastDot - 1;
+    if ((s.match(/\./g)?.length ?? 0) > 1 || decimals === 3) s = s.replace(/\./g, "");
+  }
+  const n = Number(s);
+  return Number.isFinite(n) ? n : 0;
+}
+
+function parseFecha(value: unknown): string | null {
+  if (!value) return null;
+  if (typeof value === "number") {
+    const parsed = XLSX.SSF.parse_date_code(value);
+    return parsed ? `${parsed.y}-${String(parsed.m).padStart(2, "0")}-${String(parsed.d).padStart(2, "0")}` : null;
+  }
+  const d = new Date(String(value));
+  return Number.isNaN(d.getTime()) ? null : d.toISOString().substring(0, 10);
+}
+
+async function parseNetSuiteFile(file: File): Promise<{ facturas: NetSuiteFactura[]; filas_procesadas: number; headerIdx: number }> {
+  const workbook = XLSX.read(new Uint8Array(await file.arrayBuffer()), { type: "array" });
+  const sheet = workbook.Sheets[workbook.SheetNames[0]];
+  const allRows = XLSX.utils.sheet_to_json(sheet, { header: 1, raw: true }) as unknown[][];
+  const headerIdx = allRows.slice(0, 20).findIndex((row) =>
+    (row ?? []).some((c) => norm(String(c ?? "")).includes("ubicacion: nombre") || norm(String(c ?? "")) === "ubicacion nombre")
+  );
+  if (headerIdx < 0) throw new Error("No se encontró fila de encabezados (Ubicación: Nombre) en el archivo NetSuite");
+
+  const headerRow = (allRows[headerIdx] ?? []).map((c) => String(c ?? "").trim());
+  const colIdx = (...keys: string[]) => {
+    for (const k of keys) {
+      const idx = headerRow.findIndex((h) => normCompact(h) === normCompact(k));
+      if (idx >= 0) return idx;
+    }
+    return headerRow.findIndex((h) => keys.some((k) => normCompact(h).includes(normCompact(k))));
+  };
+
+  const cUbic = colIdx("Ubicación: Nombre", "Ubicacion: Nombre");
+  const cVendedor = colIdx("Vendedor");
+  const cClienteFact = colIdx("Nombre para facturación electrónica", "Nombre para facturacion electronica");
+  const cClienteTrabajo = colIdx("Cliente:Trabajo", "Cliente Trabajo");
+  const cNumDoc = colIdx("Número de documento", "Numero de documento");
+  const cResDian = colIdx("Número de Resolución DIAN", "Numero de Resolucion DIAN");
+  const cFecha = colIdx("Fecha");
+  const cIngresos = colIdx("Ingresos totales");
+  const cOC = colIdx("Número de OC", "Numero de OC");
+  const cCufe = colIdx("CUFE");
+  if (cNumDoc < 0 || cIngresos < 0) throw new Error("Faltan columnas requeridas: Número de documento o Ingresos totales");
+
+  const map = new Map<string, NetSuiteFactura>();
+  let filasProcesadas = 0;
+  for (let r = headerIdx + 1; r < allRows.length; r++) {
+    const row = allRows[r] ?? [];
+    if (row.every((c) => c === null || c === undefined || String(c).trim() === "")) continue;
+    const numeroFactura = String(row[cNumDoc] ?? "").trim();
+    if (!numeroFactura) continue;
+    filasProcesadas++;
+
+    const clienteTrabajo = String(row[cClienteTrabajo] ?? "").trim();
+    const m = clienteTrabajo.match(/^(.*?)[\s]+(\d{5,})$/);
+    const oc = row[cOC];
+    const ocStr = oc !== null && oc !== undefined && String(oc).trim() !== "" ? String(oc).replace(/\.0$/, "").trim() : null;
+    const prev = map.get(numeroFactura);
+    if (prev) {
+      prev.valor_facturado += parseNumero(row[cIngresos]);
+      if (!prev.shopify_order_number && ocStr) prev.shopify_order_number = ocStr;
+      continue;
+    }
+    map.set(numeroFactura, {
+      numero_factura: numeroFactura,
+      fecha_factura: parseFecha(row[cFecha]),
+      ubicacion_netsuite: String(row[cUbic] ?? "").trim() || null,
+      vendedor: String(row[cVendedor] ?? "").trim() || null,
+      cliente_nombre: (m ? m[1].trim() : String(row[cClienteFact] ?? "").trim() || clienteTrabajo) || null,
+      cliente_documento: m ? m[2] : null,
+      numero_pos: String(row[cResDian] ?? "").trim() || null,
+      shopify_order_number: ocStr,
+      cufe: String(row[cCufe] ?? "").trim() || null,
+      valor_facturado: parseNumero(row[cIngresos]),
+    });
+  }
+
+  return { facturas: Array.from(map.values()).map((f) => ({ ...f, valor_facturado: Math.round(f.valor_facturado * 100) / 100 })), filas_procesadas: filasProcesadas, headerIdx };
+}
+
 function UploaderCard({ cfg, onDone }: { cfg: UploaderConfig; onDone: () => void }) {
   const [file, setFile] = useState<File | null>(null);
   const [dragOver, setDragOver] = useState(false);
@@ -118,19 +241,28 @@ function UploaderCard({ cfg, onDone }: { cfg: UploaderConfig; onDone: () => void
     setProgreso(15);
     setResultado(null);
     try {
-      const base64 = await fileToBase64(file);
+      const payload = cfg.tipo === "netsuite"
+        ? await parseNetSuiteFile(file).then(({ facturas, filas_procesadas, headerIdx }) => ({
+            facturas_netsuite: facturas,
+            diagnostico: { filas_procesadas, headerIdx },
+            nombre_archivo: file.name,
+            tipo: cfg.tipo,
+          }))
+        : { archivo_base64: await fileToBase64(file), nombre_archivo: file.name, tipo: cfg.tipo };
       setProgreso(40);
       const { data, error } = await supabase.functions.invoke("procesar-archivo-financiero", {
-        body: { archivo_base64: base64, nombre_archivo: file.name, tipo: cfg.tipo },
+        body: payload,
       });
       setProgreso(95);
       if (error) throw error;
-      if ((data as any)?.error) throw new Error((data as any).error);
+      const response = data as (Partial<Resultado> & { error?: string }) | null;
+      if (response?.error) throw new Error(response.error);
       setResultado(data as Resultado);
       toast.success(`${cfg.titulo}: archivo procesado correctamente`);
       onDone();
-    } catch (e: any) {
-      toast.error(`Error procesando ${cfg.titulo}: ${e.message ?? e}`);
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : String(e);
+      toast.error(`Error procesando ${cfg.titulo}: ${message}`);
     } finally {
       setProgreso(100);
       setProcesando(false);
@@ -228,7 +360,8 @@ export function TabCargarArchivo() {
 
   async function cargarHistorial() {
     setLoadingHist(true);
-    const { data, error } = await (supabase as any)
+    const historyClient = supabase as unknown as SupabaseHistoryClient;
+    const { data, error } = await historyClient
       .from("addi_upload_history")
       .select("id,uploaded_at,uploaded_by_email,nombre_archivo,tipo,total_registros,cruzados,sin_cruce,errores")
       .order("uploaded_at", { ascending: false })

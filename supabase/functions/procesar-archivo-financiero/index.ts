@@ -89,26 +89,34 @@ Deno.serve(async (req) => {
 
     const supabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
 
-    const { archivo_base64, nombre_archivo, tipo } = await req.json();
-    if (!archivo_base64) throw new Error("archivo_base64 requerido");
+    const body = await req.json();
+    const { archivo_base64, nombre_archivo, tipo, facturas_netsuite } = body;
+    const netsuitePreprocesado = tipo === "netsuite" && Array.isArray(facturas_netsuite);
+    if (!archivo_base64 && !netsuitePreprocesado) throw new Error("archivo_base64 requerido");
 
-    const binaryStr = atob(archivo_base64);
-    const bytes = new Uint8Array(binaryStr.length);
-    for (let i = 0; i < binaryStr.length; i++) bytes[i] = binaryStr.charCodeAt(i);
-
-    const workbook = XLSX.read(bytes, { type: "array" });
-    const primeraHoja = workbook.SheetNames[0];
-    const datosHeader = XLSX.utils.sheet_to_json(workbook.Sheets[primeraHoja], { header: 1 }) as any[];
-    const headerRows = [0, 1]
-      .map((idx) => ((datosHeader[idx] as unknown[]) ?? []).map((h) => String(h || "").trim()))
-      .filter((row) => row.some(Boolean));
-    const headers = headerRows.flat();
-
+    let workbook: any = null;
+    let primeraHoja: string | null = null;
     let tipoDetectado = tipo as string | undefined;
-    if (!tipoDetectado) {
-      if (headers.includes("ID Transacción") && headers.includes("Canal")) tipoDetectado = "addi_transacciones";
-      else if (headers.includes("Id pedido") && headers.includes("Total a pagar")) tipoDetectado = "addi_liquidaciones";
-      else if (headers.includes("# Factura") || headers.includes("numero_factura")) tipoDetectado = "netsuite";
+
+    if (!netsuitePreprocesado) {
+      const binaryStr = atob(archivo_base64);
+      const bytes = new Uint8Array(binaryStr.length);
+      for (let i = 0; i < binaryStr.length; i++) bytes[i] = binaryStr.charCodeAt(i);
+
+      workbook = XLSX.read(bytes, { type: "array" });
+      primeraHoja = workbook.SheetNames[0];
+
+      if (!tipoDetectado) {
+        if (!primeraHoja) throw new Error("El archivo Excel no contiene hojas");
+        const datosHeader = XLSX.utils.sheet_to_json(workbook.Sheets[primeraHoja], { header: 1 }) as any[];
+        const headerRows = [0, 1]
+          .map((idx) => ((datosHeader[idx] as unknown[]) ?? []).map((h) => String(h || "").trim()))
+          .filter((row) => row.some(Boolean));
+        const headers = headerRows.flat();
+        if (headers.includes("ID Transacción") && headers.includes("Canal")) tipoDetectado = "addi_transacciones";
+        else if (headers.includes("Id pedido") && headers.includes("Total a pagar")) tipoDetectado = "addi_liquidaciones";
+        else if (headers.includes("# Factura") || headers.includes("numero_factura")) tipoDetectado = "netsuite";
+      }
     }
 
     const resultado: any = { insertados: 0, actualizados: 0, sin_cruce: 0, errores: 0, tipo: tipoDetectado, total: 0 };
@@ -120,6 +128,7 @@ Deno.serve(async (req) => {
     const normCompact = (s: string) => norm(s).replace(/[^a-z0-9]/g, "");
 
     if (tipoDetectado === "addi_transacciones") {
+      if (!workbook || !primeraHoja) throw new Error("No se pudo leer el archivo Excel");
       // Headers están en fila 1 (índice 1), no en fila 0. Datos arrancan en fila 2.
       const rowsRaw = XLSX.utils.sheet_to_json(workbook.Sheets[primeraHoja], { range: 1 }) as any[];
       console.log("Total rows:", rowsRaw.length);
@@ -218,10 +227,34 @@ Deno.serve(async (req) => {
         .is("shopify_order_id", null);
       resultado.sin_cruce = count || 0;
     } else if (tipoDetectado === "netsuite") {
-      // Encabezados en fila 6 (índice 6), datos desde fila 7. Detectar dinámicamente
-      // la fila que contenga "Ubicación: Nombre" para robustez.
-      const allRows = XLSX.utils.sheet_to_json(workbook.Sheets[primeraHoja], { header: 1, raw: true }) as any[][];
+      let facturas: any[] = [];
+      let filasProcesadas = 0;
       let headerIdx = -1;
+
+      if (netsuitePreprocesado) {
+        facturas = facturas_netsuite
+          .map((f: any) => ({
+            numero_factura: String(f.numero_factura ?? "").trim(),
+            fecha_factura: f.fecha_factura || null,
+            ubicacion_netsuite: f.ubicacion_netsuite || null,
+            vendedor: f.vendedor || null,
+            cliente_nombre: f.cliente_nombre || null,
+            cliente_documento: f.cliente_documento || null,
+            numero_pos: f.numero_pos || null,
+            shopify_order_number: f.shopify_order_number ? String(f.shopify_order_number).replace(/\.0$/, "").trim() : null,
+            cufe: f.cufe || null,
+            valor_facturado: Math.round(parseNumero(f.valor_facturado) * 100) / 100,
+            origen: "shopify",
+            creado_por: userEmail ?? "manual",
+          }))
+          .filter((f: any) => f.numero_factura);
+        filasProcesadas = Number(body?.diagnostico?.filas_procesadas ?? facturas.length);
+      } else {
+        if (!workbook || !primeraHoja) throw new Error("No se pudo leer el archivo Excel");
+        // Encabezados en fila 6 (índice 6), datos desde fila 7. Detectar dinámicamente
+        // la fila que contenga "Ubicación: Nombre" para robustez.
+      const allRows = XLSX.utils.sheet_to_json(workbook.Sheets[primeraHoja], { header: 1, raw: true }) as any[][];
+      headerIdx = -1;
       for (let i = 0; i < Math.min(allRows.length, 20); i++) {
         const row = (allRows[i] ?? []).map((c) => String(c ?? "").trim());
         if (row.some((c) => norm(c).includes("ubicacion: nombre") || norm(c) === "ubicacion nombre")) {
@@ -273,7 +306,6 @@ Deno.serve(async (req) => {
         valor_facturado: number;
       };
       const map = new Map<string, Acc>();
-      let filasProcesadas = 0;
       for (let r = headerIdx + 1; r < allRows.length; r++) {
         const row = allRows[r] ?? [];
         if (!row || row.every((c) => c === null || c === undefined || String(c).trim() === "")) continue;
@@ -314,12 +346,14 @@ Deno.serve(async (req) => {
         }
       }
 
-      const facturas = Array.from(map.values()).map((f) => ({
+      facturas = Array.from(map.values()).map((f) => ({
         ...f,
         valor_facturado: Math.round(f.valor_facturado * 100) / 100,
         origen: "shopify",
         creado_por: userEmail ?? "manual",
       }));
+      }
+
       resultado.total = facturas.length;
       resultado.diagnostico = { filas_procesadas: filasProcesadas, facturas_agregadas: facturas.length, headerIdx };
 
