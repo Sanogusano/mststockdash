@@ -117,7 +117,13 @@ function parseNumero(value: unknown): number {
   const lastComma = s.lastIndexOf(",");
   const lastDot = s.lastIndexOf(".");
   if (lastComma >= 0 && lastDot >= 0) s = lastComma > lastDot ? s.replace(/\./g, "").replace(",", ".") : s.replace(/,/g, "");
-  else if (lastComma >= 0) s = s.replace(",", ".");
+  else if (lastComma >= 0) {
+    const decimals = s.length - lastComma - 1;
+    s = decimals > 0 && decimals <= 2 ? s.replace(",", ".") : s.replace(/,/g, "");
+  } else if (lastDot >= 0) {
+    const decimals = s.length - lastDot - 1;
+    if ((s.match(/\./g)?.length ?? 0) > 1 || decimals === 3) s = s.replace(/\./g, "");
+  }
   const n = Number(s);
   return Number.isFinite(n) ? n : 0;
 }
