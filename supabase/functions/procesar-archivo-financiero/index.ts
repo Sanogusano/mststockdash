@@ -107,6 +107,7 @@ Deno.serve(async (req) => {
       primeraHoja = workbook.SheetNames[0];
 
       if (!tipoDetectado) {
+        if (!primeraHoja) throw new Error("El archivo Excel no contiene hojas");
         const datosHeader = XLSX.utils.sheet_to_json(workbook.Sheets[primeraHoja], { header: 1 }) as any[];
         const headerRows = [0, 1]
           .map((idx) => ((datosHeader[idx] as unknown[]) ?? []).map((h) => String(h || "").trim()))
