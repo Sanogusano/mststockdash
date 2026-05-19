@@ -246,8 +246,12 @@ function TabConciliacion() {
       <Card>
         <CardContent className="p-4 flex flex-wrap gap-3 items-end">
           <div>
-            <label className="text-xs text-muted-foreground block mb-1">Mes</label>
-            <Input type="month" value={mes} onChange={(e) => { setPage(1); setMes(e.target.value); }} className="h-9 w-40" />
+            <label className="text-xs text-muted-foreground block mb-1">Desde</label>
+            <Input type="date" value={desde} onChange={(e) => { setPage(1); setDesde(e.target.value); }} className="h-9 w-40" />
+          </div>
+          <div>
+            <label className="text-xs text-muted-foreground block mb-1">Hasta</label>
+            <Input type="date" value={hasta} onChange={(e) => { setPage(1); setHasta(e.target.value); }} className="h-9 w-40" />
           </div>
           <div>
             <label className="text-xs text-muted-foreground block mb-1">Canal Addi</label>
