@@ -225,18 +225,15 @@ function UploaderCard({ cfg, onDone }: { cfg: UploaderConfig; onDone: () => void
     setProgreso(15);
     setResultado(null);
     try {
-      const body = cfg.tipo === "netsuite"
-        ? (() => {
-            return null;
-          })()
+      const payload = cfg.tipo === "netsuite"
+        ? await parseNetSuiteFile(file).then(({ facturas, filas_procesadas, headerIdx }) => ({
+            facturas_netsuite: facturas,
+            diagnostico: { filas_procesadas, headerIdx },
+            nombre_archivo: file.name,
+            tipo: cfg.tipo,
+          }))
         : { archivo_base64: await fileToBase64(file), nombre_archivo: file.name, tipo: cfg.tipo };
       setProgreso(40);
-      const payload = body ?? await parseNetSuiteFile(file).then(({ facturas, filas_procesadas, headerIdx }) => ({
-        facturas_netsuite: facturas,
-        diagnostico: { filas_procesadas, headerIdx },
-        nombre_archivo: file.name,
-        tipo: cfg.tipo,
-      }));
       const { data, error } = await supabase.functions.invoke("procesar-archivo-financiero", {
         body: payload,
       });
