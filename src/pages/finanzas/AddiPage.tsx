@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
-import { Construction, Download, Upload, Globe, User, Store as StoreIcon } from "lucide-react";
+import { Construction, Download, Upload } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { fmtCOP, fmtInt } from "@/lib/finanzas-format";
 import { exportToXLS } from "@/lib/xls-export";
@@ -15,7 +15,6 @@ import { toast } from "sonner";
 import { TabProyeccionPagos } from "./AddiProyeccionTab";
 import { TabCargarArchivo } from "./AddiCargarTab";
 
-type LocMap = Record<string, { name: string; tipo: string | null }>;
 type AddiKpis = {
   total: number;
   conc: number;
@@ -27,119 +26,40 @@ type AddiKpis = {
 };
 
 const emptyKpis: AddiKpis = {
-  total: 0,
-  conc: 0,
-  pctConc: 0,
-  disc: 0,
-  discMonto: 0,
-  sinFact: 0,
-  sinCruce: 0,
+  total: 0, conc: 0, pctConc: 0, disc: 0, discMonto: 0, sinFact: 0, sinCruce: 0,
 };
 
 const PAGE_SIZE_OPTIONS = [50, 100, 200];
+const toNumber = (v: unknown) => Number(v ?? 0);
 
-const toNumber = (value: unknown) => Number(value ?? 0);
+function currentMonth() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+}
 
 // ============== Tab Conciliación ==============
 function TabConciliacion() {
-  const [desde, setDesde] = useState<string>("");
-  const [hasta, setHasta] = useState<string>("");
-  const [filtroCanal, setFiltroCanal] = useState<string>("all");
-  const [filtroTipo, setFiltroTipo] = useState<string>("all");
-  const [filtroEstado, setFiltroEstado] = useState<string>("all");
-  const [filtroDiscrepancia, setFiltroDiscrepancia] = useState<string>("all");
+  const [mes, setMes] = useState<string>(currentMonth()); // YYYY-MM
   const [loading, setLoading] = useState(true);
   const [rows, setRows] = useState<any[]>([]);
   const [kpis, setKpis] = useState<AddiKpis>(emptyKpis);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(50);
-  const [locMap, setLocMap] = useState<LocMap>({});
-
-  // Default: rango completo disponible en netsuite_facturas (MIN/MAX fecha_factura)
-  useEffect(() => {
-    (async () => {
-      const [maxRes, minRes] = await Promise.all([
-        (supabase as any).from("netsuite_facturas")
-          .select("fecha_factura").not("fecha_factura", "is", null)
-          .order("fecha_factura", { ascending: false }).limit(1),
-        (supabase as any).from("netsuite_facturas")
-          .select("fecha_factura").not("fecha_factura", "is", null)
-          .order("fecha_factura", { ascending: true }).limit(1),
-      ]);
-      const maxFecha = maxRes.data?.[0]?.fecha_factura;
-      const minFecha = minRes.data?.[0]?.fecha_factura;
-      if (maxFecha) {
-        setHasta(String(maxFecha));
-        setDesde(String(minFecha ?? maxFecha));
-      } else {
-        const today = new Date();
-        const prev = new Date(today); prev.setMonth(prev.getMonth() - 1);
-        setHasta(today.toISOString().slice(0, 10));
-        setDesde(prev.toISOString().slice(0, 10));
-      }
-    })();
-  }, []);
 
   useEffect(() => {
-    if (!desde || !hasta) return;
     void cargar();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [desde, hasta, page, pageSize, filtroCanal, filtroTipo, filtroEstado, filtroDiscrepancia]);
+  }, [mes, page, pageSize]);
 
   function getMonthRange() {
-    // hasta es exclusivo: sumar 1 día al final seleccionado
-    const h = new Date(`${hasta}T00:00:00.000Z`);
-    h.setUTCDate(h.getUTCDate() + 1);
+    const [y, m] = mes.split("-").map(Number);
+    const desde = new Date(Date.UTC(y, m - 1, 1));
+    const hasta = new Date(Date.UTC(y, m, 1));
     return {
-      pMes: `${desde.slice(0, 7)}-01`,
-      desde: `${desde}T00:00:00.000Z`,
-      hasta: h.toISOString(),
+      pMes: `${mes}-01`,
+      desde: desde.toISOString(),
+      hasta: hasta.toISOString(),
     };
-  }
-
-  function applyServerFilters(query: any) {
-    let q = query;
-    if (filtroCanal !== "all") q = q.eq("canal", filtroCanal);
-    if (filtroTipo !== "all") q = q.eq("tipo_de_venta", filtroTipo);
-    if (filtroEstado !== "all") q = q.eq("estado_final", filtroEstado);
-    if (filtroDiscrepancia !== "all") {
-      q = filtroDiscrepancia === "sin_discrepancia"
-        ? q.or("ns_tipo_discrepancia.is.null,ns_tipo_discrepancia.eq.sin_discrepancia")
-        : q.eq("ns_tipo_discrepancia", filtroDiscrepancia);
-    }
-    return q;
-  }
-
-  function mapConciliacionRows(conciliacion: any[], lm: LocMap) {
-    return (conciliacion ?? []).map((r: any) => {
-      const loc = r.location_id ? lm[r.location_id] : null;
-
-      let canalLabel = "—";
-      let canalIcon: "web" | "ps" | "tienda" = "web";
-      let canalDetalle = "";
-      if (r.order_number) {
-        const src = String(r.source_name ?? "").toLowerCase();
-        if (src === "shopify_draft_order") {
-          canalIcon = "ps";
-          canalLabel = "Personal Shopper";
-          canalDetalle = r.user_id ?? "";
-        } else if (loc?.tipo === "ECOMMERCE" || ["web", "580111"].includes(src)) {
-          canalIcon = "web";
-          canalLabel = "E-Commerce";
-        } else if (loc) {
-          canalIcon = "tienda";
-          canalLabel = loc.name;
-        }
-      }
-
-      return {
-        ...r,
-        estadoFinal: r.estado_final,
-        canalLabel,
-        canalIcon,
-        canalDetalle,
-      };
-    });
   }
 
   function normalizeKpis(raw: any): AddiKpis {
@@ -163,34 +83,22 @@ function TabConciliacion() {
       const from = (page - 1) * pageSize;
       const to = from + pageSize - 1;
 
-      const detalleQuery = applyServerFilters(
-        (supabase as any).rpc("reporte_addi_conciliacion", { p_desde: desde, p_hasta: hasta }, { count: "exact" })
-      ).range(from, to);
-
-      const [locResult, kpiResult, detalleResult] = await Promise.all([
-        supabase.from("locations").select("location_id,name,tipo_tienda"),
+      const [kpiResult, detalleResult] = await Promise.all([
         (supabase as any).rpc("get_addi_conciliacion_kpis", {
-          p_mes: pMes,
-          p_canal: filtroCanal,
-          p_tipo: filtroTipo,
-          p_estado: filtroEstado,
-          p_discrepancia: filtroDiscrepancia,
+          p_mes: pMes, p_canal: "all", p_tipo: "all", p_estado: "all", p_discrepancia: "all",
         }),
-        detalleQuery,
+        (supabase as any).rpc("reporte_addi_conciliacion",
+          { p_desde: desde, p_hasta: hasta },
+          { count: "exact" }
+        ).range(from, to),
       ]);
 
-      if (locResult.error) throw locResult.error;
       if (kpiResult.error) throw kpiResult.error;
       if (detalleResult.error) throw detalleResult.error;
 
-      const locs = locResult.data;
-      const lm: LocMap = {};
-      (locs ?? []).forEach((l: any) => { lm[l.location_id] = { name: l.name, tipo: l.tipo_tienda }; });
-      setLocMap(lm);
-
       const rawKpi = Array.isArray(kpiResult.data) ? kpiResult.data[0] : kpiResult.data;
       setKpis(normalizeKpis(rawKpi));
-      setRows(mapConciliacionRows(detalleResult.data ?? [], lm));
+      setRows(detalleResult.data ?? []);
     } catch (e: any) {
       toast.error(`Error cargando conciliación Addi: ${e.message ?? e}`);
       setRows([]);
@@ -204,33 +112,27 @@ function TabConciliacion() {
     try {
       const { desde, hasta } = getMonthRange();
       const chunkSize = 1000;
-      const allRows: any[] = [];
-
-      for (let from = 0; from < kpis.total; from += chunkSize) {
-        const { data, error } = await applyServerFilters(
-          (supabase as any).rpc("reporte_addi_conciliacion", { p_desde: desde, p_hasta: hasta })
-        ).range(from, from + chunkSize - 1);
+      const all: any[] = [];
+      for (let f = 0; f < kpis.total; f += chunkSize) {
+        const { data, error } = await (supabase as any).rpc(
+          "reporte_addi_conciliacion", { p_desde: desde, p_hasta: hasta }
+        ).range(f, f + chunkSize - 1);
         if (error) throw error;
-        allRows.push(...mapConciliacionRows(data ?? [], locMap));
+        all.push(...(data ?? []));
       }
-
-      const data = allRows.map((r) => ({
-      order_number: r.order_number ?? "",
-      fecha: r.fecha_pedido ? new Date(r.fecha_pedido).toISOString().slice(0, 10) : "",
-      canal: r.canalLabel,
-      vendedor_tienda: r.canalDetalle,
-      monto_shopify: Number(r.monto_shopify ?? 0),
-      monto_addi: Number(r.monto ?? 0),
-      tipo_venta: r.tipo_de_venta ?? "",
-      estado_addi: r.estado ?? "",
-      numero_factura_ns: r.ns_factura ?? "",
-      valor_facturado_ns: Number(r.ns_valor ?? 0),
-      base_gravable_ns: Number(r.ns_base ?? 0),
-      discrepancia: Number(r.ns_discrepancia ?? 0),
-      tipo_discrepancia: r.ns_tipo_discrepancia ?? "",
-      estado_conciliacion: r.estadoFinal,
-    }));
-    exportToXLS(data, `conciliacion-addi-${desde}_${hasta}`, "Conciliación");
+      const data = all.map((r) => ({
+        id_transaccion: r.id_orden ?? "",
+        canal: r.canal ?? "",
+        tipo_venta: r.tipo_de_venta ?? "",
+        monto_addi: Number(r.monto ?? 0),
+        orden_shopify: r.order_number ?? "",
+        valor_shopify: Number(r.monto_shopify ?? 0),
+        factura_ns: r.ns_factura ?? "",
+        valor_ns: Number(r.ns_valor ?? 0),
+        estado: r.estado_final,
+        fecha: r.fecha_creacion ? new Date(r.fecha_creacion).toISOString().slice(0, 10) : "",
+      }));
+      exportToXLS(data, `conciliacion-addi-${mes}`, "Conciliación");
     } catch (e: any) {
       toast.error(`Error exportando conciliación Addi: ${e.message ?? e}`);
     }
@@ -240,66 +142,34 @@ function TabConciliacion() {
   const rowStart = kpis.total === 0 ? 0 : (page - 1) * pageSize + 1;
   const rowEnd = Math.min(page * pageSize, kpis.total);
 
+  const estadoBadge = (estado: string) => {
+    switch (estado) {
+      case "conciliado":
+        return <Badge className="bg-emerald-100 text-emerald-800 border-0">✅ Conciliado</Badge>;
+      case "discrepancia":
+        return <Badge className="bg-amber-100 text-amber-800 border-0">⚠️ Discrepancia</Badge>;
+      case "sin_factura":
+        return <Badge className="bg-orange-100 text-orange-800 border-0">📄 Sin factura</Badge>;
+      case "sin_cruce":
+        return <Badge className="bg-rose-100 text-rose-800 border-0">🔴 Sin cruce</Badge>;
+      default:
+        return <Badge variant="outline">{estado ?? "—"}</Badge>;
+    }
+  };
+
   return (
     <div className="space-y-4">
       {/* Filtros */}
       <Card>
         <CardContent className="p-4 flex flex-wrap gap-3 items-end">
           <div>
-            <label className="text-xs text-muted-foreground block mb-1">Desde</label>
-            <Input type="date" value={desde} onChange={(e) => { setPage(1); setDesde(e.target.value); }} className="h-9 w-40" />
-          </div>
-          <div>
-            <label className="text-xs text-muted-foreground block mb-1">Hasta</label>
-            <Input type="date" value={hasta} onChange={(e) => { setPage(1); setHasta(e.target.value); }} className="h-9 w-40" />
-          </div>
-          <div>
-            <label className="text-xs text-muted-foreground block mb-1">Canal Addi</label>
-            <Select value={filtroCanal} onValueChange={(value) => { setPage(1); setFiltroCanal(value); }}>
-              <SelectTrigger className="h-9 w-44"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos</SelectItem>
-                <SelectItem value="E_COMMERCE_SHOPIFY">E-Commerce</SelectItem>
-                <SelectItem value="PAY_LINK">Personal Shopper</SelectItem>
-                <SelectItem value="ADDI_MARKETPLACE">Marketplace</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div>
-            <label className="text-xs text-muted-foreground block mb-1">Tipo</label>
-            <Select value={filtroTipo} onValueChange={(value) => { setPage(1); setFiltroTipo(value); }}>
-              <SelectTrigger className="h-9 w-36"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos</SelectItem>
-                <SelectItem value="Crédito">Crédito</SelectItem>
-                <SelectItem value="Débito (PSE)">Débito PSE</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div>
-            <label className="text-xs text-muted-foreground block mb-1">Estado</label>
-            <Select value={filtroEstado} onValueChange={(value) => { setPage(1); setFiltroEstado(value); }}>
-              <SelectTrigger className="h-9 w-44"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos</SelectItem>
-                <SelectItem value="conciliado">✅ Conciliado</SelectItem>
-                <SelectItem value="discrepancia">⚠️ Discrepancia</SelectItem>
-                <SelectItem value="sin_factura">📄 Sin factura NS</SelectItem>
-                <SelectItem value="sin_cruce">🔴 Sin cruce</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div>
-            <label className="text-xs text-muted-foreground block mb-1">Discrepancia</label>
-            <Select value={filtroDiscrepancia} onValueChange={(value) => { setPage(1); setFiltroDiscrepancia(value); }}>
-              <SelectTrigger className="h-9 w-44"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todas</SelectItem>
-                <SelectItem value="sin_discrepancia">Sin discrepancia</SelectItem>
-                <SelectItem value="mayor_valor">Mayor valor</SelectItem>
-                <SelectItem value="menor_valor">Menor valor</SelectItem>
-              </SelectContent>
-            </Select>
+            <label className="text-xs text-muted-foreground block mb-1">Mes</label>
+            <Input
+              type="month"
+              value={mes}
+              onChange={(e) => { setPage(1); setMes(e.target.value || currentMonth()); }}
+              className="h-9 w-44"
+            />
           </div>
           <Button onClick={exportar} variant="outline" className="gap-2 ml-auto">
             <Download className="h-4 w-4" /> Exportar Excel
@@ -308,24 +178,35 @@ function TabConciliacion() {
       </Card>
 
       {/* KPIs */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+        <Card><CardContent className="p-4">
+          <p className="text-xs text-muted-foreground">Total transacciones</p>
+          <p className="text-2xl font-semibold">{fmtInt(kpis.total)}</p>
+        </CardContent></Card>
         <Card><CardContent className="p-4">
           <p className="text-xs text-muted-foreground">Conciliadas</p>
-          <p className="text-2xl font-semibold text-emerald-600">{fmtInt(kpis.conc)} <span className="text-sm text-muted-foreground">/ {fmtInt(kpis.total)}</span></p>
+          <p className="text-2xl font-semibold text-emerald-600">{fmtInt(kpis.conc)}</p>
           <p className="text-xs text-muted-foreground">{kpis.pctConc.toFixed(1)}%</p>
         </CardContent></Card>
         <Card><CardContent className="p-4">
           <p className="text-xs text-muted-foreground">Con discrepancia</p>
-          <p className="text-2xl font-semibold text-amber-600">{fmtInt(kpis.disc)} <span className="text-sm text-muted-foreground">facturas</span></p>
-          <p className="text-xs text-muted-foreground">{fmtCOP(kpis.discMonto)}</p>
+          <p className="text-2xl font-semibold text-amber-600">{fmtInt(kpis.disc)}</p>
         </CardContent></Card>
         <Card><CardContent className="p-4">
-          <p className="text-xs text-muted-foreground">Sin factura NS / Sin cruce</p>
-          <p className="text-2xl font-semibold text-rose-600">{fmtInt(kpis.sinFact)} <span className="text-sm text-muted-foreground">/ {fmtInt(kpis.sinCruce)}</span></p>
+          <p className="text-xs text-muted-foreground">Sin factura NS</p>
+          <p className="text-2xl font-semibold text-orange-600">{fmtInt(kpis.sinFact)}</p>
+        </CardContent></Card>
+        <Card><CardContent className="p-4">
+          <p className="text-xs text-muted-foreground">Sin cruce Shopify</p>
+          <p className="text-2xl font-semibold text-rose-600">{fmtInt(kpis.sinCruce)}</p>
+        </CardContent></Card>
+        <Card><CardContent className="p-4">
+          <p className="text-xs text-muted-foreground">Monto discrepancia</p>
+          <p className="text-xl font-semibold text-amber-600">{fmtCOP(kpis.discMonto)}</p>
         </CardContent></Card>
       </div>
 
-      {/* Tabla maestra */}
+      {/* Tabla */}
       <Card>
         <CardContent className="p-0">
           {loading ? (
@@ -334,107 +215,61 @@ function TabConciliacion() {
             </div>
           ) : rows.length === 0 ? (
             <div className="p-10 text-center text-sm text-muted-foreground">
-              Sin transacciones para los filtros aplicados.
+              Sin transacciones para el mes seleccionado.
             </div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead className="bg-muted/50 text-xs uppercase">
                   <tr className="text-left">
-                    <th className="px-3 py-2 sticky left-0 bg-muted/50 z-10 min-w-[120px]">Orden</th>
-                    <th className="px-3 py-2 min-w-[110px]">Fecha pedido</th>
-                    <th className="px-3 py-2 min-w-[200px]">Canal</th>
-                    <th className="px-3 py-2 text-right min-w-[110px]">Shopify</th>
-                    <th className="px-3 py-2 min-w-[90px]">Estado Addi</th>
-                    <th className="px-3 py-2 min-w-[100px]">Tipo</th>
-                    <th className="px-3 py-2 min-w-[100px]">Tipo crédito</th>
-                    <th className="px-3 py-2 text-right min-w-[110px]">Addi</th>
+                    <th className="px-3 py-2 min-w-[140px]">ID Transacción</th>
+                    <th className="px-3 py-2 min-w-[120px]">Canal</th>
+                    <th className="px-3 py-2 min-w-[110px]">Tipo Venta</th>
+                    <th className="px-3 py-2 text-right min-w-[110px]">Monto Addi</th>
+                    <th className="px-3 py-2 min-w-[120px]">Orden Shopify</th>
+                    <th className="px-3 py-2 text-right min-w-[110px]">Valor Shopify</th>
                     <th className="px-3 py-2 min-w-[120px]">Factura NS</th>
-                    <th className="px-3 py-2 text-right min-w-[110px]">Facturado</th>
-                    <th className="px-3 py-2 text-right min-w-[110px]">Discrepancia</th>
-                    <th className="px-3 py-2 text-right min-w-[110px]">Base gravable</th>
-                    <th className="px-3 py-2 min-w-[150px]">Estado final</th>
+                    <th className="px-3 py-2 text-right min-w-[110px]">Valor NS</th>
+                    <th className="px-3 py-2 min-w-[150px]">Estado</th>
                   </tr>
                 </thead>
                 <tbody>
                   {rows.map((r, i) => (
                     <tr key={i} className="border-t hover:bg-muted/20">
-                      <td className="px-3 py-2 sticky left-0 bg-background z-10 font-medium">{r.order_number ?? "—"}</td>
-                      <td className="px-3 py-2 text-muted-foreground">{r.fecha_pedido ? new Date(r.fecha_pedido).toLocaleDateString("es-CO", { day: "2-digit", month: "2-digit", year: "numeric" }) : "—"}</td>
+                      <td className="px-3 py-2 font-mono text-xs">{r.id_orden ?? "—"}</td>
+                      <td className="px-3 py-2 text-muted-foreground">{r.canal ?? "—"}</td>
                       <td className="px-3 py-2">
-                        <span className="inline-flex items-center gap-1.5">
-                          {r.canalIcon === "web" && <Globe className="h-3.5 w-3.5 text-sky-600" />}
-                          {r.canalIcon === "ps" && <User className="h-3.5 w-3.5 text-purple-600" />}
-                          {r.canalIcon === "tienda" && <StoreIcon className="h-3.5 w-3.5 text-emerald-600" />}
-                          <span className="truncate max-w-[180px]">{r.canalLabel}</span>
-                          {r.canalDetalle && <span className="text-xs text-muted-foreground">· {r.canalDetalle}</span>}
-                        </span>
-                      </td>
-                      <td className="px-3 py-2 text-right tabular-nums">{r.monto_shopify != null ? fmtCOP(r.monto_shopify) : "—"}</td>
-                      <td className="px-3 py-2">
-                        <Badge variant="outline" className={r.estado === "Exitosa" ? "bg-emerald-50 text-emerald-700 border-emerald-200" : ""}>{r.estado ?? "—"}</Badge>
-                      </td>
-                      <td className="px-3 py-2 text-muted-foreground">{r.tipo_de_venta ?? "—"}</td>
-                      <td className="px-3 py-2">
-                        {r.tipo_de_venta === "Crédito" && (
-                          <Badge className="bg-blue-100 text-blue-800 border-0">Crédito</Badge>
-                        )}
-                        {r.tipo_de_venta === "Débito (PSE)" && (
-                          <Badge className="bg-emerald-100 text-emerald-800 border-0">PSE</Badge>
-                        )}
+                        {r.tipo_de_venta === "Crédito" && <Badge className="bg-blue-100 text-blue-800 border-0">Crédito</Badge>}
+                        {r.tipo_de_venta === "Débito (PSE)" && <Badge className="bg-emerald-100 text-emerald-800 border-0">PSE</Badge>}
+                        {r.tipo_de_venta !== "Crédito" && r.tipo_de_venta !== "Débito (PSE)" && (r.tipo_de_venta ?? "—")}
                       </td>
                       <td className="px-3 py-2 text-right tabular-nums">{fmtCOP(r.monto)}</td>
+                      <td className="px-3 py-2 font-medium">{r.order_number ?? <span className="text-muted-foreground">—</span>}</td>
+                      <td className="px-3 py-2 text-right tabular-nums">{r.monto_shopify != null ? fmtCOP(r.monto_shopify) : "—"}</td>
                       <td className="px-3 py-2 font-mono text-xs">{r.ns_factura ?? <span className="text-muted-foreground">—</span>}</td>
                       <td className="px-3 py-2 text-right tabular-nums">{r.ns_valor != null ? fmtCOP(r.ns_valor) : "—"}</td>
-                      <td className={`px-3 py-2 text-right tabular-nums ${r.ns_tipo_discrepancia && r.ns_tipo_discrepancia !== "sin_discrepancia" ? "text-rose-600 font-medium" : "text-muted-foreground"}`}>
-                        {r.ns_discrepancia != null ? fmtCOP(r.ns_discrepancia) : "—"}
-                      </td>
-                      <td className="px-3 py-2 text-right tabular-nums text-muted-foreground">{r.ns_base != null ? fmtCOP(r.ns_base) : "—"}</td>
-                      <td className="px-3 py-2">
-                        {r.estadoFinal === "conciliado" && <Badge className="bg-emerald-100 text-emerald-800 border-0">✅ Conciliado</Badge>}
-                        {r.estadoFinal === "discrepancia" && <Badge className="bg-amber-100 text-amber-800 border-0">⚠️ Discrepancia</Badge>}
-                        {r.estadoFinal === "sin_factura" && <Badge className="bg-slate-100 text-slate-700 border-0">📄 Sin factura</Badge>}
-                        {r.estadoFinal === "sin_cruce" && <Badge className="bg-rose-100 text-rose-800 border-0">🔴 Sin cruce</Badge>}
-                      </td>
+                      <td className="px-3 py-2">{estadoBadge(r.estado_final)}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
               <div className="flex flex-col gap-3 border-t px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
                 <p className="text-xs text-muted-foreground">
-                  Mostrando {fmtInt(rowStart)}–{fmtInt(rowEnd)} de {fmtInt(kpis.total)} registros · Página {fmtInt(page)} de {fmtInt(totalPaginas)}
+                  Mostrando {fmtInt(rowStart)}–{fmtInt(rowEnd)} de {fmtInt(kpis.total)} · Página {fmtInt(page)} de {fmtInt(totalPaginas)}
                 </p>
                 <div className="flex flex-wrap items-center gap-3">
                   <div className="flex items-center gap-2">
-                    <span className="text-xs text-muted-foreground">Registros por página</span>
-                    <Select value={String(pageSize)} onValueChange={(value) => { setPage(1); setPageSize(Number(value)); }}>
+                    <span className="text-xs text-muted-foreground">Por página</span>
+                    <Select value={String(pageSize)} onValueChange={(v) => { setPage(1); setPageSize(Number(v)); }}>
                       <SelectTrigger className="h-8 w-20"><SelectValue /></SelectTrigger>
                       <SelectContent>
-                        {PAGE_SIZE_OPTIONS.map((option) => (
-                          <SelectItem key={option} value={String(option)}>{option}</SelectItem>
-                        ))}
+                        {PAGE_SIZE_OPTIONS.map((o) => <SelectItem key={o} value={String(o)}>{o}</SelectItem>)}
                       </SelectContent>
                     </Select>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      disabled={page <= 1}
-                      onClick={() => setPage((p) => Math.max(1, p - 1))}
-                    >
-                      Anterior
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      disabled={page >= totalPaginas}
-                      onClick={() => setPage((p) => Math.min(totalPaginas, p + 1))}
-                    >
-                      Siguiente
-                    </Button>
+                    <Button type="button" variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage((p) => Math.max(1, p - 1))}>Anterior</Button>
+                    <Button type="button" variant="outline" size="sm" disabled={page >= totalPaginas} onClick={() => setPage((p) => Math.min(totalPaginas, p + 1))}>Siguiente</Button>
                   </div>
                 </div>
               </div>
