@@ -42,7 +42,7 @@ const toNumber = (value: unknown) => Number(value ?? 0);
 
 // ============== Tab Conciliación ==============
 function TabConciliacion() {
-  const [mes, setMes] = useState<string>("");
+  const [mes, setMes] = useState<string>("2026-04");
   const [filtroCanal, setFiltroCanal] = useState<string>("all");
   const [filtroTipo, setFiltroTipo] = useState<string>("all");
   const [filtroEstado, setFiltroEstado] = useState<string>("all");
@@ -53,20 +53,6 @@ function TabConciliacion() {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(50);
   const [locMap, setLocMap] = useState<LocMap>({});
-
-  // Inicializar mes con el último mes con datos disponibles
-  useEffect(() => {
-    (async () => {
-      const { data } = await supabase
-        .from("addi_transactions")
-        .select("fecha_creacion")
-        .not("fecha_creacion", "is", null)
-        .order("fecha_creacion", { ascending: false })
-        .limit(1);
-      const last = data?.[0]?.fecha_creacion ? new Date(data[0].fecha_creacion as string) : new Date();
-      setMes(`${last.getFullYear()}-${String(last.getMonth() + 1).padStart(2, "0")}`);
-    })();
-  }, []);
 
   useEffect(() => {
     if (!mes) return;
