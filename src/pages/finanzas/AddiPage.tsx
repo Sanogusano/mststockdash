@@ -42,7 +42,8 @@ const toNumber = (value: unknown) => Number(value ?? 0);
 
 // ============== Tab Conciliación ==============
 function TabConciliacion() {
-  const [mes, setMes] = useState<string>("2026-04");
+  const [desde, setDesde] = useState<string>("");
+  const [hasta, setHasta] = useState<string>("");
   const [filtroCanal, setFiltroCanal] = useState<string>("all");
   const [filtroTipo, setFiltroTipo] = useState<string>("all");
   const [filtroEstado, setFiltroEstado] = useState<string>("all");
@@ -54,23 +55,45 @@ function TabConciliacion() {
   const [pageSize, setPageSize] = useState(50);
   const [locMap, setLocMap] = useState<LocMap>({});
 
+  // Default: rango completo disponible en netsuite_facturas (MIN/MAX fecha_factura)
   useEffect(() => {
-    if (!mes) return;
+    (async () => {
+      const [maxRes, minRes] = await Promise.all([
+        (supabase as any).from("netsuite_facturas")
+          .select("fecha_factura").not("fecha_factura", "is", null)
+          .order("fecha_factura", { ascending: false }).limit(1),
+        (supabase as any).from("netsuite_facturas")
+          .select("fecha_factura").not("fecha_factura", "is", null)
+          .order("fecha_factura", { ascending: true }).limit(1),
+      ]);
+      const maxFecha = maxRes.data?.[0]?.fecha_factura;
+      const minFecha = minRes.data?.[0]?.fecha_factura;
+      if (maxFecha) {
+        setHasta(String(maxFecha));
+        setDesde(String(minFecha ?? maxFecha));
+      } else {
+        const today = new Date();
+        const prev = new Date(today); prev.setMonth(prev.getMonth() - 1);
+        setHasta(today.toISOString().slice(0, 10));
+        setDesde(prev.toISOString().slice(0, 10));
+      }
+    })();
+  }, []);
+
+  useEffect(() => {
+    if (!desde || !hasta) return;
     void cargar();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mes, page, pageSize, filtroCanal, filtroTipo, filtroEstado, filtroDiscrepancia]);
+  }, [desde, hasta, page, pageSize, filtroCanal, filtroTipo, filtroEstado, filtroDiscrepancia]);
 
   function getMonthRange() {
-    const [anioStr, mesStr] = mes.split("-");
-    const anio = Number(anioStr);
-    const m = Number(mesStr);
-    const nextAnio = m === 12 ? anio + 1 : anio;
-    const nextMes = m === 12 ? 1 : m + 1;
-
+    // hasta es exclusivo: sumar 1 día al final seleccionado
+    const h = new Date(`${hasta}T00:00:00.000Z`);
+    h.setUTCDate(h.getUTCDate() + 1);
     return {
-      pMes: `${mes}-01`,
-      desde: `${anioStr}-${mesStr}-01T00:00:00.000Z`,
-      hasta: `${nextAnio}-${String(nextMes).padStart(2, "0")}-01T00:00:00.000Z`,
+      pMes: `${desde.slice(0, 7)}-01`,
+      desde: `${desde}T00:00:00.000Z`,
+      hasta: h.toISOString(),
     };
   }
 
