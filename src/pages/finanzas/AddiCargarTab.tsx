@@ -31,6 +31,16 @@ type HistorialRow = {
   errores: number;
 };
 
+type SupabaseHistoryClient = {
+  from: (table: string) => {
+    select: (columns: string) => {
+      order: (column: string, options: { ascending: boolean }) => {
+        limit: (count: number) => Promise<{ data: HistorialRow[] | null; error: { message: string } | null }>;
+      };
+    };
+  };
+};
+
 type UploaderConfig = {
   tipo: string;
   titulo: string;
@@ -245,12 +255,14 @@ function UploaderCard({ cfg, onDone }: { cfg: UploaderConfig; onDone: () => void
       });
       setProgreso(95);
       if (error) throw error;
-      if ((data as any)?.error) throw new Error((data as any).error);
+      const response = data as (Partial<Resultado> & { error?: string }) | null;
+      if (response?.error) throw new Error(response.error);
       setResultado(data as Resultado);
       toast.success(`${cfg.titulo}: archivo procesado correctamente`);
       onDone();
-    } catch (e: any) {
-      toast.error(`Error procesando ${cfg.titulo}: ${e.message ?? e}`);
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : String(e);
+      toast.error(`Error procesando ${cfg.titulo}: ${message}`);
     } finally {
       setProgreso(100);
       setProcesando(false);
@@ -348,7 +360,8 @@ export function TabCargarArchivo() {
 
   async function cargarHistorial() {
     setLoadingHist(true);
-    const { data, error } = await (supabase as any)
+    const historyClient = supabase as unknown as SupabaseHistoryClient;
+    const { data, error } = await historyClient
       .from("addi_upload_history")
       .select("id,uploaded_at,uploaded_by_email,nombre_archivo,tipo,total_registros,cruzados,sin_cruce,errores")
       .order("uploaded_at", { ascending: false })
