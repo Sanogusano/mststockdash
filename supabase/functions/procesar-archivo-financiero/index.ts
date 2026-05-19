@@ -127,6 +127,7 @@ Deno.serve(async (req) => {
     const normCompact = (s: string) => norm(s).replace(/[^a-z0-9]/g, "");
 
     if (tipoDetectado === "addi_transacciones") {
+      if (!workbook || !primeraHoja) throw new Error("No se pudo leer el archivo Excel");
       // Headers están en fila 1 (índice 1), no en fila 0. Datos arrancan en fila 2.
       const rowsRaw = XLSX.utils.sheet_to_json(workbook.Sheets[primeraHoja], { range: 1 }) as any[];
       console.log("Total rows:", rowsRaw.length);
@@ -225,10 +226,34 @@ Deno.serve(async (req) => {
         .is("shopify_order_id", null);
       resultado.sin_cruce = count || 0;
     } else if (tipoDetectado === "netsuite") {
+      let facturas: any[] = [];
+      let filasProcesadas = 0;
+      let headerIdx: number | null = null;
+
+      if (netsuitePreprocesado) {
+        facturas = facturas_netsuite
+          .map((f: any) => ({
+            numero_factura: String(f.numero_factura ?? "").trim(),
+            fecha_factura: f.fecha_factura || null,
+            ubicacion_netsuite: f.ubicacion_netsuite || null,
+            vendedor: f.vendedor || null,
+            cliente_nombre: f.cliente_nombre || null,
+            cliente_documento: f.cliente_documento || null,
+            numero_pos: f.numero_pos || null,
+            shopify_order_number: f.shopify_order_number ? String(f.shopify_order_number).replace(/\.0$/, "").trim() : null,
+            cufe: f.cufe || null,
+            valor_facturado: Math.round(parseNumero(f.valor_facturado) * 100) / 100,
+            origen: "shopify",
+            creado_por: userEmail ?? "manual",
+          }))
+          .filter((f: any) => f.numero_factura);
+        filasProcesadas = Number(body?.diagnostico?.filas_procesadas ?? facturas.length);
+      } else {
+        if (!workbook || !primeraHoja) throw new Error("No se pudo leer el archivo Excel");
       // Encabezados en fila 6 (índice 6), datos desde fila 7. Detectar dinámicamente
       // la fila que contenga "Ubicación: Nombre" para robustez.
       const allRows = XLSX.utils.sheet_to_json(workbook.Sheets[primeraHoja], { header: 1, raw: true }) as any[][];
-      let headerIdx = -1;
+      headerIdx = -1;
       for (let i = 0; i < Math.min(allRows.length, 20); i++) {
         const row = (allRows[i] ?? []).map((c) => String(c ?? "").trim());
         if (row.some((c) => norm(c).includes("ubicacion: nombre") || norm(c) === "ubicacion nombre")) {
