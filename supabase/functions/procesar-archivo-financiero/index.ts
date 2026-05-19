@@ -217,9 +217,170 @@ Deno.serve(async (req) => {
         .eq("canal", "E_COMMERCE_SHOPIFY")
         .is("shopify_order_id", null);
       resultado.sin_cruce = count || 0;
+    } else if (tipoDetectado === "netsuite") {
+      // Encabezados en fila 6 (índice 6), datos desde fila 7. Detectar dinámicamente
+      // la fila que contenga "Ubicación: Nombre" para robustez.
+      const allRows = XLSX.utils.sheet_to_json(workbook.Sheets[primeraHoja], { header: 1, raw: true }) as any[][];
+      let headerIdx = -1;
+      for (let i = 0; i < Math.min(allRows.length, 20); i++) {
+        const row = (allRows[i] ?? []).map((c) => String(c ?? "").trim());
+        if (row.some((c) => norm(c).includes("ubicacion: nombre") || norm(c) === "ubicacion nombre")) {
+          headerIdx = i;
+          break;
+        }
+      }
+      if (headerIdx < 0) throw new Error("No se encontró fila de encabezados (Ubicación: Nombre) en el archivo NetSuite");
+
+      const headerRow = (allRows[headerIdx] ?? []).map((c) => String(c ?? "").trim());
+      const colIdx = (...keys: string[]) => {
+        for (const k of keys) {
+          const want = normCompact(k);
+          const idx = headerRow.findIndex((h) => normCompact(h) === want);
+          if (idx >= 0) return idx;
+        }
+        for (const k of keys) {
+          const want = normCompact(k);
+          const idx = headerRow.findIndex((h) => normCompact(h).includes(want));
+          if (idx >= 0) return idx;
+        }
+        return -1;
+      };
+
+      const cUbic = colIdx("Ubicación: Nombre", "Ubicacion: Nombre");
+      const cVendedor = colIdx("Vendedor");
+      const cClienteFact = colIdx("Nombre para facturación electrónica", "Nombre para facturacion electronica");
+      const cClienteTrabajo = colIdx("Cliente:Trabajo", "Cliente Trabajo");
+      const cNumDoc = colIdx("Número de documento", "Numero de documento");
+      const cResDian = colIdx("Número de Resolución DIAN", "Numero de Resolucion DIAN");
+      const cFecha = colIdx("Fecha");
+      const cCantidad = colIdx("Cantidad");
+      const cDescuento = colIdx("Descuento");
+      const cIngresos = colIdx("Ingresos totales");
+      const cOC = colIdx("Número de OC", "Numero de OC");
+      const cCufe = colIdx("CUFE");
+
+      // Agrupar líneas por numero_factura (Número de documento) para tener una fila por factura
+      type Acc = {
+        numero_factura: string;
+        fecha_factura: string | null;
+        ubicacion_netsuite: string | null;
+        vendedor: string | null;
+        cliente_nombre: string | null;
+        cliente_documento: string | null;
+        numero_pos: string | null;
+        shopify_order_number: string | null;
+        cufe: string | null;
+        valor_facturado: number;
+      };
+      const map = new Map<string, Acc>();
+      let filasProcesadas = 0;
+      for (let r = headerIdx + 1; r < allRows.length; r++) {
+        const row = allRows[r] ?? [];
+        if (!row || row.every((c) => c === null || c === undefined || String(c).trim() === "")) continue;
+        const numDoc = String(row[cNumDoc] ?? "").trim();
+        if (!numDoc) continue;
+        filasProcesadas++;
+
+        const ingresos = parseNumero(row[cIngresos]);
+        // Cliente:Trabajo suele venir "Nombre 1234567890" → separar NIT al final
+        const clienteTrabajo = String(row[cClienteTrabajo] ?? "").trim();
+        const m = clienteTrabajo.match(/^(.*?)[\s]+(\d{5,})$/);
+        const cliNombre = m ? m[1].trim() : (String(row[cClienteFact] ?? "").trim() || clienteTrabajo || null);
+        const cliDoc = m ? m[2] : null;
+
+        const fechaRaw = row[cFecha];
+        const fecha = parseFecha(fechaRaw);
+
+        const oc = row[cOC];
+        const ocStr = oc !== null && oc !== undefined && String(oc).trim() !== "" ? String(oc).replace(/\.0$/, "").trim() : null;
+
+        const prev = map.get(numDoc);
+        if (prev) {
+          prev.valor_facturado += ingresos;
+          if (!prev.shopify_order_number && ocStr) prev.shopify_order_number = ocStr;
+        } else {
+          map.set(numDoc, {
+            numero_factura: numDoc,
+            fecha_factura: fecha ? fecha.substring(0, 10) : null,
+            ubicacion_netsuite: String(row[cUbic] ?? "").trim() || null,
+            vendedor: String(row[cVendedor] ?? "").trim() || null,
+            cliente_nombre: cliNombre || null,
+            cliente_documento: cliDoc,
+            numero_pos: String(row[cResDian] ?? "").trim() || null,
+            shopify_order_number: ocStr,
+            cufe: String(row[cCufe] ?? "").trim() || null,
+            valor_facturado: ingresos,
+          });
+        }
+      }
+
+      const facturas = Array.from(map.values()).map((f) => ({
+        ...f,
+        valor_facturado: Math.round(f.valor_facturado * 100) / 100,
+        origen: "shopify",
+        creado_por: userEmail ?? "manual",
+      }));
+      resultado.total = facturas.length;
+      resultado.diagnostico = { filas_procesadas: filasProcesadas, facturas_agregadas: facturas.length, headerIdx };
+
+      // Borrar facturas previas con esos números (idempotencia) y reinsertar
+      const numeros = facturas.map((f) => f.numero_factura);
+      for (let i = 0; i < numeros.length; i += 200) {
+        const slice = numeros.slice(i, i + 200);
+        const { error: delErr } = await supabase.from("netsuite_facturas").delete().in("numero_factura", slice);
+        if (delErr) console.error("Delete batch error:", delErr);
+      }
+      for (let i = 0; i < facturas.length; i += 200) {
+        const batch = facturas.slice(i, i + 200);
+        const { error } = await supabase.from("netsuite_facturas").insert(batch);
+        if (error) {
+          console.error("Insert netsuite error:", error);
+          resultado.errores += batch.length;
+        } else {
+          resultado.insertados += batch.length;
+        }
+      }
+
+      // Cruce con Shopify: buscar orders.order_number = shopify_order_number
+      const orderNums = Array.from(new Set(facturas.map((f) => f.shopify_order_number).filter(Boolean) as string[]));
+      const ordersMap = new Map<string, { shopify_order_id: string; total_price: number }>();
+      for (let i = 0; i < orderNums.length; i += 200) {
+        const slice = orderNums.slice(i, i + 200);
+        const { data: ordRows, error: ordErr } = await supabase
+          .from("orders")
+          .select("order_number,shopify_order_id,total_price")
+          .in("order_number", slice);
+        if (ordErr) { console.error("Orders lookup error:", ordErr); continue; }
+        for (const o of ordRows ?? []) {
+          ordersMap.set(String((o as any).order_number), {
+            shopify_order_id: String((o as any).shopify_order_id),
+            total_price: Number((o as any).total_price ?? 0),
+          });
+        }
+      }
+
+      let sinCruce = 0;
+      for (const f of facturas) {
+        if (!f.shopify_order_number) { sinCruce++; continue; }
+        const match = ordersMap.get(f.shopify_order_number);
+        if (!match) { sinCruce++; continue; }
+        const discrepancia = Math.round((f.valor_facturado - match.total_price) * 100) / 100;
+        const { error: updErr } = await supabase
+          .from("netsuite_facturas")
+          .update({
+            shopify_order_id: match.shopify_order_id,
+            valor_shopify: match.total_price,
+            discrepancia,
+            tipo_discrepancia: Math.abs(discrepancia) < 1 ? "ok" : (discrepancia > 0 ? "factura_mayor" : "shopify_mayor"),
+          })
+          .eq("numero_factura", f.numero_factura);
+        if (updErr) console.error("Update cruce error:", updErr);
+      }
+      resultado.sin_cruce = sinCruce;
     } else {
       throw new Error(`Tipo no soportado todavía: ${tipoDetectado ?? "desconocido"}`);
     }
+
 
     // Registrar historial
     const cruzados = Math.max(0, resultado.insertados - resultado.sin_cruce);
