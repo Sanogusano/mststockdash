@@ -228,7 +228,7 @@ Deno.serve(async (req) => {
     } else if (tipoDetectado === "netsuite") {
       let facturas: any[] = [];
       let filasProcesadas = 0;
-      let headerIdx: number | null = null;
+      let headerIdx = -1;
 
       if (netsuitePreprocesado) {
         facturas = facturas_netsuite
@@ -305,7 +305,6 @@ Deno.serve(async (req) => {
         valor_facturado: number;
       };
       const map = new Map<string, Acc>();
-      let filasProcesadas = 0;
       for (let r = headerIdx + 1; r < allRows.length; r++) {
         const row = allRows[r] ?? [];
         if (!row || row.every((c) => c === null || c === undefined || String(c).trim() === "")) continue;
@@ -346,7 +345,7 @@ Deno.serve(async (req) => {
         }
       }
 
-      const facturas = Array.from(map.values()).map((f) => ({
+      facturas = Array.from(map.values()).map((f) => ({
         ...f,
         valor_facturado: Math.round(f.valor_facturado * 100) / 100,
         origen: "shopify",
@@ -354,6 +353,7 @@ Deno.serve(async (req) => {
       }));
       resultado.total = facturas.length;
       resultado.diagnostico = { filas_procesadas: filasProcesadas, facturas_agregadas: facturas.length, headerIdx };
+      }
 
       // Borrar facturas previas con esos números (idempotencia) y reinsertar
       const numeros = facturas.map((f) => f.numero_factura);
