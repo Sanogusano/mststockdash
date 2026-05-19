@@ -30,7 +30,49 @@ type HistorialRow = {
   errores: number;
 };
 
-const ACCEPT = ".xlsx,.xls";
+type UploaderConfig = {
+  tipo: string;
+  titulo: string;
+  descripcion: string;
+  accept: string;
+  acceptLabel: string;
+  dropLabel: string;
+  itemLabel: string; // p.ej. "transacciones", "facturas"
+  accentClass: string; // tailwind border/bg on hover
+};
+
+const SECCIONES: UploaderConfig[] = [
+  {
+    tipo: "addi_transacciones",
+    titulo: "Transacciones Addi",
+    descripcion: "Archivo Excel de transacciones exportado desde el portal de Addi.",
+    accept: ".xlsx,.xls",
+    acceptLabel: ".xlsx, .xls",
+    dropLabel: "Arrastra el archivo Excel de transacciones Addi aquí",
+    itemLabel: "transacciones",
+    accentClass: "hover:border-emerald-400 dragging:border-emerald-500",
+  },
+  {
+    tipo: "addi_liquidaciones",
+    titulo: "Liquidaciones Addi",
+    descripcion: "Archivo Excel de liquidaciones (tarifas, retenciones y abonos) de Addi.",
+    accept: ".xlsx,.xls",
+    acceptLabel: ".xlsx, .xls",
+    dropLabel: "Arrastra el archivo Excel de liquidaciones Addi aquí",
+    itemLabel: "liquidaciones",
+    accentClass: "hover:border-sky-400",
+  },
+  {
+    tipo: "netsuite",
+    titulo: "Archivo Oracle NetSuite",
+    descripcion: "Archivo de ventas exportado desde Oracle/NetSuite (Ventas_Oracle_*.xlsx).",
+    accept: ".xlsx",
+    acceptLabel: ".xlsx",
+    dropLabel: "Arrastra el archivo Excel de NetSuite aquí",
+    itemLabel: "facturas",
+    accentClass: "hover:border-indigo-400",
+  },
+];
 
 function fmtSize(bytes: number) {
   if (bytes < 1024) return `${bytes} B`;
@@ -49,29 +91,13 @@ async function fileToBase64(file: File): Promise<string> {
   return btoa(binary);
 }
 
-export function TabCargarArchivo() {
+function UploaderCard({ cfg, onDone }: { cfg: UploaderConfig; onDone: () => void }) {
   const [file, setFile] = useState<File | null>(null);
   const [dragOver, setDragOver] = useState(false);
   const [procesando, setProcesando] = useState(false);
   const [progreso, setProgreso] = useState(0);
   const [resultado, setResultado] = useState<Resultado | null>(null);
-  const [historial, setHistorial] = useState<HistorialRow[]>([]);
-  const [loadingHist, setLoadingHist] = useState(true);
   const inputRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => { void cargarHistorial(); }, []);
-
-  async function cargarHistorial() {
-    setLoadingHist(true);
-    const { data, error } = await (supabase as any)
-      .from("addi_upload_history")
-      .select("id,uploaded_at,uploaded_by_email,nombre_archivo,tipo,total_registros,cruzados,sin_cruce,errores")
-      .order("uploaded_at", { ascending: false })
-      .limit(50);
-    if (error) toast.error(`Error cargando historial: ${error.message}`);
-    setHistorial((data as HistorialRow[]) ?? []);
-    setLoadingHist(false);
-  }
 
   function onSelect(f: File | null) {
     setResultado(null);
@@ -95,96 +121,128 @@ export function TabCargarArchivo() {
       const base64 = await fileToBase64(file);
       setProgreso(40);
       const { data, error } = await supabase.functions.invoke("procesar-archivo-financiero", {
-        body: { archivo_base64: base64, nombre_archivo: file.name, tipo: "addi_transacciones" },
+        body: { archivo_base64: base64, nombre_archivo: file.name, tipo: cfg.tipo },
       });
       setProgreso(95);
       if (error) throw error;
       if ((data as any)?.error) throw new Error((data as any).error);
       setResultado(data as Resultado);
-      toast.success("Archivo procesado correctamente");
-      void cargarHistorial();
+      toast.success(`${cfg.titulo}: archivo procesado correctamente`);
+      onDone();
     } catch (e: any) {
-      toast.error(`Error procesando archivo: ${e.message ?? e}`);
+      toast.error(`Error procesando ${cfg.titulo}: ${e.message ?? e}`);
     } finally {
       setProgreso(100);
       setProcesando(false);
     }
   }
 
+  const cruzadas = resultado ? Math.max(0, resultado.insertados - resultado.sin_cruce) : 0;
+
+  return (
+    <Card>
+      <CardContent className="p-6 space-y-4">
+        <div>
+          <p className="text-sm font-semibold">{cfg.titulo}</p>
+          <p className="text-xs text-muted-foreground mt-0.5">{cfg.descripcion}</p>
+        </div>
+
+        <div
+          onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+          onDragLeave={() => setDragOver(false)}
+          onDrop={onDrop}
+          onClick={() => inputRef.current?.click()}
+          className={`border-2 border-dashed rounded-lg p-10 text-center cursor-pointer transition-colors ${
+            dragOver ? "border-primary bg-muted/40" : `border-muted-foreground/25 hover:bg-muted/30 ${cfg.accentClass}`
+          }`}
+        >
+          <Upload className="h-10 w-10 mx-auto text-muted-foreground mb-3" />
+          <p className="text-sm font-medium">{cfg.dropLabel}</p>
+          <p className="text-xs text-muted-foreground mt-1">o haz clic para seleccionar</p>
+          <p className="text-xs text-muted-foreground mt-2">Formatos aceptados: {cfg.acceptLabel}</p>
+          <input
+            ref={inputRef}
+            type="file"
+            accept={cfg.accept}
+            className="hidden"
+            onChange={(e) => onSelect(e.target.files?.[0] ?? null)}
+          />
+        </div>
+
+        {file && (
+          <div className="flex items-center gap-3 border rounded-lg p-3">
+            <FileSpreadsheet className="h-8 w-8 text-emerald-600" />
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium truncate">{file.name}</p>
+              <p className="text-xs text-muted-foreground">
+                {fmtSize(file.size)} · {new Date(file.lastModified).toLocaleString("es-CO")}
+              </p>
+            </div>
+            {!procesando && (
+              <Button variant="ghost" size="icon" onClick={() => onSelect(null)}>
+                <X className="h-4 w-4" />
+              </Button>
+            )}
+            <Button onClick={procesar} disabled={procesando} className="gap-2">
+              {procesando ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+              {procesando ? "Procesando..." : "Procesar archivo"}
+            </Button>
+          </div>
+        )}
+
+        {procesando && <Progress value={progreso} />}
+
+        {resultado && (
+          <div className="border rounded-lg p-4 space-y-2 bg-muted/20">
+            <p className="text-sm font-semibold mb-2">Resumen del procesamiento</p>
+            <div className="flex items-center gap-2 text-sm">
+              <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+              <span>{fmtInt(resultado.insertados)} {cfg.itemLabel} cargadas</span>
+            </div>
+            <div className="flex items-center gap-2 text-sm">
+              <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+              <span>{fmtInt(cruzadas)} cruzadas con Shopify</span>
+            </div>
+            <div className="flex items-center gap-2 text-sm">
+              <AlertCircle className="h-4 w-4 text-amber-600" />
+              <span>{fmtInt(resultado.sin_cruce)} sin cruce</span>
+            </div>
+            {resultado.errores > 0 && (
+              <div className="flex items-center gap-2 text-sm">
+                <AlertCircle className="h-4 w-4 text-rose-600" />
+                <span>{fmtInt(resultado.errores)} errores</span>
+              </div>
+            )}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+export function TabCargarArchivo() {
+  const [historial, setHistorial] = useState<HistorialRow[]>([]);
+  const [loadingHist, setLoadingHist] = useState(true);
+
+  useEffect(() => { void cargarHistorial(); }, []);
+
+  async function cargarHistorial() {
+    setLoadingHist(true);
+    const { data, error } = await (supabase as any)
+      .from("addi_upload_history")
+      .select("id,uploaded_at,uploaded_by_email,nombre_archivo,tipo,total_registros,cruzados,sin_cruce,errores")
+      .order("uploaded_at", { ascending: false })
+      .limit(50);
+    if (error) toast.error(`Error cargando historial: ${error.message}`);
+    setHistorial((data as HistorialRow[]) ?? []);
+    setLoadingHist(false);
+  }
+
   return (
     <div className="space-y-4">
-      <Card>
-        <CardContent className="p-6 space-y-4">
-          <div
-            onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
-            onDragLeave={() => setDragOver(false)}
-            onDrop={onDrop}
-            onClick={() => inputRef.current?.click()}
-            className={`border-2 border-dashed rounded-lg p-10 text-center cursor-pointer transition-colors ${
-              dragOver ? "border-emerald-500 bg-emerald-50" : "border-muted-foreground/25 hover:border-emerald-400 hover:bg-muted/30"
-            }`}
-          >
-            <Upload className="h-10 w-10 mx-auto text-muted-foreground mb-3" />
-            <p className="text-sm font-medium">Arrastra el archivo Excel de transacciones Addi aquí</p>
-            <p className="text-xs text-muted-foreground mt-1">o haz clic para seleccionar</p>
-            <p className="text-xs text-muted-foreground mt-2">Formatos aceptados: .xlsx, .xls</p>
-            <input
-              ref={inputRef}
-              type="file"
-              accept={ACCEPT}
-              className="hidden"
-              onChange={(e) => onSelect(e.target.files?.[0] ?? null)}
-            />
-          </div>
-
-          {file && (
-            <div className="flex items-center gap-3 border rounded-lg p-3">
-              <FileSpreadsheet className="h-8 w-8 text-emerald-600" />
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium truncate">{file.name}</p>
-                <p className="text-xs text-muted-foreground">
-                  {fmtSize(file.size)} · {new Date(file.lastModified).toLocaleString("es-CO")}
-                </p>
-              </div>
-              {!procesando && (
-                <Button variant="ghost" size="icon" onClick={() => onSelect(null)}>
-                  <X className="h-4 w-4" />
-                </Button>
-              )}
-              <Button onClick={procesar} disabled={procesando} className="gap-2">
-                {procesando ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
-                {procesando ? "Procesando..." : "Procesar archivo"}
-              </Button>
-            </div>
-          )}
-
-          {procesando && <Progress value={progreso} />}
-
-          {resultado && (
-            <div className="border rounded-lg p-4 space-y-2 bg-muted/20">
-              <p className="text-sm font-semibold mb-2">Resumen del procesamiento</p>
-              <div className="flex items-center gap-2 text-sm">
-                <CheckCircle2 className="h-4 w-4 text-emerald-600" />
-                <span>{fmtInt(resultado.insertados)} transacciones procesadas</span>
-              </div>
-              <div className="flex items-center gap-2 text-sm">
-                <CheckCircle2 className="h-4 w-4 text-emerald-600" />
-                <span>{fmtInt(Math.max(0, resultado.insertados - resultado.sin_cruce))} cruzadas con Shopify</span>
-              </div>
-              <div className="flex items-center gap-2 text-sm">
-                <AlertCircle className="h-4 w-4 text-amber-600" />
-                <span>{fmtInt(resultado.sin_cruce)} sin cruce (E-Commerce)</span>
-              </div>
-              {resultado.errores > 0 && (
-                <div className="flex items-center gap-2 text-sm">
-                  <AlertCircle className="h-4 w-4 text-rose-600" />
-                  <span>{fmtInt(resultado.errores)} errores</span>
-                </div>
-              )}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+      {SECCIONES.map((cfg) => (
+        <UploaderCard key={cfg.tipo} cfg={cfg} onDone={() => void cargarHistorial()} />
+      ))}
 
       <Card>
         <CardContent className="p-0">
