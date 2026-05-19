@@ -230,7 +230,7 @@ function TabConciliacion() {
       tipo_discrepancia: r.ns_tipo_discrepancia ?? "",
       estado_conciliacion: r.estadoFinal,
     }));
-    exportToXLS(data, `conciliacion-addi-${mes}`, "Conciliación");
+    exportToXLS(data, `conciliacion-addi-${desde}_${hasta}`, "Conciliación");
     } catch (e: any) {
       toast.error(`Error exportando conciliación Addi: ${e.message ?? e}`);
     }
