@@ -357,25 +357,8 @@ Deno.serve(async (req) => {
       resultado.total = facturas.length;
       resultado.diagnostico = { filas_procesadas: filasProcesadas, facturas_agregadas: facturas.length, headerIdx };
 
-      // Borrar facturas previas con esos números (idempotencia) y reinsertar
-      const numeros = facturas.map((f) => f.numero_factura);
-      for (let i = 0; i < numeros.length; i += 200) {
-        const slice = numeros.slice(i, i + 200);
-        const { error: delErr } = await supabase.from("netsuite_facturas").delete().in("numero_factura", slice);
-        if (delErr) console.error("Delete batch error:", delErr);
-      }
-      for (let i = 0; i < facturas.length; i += 200) {
-        const batch = facturas.slice(i, i + 200);
-        const { error } = await supabase.from("netsuite_facturas").insert(batch);
-        if (error) {
-          console.error("Insert netsuite error:", error);
-          resultado.errores += batch.length;
-        } else {
-          resultado.insertados += batch.length;
-        }
-      }
-
-      // Cruce con Shopify: buscar orders.order_number = shopify_order_number
+      // Cruce con Shopify antes de insertar: evita actualizaciones fila a fila y no toca
+      // `discrepancia`, porque en DB es una columna generada.
       const orderNums = Array.from(new Set(facturas.map((f) => f.shopify_order_number).filter(Boolean) as string[]));
       const ordersMap = new Map<string, { shopify_order_id: string; total_price: number }>();
       for (let i = 0; i < orderNums.length; i += 200) {
@@ -394,23 +377,37 @@ Deno.serve(async (req) => {
       }
 
       let sinCruce = 0;
-      for (const f of facturas) {
-        if (!f.shopify_order_number) { sinCruce++; continue; }
+      facturas = facturas.map((f) => {
+        if (!f.shopify_order_number) { sinCruce++; return f; }
         const match = ordersMap.get(f.shopify_order_number);
-        if (!match) { sinCruce++; continue; }
-        const discrepancia = Math.round((f.valor_facturado - match.total_price) * 100) / 100;
-        const { error: updErr } = await supabase
-          .from("netsuite_facturas")
-          .update({
-            shopify_order_id: match.shopify_order_id,
-            valor_shopify: match.total_price,
-            discrepancia,
-            tipo_discrepancia: Math.abs(discrepancia) < 1 ? "ok" : (discrepancia > 0 ? "factura_mayor" : "shopify_mayor"),
-          })
-          .eq("numero_factura", f.numero_factura);
-        if (updErr) console.error("Update cruce error:", updErr);
-      }
+        if (!match) { sinCruce++; return f; }
+        const diferencia = Math.round((f.valor_facturado - match.total_price) * 100) / 100;
+        return {
+          ...f,
+          shopify_order_id: match.shopify_order_id,
+          valor_shopify: match.total_price,
+          tipo_discrepancia: Math.abs(diferencia) < 1 ? "sin_discrepancia" : (diferencia > 0 ? "mayor_valor" : "menor_valor"),
+        };
+      });
       resultado.sin_cruce = sinCruce;
+
+      // Borrar facturas previas con esos números (idempotencia) y reinsertar
+      const numeros = facturas.map((f) => f.numero_factura);
+      for (let i = 0; i < numeros.length; i += 200) {
+        const slice = numeros.slice(i, i + 200);
+        const { error: delErr } = await supabase.from("netsuite_facturas").delete().in("numero_factura", slice);
+        if (delErr) console.error("Delete batch error:", delErr);
+      }
+      for (let i = 0; i < facturas.length; i += 200) {
+        const batch = facturas.slice(i, i + 200);
+        const { error } = await supabase.from("netsuite_facturas").insert(batch);
+        if (error) {
+          console.error("Insert netsuite error:", error);
+          resultado.errores += batch.length;
+        } else {
+          resultado.insertados += batch.length;
+        }
+      }
     } else {
       throw new Error(`Tipo no soportado todavía: ${tipoDetectado ?? "desconocido"}`);
     }
