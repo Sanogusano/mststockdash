@@ -94,7 +94,7 @@ Deno.serve(async (req) => {
     const netsuitePreprocesado = tipo === "netsuite" && Array.isArray(facturas_netsuite);
     if (!archivo_base64 && !netsuitePreprocesado) throw new Error("archivo_base64 requerido");
 
-    let workbook: XLSX.WorkBook | null = null;
+    let workbook: any = null;
     let primeraHoja: string | null = null;
     let tipoDetectado = tipo as string | undefined;
 
@@ -250,8 +250,8 @@ Deno.serve(async (req) => {
         filasProcesadas = Number(body?.diagnostico?.filas_procesadas ?? facturas.length);
       } else {
         if (!workbook || !primeraHoja) throw new Error("No se pudo leer el archivo Excel");
-      // Encabezados en fila 6 (índice 6), datos desde fila 7. Detectar dinámicamente
-      // la fila que contenga "Ubicación: Nombre" para robustez.
+        // Encabezados en fila 6 (índice 6), datos desde fila 7. Detectar dinámicamente
+        // la fila que contenga "Ubicación: Nombre" para robustez.
       const allRows = XLSX.utils.sheet_to_json(workbook.Sheets[primeraHoja], { header: 1, raw: true }) as any[][];
       headerIdx = -1;
       for (let i = 0; i < Math.min(allRows.length, 20); i++) {
@@ -351,9 +351,10 @@ Deno.serve(async (req) => {
         origen: "shopify",
         creado_por: userEmail ?? "manual",
       }));
+      }
+
       resultado.total = facturas.length;
       resultado.diagnostico = { filas_procesadas: filasProcesadas, facturas_agregadas: facturas.length, headerIdx };
-      }
 
       // Borrar facturas previas con esos números (idempotencia) y reinsertar
       const numeros = facturas.map((f) => f.numero_factura);
