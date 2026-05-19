@@ -54,20 +54,6 @@ function TabConciliacion() {
   const [pageSize, setPageSize] = useState(50);
   const [locMap, setLocMap] = useState<LocMap>({});
 
-  // Inicializar mes con el último mes con datos disponibles
-  useEffect(() => {
-    (async () => {
-      const { data } = await supabase
-        .from("addi_transactions")
-        .select("fecha_creacion")
-        .not("fecha_creacion", "is", null)
-        .order("fecha_creacion", { ascending: false })
-        .limit(1);
-      const last = data?.[0]?.fecha_creacion ? new Date(data[0].fecha_creacion as string) : new Date();
-      setMes(`${last.getFullYear()}-${String(last.getMonth() + 1).padStart(2, "0")}`);
-    })();
-  }, []);
-
   useEffect(() => {
     if (!mes) return;
     void cargar();
