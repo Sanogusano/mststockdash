@@ -89,26 +89,33 @@ Deno.serve(async (req) => {
 
     const supabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
 
-    const { archivo_base64, nombre_archivo, tipo } = await req.json();
-    if (!archivo_base64) throw new Error("archivo_base64 requerido");
+    const body = await req.json();
+    const { archivo_base64, nombre_archivo, tipo, facturas_netsuite } = body;
+    const netsuitePreprocesado = tipo === "netsuite" && Array.isArray(facturas_netsuite);
+    if (!archivo_base64 && !netsuitePreprocesado) throw new Error("archivo_base64 requerido");
 
-    const binaryStr = atob(archivo_base64);
-    const bytes = new Uint8Array(binaryStr.length);
-    for (let i = 0; i < binaryStr.length; i++) bytes[i] = binaryStr.charCodeAt(i);
-
-    const workbook = XLSX.read(bytes, { type: "array" });
-    const primeraHoja = workbook.SheetNames[0];
-    const datosHeader = XLSX.utils.sheet_to_json(workbook.Sheets[primeraHoja], { header: 1 }) as any[];
-    const headerRows = [0, 1]
-      .map((idx) => ((datosHeader[idx] as unknown[]) ?? []).map((h) => String(h || "").trim()))
-      .filter((row) => row.some(Boolean));
-    const headers = headerRows.flat();
-
+    let workbook: XLSX.WorkBook | null = null;
+    let primeraHoja: string | null = null;
     let tipoDetectado = tipo as string | undefined;
-    if (!tipoDetectado) {
-      if (headers.includes("ID Transacción") && headers.includes("Canal")) tipoDetectado = "addi_transacciones";
-      else if (headers.includes("Id pedido") && headers.includes("Total a pagar")) tipoDetectado = "addi_liquidaciones";
-      else if (headers.includes("# Factura") || headers.includes("numero_factura")) tipoDetectado = "netsuite";
+
+    if (!netsuitePreprocesado) {
+      const binaryStr = atob(archivo_base64);
+      const bytes = new Uint8Array(binaryStr.length);
+      for (let i = 0; i < binaryStr.length; i++) bytes[i] = binaryStr.charCodeAt(i);
+
+      workbook = XLSX.read(bytes, { type: "array" });
+      primeraHoja = workbook.SheetNames[0];
+
+      if (!tipoDetectado) {
+        const datosHeader = XLSX.utils.sheet_to_json(workbook.Sheets[primeraHoja], { header: 1 }) as any[];
+        const headerRows = [0, 1]
+          .map((idx) => ((datosHeader[idx] as unknown[]) ?? []).map((h) => String(h || "").trim()))
+          .filter((row) => row.some(Boolean));
+        const headers = headerRows.flat();
+        if (headers.includes("ID Transacción") && headers.includes("Canal")) tipoDetectado = "addi_transacciones";
+        else if (headers.includes("Id pedido") && headers.includes("Total a pagar")) tipoDetectado = "addi_liquidaciones";
+        else if (headers.includes("# Factura") || headers.includes("numero_factura")) tipoDetectado = "netsuite";
+      }
     }
 
     const resultado: any = { insertados: 0, actualizados: 0, sin_cruce: 0, errores: 0, tipo: tipoDetectado, total: 0 };
