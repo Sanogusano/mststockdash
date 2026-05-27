@@ -311,6 +311,7 @@ export default function BajaRotacionPage() {
                     <Table>
                       <TableHeader>
                         <TableRow>
+                          <TableHead className="w-16">Foto</TableHead>
                           <TableHead>Producto</TableHead>
                           <TableHead>Categoría</TableHead>
                           <TableHead>Color</TableHead>
@@ -327,15 +328,41 @@ export default function BajaRotacionPage() {
                       <TableBody>
                         {filtered.map((r) => {
                           const niv = NIVEL_LABELS[r.nivel];
+                          const img = imagesMap[r.variant_id];
+                          const hex = toHexColor(r.color);
                           return (
                             <TableRow key={r.variant_id}>
+                              <TableCell>
+                                {img ? (
+                                  <img
+                                    src={img}
+                                    alt={r.titulo}
+                                    loading="lazy"
+                                    className="h-12 w-12 rounded object-cover border border-border bg-muted"
+                                  />
+                                ) : (
+                                  <div className="h-12 w-12 rounded border border-dashed border-border bg-muted" />
+                                )}
+                              </TableCell>
                               <TableCell>
                                 <div className="font-medium text-sm">{r.titulo}</div>
                                 <div className="text-xs text-muted-foreground">{r.sku}</div>
                               </TableCell>
                               <TableCell className="text-xs">{r.category}</TableCell>
-                              <TableCell className="text-xs">{r.color}</TableCell>
+                              <TableCell className="text-xs">
+                                <div className="flex items-center gap-2">
+                                  {hex && (
+                                    <span
+                                      className="inline-block h-4 w-4 rounded-full border border-border shadow-sm"
+                                      style={{ backgroundColor: hex }}
+                                      title={hex}
+                                    />
+                                  )}
+                                  <span className="font-mono">{hex ?? r.color}</span>
+                                </div>
+                              </TableCell>
                               <TableCell className="text-xs">{r.talla}</TableCell>
+
                               <TableCell className="text-right text-xs">{r.dias_en_tienda}</TableCell>
                               <TableCell className="text-right text-xs">{r.unidades_vendidas}</TableCell>
                               <TableCell className="text-right text-xs">{r.stock_actual}</TableCell>
