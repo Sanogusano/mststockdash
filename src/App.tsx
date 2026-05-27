@@ -7,6 +7,7 @@ import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { RequirePermission } from "@/components/RequirePermission";
 import Index from "./pages/Index";
 import InventariosPage from "./pages/Inventarios";
+import BajaRotacionPage from "./pages/BajaRotacion";
 import LogisticaPage from "./pages/Logistica";
 import LogisticaTrasladosPage from "./pages/LogisticaTraslados";
 import InsumosPage from "./pages/Insumos";
