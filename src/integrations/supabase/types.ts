@@ -746,6 +746,36 @@ export type Database = {
         }
         Relationships: []
       }
+      inventory_sync_state: {
+        Row: {
+          current_page: number | null
+          cursor: string | null
+          id: number
+          last_completed_at: string | null
+          last_started_at: string | null
+          status: string | null
+          total_inserted: number | null
+        }
+        Insert: {
+          current_page?: number | null
+          cursor?: string | null
+          id?: number
+          last_completed_at?: string | null
+          last_started_at?: string | null
+          status?: string | null
+          total_inserted?: number | null
+        }
+        Update: {
+          current_page?: number | null
+          cursor?: string | null
+          id?: number
+          last_completed_at?: string | null
+          last_started_at?: string | null
+          status?: string | null
+          total_inserted?: number | null
+        }
+        Relationships: []
+      }
       locations: {
         Row: {
           created_at: string | null
@@ -2093,6 +2123,30 @@ export type Database = {
           upt_local: number
           upt_nacional: number
           venta_mtd: number
+        }[]
+      }
+      get_baja_rotacion: {
+        Args: {
+          p_location_id?: string
+          p_sell_through_max?: number
+          p_semanas_minimas?: number
+        }
+        Returns: {
+          category: string
+          color: string
+          dias_en_tienda: number
+          inventario_inicial: number
+          nivel: string
+          primera_venta: string
+          sell_through: number
+          semanas_en_tienda: number
+          sku: string
+          stock_actual: number
+          talla: string
+          titulo: string
+          unidades_vendidas: number
+          variant_id: string
+          velocidad_semanal: number
         }[]
       }
       get_centro_accion_comercial: {

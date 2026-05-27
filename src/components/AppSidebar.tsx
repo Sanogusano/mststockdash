@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { BarChart3, TrendingUp, ArrowLeftRight, Package, Tag, Layers, Target, Zap, Trophy, Archive, Users, Calculator, UserCog, Briefcase, ChevronDown, Settings, MapPin, Upload, LogOut, Truck, Shield, Store, Banknote, LayoutDashboard, CreditCard, MessageCircle } from "lucide-react";
+import { BarChart3, TrendingUp, ArrowLeftRight, Package, Tag, Layers, Target, Zap, Trophy, Archive, Users, Calculator, UserCog, Briefcase, ChevronDown, Settings, MapPin, Upload, LogOut, Truck, Shield, Store, Banknote, LayoutDashboard, CreditCard, MessageCircle, AlertTriangle } from "lucide-react";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useAuth } from "@/hooks/useAuth";
 import { useUserPermissions } from "@/hooks/useUserPermissions";
@@ -39,6 +39,7 @@ const cierreColeccionItem: NavItem = { title: "Cierre de Colecciones", url: "/ci
 
 // Items adicionales (no listados explícitamente, se mantienen visibles al final del bloque de análisis)
 const inventariosItem: NavItem = { title: "Inventarios & Salud", url: "/inventarios", icon: BarChart3, description: "WOS por tienda", module: "dashboards.inventario_salud", action: "view" };
+const bajaRotacionItem: NavItem = { title: "Baja Rotación", url: "/baja-rotacion", icon: AlertTriangle, description: "Sell-through bajo & antigüedad", module: "dashboards.inventario_salud", action: "view" };
 const insumosItem: NavItem = { title: "Gestión de Insumos", url: "/insumos", icon: Package, description: "CEDI & reorden", module: "dashboards.gestion_insumos", action: "view" };
 
 const gestionComercialItems: NavItem[] = [
@@ -201,6 +202,7 @@ export function AppSidebar() {
 
               {/* Items adicionales (Inventarios, Insumos) */}
               {can(inventariosItem.module, inventariosItem.action) && renderItem(inventariosItem)}
+              {can(bajaRotacionItem.module, bajaRotacionItem.action) && renderItem(bajaRotacionItem)}
               {can(insumosItem.module, insumosItem.action) && renderItem(insumosItem)}
 
               {/* 7 - Logística & Traslados */}
