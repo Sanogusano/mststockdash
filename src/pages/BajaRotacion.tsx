@@ -56,6 +56,15 @@ function stBadge(st: number) {
   return "bg-green-100 text-green-800 border-green-300";
 }
 
+function toHexColor(color?: string): string | null {
+  if (!color) return null;
+  const t = color.trim().replace(/^#/, "");
+  if (/^[0-9a-fA-F]{6}$/.test(t)) return `#${t.toUpperCase()}`;
+  if (/^[0-9a-fA-F]{3}$/.test(t)) return `#${t.toUpperCase()}`;
+  return null;
+}
+
+
 export default function BajaRotacionPage() {
   const [nivel, setNivel] = useState<string>("todos");
   const [categoria, setCategoria] = useState<string>("todas");
@@ -88,6 +97,30 @@ export default function BajaRotacionPage() {
       return (data ?? []) as Row[];
     },
   });
+
+  const variantIds = useMemo(() => rows.map((r) => r.variant_id).filter(Boolean), [rows]);
+  const { data: imagesMap = {} } = useQuery<Record<string, string>>({
+    queryKey: ["baja-rot-images", variantIds.length, variantIds.slice(0, 5).join(",")],
+    enabled: variantIds.length > 0,
+    queryFn: async () => {
+      const map: Record<string, string> = {};
+      const chunkSize = 200;
+      for (let i = 0; i < variantIds.length; i += chunkSize) {
+        const chunk = variantIds.slice(i, i + chunkSize);
+        const { data, error } = await supabase
+          .from("product_catalog")
+          .select("variant_id,image_url")
+          .in("variant_id", chunk);
+        if (error) throw error;
+        (data ?? []).forEach((r: any) => {
+          if (r.variant_id && r.image_url && !map[r.variant_id]) map[r.variant_id] = r.image_url;
+        });
+      }
+      return map;
+    },
+  });
+
+
 
   const categorias = useMemo(() => {
     const s = new Set<string>();
@@ -278,6 +311,7 @@ export default function BajaRotacionPage() {
                     <Table>
                       <TableHeader>
                         <TableRow>
+                          <TableHead className="w-16">Foto</TableHead>
                           <TableHead>Producto</TableHead>
                           <TableHead>Categoría</TableHead>
                           <TableHead>Color</TableHead>
@@ -294,15 +328,41 @@ export default function BajaRotacionPage() {
                       <TableBody>
                         {filtered.map((r) => {
                           const niv = NIVEL_LABELS[r.nivel];
+                          const img = imagesMap[r.variant_id];
+                          const hex = toHexColor(r.color);
                           return (
                             <TableRow key={r.variant_id}>
+                              <TableCell>
+                                {img ? (
+                                  <img
+                                    src={img}
+                                    alt={r.titulo}
+                                    loading="lazy"
+                                    className="h-12 w-12 rounded object-cover border border-border bg-muted"
+                                  />
+                                ) : (
+                                  <div className="h-12 w-12 rounded border border-dashed border-border bg-muted" />
+                                )}
+                              </TableCell>
                               <TableCell>
                                 <div className="font-medium text-sm">{r.titulo}</div>
                                 <div className="text-xs text-muted-foreground">{r.sku}</div>
                               </TableCell>
                               <TableCell className="text-xs">{r.category}</TableCell>
-                              <TableCell className="text-xs">{r.color}</TableCell>
+                              <TableCell className="text-xs">
+                                <div className="flex items-center gap-2">
+                                  {hex && (
+                                    <span
+                                      className="inline-block h-4 w-4 rounded-full border border-border shadow-sm"
+                                      style={{ backgroundColor: hex }}
+                                      title={hex}
+                                    />
+                                  )}
+                                  <span className="font-mono">{hex ?? r.color}</span>
+                                </div>
+                              </TableCell>
                               <TableCell className="text-xs">{r.talla}</TableCell>
+
                               <TableCell className="text-right text-xs">{r.dias_en_tienda}</TableCell>
                               <TableCell className="text-right text-xs">{r.unidades_vendidas}</TableCell>
                               <TableCell className="text-right text-xs">{r.stock_actual}</TableCell>
