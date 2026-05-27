@@ -56,6 +56,15 @@ function stBadge(st: number) {
   return "bg-green-100 text-green-800 border-green-300";
 }
 
+function toHexColor(color?: string): string | null {
+  if (!color) return null;
+  const t = color.trim().replace(/^#/, "");
+  if (/^[0-9a-fA-F]{6}$/.test(t)) return `#${t.toUpperCase()}`;
+  if (/^[0-9a-fA-F]{3}$/.test(t)) return `#${t.toUpperCase()}`;
+  return null;
+}
+
+
 export default function BajaRotacionPage() {
   const [nivel, setNivel] = useState<string>("todos");
   const [categoria, setCategoria] = useState<string>("todas");
