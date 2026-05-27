@@ -202,6 +202,7 @@ export function AppSidebar() {
 
               {/* Items adicionales (Inventarios, Insumos) */}
               {can(inventariosItem.module, inventariosItem.action) && renderItem(inventariosItem)}
+              {can(bajaRotacionItem.module, bajaRotacionItem.action) && renderItem(bajaRotacionItem)}
               {can(insumosItem.module, insumosItem.action) && renderItem(insumosItem)}
 
               {/* 7 - Logística & Traslados */}
