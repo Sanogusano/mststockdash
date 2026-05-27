@@ -2127,26 +2127,35 @@ export type Database = {
       }
       get_baja_rotacion: {
         Args: {
+          p_incluir_rebajas?: boolean
           p_location_id?: string
           p_sell_through_max?: number
           p_semanas_minimas?: number
         }
         Returns: {
+          accion: string
           category: string
+          cobertura_curva: number
           collection_season: string
           color: string
+          descuento_actual: number
+          descuento_sugerido: number
           dias_en_tienda: number
+          es_rebaja: boolean
           inventario_inicial: number
           nivel: string
+          precio_actual: number
+          precio_original: number
           primera_venta: string
+          product_id: string
           sell_through: number
           semanas_en_tienda: number
-          sku: string
           stock_actual: number
-          talla: string
+          tallas_con_stock: number
+          tallas_disponibles: Json
+          tallas_totales: number
           titulo: string
           unidades_vendidas: number
-          variant_id: string
           velocidad_semanal: number
         }[]
       }
