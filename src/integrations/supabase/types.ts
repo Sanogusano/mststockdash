@@ -2133,6 +2133,7 @@ export type Database = {
         }
         Returns: {
           category: string
+          collection_season: string
           color: string
           dias_en_tienda: number
           inventario_inicial: number
