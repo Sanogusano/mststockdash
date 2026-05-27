@@ -39,6 +39,7 @@ const cierreColeccionItem: NavItem = { title: "Cierre de Colecciones", url: "/ci
 
 // Items adicionales (no listados explícitamente, se mantienen visibles al final del bloque de análisis)
 const inventariosItem: NavItem = { title: "Inventarios & Salud", url: "/inventarios", icon: BarChart3, description: "WOS por tienda", module: "dashboards.inventario_salud", action: "view" };
+const bajaRotacionItem: NavItem = { title: "Baja Rotación", url: "/baja-rotacion", icon: AlertTriangle, description: "Sell-through bajo & antigüedad", module: "dashboards.inventario_salud", action: "view" };
 const insumosItem: NavItem = { title: "Gestión de Insumos", url: "/insumos", icon: Package, description: "CEDI & reorden", module: "dashboards.gestion_insumos", action: "view" };
 
 const gestionComercialItems: NavItem[] = [
