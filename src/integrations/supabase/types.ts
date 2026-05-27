@@ -2151,6 +2151,9 @@ export type Database = {
           sell_through: number
           semanas_en_tienda: number
           stock_actual: number
+          stock_digital: number
+          stock_outlets: number
+          stock_tiendas_linea: number
           tallas_con_stock: number
           tallas_disponibles: Json
           tallas_totales: number

@@ -9,11 +9,20 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Download, AlertTriangle, AlertCircle, CircleOff, ChevronDown, ChevronRight } from "lucide-react";
+import { Download, AlertTriangle, AlertCircle, CircleOff, ChevronDown, ChevronRight, Store, Tag, Globe } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { exportToXLS } from "@/lib/xls-export";
 
-type TallaInfo = { talla: string; stock: number } | Record<string, unknown>;
+type TallaInfo = {
+  talla?: string;
+  stock?: number;
+  stock_linea?: number;
+  stock_outlet?: number;
+  stock_digital?: number;
+  linea?: number;
+  outlet?: number;
+  digital?: number;
+} & Record<string, unknown>;
 
 type Row = {
   product_id: string;
@@ -34,6 +43,9 @@ type Row = {
   cobertura_curva: number;
   unidades_vendidas: number;
   stock_actual: number;
+  stock_linea?: number;
+  stock_outlet?: number;
+  stock_digital?: number;
   inventario_inicial: number;
   sell_through: number;
   velocidad_semanal: number;
@@ -57,6 +69,10 @@ function pct(n: number) {
 function fmtCOP(n: number) {
   const v = Number(n) || 0;
   return `$ ${v.toLocaleString("es-CO", { maximumFractionDigits: 0 })}`;
+}
+
+function fmtInt(n: number) {
+  return (Number(n) || 0).toLocaleString("es-CO");
 }
 
 function stBadge(st: number) {
@@ -83,14 +99,32 @@ function toHexColor(color?: string): string | null {
   return null;
 }
 
-function parseTallas(t: Row["tallas_disponibles"]): { talla: string; stock: number }[] {
+type TallaParsed = {
+  talla: string;
+  stock: number;
+  linea: number;
+  outlet: number;
+  digital: number;
+};
+
+function parseTallas(t: Row["tallas_disponibles"]): TallaParsed[] {
   if (!t) return [];
   const arr = Array.isArray(t) ? t : [];
   return arr
-    .map((x: any) => ({
-      talla: String(x?.talla ?? x?.size ?? x?.name ?? ""),
-      stock: Number(x?.stock ?? x?.available ?? x?.qty ?? 0),
-    }))
+    .map((x: any) => {
+      const linea = Number(x?.stock_linea ?? x?.linea ?? x?.tiendas ?? 0) || 0;
+      const outlet = Number(x?.stock_outlet ?? x?.outlet ?? x?.outlets ?? 0) || 0;
+      const digital = Number(x?.stock_digital ?? x?.digital ?? x?.cedi ?? x?.ecommerce ?? 0) || 0;
+      const stockRaw = Number(x?.stock ?? x?.available ?? x?.qty ?? 0) || 0;
+      const stock = stockRaw || linea + outlet + digital;
+      return {
+        talla: String(x?.talla ?? x?.size ?? x?.name ?? ""),
+        stock,
+        linea,
+        outlet,
+        digital,
+      };
+    })
     .filter((x) => x.talla);
 }
 
@@ -101,6 +135,7 @@ export default function BajaRotacionPage() {
   const [stMax, setStMax] = useState<number>(30);
   const [locationId, setLocationId] = useState<string>("todas");
   const [incluirRebajas, setIncluirRebajas] = useState<boolean>(true);
+  const [tipoTienda, setTipoTienda] = useState<string>("todas");
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
 
   const toggleExpand = (id: string) => {
@@ -171,9 +206,11 @@ export default function BajaRotacionPage() {
     return rows.filter((r) => {
       if (nivel !== "todos" && r.nivel !== nivel) return false;
       if (categoria !== "todas" && r.category !== categoria) return false;
+      if (tipoTienda === "linea" && !(Number(r.stock_linea) > 0)) return false;
+      if (tipoTienda === "outlet" && !(Number(r.stock_outlet) > 0)) return false;
       return true;
     });
-  }, [rows, nivel, categoria]);
+  }, [rows, nivel, categoria, tipoTienda]);
 
   const counts = useMemo(() => {
     const c = {
@@ -191,6 +228,18 @@ export default function BajaRotacionPage() {
     return c;
   }, [rows]);
 
+  const stockTotals = useMemo(() => {
+    return filtered.reduce(
+      (acc, r) => {
+        acc.linea += Number(r.stock_linea) || 0;
+        acc.outlet += Number(r.stock_outlet) || 0;
+        acc.digital += Number(r.stock_digital) || 0;
+        return acc;
+      },
+      { linea: 0, outlet: 0, digital: 0 },
+    );
+  }, [filtered]);
+
   const handleExport = () => {
     const data = filtered.map((r) => ({
       Producto: r.titulo,
@@ -205,6 +254,9 @@ export default function BajaRotacionPage() {
       "Días en tienda": r.dias_en_tienda,
       "Unidades vendidas": r.unidades_vendidas,
       "Stock actual": r.stock_actual,
+      "Stock Línea": Number(r.stock_linea) || 0,
+      "Stock Outlet": Number(r.stock_outlet) || 0,
+      "Stock Digital/CEDI": Number(r.stock_digital) || 0,
       "Inventario inicial": r.inventario_inicial,
       "Sell-through (%)": Number(r.sell_through).toFixed(2),
       "Velocidad semanal": Number(r.velocidad_semanal).toFixed(2),
@@ -240,7 +292,7 @@ export default function BajaRotacionPage() {
           </header>
 
           <div className="flex-1 px-4 sm:px-6 py-4 sm:py-6 space-y-6">
-            {/* KPIs */}
+            {/* KPIs - Fila 1: Niveles */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <Card>
                 <CardHeader className="pb-2">
@@ -289,9 +341,46 @@ export default function BajaRotacionPage() {
               </Card>
             </div>
 
+            {/* KPIs - Fila 2: Stock por canal */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium flex items-center gap-2 text-foreground">
+                    <Store className="h-4 w-4" /> 🏪 Tiendas línea
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-3xl font-semibold">{fmtInt(stockTotals.linea)}</div>
+                  <p className="text-xs text-muted-foreground mt-1">unidades en tiendas de línea</p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium flex items-center gap-2 text-foreground">
+                    <Tag className="h-4 w-4" /> 🏷️ Outlets
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-3xl font-semibold">{fmtInt(stockTotals.outlet)}</div>
+                  <p className="text-xs text-muted-foreground mt-1">unidades en outlets</p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium flex items-center gap-2 text-foreground">
+                    <Globe className="h-4 w-4" /> 🌐 Digital / CEDI
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-3xl font-semibold">{fmtInt(stockTotals.digital)}</div>
+                  <p className="text-xs text-muted-foreground mt-1">unidades en CEDI/Ecommerce</p>
+                </CardContent>
+              </Card>
+            </div>
+
             {/* Filtros */}
             <Card>
-              <CardContent className="pt-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
+              <CardContent className="pt-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-7 gap-4">
                 <div className="space-y-1.5">
                   <label className="text-xs font-medium text-muted-foreground">Nivel</label>
                   <Select value={nivel} onValueChange={setNivel}>
@@ -313,6 +402,17 @@ export default function BajaRotacionPage() {
                       {categorias.map((c) => (
                         <SelectItem key={c} value={c}>{c}</SelectItem>
                       ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-muted-foreground">Tipo tienda</label>
+                  <Select value={tipoTienda} onValueChange={setTipoTienda}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="todas">Todas</SelectItem>
+                      <SelectItem value="linea">🏪 Solo línea</SelectItem>
+                      <SelectItem value="outlet">🏷️ Solo outlet</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -397,6 +497,9 @@ export default function BajaRotacionPage() {
                           <TableHead className="text-right">Sem.</TableHead>
                           <TableHead className="text-right">U. vend.</TableHead>
                           <TableHead className="text-right">Stock</TableHead>
+                          <TableHead className="text-right">🏪 Línea</TableHead>
+                          <TableHead className="text-right">🏷️ Outlet</TableHead>
+                          <TableHead className="text-right">🌐 Digital</TableHead>
                           <TableHead className="text-right">Sell-through</TableHead>
                           <TableHead className="text-right">Vel/sem</TableHead>
                           <TableHead className="text-right">Precio</TableHead>
@@ -469,7 +572,28 @@ export default function BajaRotacionPage() {
                                   {Number(r.semanas_en_tienda).toFixed(1)}
                                 </TableCell>
                                 <TableCell className="text-right text-xs">{r.unidades_vendidas}</TableCell>
-                                <TableCell className="text-right text-xs">{r.stock_actual}</TableCell>
+                                <TableCell className="text-right text-xs font-semibold">{r.stock_actual}</TableCell>
+                                <TableCell className="text-right text-xs">
+                                  {Number(r.stock_linea) > 0 ? (
+                                    fmtInt(r.stock_linea ?? 0)
+                                  ) : (
+                                    <span className="text-muted-foreground">—</span>
+                                  )}
+                                </TableCell>
+                                <TableCell className="text-right text-xs">
+                                  {Number(r.stock_outlet) > 0 ? (
+                                    fmtInt(r.stock_outlet ?? 0)
+                                  ) : (
+                                    <span className="text-muted-foreground">—</span>
+                                  )}
+                                </TableCell>
+                                <TableCell className="text-right text-xs">
+                                  {Number(r.stock_digital) > 0 ? (
+                                    fmtInt(r.stock_digital ?? 0)
+                                  ) : (
+                                    <span className="text-muted-foreground">—</span>
+                                  )}
+                                </TableCell>
                                 <TableCell className="text-right">
                                   <span
                                     className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium border ${stBadge(
@@ -521,15 +645,15 @@ export default function BajaRotacionPage() {
                               </TableRow>
                               {isOpen && (
                                 <TableRow className="bg-muted/30 hover:bg-muted/30">
-                                  <TableCell colSpan={17} className="py-3">
+                                  <TableCell colSpan={20} className="py-3">
                                     <div className="space-y-2">
                                       <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                                        Stock por talla
+                                        Stock por talla y canal
                                       </div>
                                       {tallas.length === 0 ? (
                                         <div className="text-xs text-muted-foreground">Sin detalle de tallas</div>
                                       ) : (
-                                        <div className="flex flex-wrap gap-1.5">
+                                        <div className="flex flex-wrap gap-2">
                                           {tallas.map((t, i) => {
                                             const cls =
                                               t.stock <= 0
@@ -538,14 +662,27 @@ export default function BajaRotacionPage() {
                                                   ? "bg-yellow-50 text-yellow-800 border-yellow-200"
                                                   : "bg-green-50 text-green-800 border-green-200";
                                             return (
-                                              <span
+                                              <div
                                                 key={`${t.talla}-${i}`}
-                                                className={`inline-flex items-center gap-1 px-2 py-1 rounded-md border text-xs font-medium ${cls}`}
+                                                className={`inline-flex flex-col gap-1 px-2.5 py-1.5 rounded-md border text-xs ${cls}`}
                                               >
-                                                <span className="font-semibold">{t.talla}</span>
-                                                <span className="opacity-70">·</span>
-                                                <span>{t.stock}</span>
-                                              </span>
+                                                <div className="flex items-center gap-1.5 font-semibold">
+                                                  <span>{t.talla}</span>
+                                                  <span className="opacity-60">·</span>
+                                                  <span>{t.stock}</span>
+                                                </div>
+                                                <div className="flex items-center gap-1 text-[10px] font-normal opacity-90">
+                                                  <span className="inline-flex items-center gap-0.5 px-1 py-0.5 rounded bg-background/60 border border-border">
+                                                    🏪 {t.linea}
+                                                  </span>
+                                                  <span className="inline-flex items-center gap-0.5 px-1 py-0.5 rounded bg-background/60 border border-border">
+                                                    🏷️ {t.outlet}
+                                                  </span>
+                                                  <span className="inline-flex items-center gap-0.5 px-1 py-0.5 rounded bg-background/60 border border-border">
+                                                    🌐 {t.digital}
+                                                  </span>
+                                                </div>
+                                              </div>
                                             );
                                           })}
                                         </div>
