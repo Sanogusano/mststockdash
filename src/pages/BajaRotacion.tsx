@@ -89,6 +89,30 @@ export default function BajaRotacionPage() {
     },
   });
 
+  const variantIds = useMemo(() => rows.map((r) => r.variant_id).filter(Boolean), [rows]);
+  const { data: imagesMap = {} } = useQuery<Record<string, string>>({
+    queryKey: ["baja-rot-images", variantIds.length, variantIds.slice(0, 5).join(",")],
+    enabled: variantIds.length > 0,
+    queryFn: async () => {
+      const map: Record<string, string> = {};
+      const chunkSize = 200;
+      for (let i = 0; i < variantIds.length; i += chunkSize) {
+        const chunk = variantIds.slice(i, i + chunkSize);
+        const { data, error } = await supabase
+          .from("product_catalog")
+          .select("variant_id,image_url")
+          .in("variant_id", chunk);
+        if (error) throw error;
+        (data ?? []).forEach((r: any) => {
+          if (r.variant_id && r.image_url && !map[r.variant_id]) map[r.variant_id] = r.image_url;
+        });
+      }
+      return map;
+    },
+  });
+
+
+
   const categorias = useMemo(() => {
     const s = new Set<string>();
     rows.forEach((r) => r.category && s.add(r.category));
