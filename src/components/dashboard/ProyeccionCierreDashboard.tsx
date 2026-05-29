@@ -404,27 +404,14 @@ export function ProyeccionCierreDashboard() {
       {/* Hierarchical Table */}
       <Card>
         <CardHeader className="pb-3">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between gap-3 flex-wrap">
             <CardTitle className="text-sm font-semibold">Detalle de Cumplimiento y Proyección</CardTitle>
-            <div className="flex gap-1">
-              {([
-                { value: "todos", label: "Todos" },
-                { value: "cumple", label: "Cumple" },
-                { value: "no-cumple", label: "No Cumple" },
-              ] as const).map(tab => (
-                <button
-                  key={tab.value}
-                  onClick={() => setFilterStatus(tab.value)}
-                  className={`px-3 py-1 rounded-md text-xs font-medium transition-colors ${
-                    filterStatus === tab.value
-                      ? "bg-emerald-600 text-white"
-                      : "bg-muted text-muted-foreground hover:bg-muted/80"
-                  }`}
-                >
-                  {tab.label}
-                </button>
-              ))}
-            </div>
+            <MultiSelectFilter
+              label="Estado cumplimiento"
+              options={CUMPLIMIENTO_OPCIONES}
+              selected={filtroEstados}
+              onChange={setFiltroEstados}
+            />
           </div>
         </CardHeader>
         <CardContent className="p-0">
