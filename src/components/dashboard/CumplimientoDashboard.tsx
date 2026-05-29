@@ -127,6 +127,7 @@ export function CumplimientoDashboard() {
   const [salesByChannel, setSalesByChannel] = useState<Record<string, SalesData>>({});
   const [dailySales, setDailySales] = useState<DailySales>({});
   const [loading, setLoading] = useState(true);
+  const [filtroCumplimiento, setFiltroCumplimiento] = useState<string[]>([]);
 
   // Helper to fetch all rows with pagination (bypasses 1000-row limit)
   async function fetchAll<T>(
