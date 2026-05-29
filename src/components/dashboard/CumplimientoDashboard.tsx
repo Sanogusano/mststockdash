@@ -42,7 +42,7 @@ type CumplimientoLevel = "sobrecumple" | "si-cumple-verde" | "si-cumple-amarillo
 const CUMPLIMIENTO_OPCIONES = [
   "Sobrecumple",
   "Sí Cumple",
-  "Cumplimiento Regular",
+  "Regular",
   "No Cumple",
   "Crítico",
 ];
@@ -62,7 +62,7 @@ function getCumplimientoLabel(pct: number): string {
     "sobrecumple": "Sobrecumple",
     "si-cumple-verde": "Sí Cumple",
     "si-cumple-amarillo": "Sí Cumple",
-    "cumplimiento-regular": "Cumplimiento Regular",
+    "cumplimiento-regular": "Regular",
     "no-cumple": "No Cumple",
     "no-cumple-critico": "Crítico",
   };
