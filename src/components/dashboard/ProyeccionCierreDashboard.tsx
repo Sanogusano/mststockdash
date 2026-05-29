@@ -300,6 +300,98 @@ export function ProyeccionCierreDashboard() {
   const tableRows = useMemo(() => buildTableRows(false), [data, totals]);
   const sortedTableRows = useMemo(() => buildTableRows(true), [data, totals]);
 
+  const [exportingPDF, setExportingPDF] = useState(false);
+
+  const handleExportPDF = async () => {
+    setExportingPDF(true);
+    // Allow React to render the offscreen container with non-hidden display before capture
+    await new Promise(r => setTimeout(r, 50));
+    try {
+      await exportProyeccionPDF("proyeccion-pdf-content", MONTHS[mes - 1], anio);
+    } finally {
+      setExportingPDF(false);
+    }
+  };
+
+  const renderTableRows = (rows: Row[], applyFilter: boolean) =>
+    rows
+      .filter(row => {
+        if (!applyFilter || filtroEstados.length === 0) return true;
+        if (row.level !== "item") return true;
+        if (row.presupuesto <= 0) return true;
+        const pctProb = (row.probable / row.presupuesto) * 100;
+        return filtroEstados.includes(getCumplimientoLabel(pctProb));
+      })
+      .map((row, i) => {
+        const isGroup = row.level === "group" || row.level === "total-tiendas";
+        const isSubgroup = row.level === "subgroup";
+        const pctCons = row.presupuesto > 0 ? (row.conservador / row.presupuesto) * 100 : 0;
+        const pctProb = row.presupuesto > 0 ? (row.probable / row.presupuesto) * 100 : 0;
+        const pctOpt = row.presupuesto > 0 ? (row.optimista / row.presupuesto) * 100 : 0;
+        return (
+          <TableRow
+            key={i}
+            className={
+              isGroup
+                ? "bg-muted/40 font-semibold border-t-2 border-border"
+                : isSubgroup
+                ? "bg-muted/30 font-bold uppercase tracking-wide"
+                : "hover:bg-muted/10"
+            }
+          >
+            <TableCell className={`text-[11px] sticky left-0 z-10 min-w-[120px] max-w-[160px] whitespace-normal break-words ${
+              isGroup ? "bg-muted/40" : isSubgroup ? "bg-muted/30 font-bold uppercase tracking-wide" : "bg-background"
+            } ${row.level === "item" ? "pl-6" : ""}`}>
+              {row.label}
+            </TableCell>
+            <TableCell className="text-[11px] text-right tabular-nums">{fmtCOP(row.ventaActual)}</TableCell>
+            <TableCell className="text-[11px] text-right tabular-nums text-muted-foreground">
+              {row.presupuesto > 0 ? fmtCOP(row.presupuesto) : "—"}
+            </TableCell>
+            <TableCell className="text-right">
+              <span className={`text-[11px] font-medium tabular-nums ${pctColor(row.pctGeneral)}`}>
+                {row.pctGeneral.toFixed(1)}%
+              </span>
+            </TableCell>
+            <TableCell className="text-right">
+              <span className={`text-[11px] font-medium tabular-nums ${pctColor(row.pctFecha)}`}>
+                {row.pctFecha.toFixed(1)}%
+                {row.pctFecha >= 100 ? " 🚀" : row.pctFecha < 80 ? " 🐢" : ""}
+              </span>
+            </TableCell>
+            <TableCell className="text-right">
+              <div className="text-[11px] tabular-nums">{fmtCOP(row.conservador)}</div>
+              {row.presupuesto > 0 && (
+                <span className={`inline-flex items-center gap-0.5 mt-0.5 px-1 py-px rounded text-[9px] font-semibold whitespace-nowrap ${pctBadgeClass(pctCons)}`}>
+                  {getCumplimientoLevel(pctCons) === "no-cumple-critico" && <Skull className="h-2.5 w-2.5" />}
+                  {getCumplimientoLabel(pctCons).toUpperCase()} {pctCons.toFixed(0)}%
+                </span>
+              )}
+            </TableCell>
+            <TableCell className="text-right">
+              <div className="text-[11px] tabular-nums">{fmtCOP(row.probable)}</div>
+              {row.presupuesto > 0 && (
+                <span className={`inline-flex items-center gap-0.5 mt-0.5 px-1 py-px rounded text-[9px] font-semibold whitespace-nowrap ${pctBadgeClass(pctProb)}`}>
+                  {getCumplimientoLevel(pctProb) === "no-cumple-critico" && <Skull className="h-2.5 w-2.5" />}
+                  {getCumplimientoLabel(pctProb).toUpperCase()} {pctProb.toFixed(0)}%
+                </span>
+              )}
+            </TableCell>
+            <TableCell className="text-right">
+              <div className="text-[11px] tabular-nums">{fmtCOP(row.optimista)}</div>
+              {row.presupuesto > 0 && (
+                <span className={`inline-flex items-center gap-0.5 mt-0.5 px-1 py-px rounded text-[9px] font-semibold whitespace-nowrap ${pctBadgeClass(pctOpt)}`}>
+                  {getCumplimientoLevel(pctOpt) === "no-cumple-critico" && <Skull className="h-2.5 w-2.5" />}
+                  {getCumplimientoLabel(pctOpt).toUpperCase()} {pctOpt.toFixed(0)}%
+                </span>
+              )}
+            </TableCell>
+          </TableRow>
+        );
+      });
+
+
+
 
 
   if (loading) {
