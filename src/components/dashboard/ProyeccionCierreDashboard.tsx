@@ -525,12 +525,24 @@ export function ProyeccionCierreDashboard() {
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between gap-3 flex-wrap">
             <CardTitle className="text-sm font-semibold">Detalle de Cumplimiento y Proyección</CardTitle>
-            <MultiSelectFilter
-              label="Estado cumplimiento"
-              options={CUMPLIMIENTO_OPCIONES}
-              selected={filtroEstados}
-              onChange={setFiltroEstados}
-            />
+            <div className="flex items-center gap-2 flex-wrap">
+              <MultiSelectFilter
+                label="Estado cumplimiento"
+                options={CUMPLIMIENTO_OPCIONES}
+                selected={filtroEstados}
+                onChange={setFiltroEstados}
+              />
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={handleExportPDF}
+                disabled={exportingPDF}
+                className="gap-1.5"
+              >
+                <FileDown className="h-4 w-4" />
+                {exportingPDF ? "Generando..." : "Descargar PDF"}
+              </Button>
+            </div>
           </div>
         </CardHeader>
         <CardContent className="p-0">
@@ -549,86 +561,92 @@ export function ProyeccionCierreDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {tableRows
-                  .filter(row => {
-                    if (filtroEstados.length === 0) return true;
-                    if (row.level !== "item") return true;
-                    if (row.presupuesto <= 0) return true;
-                    const pctProb = (row.probable / row.presupuesto) * 100;
-                    return filtroEstados.includes(getCumplimientoLabel(pctProb));
-                  })
-                  .map((row, i) => {
-                  const isGroup = row.level === "group" || row.level === "total-tiendas";
-                  const isSubgroup = row.level === "subgroup";
-                  const pctCons = row.presupuesto > 0 ? (row.conservador / row.presupuesto) * 100 : 0;
-                  const pctProb = row.presupuesto > 0 ? (row.probable / row.presupuesto) * 100 : 0;
-                  const pctOpt = row.presupuesto > 0 ? (row.optimista / row.presupuesto) * 100 : 0;
-                  return (
-                    <TableRow
-                      key={i}
-                      className={
-                        isGroup
-                          ? "bg-muted/40 font-semibold border-t-2 border-border"
-                          : isSubgroup
-                          ? "bg-muted/30 font-bold uppercase tracking-wide"
-                          : "hover:bg-muted/10"
-                      }
-                    >
-                      <TableCell className={`text-[11px] sticky left-0 z-10 min-w-[120px] max-w-[160px] whitespace-normal break-words ${
-                        isGroup ? "bg-muted/40" : isSubgroup ? "bg-muted/30 font-bold uppercase tracking-wide" : "bg-background"
-                      } ${row.level === "item" ? "pl-6" : ""}`}>
-                        {row.label}
-                      </TableCell>
-                      <TableCell className="text-[11px] text-right tabular-nums">{fmtCOP(row.ventaActual)}</TableCell>
-                      <TableCell className="text-[11px] text-right tabular-nums text-muted-foreground">
-                        {row.presupuesto > 0 ? fmtCOP(row.presupuesto) : "—"}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <span className={`text-[11px] font-medium tabular-nums ${pctColor(row.pctGeneral)}`}>
-                          {row.pctGeneral.toFixed(1)}%
-                        </span>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <span className={`text-[11px] font-medium tabular-nums ${pctColor(row.pctFecha)}`}>
-                          {row.pctFecha.toFixed(1)}%
-                          {row.pctFecha >= 100 ? " 🚀" : row.pctFecha < 80 ? " 🐢" : ""}
-                        </span>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="text-[11px] tabular-nums">{fmtCOP(row.conservador)}</div>
-                        {row.presupuesto > 0 && (
-                          <span className={`inline-flex items-center gap-0.5 mt-0.5 px-1 py-px rounded text-[9px] font-semibold whitespace-nowrap ${pctBadgeClass(pctCons)}`}>
-                            {getCumplimientoLevel(pctCons) === "no-cumple-critico" && <Skull className="h-2.5 w-2.5" />}
-                            {getCumplimientoLabel(pctCons).toUpperCase()} {pctCons.toFixed(0)}%
-                          </span>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="text-[11px] tabular-nums">{fmtCOP(row.probable)}</div>
-                        {row.presupuesto > 0 && (
-                          <span className={`inline-flex items-center gap-0.5 mt-0.5 px-1 py-px rounded text-[9px] font-semibold whitespace-nowrap ${pctBadgeClass(pctProb)}`}>
-                            {getCumplimientoLevel(pctProb) === "no-cumple-critico" && <Skull className="h-2.5 w-2.5" />}
-                            {getCumplimientoLabel(pctProb).toUpperCase()} {pctProb.toFixed(0)}%
-                          </span>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="text-[11px] tabular-nums">{fmtCOP(row.optimista)}</div>
-                        {row.presupuesto > 0 && (
-                          <span className={`inline-flex items-center gap-0.5 mt-0.5 px-1 py-px rounded text-[9px] font-semibold whitespace-nowrap ${pctBadgeClass(pctOpt)}`}>
-                            {getCumplimientoLevel(pctOpt) === "no-cumple-critico" && <Skull className="h-2.5 w-2.5" />}
-                            {getCumplimientoLabel(pctOpt).toUpperCase()} {pctOpt.toFixed(0)}%
-                          </span>
-                        )}
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
+                {renderTableRows(tableRows, true)}
               </TableBody>
             </Table>
           </div>
         </CardContent>
       </Card>
+
+      {/* Offscreen PDF-only content: sorted by Zona and % cumplimiento ascending */}
+      <div
+        id="proyeccion-pdf-content"
+        aria-hidden="true"
+        style={{
+          position: "fixed",
+          left: "-10000px",
+          top: 0,
+          width: "1180px",
+          background: "#ffffff",
+          padding: "16px",
+        }}
+      >
+        <div style={{ marginBottom: 12 }}>
+          <h2 style={{ fontSize: 18, fontWeight: 700, margin: 0 }}>
+            Proyección de Cierre — {MONTHS[mes - 1]} {anio}
+          </h2>
+          <p style={{ fontSize: 11, color: "#64748b", margin: "2px 0 0" }}>
+            Ordenado por Zona y % de cumplimiento (menor a mayor) — Día {totals.diasTranscurridos} de {totals.diasMes}
+          </p>
+        </div>
+
+        <div data-pdf-section className="grid grid-cols-4 gap-4" style={{ marginBottom: 16 }}>
+          <Card className="border-primary/20">
+            <CardHeader className="pb-2"><CardTitle className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Venta Actual MTD</CardTitle></CardHeader>
+            <CardContent>
+              <p className="text-xl font-bold tabular-nums">{fmtCOP(totals.ventaActual)}</p>
+              <p className="text-[10px] text-muted-foreground mt-1">Presupuesto: {fmtCOP(totals.presupuesto)}</p>
+            </CardContent>
+          </Card>
+          <Card className="border-[hsl(var(--danger))]/20 bg-[hsl(var(--danger))]/5">
+            <CardHeader className="pb-2"><CardTitle className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Conservador</CardTitle></CardHeader>
+            <CardContent>
+              <p className="text-xl font-bold tabular-nums">{fmtCOP(totals.conservador)}</p>
+              <p className={`text-[10px] mt-1 font-medium ${pctColor(pctPresupConservador)}`}>{pctPresupConservador.toFixed(1)}% del presupuesto</p>
+            </CardContent>
+          </Card>
+          <Card className="border-[hsl(var(--warning))]/20 bg-[hsl(var(--warning))]/5">
+            <CardHeader className="pb-2"><CardTitle className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Probable</CardTitle></CardHeader>
+            <CardContent>
+              <p className="text-xl font-bold tabular-nums">{fmtCOP(totals.probable)}</p>
+              <p className={`text-[10px] mt-1 font-medium ${pctColor(pctPresupProbable)}`}>{pctPresupProbable.toFixed(1)}% del presupuesto</p>
+            </CardContent>
+          </Card>
+          <Card className="border-[hsl(var(--success))]/20 bg-[hsl(var(--success))]/5">
+            <CardHeader className="pb-2"><CardTitle className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Optimista</CardTitle></CardHeader>
+            <CardContent>
+              <p className="text-xl font-bold tabular-nums">{fmtCOP(totals.optimista)}</p>
+              <p className={`text-[10px] mt-1 font-medium ${pctColor(pctPresupOptimista)}`}>{pctPresupOptimista.toFixed(1)}% del presupuesto</p>
+            </CardContent>
+          </Card>
+        </div>
+
+        <Card data-pdf-section>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-semibold">Detalle por Zona — Cumplimiento ascendente</CardTitle>
+          </CardHeader>
+          <CardContent className="p-0">
+            <Table className="w-full">
+              <TableHeader>
+                <TableRow className="bg-muted/30">
+                  <TableHead className="text-[11px] font-semibold">Nombre</TableHead>
+                  <TableHead className="text-[11px] font-semibold text-right">Venta MTD</TableHead>
+                  <TableHead className="text-[11px] font-semibold text-right">Presup.</TableHead>
+                  <TableHead className="text-[11px] font-semibold text-right">% Gral</TableHead>
+                  <TableHead className="text-[11px] font-semibold text-right">% Fecha</TableHead>
+                  <TableHead className="text-[11px] font-semibold text-right text-[hsl(var(--danger))]">Conserv.</TableHead>
+                  <TableHead className="text-[11px] font-semibold text-right text-[hsl(var(--warning))]">Probable</TableHead>
+                  <TableHead className="text-[11px] font-semibold text-right text-[hsl(var(--success))]">Optimista</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {renderTableRows(sortedTableRows, false)}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }
+
