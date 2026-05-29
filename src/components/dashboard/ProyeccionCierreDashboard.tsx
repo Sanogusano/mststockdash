@@ -120,7 +120,7 @@ export function ProyeccionCierreDashboard() {
   const [mes, setMes] = useState(now.getMonth() + 1);
   const [data, setData] = useState<ProyeccionRow[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filterStatus, setFilterStatus] = useState<FilterStatus>("todos");
+  const [filtroEstados, setFiltroEstados] = useState<string[]>([]);
 
   useEffect(() => {
     const load = async () => {
