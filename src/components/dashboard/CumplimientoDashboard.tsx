@@ -5,10 +5,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { TrendingUp, Target, Calendar, Store, Globe, MapPin, FlagTriangleRight, Turtle, Rabbit, Rocket, FileDown, FileSpreadsheet } from "lucide-react";
+import { TrendingUp, Target, Calendar, Store, Globe, MapPin, FlagTriangleRight, Turtle, Rabbit, Rocket, FileDown, FileSpreadsheet, Skull } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { exportCumplimientoPDF } from "@/lib/cumplimiento-pdf-export";
 import { exportCumplimientoXLS } from "@/lib/cumplimiento-xls-export";
+import { MultiSelectFilter } from "./MultiSelectFilter";
 
 const MONTHS = [
   "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
@@ -36,28 +37,75 @@ function fmtCOPCompact(n: number) {
   return fmtCOP(n);
 }
 
+type CumplimientoLevel = "sobrecumple" | "si-cumple-verde" | "si-cumple-amarillo" | "cumplimiento-regular" | "no-cumple" | "no-cumple-critico";
+
+const CUMPLIMIENTO_OPCIONES = [
+  "Sobrecumple",
+  "Sí Cumple",
+  "Cumplimiento Regular",
+  "No Cumple",
+  "No Cumple Crítico",
+];
+
+function getCumplimientoLevel(pct: number): CumplimientoLevel {
+  if (pct >= 104.9) return "sobrecumple";
+  if (pct >= 100) return "si-cumple-verde";
+  if (pct >= 90) return "si-cumple-amarillo";
+  if (pct >= 85) return "cumplimiento-regular";
+  if (pct >= 75) return "no-cumple";
+  return "no-cumple-critico";
+}
+
+function getCumplimientoLabel(pct: number): string {
+  const level = getCumplimientoLevel(pct);
+  const labels: Record<CumplimientoLevel, string> = {
+    "sobrecumple": "Sobrecumple",
+    "si-cumple-verde": "Sí Cumple",
+    "si-cumple-amarillo": "Sí Cumple",
+    "cumplimiento-regular": "Cumplimiento Regular",
+    "no-cumple": "No Cumple",
+    "no-cumple-critico": "No Cumple Crítico",
+  };
+  return labels[level];
+}
+
 function pctColor(pct: number) {
-  if (pct > 100) return "text-blue-600";
-  if (pct >= 98) return "text-green-600";
-  if (pct >= 90) return "text-yellow-500";
-  if (pct >= 81) return "text-orange-500";
-  return "text-red-600";
+  const level = getCumplimientoLevel(pct);
+  const colors: Record<CumplimientoLevel, string> = {
+    "sobrecumple": "text-blue-600",
+    "si-cumple-verde": "text-green-600",
+    "si-cumple-amarillo": "text-yellow-600",
+    "cumplimiento-regular": "text-orange-500",
+    "no-cumple": "text-red-500",
+    "no-cumple-critico": "text-red-800",
+  };
+  return colors[level];
 }
 
 function pctBg(pct: number) {
-  if (pct > 100) return "bg-blue-600";
-  if (pct >= 98) return "bg-green-600";
-  if (pct >= 90) return "bg-yellow-500";
-  if (pct >= 81) return "bg-orange-500";
-  return "bg-red-600";
+  const level = getCumplimientoLevel(pct);
+  const bgs: Record<CumplimientoLevel, string> = {
+    "sobrecumple": "bg-blue-600",
+    "si-cumple-verde": "bg-green-600",
+    "si-cumple-amarillo": "bg-yellow-500",
+    "cumplimiento-regular": "bg-orange-500",
+    "no-cumple": "bg-red-500",
+    "no-cumple-critico": "bg-red-800",
+  };
+  return bgs[level];
 }
 
 function pctBadgeClass(pct: number) {
-  if (pct > 100) return "bg-blue-100 text-blue-700 border-blue-300 hover:bg-blue-200";
-  if (pct >= 98) return "bg-green-100 text-green-700 border-green-300 hover:bg-green-200";
-  if (pct >= 90) return "bg-yellow-100 text-yellow-700 border-yellow-300 hover:bg-yellow-200";
-  if (pct >= 81) return "bg-orange-100 text-orange-700 border-orange-300 hover:bg-orange-200";
-  return "bg-red-100 text-red-700 border-red-300 hover:bg-red-200";
+  const level = getCumplimientoLevel(pct);
+  const classes: Record<CumplimientoLevel, string> = {
+    "sobrecumple": "bg-blue-100 text-blue-700 border-blue-300 hover:bg-blue-200",
+    "si-cumple-verde": "bg-green-100 text-green-700 border-green-300 hover:bg-green-200",
+    "si-cumple-amarillo": "bg-yellow-100 text-yellow-700 border-yellow-300 hover:bg-yellow-200",
+    "cumplimiento-regular": "bg-orange-100 text-orange-700 border-orange-300 hover:bg-orange-200",
+    "no-cumple": "bg-red-100 text-red-700 border-red-300 hover:bg-red-200",
+    "no-cumple-critico": "bg-red-200 text-red-800 border-red-400 hover:bg-red-300",
+  };
+  return classes[level];
 }
 
 // ── Types for aggregation ──
@@ -79,6 +127,7 @@ export function CumplimientoDashboard() {
   const [salesByChannel, setSalesByChannel] = useState<Record<string, SalesData>>({});
   const [dailySales, setDailySales] = useState<DailySales>({});
   const [loading, setLoading] = useState(true);
+  const [filtroCumplimiento, setFiltroCumplimiento] = useState<string[]>([]);
 
   // Helper to fetch all rows with pagination (bypasses 1000-row limit)
   async function fetchAll<T>(
@@ -425,6 +474,16 @@ export function CumplimientoDashboard() {
     return rows;
   }, [configs, salesByStore, salesByChannel, locations, storeConfigs, channelConfigs, totalBudgetCanales, totalBudgetTiendas, totalVentaTiendas, totalPedidosTiendas, totalUnidadesTiendas, totalVentaNeta, numDaysInMonth, daysElapsed]);
 
+  // Filter rows based on cumplimiento status
+  const filteredRows = useMemo(() => {
+    if (filtroCumplimiento.length === 0) return tableRows;
+    return tableRows.filter(row => {
+      if (row.level !== "item") return true; // always show group/subgroup headers
+      const label = getCumplimientoLabel(row.pct);
+      return filtroCumplimiento.includes(label);
+    });
+  }, [tableRows, filtroCumplimiento]);
+
   // Today index for daily chart
   const today = new Date();
   const isCurrentMonth = today.getFullYear() === anio && today.getMonth() + 1 === mes;
@@ -450,60 +509,70 @@ export function CumplimientoDashboard() {
 
   return (
     <div className="space-y-6">
-      {/* Period Selector */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <Calendar className="h-5 w-5 text-muted-foreground" />
-          <Select value={anio.toString()} onValueChange={(v) => setAnio(Number(v))}>
-            <SelectTrigger className="w-28"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              {YEARS.map(y => <SelectItem key={y} value={y.toString()}>{y}</SelectItem>)}
-            </SelectContent>
-          </Select>
-          <Select value={mes.toString()} onValueChange={(v) => setMes(Number(v))}>
-            <SelectTrigger className="w-36"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              {MONTHS.map((m, i) => <SelectItem key={i} value={(i + 1).toString()}>{m}</SelectItem>)}
-            </SelectContent>
-          </Select>
+      {/* Period Selector & Filters */}
+      <div className="flex flex-col gap-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Calendar className="h-5 w-5 text-muted-foreground" />
+            <Select value={anio.toString()} onValueChange={(v) => setAnio(Number(v))}>
+              <SelectTrigger className="w-28"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {YEARS.map(y => <SelectItem key={y} value={y.toString()}>{y}</SelectItem>)}
+              </SelectContent>
+            </Select>
+            <Select value={mes.toString()} onValueChange={(v) => setMes(Number(v))}>
+              <SelectTrigger className="w-36"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {MONTHS.map((m, i) => <SelectItem key={i} value={(i + 1).toString()}>{m}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-2"
+              onClick={() => exportCumplimientoXLS(
+                filteredRows,
+                {
+                  label: "TOTAL COMPAÑÍA",
+                  budget: totalBudget,
+                  ventaNeta: totalVentaNeta,
+                  pct: globalPct,
+                  pctToDate,
+                  budgetToDate,
+                  unidades: totalUnidades,
+                  ticket: ticketPromedio,
+                },
+                MONTHS[mes - 1],
+                anio
+              )}
+            >
+              <FileSpreadsheet className="h-4 w-4" />
+              Generar Excel
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-2"
+              onClick={() => exportCumplimientoPDF(
+                "cumplimiento-dashboard-content",
+                MONTHS[mes - 1],
+                anio
+              )}
+            >
+              <FileDown className="h-4 w-4" />
+              Generar PDF
+            </Button>
+          </div>
         </div>
-        <div className="flex gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            className="gap-2"
-            onClick={() => exportCumplimientoXLS(
-              tableRows,
-              {
-                label: "TOTAL COMPAÑÍA",
-                budget: totalBudget,
-                ventaNeta: totalVentaNeta,
-                pct: globalPct,
-                pctToDate,
-                budgetToDate,
-                unidades: totalUnidades,
-                ticket: ticketPromedio,
-              },
-              MONTHS[mes - 1],
-              anio
-            )}
-          >
-            <FileSpreadsheet className="h-4 w-4" />
-            Generar Excel
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            className="gap-2"
-            onClick={() => exportCumplimientoPDF(
-              "cumplimiento-dashboard-content",
-              MONTHS[mes - 1],
-              anio
-            )}
-          >
-            <FileDown className="h-4 w-4" />
-            Generar PDF
-          </Button>
+        <div className="flex items-center gap-3">
+          <MultiSelectFilter
+            label="Estado cumplimiento"
+            options={CUMPLIMIENTO_OPCIONES}
+            selected={filtroCumplimiento}
+            onChange={setFiltroCumplimiento}
+          />
         </div>
       </div>
 
@@ -616,11 +685,18 @@ export function CumplimientoDashboard() {
           <div className="flex items-end gap-[2px] h-40">
             {dailyData.slice(0, currentDay).map((d) => {
               const heightPct = maxDailyValue > 0 ? (d.ventaNeta / maxDailyValue) * 100 : 0;
-              const barColor = d.pct >= 100
-                ? "bg-[hsl(142,76%,46%)]"
-                : d.pct >= 80
-                ? "bg-[hsl(var(--warning))]"
-                : "bg-[hsl(var(--danger))]";
+              const level = getCumplimientoLevel(d.pct);
+              const barColor = level === "sobrecumple"
+                ? "bg-blue-500"
+                : level === "si-cumple-verde"
+                ? "bg-green-500"
+                : level === "si-cumple-amarillo"
+                ? "bg-yellow-500"
+                : level === "cumplimiento-regular"
+                ? "bg-orange-500"
+                : level === "no-cumple"
+                ? "bg-red-500"
+                : "bg-red-800";
               return (
                 <div
                   key={d.day}
@@ -690,12 +766,14 @@ export function CumplimientoDashboard() {
                 <TableCell className="text-right font-bold">{fmtCOP(ticketPromedio)}</TableCell>
               </TableRow>
 
-              {tableRows.map((row, idx) => {
+              {filteredRows.map((row, idx) => {
                 const isGroup = row.level === "group";
                 const isSubgroup = row.level === "subgroup";
                 const isItem = row.level === "item";
                 const isTotalTiendas = row.level === "total-tiendas";
                 const zebraClass = isItem && idx % 2 === 0 ? "bg-muted/20" : "";
+                const isPctCritico = getCumplimientoLevel(row.pct) === "no-cumple-critico";
+                const isPctToDateCritico = getCumplimientoLevel(row.pctToDate) === "no-cumple-critico";
 
                 return (
                   <TableRow
@@ -727,11 +805,13 @@ export function CumplimientoDashboard() {
                     <TableCell className="text-right text-sm">{fmtCOP(row.ventaNeta)}</TableCell>
                     <TableCell className="text-right">
                       <Badge className={`text-xs border ${pctBadgeClass(row.pct)}`}>
+                        {isPctCritico && <Skull className="h-3 w-3 mr-0.5" />}
                         {row.pct.toFixed(1)}%
                       </Badge>
                     </TableCell>
                     <TableCell className="text-right">
                       <Badge className={`text-xs border ${pctBadgeClass(row.pctToDate)}`}>
+                        {isPctToDateCritico && <Skull className="h-3 w-3 mr-0.5" />}
                         {row.pctToDate.toFixed(1)}%
                       </Badge>
                     </TableCell>
