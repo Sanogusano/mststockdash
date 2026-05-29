@@ -432,11 +432,11 @@ export function ProyeccionCierreDashboard() {
               <TableBody>
                 {tableRows
                   .filter(row => {
-                    if (filterStatus === "todos") return true;
+                    if (filtroEstados.length === 0) return true;
                     if (row.level !== "item") return true;
                     if (row.presupuesto <= 0) return true;
                     const pctProb = (row.probable / row.presupuesto) * 100;
-                    return filterStatus === "cumple" ? pctProb >= 100 : pctProb < 100;
+                    return filtroEstados.includes(getCumplimientoLabel(pctProb));
                   })
                   .map((row, i) => {
                   const isGroup = row.level === "group" || row.level === "total-tiendas";
