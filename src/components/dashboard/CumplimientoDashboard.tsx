@@ -474,6 +474,16 @@ export function CumplimientoDashboard() {
     return rows;
   }, [configs, salesByStore, salesByChannel, locations, storeConfigs, channelConfigs, totalBudgetCanales, totalBudgetTiendas, totalVentaTiendas, totalPedidosTiendas, totalUnidadesTiendas, totalVentaNeta, numDaysInMonth, daysElapsed]);
 
+  // Filter rows based on cumplimiento status
+  const filteredRows = useMemo(() => {
+    if (filtroCumplimiento.length === 0) return tableRows;
+    return tableRows.filter(row => {
+      if (row.level !== "item") return true; // always show group/subgroup headers
+      const label = getCumplimientoLabel(row.pct);
+      return filtroCumplimiento.includes(label);
+    });
+  }, [tableRows, filtroCumplimiento]);
+
   // Today index for daily chart
   const today = new Date();
   const isCurrentMonth = today.getFullYear() === anio && today.getMonth() + 1 === mes;
