@@ -64,7 +64,7 @@ function getCumplimientoLabel(pct: number): string {
     "si-cumple-amarillo": "Sí Cumple",
     "cumplimiento-regular": "Cumplimiento Regular",
     "no-cumple": "No Cumple",
-    "no-cumple-critico": "No Cumple Crítico",
+    "no-cumple-critico": "Crítico",
   };
   return labels[level];
 }
