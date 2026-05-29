@@ -97,6 +97,7 @@ export function AppSidebar() {
   const visibleLogistica = useMemo(() => logisticaItems.filter((i) => can(i.module, i.action)), [permissions, isAdmin]);
   const visibleConfig = useMemo(() => configuracionItems.filter((i) => can(i.module, i.action)), [permissions, isAdmin]);
   const visibleFinanzas = useMemo(() => finanzasItems.filter((i) => can(i.module, i.action)), [permissions, isAdmin]);
+  const visibleStock = useMemo(() => manejoStockItems.filter((i) => can(i.module, i.action)), [permissions, isAdmin]);
 
   const canPresupuesto = can(presupuestoItem.module, presupuestoItem.action);
   const canCentroAccion = can(centroAccionItem.module, centroAccionItem.action);
@@ -106,12 +107,14 @@ export function AppSidebar() {
   const isLogisticaActive = visibleLogistica.some((i) => location.pathname === i.url);
   const isFinanzasActive = visibleFinanzas.some((i) => location.pathname === i.url);
   const isPresupuestoActive = [presupuestoItem.url, centroAccionItem.url].includes(location.pathname);
+  const isStockActive = visibleStock.some((i) => location.pathname === i.url);
 
   const [gestionOpen, setGestionOpen] = useState(isGestionActive);
   const [configOpen, setConfigOpen] = useState(isConfigActive);
   const [logisticaOpen, setLogisticaOpen] = useState(isLogisticaActive);
   const [finanzasOpen, setFinanzasOpen] = useState(isFinanzasActive);
   const [presupuestoOpen, setPresupuestoOpen] = useState(isPresupuestoActive);
+  const [stockOpen, setStockOpen] = useState(isStockActive);
 
   const userEmail = session?.user?.email || "";
   const userInitial = userEmail.charAt(0).toUpperCase() || "U";
