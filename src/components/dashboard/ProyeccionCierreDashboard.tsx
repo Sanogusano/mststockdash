@@ -5,8 +5,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { Calendar, TrendingDown, TrendingUp, Target, Minus, Info } from "lucide-react";
+import { Calendar, TrendingDown, TrendingUp, Target, Minus, Info, Skull } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { MultiSelectFilter } from "./MultiSelectFilter";
 
 const MONTHS = [
   "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
@@ -25,16 +26,75 @@ function fmtCOPCompact(n: number) {
   return fmtCOP(n);
 }
 
+type CumplimientoLevel = "sobrecumple" | "si-cumple-verde" | "si-cumple-amarillo" | "cumplimiento-regular" | "no-cumple" | "no-cumple-critico";
+
+const CUMPLIMIENTO_OPCIONES = [
+  "Sobrecumple",
+  "Sí Cumple",
+  "Cumplimiento Regular",
+  "No Cumple",
+  "No Cumple Crítico",
+];
+
+function getCumplimientoLevel(pct: number): CumplimientoLevel {
+  if (pct >= 104.9) return "sobrecumple";
+  if (pct >= 100) return "si-cumple-verde";
+  if (pct >= 90) return "si-cumple-amarillo";
+  if (pct >= 85) return "cumplimiento-regular";
+  if (pct >= 75) return "no-cumple";
+  return "no-cumple-critico";
+}
+
+function getCumplimientoLabel(pct: number): string {
+  const level = getCumplimientoLevel(pct);
+  const labels: Record<CumplimientoLevel, string> = {
+    "sobrecumple": "Sobrecumple",
+    "si-cumple-verde": "Sí Cumple",
+    "si-cumple-amarillo": "Sí Cumple",
+    "cumplimiento-regular": "Cumplimiento Regular",
+    "no-cumple": "No Cumple",
+    "no-cumple-critico": "No Cumple Crítico",
+  };
+  return labels[level];
+}
+
 function pctColor(pct: number) {
-  if (pct >= 100) return "text-[hsl(var(--success))]";
-  if (pct >= 80) return "text-[hsl(var(--warning))]";
-  return "text-[hsl(var(--danger))]";
+  const level = getCumplimientoLevel(pct);
+  const colors: Record<CumplimientoLevel, string> = {
+    "sobrecumple": "text-blue-600",
+    "si-cumple-verde": "text-green-600",
+    "si-cumple-amarillo": "text-yellow-600",
+    "cumplimiento-regular": "text-orange-500",
+    "no-cumple": "text-red-500",
+    "no-cumple-critico": "text-red-800",
+  };
+  return colors[level];
 }
 
 function pctBg(pct: number) {
-  if (pct >= 100) return "bg-[hsl(var(--success))]";
-  if (pct >= 80) return "bg-[hsl(var(--warning))]";
-  return "bg-[hsl(var(--danger))]";
+  const level = getCumplimientoLevel(pct);
+  const bgs: Record<CumplimientoLevel, string> = {
+    "sobrecumple": "bg-blue-600",
+    "si-cumple-verde": "bg-green-600",
+    "si-cumple-amarillo": "bg-yellow-500",
+    "cumplimiento-regular": "bg-orange-500",
+    "no-cumple": "bg-red-500",
+    "no-cumple-critico": "bg-red-800",
+  };
+  return bgs[level];
+}
+
+function pctBadgeClass(pct: number) {
+  const level = getCumplimientoLevel(pct);
+  const classes: Record<CumplimientoLevel, string> = {
+    "sobrecumple": "bg-blue-100 text-blue-700 border border-blue-300",
+    "si-cumple-verde": "bg-green-100 text-green-700 border border-green-300",
+    "si-cumple-amarillo": "bg-yellow-100 text-yellow-700 border border-yellow-300",
+    "cumplimiento-regular": "bg-orange-100 text-orange-700 border border-orange-300",
+    "no-cumple": "bg-red-100 text-red-700 border border-red-300",
+    "no-cumple-critico": "bg-red-200 text-red-800 border border-red-400",
+  };
+  return classes[level];
 }
 
 interface ProyeccionRow {
@@ -52,7 +112,7 @@ interface ProyeccionRow {
   cierre_optimista: number;
 }
 
-type FilterStatus = "todos" | "cumple" | "no-cumple";
+// Multi-select de estados de cumplimiento (vacío = todos)
 
 export function ProyeccionCierreDashboard() {
   const now = new Date();
@@ -60,7 +120,7 @@ export function ProyeccionCierreDashboard() {
   const [mes, setMes] = useState(now.getMonth() + 1);
   const [data, setData] = useState<ProyeccionRow[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filterStatus, setFilterStatus] = useState<FilterStatus>("todos");
+  const [filtroEstados, setFiltroEstados] = useState<string[]>([]);
 
   useEffect(() => {
     const load = async () => {
@@ -344,27 +404,14 @@ export function ProyeccionCierreDashboard() {
       {/* Hierarchical Table */}
       <Card>
         <CardHeader className="pb-3">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between gap-3 flex-wrap">
             <CardTitle className="text-sm font-semibold">Detalle de Cumplimiento y Proyección</CardTitle>
-            <div className="flex gap-1">
-              {([
-                { value: "todos", label: "Todos" },
-                { value: "cumple", label: "Cumple" },
-                { value: "no-cumple", label: "No Cumple" },
-              ] as const).map(tab => (
-                <button
-                  key={tab.value}
-                  onClick={() => setFilterStatus(tab.value)}
-                  className={`px-3 py-1 rounded-md text-xs font-medium transition-colors ${
-                    filterStatus === tab.value
-                      ? "bg-emerald-600 text-white"
-                      : "bg-muted text-muted-foreground hover:bg-muted/80"
-                  }`}
-                >
-                  {tab.label}
-                </button>
-              ))}
-            </div>
+            <MultiSelectFilter
+              label="Estado cumplimiento"
+              options={CUMPLIMIENTO_OPCIONES}
+              selected={filtroEstados}
+              onChange={setFiltroEstados}
+            />
           </div>
         </CardHeader>
         <CardContent className="p-0">
@@ -385,11 +432,11 @@ export function ProyeccionCierreDashboard() {
               <TableBody>
                 {tableRows
                   .filter(row => {
-                    if (filterStatus === "todos") return true;
+                    if (filtroEstados.length === 0) return true;
                     if (row.level !== "item") return true;
                     if (row.presupuesto <= 0) return true;
                     const pctProb = (row.probable / row.presupuesto) * 100;
-                    return filterStatus === "cumple" ? pctProb >= 100 : pctProb < 100;
+                    return filtroEstados.includes(getCumplimientoLabel(pctProb));
                   })
                   .map((row, i) => {
                   const isGroup = row.level === "group" || row.level === "total-tiendas";
@@ -431,36 +478,27 @@ export function ProyeccionCierreDashboard() {
                       <TableCell className="text-right">
                         <div className="text-[11px] tabular-nums">{fmtCOP(row.conservador)}</div>
                         {row.presupuesto > 0 && (
-                          <span className={`inline-block mt-0.5 px-1 py-px rounded text-[9px] font-semibold whitespace-nowrap ${
-                            pctCons >= 100 
-                              ? "bg-[hsl(var(--success))]/15 text-[hsl(var(--success))]" 
-                              : "bg-[hsl(var(--danger))]/15 text-[hsl(var(--danger))]"
-                          }`}>
-                            {pctCons >= 100 ? "CUMPLE" : "NO CUMPLE"} {pctCons.toFixed(0)}%
+                          <span className={`inline-flex items-center gap-0.5 mt-0.5 px-1 py-px rounded text-[9px] font-semibold whitespace-nowrap ${pctBadgeClass(pctCons)}`}>
+                            {getCumplimientoLevel(pctCons) === "no-cumple-critico" && <Skull className="h-2.5 w-2.5" />}
+                            {getCumplimientoLabel(pctCons).toUpperCase()} {pctCons.toFixed(0)}%
                           </span>
                         )}
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="text-[11px] tabular-nums">{fmtCOP(row.probable)}</div>
                         {row.presupuesto > 0 && (
-                          <span className={`inline-block mt-0.5 px-1 py-px rounded text-[9px] font-semibold whitespace-nowrap ${
-                            pctProb >= 100 
-                              ? "bg-[hsl(var(--success))]/15 text-[hsl(var(--success))]" 
-                              : "bg-[hsl(var(--danger))]/15 text-[hsl(var(--danger))]"
-                          }`}>
-                            {pctProb >= 100 ? "CUMPLE" : "NO CUMPLE"} {pctProb.toFixed(0)}%
+                          <span className={`inline-flex items-center gap-0.5 mt-0.5 px-1 py-px rounded text-[9px] font-semibold whitespace-nowrap ${pctBadgeClass(pctProb)}`}>
+                            {getCumplimientoLevel(pctProb) === "no-cumple-critico" && <Skull className="h-2.5 w-2.5" />}
+                            {getCumplimientoLabel(pctProb).toUpperCase()} {pctProb.toFixed(0)}%
                           </span>
                         )}
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="text-[11px] tabular-nums">{fmtCOP(row.optimista)}</div>
                         {row.presupuesto > 0 && (
-                          <span className={`inline-block mt-0.5 px-1 py-px rounded text-[9px] font-semibold whitespace-nowrap ${
-                            pctOpt >= 100 
-                              ? "bg-[hsl(var(--success))]/15 text-[hsl(var(--success))]" 
-                              : "bg-[hsl(var(--danger))]/15 text-[hsl(var(--danger))]"
-                          }`}>
-                            {pctOpt >= 100 ? "CUMPLE" : "NO CUMPLE"} {pctOpt.toFixed(0)}%
+                          <span className={`inline-flex items-center gap-0.5 mt-0.5 px-1 py-px rounded text-[9px] font-semibold whitespace-nowrap ${pctBadgeClass(pctOpt)}`}>
+                            {getCumplimientoLevel(pctOpt) === "no-cumple-critico" && <Skull className="h-2.5 w-2.5" />}
+                            {getCumplimientoLabel(pctOpt).toUpperCase()} {pctOpt.toFixed(0)}%
                           </span>
                         )}
                       </TableCell>
