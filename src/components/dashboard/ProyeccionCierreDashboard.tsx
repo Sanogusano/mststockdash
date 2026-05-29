@@ -26,16 +26,75 @@ function fmtCOPCompact(n: number) {
   return fmtCOP(n);
 }
 
+type CumplimientoLevel = "sobrecumple" | "si-cumple-verde" | "si-cumple-amarillo" | "cumplimiento-regular" | "no-cumple" | "no-cumple-critico";
+
+const CUMPLIMIENTO_OPCIONES = [
+  "Sobrecumple",
+  "Sí Cumple",
+  "Cumplimiento Regular",
+  "No Cumple",
+  "No Cumple Crítico",
+];
+
+function getCumplimientoLevel(pct: number): CumplimientoLevel {
+  if (pct >= 104.9) return "sobrecumple";
+  if (pct >= 100) return "si-cumple-verde";
+  if (pct >= 90) return "si-cumple-amarillo";
+  if (pct >= 85) return "cumplimiento-regular";
+  if (pct >= 75) return "no-cumple";
+  return "no-cumple-critico";
+}
+
+function getCumplimientoLabel(pct: number): string {
+  const level = getCumplimientoLevel(pct);
+  const labels: Record<CumplimientoLevel, string> = {
+    "sobrecumple": "Sobrecumple",
+    "si-cumple-verde": "Sí Cumple",
+    "si-cumple-amarillo": "Sí Cumple",
+    "cumplimiento-regular": "Cumplimiento Regular",
+    "no-cumple": "No Cumple",
+    "no-cumple-critico": "No Cumple Crítico",
+  };
+  return labels[level];
+}
+
 function pctColor(pct: number) {
-  if (pct >= 100) return "text-[hsl(var(--success))]";
-  if (pct >= 80) return "text-[hsl(var(--warning))]";
-  return "text-[hsl(var(--danger))]";
+  const level = getCumplimientoLevel(pct);
+  const colors: Record<CumplimientoLevel, string> = {
+    "sobrecumple": "text-blue-600",
+    "si-cumple-verde": "text-green-600",
+    "si-cumple-amarillo": "text-yellow-600",
+    "cumplimiento-regular": "text-orange-500",
+    "no-cumple": "text-red-500",
+    "no-cumple-critico": "text-red-800",
+  };
+  return colors[level];
 }
 
 function pctBg(pct: number) {
-  if (pct >= 100) return "bg-[hsl(var(--success))]";
-  if (pct >= 80) return "bg-[hsl(var(--warning))]";
-  return "bg-[hsl(var(--danger))]";
+  const level = getCumplimientoLevel(pct);
+  const bgs: Record<CumplimientoLevel, string> = {
+    "sobrecumple": "bg-blue-600",
+    "si-cumple-verde": "bg-green-600",
+    "si-cumple-amarillo": "bg-yellow-500",
+    "cumplimiento-regular": "bg-orange-500",
+    "no-cumple": "bg-red-500",
+    "no-cumple-critico": "bg-red-800",
+  };
+  return bgs[level];
+}
+
+function pctBadgeClass(pct: number) {
+  const level = getCumplimientoLevel(pct);
+  const classes: Record<CumplimientoLevel, string> = {
+    "sobrecumple": "bg-blue-100 text-blue-700 border border-blue-300",
+    "si-cumple-verde": "bg-green-100 text-green-700 border border-green-300",
+    "si-cumple-amarillo": "bg-yellow-100 text-yellow-700 border border-yellow-300",
+    "cumplimiento-regular": "bg-orange-100 text-orange-700 border border-orange-300",
+    "no-cumple": "bg-red-100 text-red-700 border border-red-300",
+    "no-cumple-critico": "bg-red-200 text-red-800 border border-red-400",
+  };
+  return classes[level];
 }
 
 interface ProyeccionRow {
