@@ -781,7 +781,7 @@ export function CumplimientoDashboard() {
                     className={`
                       ${isGroup ? "bg-muted/40 font-semibold border-t-2 border-border" : ""}
                       ${isTotalTiendas ? "bg-accent/10 font-bold border-t-2 border-border" : ""}
-                      ${isSubgroup ? "bg-muted/25 font-medium border-t border-border" : ""}
+                      ${isSubgroup ? "bg-muted/30 font-bold uppercase tracking-wide border-t border-border" : ""}
                       ${zebraClass}
                     `}
                   >
