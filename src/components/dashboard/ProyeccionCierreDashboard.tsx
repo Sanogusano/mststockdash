@@ -31,7 +31,7 @@ type CumplimientoLevel = "sobrecumple" | "si-cumple-verde" | "si-cumple-amarillo
 const CUMPLIMIENTO_OPCIONES = [
   "Sobrecumple",
   "Sí Cumple",
-  "Cumplimiento Regular",
+  "Regular",
   "No Cumple",
   "Crítico",
 ];
@@ -51,7 +51,7 @@ function getCumplimientoLabel(pct: number): string {
     "sobrecumple": "Sobrecumple",
     "si-cumple-verde": "Sí Cumple",
     "si-cumple-amarillo": "Sí Cumple",
-    "cumplimiento-regular": "Cumplimiento Regular",
+    "cumplimiento-regular": "Regular",
     "no-cumple": "No Cumple",
     "no-cumple-critico": "Crítico",
   };
@@ -416,17 +416,17 @@ export function ProyeccionCierreDashboard() {
         </CardHeader>
         <CardContent className="p-0">
           <div className="overflow-x-auto">
-            <Table className="w-full min-w-[820px]">
+            <Table className="w-full min-w-[690px]">
               <TableHeader>
                 <TableRow className="bg-muted/30">
-                  <TableHead className="text-[11px] font-semibold sticky left-0 z-20 bg-muted/60 backdrop-blur min-w-[140px] max-w-[180px]">Nombre</TableHead>
-                  <TableHead className="text-[11px] font-semibold text-right min-w-[90px]">Venta MTD</TableHead>
-                  <TableHead className="text-[11px] font-semibold text-right min-w-[90px]">Presup.</TableHead>
-                  <TableHead className="text-[11px] font-semibold text-right min-w-[80px]">% Gral</TableHead>
-                  <TableHead className="text-[11px] font-semibold text-right min-w-[80px]">% Fecha</TableHead>
-                  <TableHead className="text-[11px] font-semibold text-right min-w-[110px] text-[hsl(var(--danger))]">Conserv.</TableHead>
-                  <TableHead className="text-[11px] font-semibold text-right min-w-[110px] text-[hsl(var(--warning))]">Probable</TableHead>
-                  <TableHead className="text-[11px] font-semibold text-right min-w-[110px] text-[hsl(var(--success))]">Optimista</TableHead>
+                  <TableHead className="text-[11px] font-semibold sticky left-0 z-20 bg-muted/60 backdrop-blur min-w-[120px] max-w-[160px]">Nombre</TableHead>
+                  <TableHead className="text-[11px] font-semibold text-right min-w-[80px]">Venta MTD</TableHead>
+                  <TableHead className="text-[11px] font-semibold text-right min-w-[80px]">Presup.</TableHead>
+                  <TableHead className="text-[11px] font-semibold text-right min-w-[70px]">% Gral</TableHead>
+                  <TableHead className="text-[11px] font-semibold text-right min-w-[70px]">% Fecha</TableHead>
+                  <TableHead className="text-[11px] font-semibold text-right min-w-[90px] text-[hsl(var(--danger))]">Conserv.</TableHead>
+                  <TableHead className="text-[11px] font-semibold text-right min-w-[90px] text-[hsl(var(--warning))]">Probable</TableHead>
+                  <TableHead className="text-[11px] font-semibold text-right min-w-[90px] text-[hsl(var(--success))]">Optimista</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -455,7 +455,7 @@ export function ProyeccionCierreDashboard() {
                           : "hover:bg-muted/10"
                       }
                     >
-                      <TableCell className={`text-[11px] sticky left-0 z-10 min-w-[140px] max-w-[200px] whitespace-normal break-words ${
+                      <TableCell className={`text-[11px] sticky left-0 z-10 min-w-[120px] max-w-[160px] whitespace-normal break-words ${
                         isGroup ? "bg-muted/40" : isSubgroup ? "bg-muted/30 font-bold uppercase tracking-wide" : "bg-background"
                       } ${row.level === "item" ? "pl-6" : ""}`}>
                         {row.label}
