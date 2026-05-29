@@ -478,36 +478,27 @@ export function ProyeccionCierreDashboard() {
                       <TableCell className="text-right">
                         <div className="text-[11px] tabular-nums">{fmtCOP(row.conservador)}</div>
                         {row.presupuesto > 0 && (
-                          <span className={`inline-block mt-0.5 px-1 py-px rounded text-[9px] font-semibold whitespace-nowrap ${
-                            pctCons >= 100 
-                              ? "bg-[hsl(var(--success))]/15 text-[hsl(var(--success))]" 
-                              : "bg-[hsl(var(--danger))]/15 text-[hsl(var(--danger))]"
-                          }`}>
-                            {pctCons >= 100 ? "CUMPLE" : "NO CUMPLE"} {pctCons.toFixed(0)}%
+                          <span className={`inline-flex items-center gap-0.5 mt-0.5 px-1 py-px rounded text-[9px] font-semibold whitespace-nowrap ${pctBadgeClass(pctCons)}`}>
+                            {getCumplimientoLevel(pctCons) === "no-cumple-critico" && <Skull className="h-2.5 w-2.5" />}
+                            {getCumplimientoLabel(pctCons).toUpperCase()} {pctCons.toFixed(0)}%
                           </span>
                         )}
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="text-[11px] tabular-nums">{fmtCOP(row.probable)}</div>
                         {row.presupuesto > 0 && (
-                          <span className={`inline-block mt-0.5 px-1 py-px rounded text-[9px] font-semibold whitespace-nowrap ${
-                            pctProb >= 100 
-                              ? "bg-[hsl(var(--success))]/15 text-[hsl(var(--success))]" 
-                              : "bg-[hsl(var(--danger))]/15 text-[hsl(var(--danger))]"
-                          }`}>
-                            {pctProb >= 100 ? "CUMPLE" : "NO CUMPLE"} {pctProb.toFixed(0)}%
+                          <span className={`inline-flex items-center gap-0.5 mt-0.5 px-1 py-px rounded text-[9px] font-semibold whitespace-nowrap ${pctBadgeClass(pctProb)}`}>
+                            {getCumplimientoLevel(pctProb) === "no-cumple-critico" && <Skull className="h-2.5 w-2.5" />}
+                            {getCumplimientoLabel(pctProb).toUpperCase()} {pctProb.toFixed(0)}%
                           </span>
                         )}
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="text-[11px] tabular-nums">{fmtCOP(row.optimista)}</div>
                         {row.presupuesto > 0 && (
-                          <span className={`inline-block mt-0.5 px-1 py-px rounded text-[9px] font-semibold whitespace-nowrap ${
-                            pctOpt >= 100 
-                              ? "bg-[hsl(var(--success))]/15 text-[hsl(var(--success))]" 
-                              : "bg-[hsl(var(--danger))]/15 text-[hsl(var(--danger))]"
-                          }`}>
-                            {pctOpt >= 100 ? "CUMPLE" : "NO CUMPLE"} {pctOpt.toFixed(0)}%
+                          <span className={`inline-flex items-center gap-0.5 mt-0.5 px-1 py-px rounded text-[9px] font-semibold whitespace-nowrap ${pctBadgeClass(pctOpt)}`}>
+                            {getCumplimientoLevel(pctOpt) === "no-cumple-critico" && <Skull className="h-2.5 w-2.5" />}
+                            {getCumplimientoLabel(pctOpt).toUpperCase()} {pctOpt.toFixed(0)}%
                           </span>
                         )}
                       </TableCell>
