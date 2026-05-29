@@ -44,7 +44,7 @@ const CUMPLIMIENTO_OPCIONES = [
   "Sí Cumple",
   "Cumplimiento Regular",
   "No Cumple",
-  "No Cumple Crítico",
+  "Crítico",
 ];
 
 function getCumplimientoLevel(pct: number): CumplimientoLevel {
@@ -64,7 +64,7 @@ function getCumplimientoLabel(pct: number): string {
     "si-cumple-amarillo": "Sí Cumple",
     "cumplimiento-regular": "Cumplimiento Regular",
     "no-cumple": "No Cumple",
-    "no-cumple-critico": "No Cumple Crítico",
+    "no-cumple-critico": "Crítico",
   };
   return labels[level];
 }
@@ -441,7 +441,7 @@ export function CumplimientoDashboard() {
 
         rows.push({
           level: "subgroup",
-          label: `📍 ${zona}`,
+          label: `📍 ${zona.toUpperCase()}`,
           budget: zonaBudget,
           ventaNeta: zonaVenta,
           pct: zonaBudget > 0 ? (zonaVenta / zonaBudget) * 100 : 0,
@@ -781,14 +781,14 @@ export function CumplimientoDashboard() {
                     className={`
                       ${isGroup ? "bg-muted/40 font-semibold border-t-2 border-border" : ""}
                       ${isTotalTiendas ? "bg-accent/10 font-bold border-t-2 border-border" : ""}
-                      ${isSubgroup ? "bg-muted/25 font-medium border-t border-border" : ""}
+                      ${isSubgroup ? "bg-muted/30 font-bold uppercase tracking-wide border-t border-border" : ""}
                       ${zebraClass}
                     `}
                   >
                     <TableCell className={`sticky left-0 z-10 min-w-[160px] max-w-[220px] whitespace-normal break-words
                       ${isGroup ? "font-semibold text-foreground bg-muted/40" : ""}
                       ${isTotalTiendas ? "font-bold text-foreground bg-accent/10" : ""}
-                      ${isSubgroup ? "font-medium text-foreground pl-6 bg-muted/25" : ""}
+                      ${isSubgroup ? "font-bold uppercase tracking-wide text-foreground pl-6 bg-muted/30" : ""}
                       ${isItem ? "pl-10 text-sm text-muted-foreground " + (idx % 2 === 0 ? "bg-muted/20" : "bg-background") : ""}
                     `}>
                       <span className="flex items-center gap-1">

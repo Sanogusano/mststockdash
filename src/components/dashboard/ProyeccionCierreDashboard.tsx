@@ -33,7 +33,7 @@ const CUMPLIMIENTO_OPCIONES = [
   "Sí Cumple",
   "Cumplimiento Regular",
   "No Cumple",
-  "No Cumple Crítico",
+  "Crítico",
 ];
 
 function getCumplimientoLevel(pct: number): CumplimientoLevel {
@@ -53,7 +53,7 @@ function getCumplimientoLabel(pct: number): string {
     "si-cumple-amarillo": "Sí Cumple",
     "cumplimiento-regular": "Cumplimiento Regular",
     "no-cumple": "No Cumple",
-    "no-cumple-critico": "No Cumple Crítico",
+    "no-cumple-critico": "Crítico",
   };
   return labels[level];
 }
@@ -244,7 +244,7 @@ export function ProyeccionCierreDashboard() {
 
           rows.push({
             level: "subgroup",
-            label: `📍 ${zona}`,
+            label: `📍 ${zona.toUpperCase()}`,
             ventaActual: zVenta,
             presupuesto: zPresup,
             pctGeneral: zPresup > 0 ? (zVenta / zPresup) * 100 : 0,
@@ -451,12 +451,12 @@ export function ProyeccionCierreDashboard() {
                         isGroup
                           ? "bg-muted/40 font-semibold border-t-2 border-border"
                           : isSubgroup
-                          ? "bg-muted/20 font-medium"
+                          ? "bg-muted/30 font-bold uppercase tracking-wide"
                           : "hover:bg-muted/10"
                       }
                     >
                       <TableCell className={`text-[11px] sticky left-0 z-10 min-w-[140px] max-w-[200px] whitespace-normal break-words ${
-                        isGroup ? "bg-muted/40" : isSubgroup ? "bg-muted/20" : "bg-background"
+                        isGroup ? "bg-muted/40" : isSubgroup ? "bg-muted/30 font-bold uppercase tracking-wide" : "bg-background"
                       } ${row.level === "item" ? "pl-6" : ""}`}>
                         {row.label}
                       </TableCell>
