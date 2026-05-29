@@ -5,9 +5,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { Calendar, TrendingDown, TrendingUp, Target, Minus, Info, Skull } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Calendar, TrendingDown, TrendingUp, Target, Minus, Info, Skull, FileDown } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { MultiSelectFilter } from "./MultiSelectFilter";
+import { exportProyeccionPDF } from "@/lib/proyeccion-pdf-export";
 
 const MONTHS = [
   "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
