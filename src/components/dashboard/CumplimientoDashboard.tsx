@@ -441,7 +441,7 @@ export function CumplimientoDashboard() {
 
         rows.push({
           level: "subgroup",
-          label: `📍 ${zona}`,
+          label: `📍 ${zona.toUpperCase()}`,
           budget: zonaBudget,
           ventaNeta: zonaVenta,
           pct: zonaBudget > 0 ? (zonaVenta / zonaBudget) * 100 : 0,
