@@ -5,10 +5,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { TrendingUp, Target, Calendar, Store, Globe, MapPin, FlagTriangleRight, Turtle, Rabbit, Rocket, FileDown, FileSpreadsheet } from "lucide-react";
+import { TrendingUp, Target, Calendar, Store, Globe, MapPin, FlagTriangleRight, Turtle, Rabbit, Rocket, FileDown, FileSpreadsheet, Skull } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { exportCumplimientoPDF } from "@/lib/cumplimiento-pdf-export";
 import { exportCumplimientoXLS } from "@/lib/cumplimiento-xls-export";
+import { MultiSelectFilter } from "./MultiSelectFilter";
 
 const MONTHS = [
   "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
