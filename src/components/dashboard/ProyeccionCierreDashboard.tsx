@@ -244,7 +244,7 @@ export function ProyeccionCierreDashboard() {
 
           rows.push({
             level: "subgroup",
-            label: `📍 ${zona}`,
+            label: `📍 ${zona.toUpperCase()}`,
             ventaActual: zVenta,
             presupuesto: zPresup,
             pctGeneral: zPresup > 0 ? (zVenta / zPresup) * 100 : 0,
