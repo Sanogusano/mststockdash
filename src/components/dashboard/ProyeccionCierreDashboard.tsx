@@ -112,7 +112,7 @@ interface ProyeccionRow {
   cierre_optimista: number;
 }
 
-type FilterStatus = "todos" | "cumple" | "no-cumple";
+// Multi-select de estados de cumplimiento (vacío = todos)
 
 export function ProyeccionCierreDashboard() {
   const now = new Date();
