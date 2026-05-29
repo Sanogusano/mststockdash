@@ -451,7 +451,7 @@ export function ProyeccionCierreDashboard() {
                         isGroup
                           ? "bg-muted/40 font-semibold border-t-2 border-border"
                           : isSubgroup
-                          ? "bg-muted/20 font-medium"
+                          ? "bg-muted/30 font-bold uppercase tracking-wide"
                           : "hover:bg-muted/10"
                       }
                     >
