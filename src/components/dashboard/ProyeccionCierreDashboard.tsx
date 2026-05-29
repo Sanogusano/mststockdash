@@ -33,7 +33,7 @@ const CUMPLIMIENTO_OPCIONES = [
   "Sí Cumple",
   "Cumplimiento Regular",
   "No Cumple",
-  "No Cumple Crítico",
+  "Crítico",
 ];
 
 function getCumplimientoLevel(pct: number): CumplimientoLevel {
