@@ -42,6 +42,14 @@ const inventariosItem: NavItem = { title: "Inventarios & Salud", url: "/inventar
 const bajaRotacionItem: NavItem = { title: "Baja Rotación", url: "/baja-rotacion", icon: AlertTriangle, description: "Sell-through bajo & antigüedad", module: "dashboards.inventario_salud", action: "view" };
 const insumosItem: NavItem = { title: "Gestión de Insumos", url: "/insumos", icon: Package, description: "CEDI & reorden", module: "dashboards.gestion_insumos", action: "view" };
 
+const manejoStockItems: NavItem[] = [
+  saludProductoItem,
+  desempenoLineaItem,
+  inventariosItem,
+  bajaRotacionItem,
+  insumosItem,
+];
+
 const gestionComercialItems: NavItem[] = [
   { title: "Gestión de Incentivos", url: "/incentivos", icon: Trophy, description: "Campañas & liquidaciones", module: "incentivos", action: "view" },
   { title: "Rendimiento Equipo", url: "/rendimiento-vendedores", icon: Users, description: "Desempeño por vendedor", module: "dashboards.rendimiento_vendedores", action: "view" },
