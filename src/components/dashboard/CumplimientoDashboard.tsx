@@ -509,70 +509,71 @@ export function CumplimientoDashboard() {
 
   return (
     <div className="space-y-6">
-      {/* Period Selector */}
-      <div className="flex items-center justify-between">
+      {/* Period Selector & Filters */}
+      <div className="flex flex-col gap-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Calendar className="h-5 w-5 text-muted-foreground" />
+            <Select value={anio.toString()} onValueChange={(v) => setAnio(Number(v))}>
+              <SelectTrigger className="w-28"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {YEARS.map(y => <SelectItem key={y} value={y.toString()}>{y}</SelectItem>)}
+              </SelectContent>
+            </Select>
+            <Select value={mes.toString()} onValueChange={(v) => setMes(Number(v))}>
+              <SelectTrigger className="w-36"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {MONTHS.map((m, i) => <SelectItem key={i} value={(i + 1).toString()}>{m}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-2"
+              onClick={() => exportCumplimientoXLS(
+                filteredRows,
+                {
+                  label: "TOTAL COMPAÑÍA",
+                  budget: totalBudget,
+                  ventaNeta: totalVentaNeta,
+                  pct: globalPct,
+                  pctToDate,
+                  budgetToDate,
+                  unidades: totalUnidades,
+                  ticket: ticketPromedio,
+                },
+                MONTHS[mes - 1],
+                anio
+              )}
+            >
+              <FileSpreadsheet className="h-4 w-4" />
+              Generar Excel
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-2"
+              onClick={() => exportCumplimientoPDF(
+                "cumplimiento-dashboard-content",
+                MONTHS[mes - 1],
+                anio
+              )}
+            >
+              <FileDown className="h-4 w-4" />
+              Generar PDF
+            </Button>
+          </div>
+        </div>
         <div className="flex items-center gap-3">
-          <Calendar className="h-5 w-5 text-muted-foreground" />
-          <Select value={anio.toString()} onValueChange={(v) => setAnio(Number(v))}>
-            <SelectTrigger className="w-28"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              {YEARS.map(y => <SelectItem key={y} value={y.toString()}>{y}</SelectItem>)}
-            </SelectContent>
-          </Select>
-          <Select value={mes.toString()} onValueChange={(v) => setMes(Number(v))}>
-            <SelectTrigger className="w-36"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              {MONTHS.map((m, i) => <SelectItem key={i} value={(i + 1).toString()}>{m}</SelectItem>)}
-            </SelectContent>
-          </Select>
+          <MultiSelectFilter
+            label="Estado cumplimiento"
+            options={CUMPLIMIENTO_OPCIONES}
+            selected={filtroCumplimiento}
+            onChange={setFiltroCumplimiento}
+          />
         </div>
-        <div className="flex gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            className="gap-2"
-            onClick={() => exportCumplimientoXLS(
-              tableRows,
-              {
-                label: "TOTAL COMPAÑÍA",
-                budget: totalBudget,
-                ventaNeta: totalVentaNeta,
-                pct: globalPct,
-                pctToDate,
-                budgetToDate,
-                unidades: totalUnidades,
-                ticket: ticketPromedio,
-              },
-              MONTHS[mes - 1],
-              anio
-            )}
-          >
-            <FileSpreadsheet className="h-4 w-4" />
-            Generar Excel
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            className="gap-2"
-            onClick={() => exportCumplimientoPDF(
-              "cumplimiento-dashboard-content",
-              MONTHS[mes - 1],
-              anio
-            )}
-          >
-            <FileDown className="h-4 w-4" />
-            Generar PDF
-          </Button>
-        </div>
-      </div>
-      <div className="flex items-center gap-3">
-        <MultiSelectFilter
-          label="Estado cumplimiento"
-          options={CUMPLIMIENTO_OPCIONES}
-          selected={filtroCumplimiento}
-          onChange={setFiltroCumplimiento}
-        />
-      </div>
       </div>
 
       <div id="cumplimiento-dashboard-content" className="space-y-6 bg-background">
