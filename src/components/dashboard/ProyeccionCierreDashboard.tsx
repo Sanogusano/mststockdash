@@ -456,7 +456,7 @@ export function ProyeccionCierreDashboard() {
                       }
                     >
                       <TableCell className={`text-[11px] sticky left-0 z-10 min-w-[140px] max-w-[200px] whitespace-normal break-words ${
-                        isGroup ? "bg-muted/40" : isSubgroup ? "bg-muted/20" : "bg-background"
+                        isGroup ? "bg-muted/40" : isSubgroup ? "bg-muted/30 font-bold uppercase tracking-wide" : "bg-background"
                       } ${row.level === "item" ? "pl-6" : ""}`}>
                         {row.label}
                       </TableCell>
