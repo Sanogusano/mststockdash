@@ -152,24 +152,24 @@ export function ProyeccionCierreDashboard() {
     return { ventaActual, presupuesto, conservador, probable, optimista, diasTranscurridos, diasMes };
   }, [data]);
 
-  // Hierarchical table rows
-  const tableRows = useMemo(() => {
-    const rows: Array<{
-      level: "group" | "subgroup" | "item" | "total-tiendas";
-      label: string;
-      ventaActual: number;
-      presupuesto: number;
-      pctGeneral: number;
-      pctFecha: number;
-      conservador: number;
-      probable: number;
-      optimista: number;
-    }> = [];
+  // Hierarchical table rows builder
+  type Row = {
+    level: "group" | "subgroup" | "item" | "total-tiendas";
+    label: string;
+    ventaActual: number;
+    presupuesto: number;
+    pctGeneral: number;
+    pctFecha: number;
+    conservador: number;
+    probable: number;
+    optimista: number;
+  };
 
+  const buildTableRows = (sortByCumplimiento: boolean): Row[] => {
+    const rows: Row[] = [];
     const channels = data.filter(r => r.tipo === "canal");
     const stores = data.filter(r => r.tipo === "tienda");
 
-    // Canales Digitales group
     if (channels.length > 0) {
       const chVenta = channels.reduce((s, r) => s + Number(r.venta_actual), 0);
       const chPresup = channels.reduce((s, r) => s + Number(r.presupuesto_mes), 0);
@@ -190,22 +190,27 @@ export function ProyeccionCierreDashboard() {
         optimista: chOpt,
       });
 
-      channels.forEach(c => {
-        rows.push({
-          level: "item",
-          label: c.nombre,
-          ventaActual: Number(c.venta_actual),
-          presupuesto: Number(c.presupuesto_mes),
-          pctGeneral: Number(c.pct_cumplimiento_general),
-          pctFecha: Number(c.pct_cumplimiento_fecha),
-          conservador: Number(c.cierre_conservador),
-          probable: Number(c.cierre_probable),
-          optimista: Number(c.cierre_optimista),
+      const chItems = channels.map(c => ({
+        level: "item" as const,
+        label: c.nombre,
+        ventaActual: Number(c.venta_actual),
+        presupuesto: Number(c.presupuesto_mes),
+        pctGeneral: Number(c.pct_cumplimiento_general),
+        pctFecha: Number(c.pct_cumplimiento_fecha),
+        conservador: Number(c.cierre_conservador),
+        probable: Number(c.cierre_probable),
+        optimista: Number(c.cierre_optimista),
+      }));
+      if (sortByCumplimiento) {
+        chItems.sort((a, b) => {
+          const pa = a.presupuesto > 0 ? (a.probable / a.presupuesto) * 100 : Infinity;
+          const pb = b.presupuesto > 0 ? (b.probable / b.presupuesto) * 100 : Infinity;
+          return pa - pb;
         });
-      });
+      }
+      rows.push(...chItems);
     }
 
-    // Total Tiendas
     if (stores.length > 0) {
       const stVenta = stores.reduce((s, r) => s + Number(r.venta_actual), 0);
       const stPresup = stores.reduce((s, r) => s + Number(r.presupuesto_mes), 0);
@@ -226,7 +231,6 @@ export function ProyeccionCierreDashboard() {
         optimista: stOpt,
       });
 
-      // Group stores by zona
       const zonaGroups: Record<string, ProyeccionRow[]> = {};
       stores.forEach(s => {
         const z = s.zona || "Sin Zona";
@@ -234,48 +238,69 @@ export function ProyeccionCierreDashboard() {
         zonaGroups[z].push(s);
       });
 
-      Object.entries(zonaGroups)
-        .sort(([a], [b]) => a.localeCompare(b))
-        .forEach(([zona, zStores]) => {
-          const zVenta = zStores.reduce((s, r) => s + Number(r.venta_actual), 0);
-          const zPresup = zStores.reduce((s, r) => s + Number(r.presupuesto_mes), 0);
-          const zCons = zStores.reduce((s, r) => s + Number(r.cierre_conservador), 0);
-          const zProb = zStores.reduce((s, r) => s + Number(r.cierre_probable), 0);
-          const zOpt = zStores.reduce((s, r) => s + Number(r.cierre_optimista), 0);
-          const budgetToDate = zPresup > 0 ? (zPresup / totals.diasMes) * totals.diasTranscurridos : 0;
+      const zonaEntries = Object.entries(zonaGroups).map(([zona, zStores]) => {
+        const zVenta = zStores.reduce((s, r) => s + Number(r.venta_actual), 0);
+        const zPresup = zStores.reduce((s, r) => s + Number(r.presupuesto_mes), 0);
+        const zCons = zStores.reduce((s, r) => s + Number(r.cierre_conservador), 0);
+        const zProb = zStores.reduce((s, r) => s + Number(r.cierre_probable), 0);
+        const zOpt = zStores.reduce((s, r) => s + Number(r.cierre_optimista), 0);
+        const budgetToDate = zPresup > 0 ? (zPresup / totals.diasMes) * totals.diasTranscurridos : 0;
+        const pctProbZona = zPresup > 0 ? (zProb / zPresup) * 100 : Infinity;
+        return { zona, zStores, zVenta, zPresup, zCons, zProb, zOpt, budgetToDate, pctProbZona };
+      });
 
-          rows.push({
-            level: "subgroup",
-            label: `📍 ${zona.toUpperCase()}`,
-            ventaActual: zVenta,
-            presupuesto: zPresup,
-            pctGeneral: zPresup > 0 ? (zVenta / zPresup) * 100 : 0,
-            pctFecha: budgetToDate > 0 ? (zVenta / budgetToDate) * 100 : 0,
-            conservador: zCons,
-            probable: zProb,
-            optimista: zOpt,
-          });
+      if (sortByCumplimiento) {
+        zonaEntries.sort((a, b) => a.pctProbZona - b.pctProbZona);
+      } else {
+        zonaEntries.sort((a, b) => a.zona.localeCompare(b.zona));
+      }
 
-          zStores
-            .sort((a, b) => a.nombre.localeCompare(b.nombre))
-            .forEach(st => {
-              rows.push({
-                level: "item",
-                label: st.nombre,
-                ventaActual: Number(st.venta_actual),
-                presupuesto: Number(st.presupuesto_mes),
-                pctGeneral: Number(st.pct_cumplimiento_general),
-                pctFecha: Number(st.pct_cumplimiento_fecha),
-                conservador: Number(st.cierre_conservador),
-                probable: Number(st.cierre_probable),
-                optimista: Number(st.cierre_optimista),
-              });
-            });
+      zonaEntries.forEach(({ zona, zStores, zVenta, zPresup, zCons, zProb, zOpt, budgetToDate }) => {
+        rows.push({
+          level: "subgroup",
+          label: `📍 ${zona.toUpperCase()}`,
+          ventaActual: zVenta,
+          presupuesto: zPresup,
+          pctGeneral: zPresup > 0 ? (zVenta / zPresup) * 100 : 0,
+          pctFecha: budgetToDate > 0 ? (zVenta / budgetToDate) * 100 : 0,
+          conservador: zCons,
+          probable: zProb,
+          optimista: zOpt,
         });
+
+        const items = zStores.map(st => ({
+          level: "item" as const,
+          label: st.nombre,
+          ventaActual: Number(st.venta_actual),
+          presupuesto: Number(st.presupuesto_mes),
+          pctGeneral: Number(st.pct_cumplimiento_general),
+          pctFecha: Number(st.pct_cumplimiento_fecha),
+          conservador: Number(st.cierre_conservador),
+          probable: Number(st.cierre_probable),
+          optimista: Number(st.cierre_optimista),
+        }));
+
+        if (sortByCumplimiento) {
+          items.sort((a, b) => {
+            const pa = a.presupuesto > 0 ? (a.probable / a.presupuesto) * 100 : Infinity;
+            const pb = b.presupuesto > 0 ? (b.probable / b.presupuesto) * 100 : Infinity;
+            return pa - pb;
+          });
+        } else {
+          items.sort((a, b) => a.label.localeCompare(b.label));
+        }
+
+        rows.push(...items);
+      });
     }
 
     return rows;
-  }, [data, totals]);
+  };
+
+  const tableRows = useMemo(() => buildTableRows(false), [data, totals]);
+  const sortedTableRows = useMemo(() => buildTableRows(true), [data, totals]);
+
+
 
   if (loading) {
     return <div className="text-center py-12 text-muted-foreground text-sm">Cargando proyecciones...</div>;
