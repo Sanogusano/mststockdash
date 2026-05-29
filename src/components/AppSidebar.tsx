@@ -42,6 +42,14 @@ const inventariosItem: NavItem = { title: "Inventarios & Salud", url: "/inventar
 const bajaRotacionItem: NavItem = { title: "Baja Rotación", url: "/baja-rotacion", icon: AlertTriangle, description: "Sell-through bajo & antigüedad", module: "dashboards.inventario_salud", action: "view" };
 const insumosItem: NavItem = { title: "Gestión de Insumos", url: "/insumos", icon: Package, description: "CEDI & reorden", module: "dashboards.gestion_insumos", action: "view" };
 
+const manejoStockItems: NavItem[] = [
+  saludProductoItem,
+  desempenoLineaItem,
+  inventariosItem,
+  bajaRotacionItem,
+  insumosItem,
+];
+
 const gestionComercialItems: NavItem[] = [
   { title: "Gestión de Incentivos", url: "/incentivos", icon: Trophy, description: "Campañas & liquidaciones", module: "incentivos", action: "view" },
   { title: "Rendimiento Equipo", url: "/rendimiento-vendedores", icon: Users, description: "Desempeño por vendedor", module: "dashboards.rendimiento_vendedores", action: "view" },
@@ -89,6 +97,7 @@ export function AppSidebar() {
   const visibleLogistica = useMemo(() => logisticaItems.filter((i) => can(i.module, i.action)), [permissions, isAdmin]);
   const visibleConfig = useMemo(() => configuracionItems.filter((i) => can(i.module, i.action)), [permissions, isAdmin]);
   const visibleFinanzas = useMemo(() => finanzasItems.filter((i) => can(i.module, i.action)), [permissions, isAdmin]);
+  const visibleStock = useMemo(() => manejoStockItems.filter((i) => can(i.module, i.action)), [permissions, isAdmin]);
 
   const canPresupuesto = can(presupuestoItem.module, presupuestoItem.action);
   const canCentroAccion = can(centroAccionItem.module, centroAccionItem.action);
@@ -98,12 +107,14 @@ export function AppSidebar() {
   const isLogisticaActive = visibleLogistica.some((i) => location.pathname === i.url);
   const isFinanzasActive = visibleFinanzas.some((i) => location.pathname === i.url);
   const isPresupuestoActive = [presupuestoItem.url, centroAccionItem.url].includes(location.pathname);
+  const isStockActive = visibleStock.some((i) => location.pathname === i.url);
 
   const [gestionOpen, setGestionOpen] = useState(isGestionActive);
   const [configOpen, setConfigOpen] = useState(isConfigActive);
   const [logisticaOpen, setLogisticaOpen] = useState(isLogisticaActive);
   const [finanzasOpen, setFinanzasOpen] = useState(isFinanzasActive);
   const [presupuestoOpen, setPresupuestoOpen] = useState(isPresupuestoActive);
+  const [stockOpen, setStockOpen] = useState(isStockActive);
 
   const userEmail = session?.user?.email || "";
   const userInitial = userEmail.charAt(0).toUpperCase() || "U";
@@ -188,22 +199,61 @@ export function AppSidebar() {
                 </>
               )}
 
-              {/* 3 - Rendimiento Tiendas */}
+              {/* 3 - Gestión Comercial */}
+              {visibleGestion.length > 0 && (
+                <>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton asChild>
+                      <button
+                        onClick={() => setGestionOpen((v) => !v)}
+                        className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-150 ${
+                          isGestionActive
+                            ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
+                            : "text-sidebar-foreground/70 hover:bg-sidebar-accent/40 hover:text-sidebar-foreground"
+                        }`}
+                      >
+                        <Briefcase className="h-[18px] w-[18px] shrink-0" />
+                        <span className="text-sm leading-tight flex-1 text-left truncate">Gestión Comercial</span>
+                        <ChevronDown
+                          className={`h-3.5 w-3.5 shrink-0 transition-transform ${gestionOpen ? "rotate-180" : ""}`}
+                        />
+                      </button>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                  {gestionOpen && visibleGestion.map((item) => renderItem(item, true))}
+                </>
+              )}
+
+              {/* 4 - Rendimiento Tiendas */}
               {can(rendimientoTiendasItem.module, rendimientoTiendasItem.action) && renderItem(rendimientoTiendasItem)}
 
-              {/* 4 - Salud Producto */}
-              {can(saludProductoItem.module, saludProductoItem.action) && renderItem(saludProductoItem)}
-
-              {/* 5 - Desempeño por Línea */}
-              {can(desempenoLineaItem.module, desempenoLineaItem.action) && renderItem(desempenoLineaItem)}
-
-              {/* 6 - Cierre de Colecciones */}
+              {/* 5 - Cierre de Colecciones */}
               {can(cierreColeccionItem.module, cierreColeccionItem.action) && renderItem(cierreColeccionItem)}
 
-              {/* Items adicionales (Inventarios, Insumos) */}
-              {can(inventariosItem.module, inventariosItem.action) && renderItem(inventariosItem)}
-              {can(bajaRotacionItem.module, bajaRotacionItem.action) && renderItem(bajaRotacionItem)}
-              {can(insumosItem.module, insumosItem.action) && renderItem(insumosItem)}
+              {/* 6 - Manejo de Stock */}
+              {visibleStock.length > 0 && (
+                <>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton asChild>
+                      <button
+                        onClick={() => setStockOpen((v) => !v)}
+                        className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-150 ${
+                          isStockActive
+                            ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
+                            : "text-sidebar-foreground/70 hover:bg-sidebar-accent/40 hover:text-sidebar-foreground"
+                        }`}
+                      >
+                        <Package className="h-[18px] w-[18px] shrink-0" />
+                        <span className="text-sm leading-tight flex-1 text-left truncate">Manejo de Stock</span>
+                        <ChevronDown
+                          className={`h-3.5 w-3.5 shrink-0 transition-transform ${stockOpen ? "rotate-180" : ""}`}
+                        />
+                      </button>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                  {stockOpen && visibleStock.map((item) => renderItem(item, true))}
+                </>
+              )}
 
               {/* 7 - Logística & Traslados */}
               {visibleLogistica.length > 0 && (
@@ -227,31 +277,6 @@ export function AppSidebar() {
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                   {logisticaOpen && visibleLogistica.map((item) => renderItem(item, true))}
-                </>
-              )}
-
-              {/* 8 - Gestión Comercial */}
-              {visibleGestion.length > 0 && (
-                <>
-                  <SidebarMenuItem>
-                    <SidebarMenuButton asChild>
-                      <button
-                        onClick={() => setGestionOpen((v) => !v)}
-                        className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-150 ${
-                          isGestionActive
-                            ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
-                            : "text-sidebar-foreground/70 hover:bg-sidebar-accent/40 hover:text-sidebar-foreground"
-                        }`}
-                      >
-                        <Briefcase className="h-[18px] w-[18px] shrink-0" />
-                        <span className="text-sm leading-tight flex-1 text-left truncate">Gestión Comercial</span>
-                        <ChevronDown
-                          className={`h-3.5 w-3.5 shrink-0 transition-transform ${gestionOpen ? "rotate-180" : ""}`}
-                        />
-                      </button>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                  {gestionOpen && visibleGestion.map((item) => renderItem(item, true))}
                 </>
               )}
 
