@@ -565,6 +565,15 @@ export function CumplimientoDashboard() {
           </Button>
         </div>
       </div>
+      <div className="flex items-center gap-3">
+        <MultiSelectFilter
+          label="Estado cumplimiento"
+          options={CUMPLIMIENTO_OPCIONES}
+          selected={filtroCumplimiento}
+          onChange={setFiltroCumplimiento}
+        />
+      </div>
+      </div>
 
       <div id="cumplimiento-dashboard-content" className="space-y-6 bg-background">
       {/* ── Master KPI ── */}
@@ -675,11 +684,18 @@ export function CumplimientoDashboard() {
           <div className="flex items-end gap-[2px] h-40">
             {dailyData.slice(0, currentDay).map((d) => {
               const heightPct = maxDailyValue > 0 ? (d.ventaNeta / maxDailyValue) * 100 : 0;
-              const barColor = d.pct >= 100
-                ? "bg-[hsl(142,76%,46%)]"
-                : d.pct >= 80
-                ? "bg-[hsl(var(--warning))]"
-                : "bg-[hsl(var(--danger))]";
+              const level = getCumplimientoLevel(d.pct);
+              const barColor = level === "sobrecumple"
+                ? "bg-blue-500"
+                : level === "si-cumple-verde"
+                ? "bg-green-500"
+                : level === "si-cumple-amarillo"
+                ? "bg-yellow-500"
+                : level === "cumplimiento-regular"
+                ? "bg-orange-500"
+                : level === "no-cumple"
+                ? "bg-red-500"
+                : "bg-red-800";
               return (
                 <div
                   key={d.day}
@@ -749,12 +765,14 @@ export function CumplimientoDashboard() {
                 <TableCell className="text-right font-bold">{fmtCOP(ticketPromedio)}</TableCell>
               </TableRow>
 
-              {tableRows.map((row, idx) => {
+              {filteredRows.map((row, idx) => {
                 const isGroup = row.level === "group";
                 const isSubgroup = row.level === "subgroup";
                 const isItem = row.level === "item";
                 const isTotalTiendas = row.level === "total-tiendas";
                 const zebraClass = isItem && idx % 2 === 0 ? "bg-muted/20" : "";
+                const isPctCritico = getCumplimientoLevel(row.pct) === "no-cumple-critico";
+                const isPctToDateCritico = getCumplimientoLevel(row.pctToDate) === "no-cumple-critico";
 
                 return (
                   <TableRow
@@ -786,11 +804,13 @@ export function CumplimientoDashboard() {
                     <TableCell className="text-right text-sm">{fmtCOP(row.ventaNeta)}</TableCell>
                     <TableCell className="text-right">
                       <Badge className={`text-xs border ${pctBadgeClass(row.pct)}`}>
+                        {isPctCritico && <Skull className="h-3 w-3 mr-0.5" />}
                         {row.pct.toFixed(1)}%
                       </Badge>
                     </TableCell>
                     <TableCell className="text-right">
                       <Badge className={`text-xs border ${pctBadgeClass(row.pctToDate)}`}>
+                        {isPctToDateCritico && <Skull className="h-3 w-3 mr-0.5" />}
                         {row.pctToDate.toFixed(1)}%
                       </Badge>
                     </TableCell>
