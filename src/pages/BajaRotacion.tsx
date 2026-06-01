@@ -170,7 +170,13 @@ export default function BajaRotacionPage() {
         p_incluir_rebajas: incluirRebajas,
       } as any);
       if (error) throw error;
-      return (data ?? []) as Row[];
+      // El RPC devuelve stock_tiendas_linea / stock_outlets; normalizamos al modelo del UI.
+      return ((data ?? []) as any[]).map((r) => ({
+        ...r,
+        stock_linea: Number(r.stock_linea ?? r.stock_tiendas_linea ?? 0) || 0,
+        stock_outlet: Number(r.stock_outlet ?? r.stock_outlets ?? 0) || 0,
+        stock_digital: Number(r.stock_digital ?? 0) || 0,
+      })) as Row[];
     },
   });
 
