@@ -4,7 +4,6 @@ import { AppSidebar } from "@/components/AppSidebar";
 import { TimeFilter, THIS_MONTH_SENTINEL, type ComparisonPeriod } from "@/components/dashboard/TimeFilter";
 import { ExecutiveDashboard } from "@/components/dashboard/ExecutiveDashboard";
 import { ReportGeneratorButton } from "@/components/dashboard/ReportGenerator";
-import { SyncInventoryButton } from "@/components/dashboard/SyncInventoryButton";
 
 function ColombiaDateTime() {
   const [now, setNow] = useState(() => new Date());
@@ -46,7 +45,6 @@ export default function ExecutivePage() {
             </div>
             <div className="flex items-center gap-2">
               <TimeFilter value={days} onChange={setDays} comparisonPeriod={comparisonPeriod} onComparisonChange={setComparisonPeriod} />
-              <SyncInventoryButton />
               <ReportGeneratorButton days={days} />
             </div>
           </header>
