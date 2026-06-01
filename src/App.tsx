@@ -32,6 +32,7 @@ import NetsuiteUploadPage from "./pages/NetsuiteUpload";
 import ConfiguracionUsuariosPage from "./pages/ConfiguracionUsuarios";
 import ConfiguracionRolesPage from "./pages/ConfiguracionRoles";
 import ConfiguracionNotificacionesPage from "./pages/ConfiguracionNotificaciones";
+import ConfiguracionSyncInventarioPage from "./pages/ConfiguracionSyncInventario";
 import RendimientoRedPage from "./pages/RendimientoRed";
 import FinanzasDashboardPage from "./pages/finanzas/FinanzasDashboard";
 import AddiPage from "./pages/finanzas/AddiPage";
@@ -107,6 +108,7 @@ const App = () => (
           <Route path="/configuracion/usuarios" element={<Guard module="config.usuarios" action="view"><ConfiguracionUsuariosPage /></Guard>} />
           <Route path="/configuracion/roles" element={<Guard module="config.roles" action="view"><ConfiguracionRolesPage /></Guard>} />
           <Route path="/configuracion/notificaciones" element={<ProtectedRoute><ConfiguracionNotificacionesPage /></ProtectedRoute>} />
+          <Route path="/configuracion/sync-inventario" element={<Guard module="inventario_netsuite" action="view"><ConfiguracionSyncInventarioPage /></Guard>} />
 
           <Route path="*" element={<NotFound />} />
         </Routes>
