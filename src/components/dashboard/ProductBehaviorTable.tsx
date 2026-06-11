@@ -6,7 +6,7 @@ import { LoadingState, EmptyState } from "./LoadingState";
 import { StatusBadge } from "./StatusBadge";
 import { ProductDetailDrawer } from "./ProductDetailDrawer";
 import { exportToCSV } from "@/lib/csv-export";
-import { exportToPDF } from "@/lib/pdf-export";
+import { exportComportamientoProductoPDF } from "@/lib/comportamiento-producto-pdf";
 import { Search, Download, FileText, Tag } from "lucide-react";
 import { CollectionBadge } from "./CollectionBadge";
 import { Input } from "@/components/ui/input";
