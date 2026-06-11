@@ -203,21 +203,21 @@ export function ProductBehaviorTable({ days, initialWosFilter, initialLocationId
     );
   };
 
-  const handleExportPDF = () => {
+  const handleExportPDF = async () => {
     if (!rows.length) return;
-    exportToPDF(
+    await exportComportamientoProductoPDF(
       rows.map((r) => ({
-        SKU: r.sku,
-        Producto: r.producto,
-        Categoría: r.categoria,
-        Clasificación: r.clasificacion,
-        "Und. Vendidas": r.und_vendidas,
-        Full: r.und_full_price ?? 0,
-        Rebajas: r.und_rebajas ?? 0,
-        Promo: r.und_promo ?? 0,
-        "Sell-Through %": r.sell_through_pct,
-        WOS: r.wos,
-        Salud: r.estado_salud,
+        foto: r.foto,
+        sku: r.sku,
+        producto: r.producto,
+        categoria: r.categoria,
+        und_vendidas: r.und_vendidas ?? 0,
+        und_full_price: r.und_full_price ?? 0,
+        und_rebajas: r.und_rebajas ?? 0,
+        und_promo: r.und_promo ?? 0,
+        stock_tiendas: r.stock_tiendas ?? 0,
+        stock_digital: r.stock_digital ?? 0,
+        sell_through_pct: r.sell_through_pct ?? 0,
       })),
       "comportamiento_producto",
       "Comportamiento de Producto"
