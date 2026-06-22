@@ -36,6 +36,7 @@ const rendimientoTiendasItem: NavItem = { title: "Rendimiento Tiendas", url: "/r
 const saludProductoItem: NavItem = { title: "Salud de Producto", url: "/producto", icon: Tag, description: "Sell-through & WOS", module: "dashboards.salud_producto", action: "view" };
 const desempenoLineaItem: NavItem = { title: "Desempeño por Línea", url: "/lineas", icon: Layers, description: "Categorías & canales", module: "dashboards.desempeno_linea", action: "view" };
 const cierreColeccionItem: NavItem = { title: "Cierre de Colecciones", url: "/cierre-coleccion", icon: Archive, description: "Desempeño por colección & remanentes", module: "dashboards.cierre_colecciones", action: "view" };
+const proyeccionDemandaItem: NavItem = { title: "Proyección de Demanda", url: "/proyeccion-demanda", icon: TrendingUp, description: "Categoría · color · tallas", module: "dashboards.desempeno_linea", action: "view" };
 
 // Items adicionales (no listados explícitamente, se mantienen visibles al final del bloque de análisis)
 const inventariosItem: NavItem = { title: "Inventarios & Salud", url: "/inventarios", icon: BarChart3, description: "WOS por tienda", module: "dashboards.inventario_salud", action: "view" };
@@ -230,6 +231,9 @@ export function AppSidebar() {
 
               {/* 5 - Cierre de Colecciones */}
               {can(cierreColeccionItem.module, cierreColeccionItem.action) && renderItem(cierreColeccionItem)}
+
+              {/* 5b - Proyección de Demanda */}
+              {can(proyeccionDemandaItem.module, proyeccionDemandaItem.action) && renderItem(proyeccionDemandaItem)}
 
               {/* 6 - Manejo de Stock */}
               {visibleStock.length > 0 && (

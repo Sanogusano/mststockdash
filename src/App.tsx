@@ -24,6 +24,7 @@ import PresupuestosPage from "./pages/Presupuestos";
 import CentroAccionPage from "./pages/CentroAccion";
 import IncentivosPage from "./pages/Incentivos";
 import CierreColeccionPage from "./pages/CierreColeccion";
+import ProyeccionDemandaPage from "./pages/ProyeccionDemanda";
 import RendimientoVendedoresPage from "./pages/RendimientoVendedores";
 import ComisionesPage from "./pages/Comisiones";
 import VendedoresPage from "./pages/Vendedores";
@@ -88,6 +89,7 @@ const App = () => (
           <Route path="/centro-accion" element={<Guard module="dashboards.centro_accion" action="view"><CentroAccionPage /></Guard>} />
           <Route path="/incentivos" element={<Guard module="incentivos" action="view"><IncentivosPage /></Guard>} />
           <Route path="/cierre-coleccion" element={<Guard module="dashboards.cierre_colecciones" action="view"><CierreColeccionPage /></Guard>} />
+          <Route path="/proyeccion-demanda" element={<ProtectedRoute><ProyeccionDemandaPage /></ProtectedRoute>} />
           <Route path="/rendimiento-vendedores" element={<Guard module="dashboards.rendimiento_vendedores" action="view"><RendimientoVendedoresPage /></Guard>} />
           <Route path="/comisiones" element={<Guard module="comisiones" action="view"><ComisionesPage /></Guard>} />
           <Route path="/vendedores" element={<Guard module="vendedores" action="view"><VendedoresPage /></Guard>} />

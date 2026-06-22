@@ -428,6 +428,21 @@ export type Database = {
           },
         ]
       }
+      category_mapping: {
+        Row: {
+          category_clean: string
+          category_raw: string
+        }
+        Insert: {
+          category_clean: string
+          category_raw: string
+        }
+        Update: {
+          category_clean?: string
+          category_raw?: string
+        }
+        Relationships: []
+      }
       commission_batches: {
         Row: {
           anio: number
@@ -2181,6 +2196,33 @@ export type Database = {
           tipo_tienda: string
           upt: number
           venta_mtd: number
+        }[]
+      }
+      get_curva_tallas: {
+        Args: { p_canal?: string; p_crecimiento?: number; p_trimestre: number }
+        Returns: {
+          categoria: string
+          familia_color: string
+          pct_talla_en_color: number
+          proyeccion_2027: number
+          talla: string
+          unidades_2025: number
+          unidades_2026: number
+        }[]
+      }
+      get_proyeccion_demanda: {
+        Args: { p_canal?: string; p_crecimiento?: number; p_trimestre: number }
+        Returns: {
+          categoria: string
+          familia_color: string
+          pct_categoria: number
+          pct_color_en_categoria: number
+          precio_promedio: number
+          promedio_ponderado: number
+          proyeccion_2027: number
+          unidades_2025: number
+          unidades_2026: number
+          venta_proyectada: number
         }[]
       }
       get_user_permissions: {
