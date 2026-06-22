@@ -337,6 +337,33 @@ export default function ProyeccionDemandaPage() {
               </Card>
             </div>
 
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <Card>
+                <CardContent className="pt-5">
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
+                    <TrendingUp className="h-3.5 w-3.5" /> Venta Full Price proy.
+                  </div>
+                  <div className="text-2xl font-semibold text-emerald-600">{fmtMoney(kpis.totalFull)}</div>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="pt-5">
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
+                    <TrendingUp className="h-3.5 w-3.5" /> Venta Promo proy.
+                  </div>
+                  <div className="text-2xl font-semibold text-amber-600">{fmtMoney(kpis.totalPromo)}</div>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="pt-5">
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
+                    <DollarSign className="h-3.5 w-3.5" /> % Full Price del Q
+                  </div>
+                  <div className="text-2xl font-semibold">{kpis.pctFull.toFixed(1)}%</div>
+                </CardContent>
+              </Card>
+            </div>
+
             {/* Tabla */}
             <Card>
               <CardHeader className="pb-3">
