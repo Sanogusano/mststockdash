@@ -33,6 +33,12 @@ interface ProyeccionRow {
   venta_proyectada: number;
   pct_categoria: number;
   pct_color_en_categoria: number;
+  coleccion_proyectada: string | null;
+  pct_full_price: number;
+  unidades_full_price: number;
+  unidades_promo: number;
+  venta_full_price: number;
+  venta_promo: number;
 }
 
 interface CurvaRow {
@@ -141,9 +147,12 @@ export default function ProyeccionDemandaPage() {
   const kpis = useMemo(() => {
     const totalUnits = rows.reduce((s, r) => s + Number(r.proyeccion_2027 || 0), 0);
     const totalSales = rows.reduce((s, r) => s + Number(r.venta_proyectada || 0), 0);
+    const totalFull = rows.reduce((s, r) => s + Number(r.venta_full_price || 0), 0);
+    const totalPromo = rows.reduce((s, r) => s + Number(r.venta_promo || 0), 0);
     const categorias = new Set(rows.map((r) => r.categoria)).size;
     const precioPond = totalUnits > 0 ? totalSales / totalUnits : 0;
-    return { totalUnits, totalSales, categorias, precioPond };
+    const pctFull = totalSales > 0 ? (totalFull / totalSales) * 100 : 0;
+    return { totalUnits, totalSales, categorias, precioPond, totalFull, totalPromo, pctFull };
   }, [rows]);
 
   const toggleColor = (key: string) => {
@@ -171,10 +180,19 @@ export default function ProyeccionDemandaPage() {
     const out: Record<string, unknown>[] = [];
     for (const r of rows) {
       const curva = curvaIndex.get(`${r.categoria}||${r.familia_color}`) ?? [];
+      const base = {
+        Categoria: r.categoria,
+        "Coleccion Proyectada": r.coleccion_proyectada ?? "",
+        "% Full Price (Cat)": Number(r.pct_full_price),
+        Color: r.familia_color,
+        "Und Full Price": Number(r.unidades_full_price),
+        "Und Promo": Number(r.unidades_promo),
+        "Venta Full Price": Number(r.venta_full_price),
+        "Venta Promo": Number(r.venta_promo),
+      };
       if (curva.length === 0) {
         out.push({
-          Categoria: r.categoria,
-          Color: r.familia_color,
+          ...base,
           Talla: "-",
           "Und 2025": Number(r.unidades_2025),
           "Und 2026": Number(r.unidades_2026),
@@ -187,8 +205,7 @@ export default function ProyeccionDemandaPage() {
       }
       for (const c of curva) {
         out.push({
-          Categoria: r.categoria,
-          Color: r.familia_color,
+          ...base,
           Talla: c.talla,
           "Und 2025": Number(c.unidades_2025),
           "Und 2026": Number(c.unidades_2026),
@@ -320,6 +337,33 @@ export default function ProyeccionDemandaPage() {
               </Card>
             </div>
 
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <Card>
+                <CardContent className="pt-5">
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
+                    <TrendingUp className="h-3.5 w-3.5" /> Venta Full Price proy.
+                  </div>
+                  <div className="text-2xl font-semibold text-emerald-600">{fmtMoney(kpis.totalFull)}</div>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="pt-5">
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
+                    <TrendingUp className="h-3.5 w-3.5" /> Venta Promo proy.
+                  </div>
+                  <div className="text-2xl font-semibold text-amber-600">{fmtMoney(kpis.totalPromo)}</div>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="pt-5">
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
+                    <DollarSign className="h-3.5 w-3.5" /> % Full Price del Q
+                  </div>
+                  <div className="text-2xl font-semibold">{kpis.pctFull.toFixed(1)}%</div>
+                </CardContent>
+              </Card>
+            </div>
+
             {/* Tabla */}
             <Card>
               <CardHeader className="pb-3">
@@ -344,9 +388,13 @@ export default function ProyeccionDemandaPage() {
                           <TableHead className="text-right">Und 2025</TableHead>
                           <TableHead className="text-right">Und 2026</TableHead>
                           <TableHead className="text-right">Proy. 2027</TableHead>
+                          <TableHead className="text-right">Und. Full</TableHead>
+                          <TableHead className="text-right">Und. Promo</TableHead>
                           <TableHead className="text-right">Precio prom.</TableHead>
+                          <TableHead className="text-right">Venta Full</TableHead>
+                          <TableHead className="text-right">Venta Promo</TableHead>
                           <TableHead className="text-right">Venta proy.</TableHead>
-                          <TableHead className="text-right">% Color en cat.</TableHead>
+                          <TableHead className="text-right">% Color</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -355,6 +403,9 @@ export default function ProyeccionDemandaPage() {
                           const catUnits = colors.reduce((s, r) => s + Number(r.proyeccion_2027 || 0), 0);
                           const catSales = colors.reduce((s, r) => s + Number(r.venta_proyectada || 0), 0);
                           const catPct = colors[0] ? Number(colors[0].pct_categoria) : 0;
+                          const coleccion = colors[0]?.coleccion_proyectada ?? null;
+                          const pctFull = colors[0] ? Number(colors[0].pct_full_price) : 0;
+                          const pctPromo = Math.max(0, 100 - pctFull);
                           return (
                             <Fragment key={categoria}>
                               {/* Category header */}
@@ -368,12 +419,24 @@ export default function ProyeccionDemandaPage() {
                                     : <ChevronDown className="h-4 w-4 text-slate-200" />}
                                 </TableCell>
                                 <TableCell className="py-2.5 text-slate-100 font-semibold uppercase tracking-wide text-xs">
-                                  {categoria}
+                                  <div className="flex items-center gap-2 flex-wrap">
+                                    <span>{categoria}</span>
+                                    {coleccion && (
+                                      <Badge variant="secondary" className="text-[10px] px-1.5 py-0 bg-slate-100 text-slate-800">
+                                        {coleccion}
+                                      </Badge>
+                                    )}
+                                  </div>
                                 </TableCell>
                                 <TableCell colSpan={3} className="py-2.5 text-right text-slate-200 tabular-nums text-xs">
                                   {fmtNum(catUnits)} un proy.
                                 </TableCell>
-                                <TableCell colSpan={2} className="py-2.5 text-right text-slate-200 tabular-nums text-xs">
+                                <TableCell colSpan={2} className="py-2.5 text-right text-slate-200 tabular-nums text-[10px]">
+                                  <span className="text-emerald-300">{pctFull.toFixed(0)}% full</span>
+                                  <span className="text-slate-400"> · </span>
+                                  <span className="text-amber-300">{pctPromo.toFixed(0)}% promo</span>
+                                </TableCell>
+                                <TableCell colSpan={4} className="py-2.5 text-right text-slate-200 tabular-nums text-xs">
                                   {fmtMoney(catSales)} proy.
                                 </TableCell>
                                 <TableCell className="py-2.5 text-right text-slate-200 tabular-nums text-xs">
@@ -401,7 +464,11 @@ export default function ProyeccionDemandaPage() {
                                       <TableCell className="py-2 text-right tabular-nums">{fmtNum(r.unidades_2025)}</TableCell>
                                       <TableCell className="py-2 text-right tabular-nums">{fmtNum(r.unidades_2026)}</TableCell>
                                       <TableCell className="py-2 text-right tabular-nums font-medium">{fmtNum(r.proyeccion_2027)}</TableCell>
+                                      <TableCell className="py-2 text-right tabular-nums text-emerald-700">{fmtNum(r.unidades_full_price)}</TableCell>
+                                      <TableCell className="py-2 text-right tabular-nums text-amber-700">{fmtNum(r.unidades_promo)}</TableCell>
                                       <TableCell className="py-2 text-right tabular-nums">{fmtMoney(r.precio_promedio)}</TableCell>
+                                      <TableCell className="py-2 text-right tabular-nums text-emerald-700">{fmtMoney(r.venta_full_price)}</TableCell>
+                                      <TableCell className="py-2 text-right tabular-nums text-amber-700">{fmtMoney(r.venta_promo)}</TableCell>
                                       <TableCell className="py-2 text-right tabular-nums">{fmtMoney(r.venta_proyectada)}</TableCell>
                                       <TableCell className="py-2 text-right tabular-nums">
                                         {Number(r.pct_color_en_categoria).toFixed(1)}%
@@ -410,7 +477,7 @@ export default function ProyeccionDemandaPage() {
                                     {isOpen && (
                                       <TableRow key={`${key}-curva`} className="bg-muted/30 hover:bg-muted/30">
                                         <TableCell />
-                                        <TableCell colSpan={7} className="py-3">
+                                        <TableCell colSpan={12} className="py-3">
                                           {curva.length === 0 ? (
                                             <div className="text-xs text-muted-foreground">Sin curva de tallas disponible.</div>
                                           ) : (
