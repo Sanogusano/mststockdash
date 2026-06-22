@@ -387,7 +387,7 @@ export default function ProyeccionDemandaPage() {
                                     </TableCell>
                                   </TableRow>
                                 )}
-                              </>
+                              </Fragment>
                             );
                           })
                         )}
