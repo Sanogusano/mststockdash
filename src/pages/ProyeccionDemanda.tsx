@@ -33,6 +33,12 @@ interface ProyeccionRow {
   venta_proyectada: number;
   pct_categoria: number;
   pct_color_en_categoria: number;
+  coleccion_proyectada: string | null;
+  pct_full_price: number;
+  unidades_full_price: number;
+  unidades_promo: number;
+  venta_full_price: number;
+  venta_promo: number;
 }
 
 interface CurvaRow {
