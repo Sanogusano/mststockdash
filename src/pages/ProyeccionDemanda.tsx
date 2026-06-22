@@ -388,9 +388,13 @@ export default function ProyeccionDemandaPage() {
                           <TableHead className="text-right">Und 2025</TableHead>
                           <TableHead className="text-right">Und 2026</TableHead>
                           <TableHead className="text-right">Proy. 2027</TableHead>
+                          <TableHead className="text-right">Und. Full</TableHead>
+                          <TableHead className="text-right">Und. Promo</TableHead>
                           <TableHead className="text-right">Precio prom.</TableHead>
+                          <TableHead className="text-right">Venta Full</TableHead>
+                          <TableHead className="text-right">Venta Promo</TableHead>
                           <TableHead className="text-right">Venta proy.</TableHead>
-                          <TableHead className="text-right">% Color en cat.</TableHead>
+                          <TableHead className="text-right">% Color</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -399,6 +403,9 @@ export default function ProyeccionDemandaPage() {
                           const catUnits = colors.reduce((s, r) => s + Number(r.proyeccion_2027 || 0), 0);
                           const catSales = colors.reduce((s, r) => s + Number(r.venta_proyectada || 0), 0);
                           const catPct = colors[0] ? Number(colors[0].pct_categoria) : 0;
+                          const coleccion = colors[0]?.coleccion_proyectada ?? null;
+                          const pctFull = colors[0] ? Number(colors[0].pct_full_price) : 0;
+                          const pctPromo = Math.max(0, 100 - pctFull);
                           return (
                             <Fragment key={categoria}>
                               {/* Category header */}
@@ -412,12 +419,24 @@ export default function ProyeccionDemandaPage() {
                                     : <ChevronDown className="h-4 w-4 text-slate-200" />}
                                 </TableCell>
                                 <TableCell className="py-2.5 text-slate-100 font-semibold uppercase tracking-wide text-xs">
-                                  {categoria}
+                                  <div className="flex items-center gap-2 flex-wrap">
+                                    <span>{categoria}</span>
+                                    {coleccion && (
+                                      <Badge variant="secondary" className="text-[10px] px-1.5 py-0 bg-slate-100 text-slate-800">
+                                        {coleccion}
+                                      </Badge>
+                                    )}
+                                  </div>
                                 </TableCell>
                                 <TableCell colSpan={3} className="py-2.5 text-right text-slate-200 tabular-nums text-xs">
                                   {fmtNum(catUnits)} un proy.
                                 </TableCell>
-                                <TableCell colSpan={2} className="py-2.5 text-right text-slate-200 tabular-nums text-xs">
+                                <TableCell colSpan={2} className="py-2.5 text-right text-slate-200 tabular-nums text-[10px]">
+                                  <span className="text-emerald-300">{pctFull.toFixed(0)}% full</span>
+                                  <span className="text-slate-400"> · </span>
+                                  <span className="text-amber-300">{pctPromo.toFixed(0)}% promo</span>
+                                </TableCell>
+                                <TableCell colSpan={4} className="py-2.5 text-right text-slate-200 tabular-nums text-xs">
                                   {fmtMoney(catSales)} proy.
                                 </TableCell>
                                 <TableCell className="py-2.5 text-right text-slate-200 tabular-nums text-xs">
@@ -445,7 +464,11 @@ export default function ProyeccionDemandaPage() {
                                       <TableCell className="py-2 text-right tabular-nums">{fmtNum(r.unidades_2025)}</TableCell>
                                       <TableCell className="py-2 text-right tabular-nums">{fmtNum(r.unidades_2026)}</TableCell>
                                       <TableCell className="py-2 text-right tabular-nums font-medium">{fmtNum(r.proyeccion_2027)}</TableCell>
+                                      <TableCell className="py-2 text-right tabular-nums text-emerald-700">{fmtNum(r.unidades_full_price)}</TableCell>
+                                      <TableCell className="py-2 text-right tabular-nums text-amber-700">{fmtNum(r.unidades_promo)}</TableCell>
                                       <TableCell className="py-2 text-right tabular-nums">{fmtMoney(r.precio_promedio)}</TableCell>
+                                      <TableCell className="py-2 text-right tabular-nums text-emerald-700">{fmtMoney(r.venta_full_price)}</TableCell>
+                                      <TableCell className="py-2 text-right tabular-nums text-amber-700">{fmtMoney(r.venta_promo)}</TableCell>
                                       <TableCell className="py-2 text-right tabular-nums">{fmtMoney(r.venta_proyectada)}</TableCell>
                                       <TableCell className="py-2 text-right tabular-nums">
                                         {Number(r.pct_color_en_categoria).toFixed(1)}%
@@ -454,7 +477,7 @@ export default function ProyeccionDemandaPage() {
                                     {isOpen && (
                                       <TableRow key={`${key}-curva`} className="bg-muted/30 hover:bg-muted/30">
                                         <TableCell />
-                                        <TableCell colSpan={7} className="py-3">
+                                        <TableCell colSpan={12} className="py-3">
                                           {curva.length === 0 ? (
                                             <div className="text-xs text-muted-foreground">Sin curva de tallas disponible.</div>
                                           ) : (
