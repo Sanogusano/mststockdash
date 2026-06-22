@@ -180,10 +180,19 @@ export default function ProyeccionDemandaPage() {
     const out: Record<string, unknown>[] = [];
     for (const r of rows) {
       const curva = curvaIndex.get(`${r.categoria}||${r.familia_color}`) ?? [];
+      const base = {
+        Categoria: r.categoria,
+        "Coleccion Proyectada": r.coleccion_proyectada ?? "",
+        "% Full Price (Cat)": Number(r.pct_full_price),
+        Color: r.familia_color,
+        "Und Full Price": Number(r.unidades_full_price),
+        "Und Promo": Number(r.unidades_promo),
+        "Venta Full Price": Number(r.venta_full_price),
+        "Venta Promo": Number(r.venta_promo),
+      };
       if (curva.length === 0) {
         out.push({
-          Categoria: r.categoria,
-          Color: r.familia_color,
+          ...base,
           Talla: "-",
           "Und 2025": Number(r.unidades_2025),
           "Und 2026": Number(r.unidades_2026),
@@ -196,8 +205,7 @@ export default function ProyeccionDemandaPage() {
       }
       for (const c of curva) {
         out.push({
-          Categoria: r.categoria,
-          Color: r.familia_color,
+          ...base,
           Talla: c.talla,
           "Und 2025": Number(c.unidades_2025),
           "Und 2026": Number(c.unidades_2026),
