@@ -327,9 +327,8 @@ export default function ProyeccionDemandaPage() {
                             const isOpen = expanded.has(key);
                             const curva = curvaIndex.get(key) ?? [];
                             return (
-                              <>
+                              <Fragment key={key}>
                                 <TableRow
-                                  key={key}
                                   className="cursor-pointer"
                                   onClick={() => toggle(key)}
                                 >
