@@ -2229,14 +2229,20 @@ export type Database = {
         Args: { p_canal?: string; p_crecimiento?: number; p_trimestre: number }
         Returns: {
           categoria: string
+          coleccion_proyectada: string
           familia_color: string
           pct_categoria: number
           pct_color_en_categoria: number
+          pct_full_price: number
           precio_promedio: number
           promedio_ponderado: number
           proyeccion_2027: number
           unidades_2025: number
           unidades_2026: number
+          unidades_full_price: number
+          unidades_promo: number
+          venta_full_price: number
+          venta_promo: number
           venta_proyectada: number
         }[]
       }
