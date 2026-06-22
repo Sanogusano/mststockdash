@@ -276,6 +276,14 @@ export default function ProyeccionDemandaPage() {
               </CardContent>
             </Card>
 
+            {(applied?.t === "3" || applied?.t === "4") && (
+              <div className="rounded-md border border-amber-300 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-800 px-4 py-3 text-xs text-amber-900 dark:text-amber-200">
+                <strong className="font-semibold">Nota Q{applied?.t}:</strong>{" "}
+                La proyección se basa únicamente en datos de 2025 (datos 2026 no disponibles aún).
+                Ajustar manualmente según plan de aperturas de tiendas 2027.
+              </div>
+            )}
+
             {/* KPIs */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <Card>
