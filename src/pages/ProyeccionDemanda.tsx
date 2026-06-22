@@ -19,7 +19,7 @@ import { ChevronDown, ChevronRight, Download, TrendingUp, Package, Layers, Dolla
 import { exportToXLS } from "@/lib/xls-export";
 import { cn } from "@/lib/utils";
 
-type Trimestre = "1" | "2";
+type Trimestre = "1" | "2" | "3" | "4";
 type Canal = "tiendas" | "digital" | "ambos";
 
 interface ProyeccionRow {
@@ -59,20 +59,27 @@ const sortTallas = (a: string, b: string) => {
   return ia - ib;
 };
 
+const TRIMESTRE_LABEL: Record<Trimestre, string> = {
+  "1": "Q1 (Ene–Mar)",
+  "2": "Q2 (Abr–Jun)",
+  "3": "Q3 (Jul–Sep)",
+  "4": "Q4 (Oct–Dic)",
+};
+
 export default function ProyeccionDemandaPage() {
   const [trimestre, setTrimestre] = useState<Trimestre>("1");
   const [canal, setCanal] = useState<Canal>("ambos");
   const [crecimiento, setCrecimiento] = useState<number>(15);
 
-  // Aplicado al pulsar Calcular
   const [applied, setApplied] = useState<{ t: Trimestre; c: Canal; g: number } | null>({
     t: "1", c: "ambos", g: 15,
   });
 
-  const [expanded, setExpanded] = useState<Set<string>>(new Set());
+  const [expandedColor, setExpandedColor] = useState<Set<string>>(new Set());
+  const [collapsedCat, setCollapsedCat] = useState<Set<string>>(new Set());
 
   const proyQuery = useQuery({
-    queryKey: ["proyeccion-demanda", applied?.t, applied?.c, applied?.g],
+    queryKey: ["proyeccion-demanda-v3", applied?.t, applied?.c, applied?.g],
     enabled: !!applied,
     queryFn: async () => {
       const { data, error } = await supabase.rpc("get_proyeccion_demanda", {
@@ -86,7 +93,7 @@ export default function ProyeccionDemandaPage() {
   });
 
   const curvaQuery = useQuery({
-    queryKey: ["curva-tallas", applied?.t, applied?.c, applied?.g],
+    queryKey: ["curva-tallas-v3", applied?.t, applied?.c, applied?.g],
     enabled: !!applied,
     queryFn: async () => {
       const { data, error } = await supabase.rpc("get_curva_tallas", {
@@ -102,7 +109,6 @@ export default function ProyeccionDemandaPage() {
   const rows = proyQuery.data ?? [];
   const curvas = curvaQuery.data ?? [];
 
-  // Agrupado por categoria
   const grouped = useMemo(() => {
     const map = new Map<string, ProyeccionRow[]>();
     for (const r of rows) {
@@ -110,7 +116,14 @@ export default function ProyeccionDemandaPage() {
       arr.push(r);
       map.set(r.categoria, arr);
     }
-    return Array.from(map.entries());
+    // sort colors within each category by proy desc
+    for (const arr of map.values()) arr.sort((a, b) => Number(b.proyeccion_2027) - Number(a.proyeccion_2027));
+    // sort categories by total desc
+    return Array.from(map.entries()).sort((a, b) => {
+      const ta = a[1].reduce((s, r) => s + Number(r.proyeccion_2027 || 0), 0);
+      const tb = b[1].reduce((s, r) => s + Number(r.proyeccion_2027 || 0), 0);
+      return tb - ta;
+    });
   }, [rows]);
 
   const curvaIndex = useMemo(() => {
@@ -133,11 +146,19 @@ export default function ProyeccionDemandaPage() {
     return { totalUnits, totalSales, categorias, precioPond };
   }, [rows]);
 
-  const toggle = (key: string) => {
-    setExpanded((prev) => {
+  const toggleColor = (key: string) => {
+    setExpandedColor((prev) => {
       const n = new Set(prev);
       if (n.has(key)) n.delete(key);
       else n.add(key);
+      return n;
+    });
+  };
+  const toggleCat = (cat: string) => {
+    setCollapsedCat((prev) => {
+      const n = new Set(prev);
+      if (n.has(cat)) n.delete(cat);
+      else n.add(cat);
       return n;
     });
   };
@@ -219,8 +240,10 @@ export default function ProyeccionDemandaPage() {
                     <Select value={trimestre} onValueChange={(v) => setTrimestre(v as Trimestre)}>
                       <SelectTrigger><SelectValue /></SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="1">Q1 (Ene–Mar)</SelectItem>
-                        <SelectItem value="2">Q2 (Abr–Jun)</SelectItem>
+                        <SelectItem value="1">{TRIMESTRE_LABEL["1"]}</SelectItem>
+                        <SelectItem value="2">{TRIMESTRE_LABEL["2"]}</SelectItem>
+                        <SelectItem value="3">{TRIMESTRE_LABEL["3"]}</SelectItem>
+                        <SelectItem value="4">{TRIMESTRE_LABEL["4"]}</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -309,88 +332,113 @@ export default function ProyeccionDemandaPage() {
                       <TableHeader>
                         <TableRow>
                           <TableHead className="w-8" />
-                          <TableHead>Categoría</TableHead>
                           <TableHead>Color</TableHead>
                           <TableHead className="text-right">Und 2025</TableHead>
                           <TableHead className="text-right">Und 2026</TableHead>
                           <TableHead className="text-right">Proy. 2027</TableHead>
                           <TableHead className="text-right">Precio prom.</TableHead>
                           <TableHead className="text-right">Venta proy.</TableHead>
-                          <TableHead className="text-right">% Total</TableHead>
                           <TableHead className="text-right">% Color en cat.</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {grouped.map(([categoria, colors]) =>
-                          colors.map((r, idx) => {
-                            const key = `${r.categoria}||${r.familia_color}`;
-                            const isOpen = expanded.has(key);
-                            const curva = curvaIndex.get(key) ?? [];
-                            return (
-                              <Fragment key={key}>
-                                <TableRow
-                                  className="cursor-pointer"
-                                  onClick={() => toggle(key)}
-                                >
-                                  <TableCell className="py-2">
-                                    {isOpen
-                                      ? <ChevronDown className="h-4 w-4 text-muted-foreground" />
-                                      : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
-                                  </TableCell>
-                                  <TableCell className={cn("py-2", idx > 0 && "text-muted-foreground/70")}>
-                                    {idx === 0 ? <span className="font-medium">{categoria}</span> : ""}
-                                  </TableCell>
-                                  <TableCell className="py-2">{r.familia_color}</TableCell>
-                                  <TableCell className="py-2 text-right tabular-nums">{fmtNum(r.unidades_2025)}</TableCell>
-                                  <TableCell className="py-2 text-right tabular-nums">{fmtNum(r.unidades_2026)}</TableCell>
-                                  <TableCell className="py-2 text-right tabular-nums font-medium">{fmtNum(r.proyeccion_2027)}</TableCell>
-                                  <TableCell className="py-2 text-right tabular-nums">{fmtMoney(r.precio_promedio)}</TableCell>
-                                  <TableCell className="py-2 text-right tabular-nums">{fmtMoney(r.venta_proyectada)}</TableCell>
-                                  <TableCell className="py-2 text-right tabular-nums">
-                                    {idx === 0 ? `${Number(r.pct_categoria).toFixed(1)}%` : ""}
-                                  </TableCell>
-                                  <TableCell className="py-2 text-right tabular-nums">
-                                    {Number(r.pct_color_en_categoria).toFixed(1)}%
-                                  </TableCell>
-                                </TableRow>
-                                {isOpen && (
-                                  <TableRow key={`${key}-curva`} className="bg-muted/30 hover:bg-muted/30">
-                                    <TableCell />
-                                    <TableCell colSpan={9} className="py-3">
-                                      {curva.length === 0 ? (
-                                        <div className="text-xs text-muted-foreground">Sin curva de tallas disponible.</div>
-                                      ) : (
-                                        <div>
-                                          <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-2">
-                                            Curva de tallas
-                                          </div>
-                                          <div className="flex flex-wrap gap-2">
-                                            {curva.map((c) => (
-                                              <div
-                                                key={`${key}-${c.talla}`}
-                                                className="flex flex-col items-center min-w-[68px] px-3 py-2 rounded-md border bg-background"
-                                              >
-                                                <div className="flex items-baseline gap-1.5">
-                                                  <span className="font-semibold text-sm">{c.talla}</span>
-                                                  <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
-                                                    {Number(c.pct_talla_en_color).toFixed(0)}%
-                                                  </Badge>
-                                                </div>
-                                                <div className="text-xs text-muted-foreground tabular-nums mt-0.5">
-                                                  {fmtNum(c.proyeccion_2027)} u
-                                                </div>
+                        {grouped.map(([categoria, colors]) => {
+                          const isCollapsed = collapsedCat.has(categoria);
+                          const catUnits = colors.reduce((s, r) => s + Number(r.proyeccion_2027 || 0), 0);
+                          const catSales = colors.reduce((s, r) => s + Number(r.venta_proyectada || 0), 0);
+                          const catPct = colors[0] ? Number(colors[0].pct_categoria) : 0;
+                          return (
+                            <Fragment key={categoria}>
+                              {/* Category header */}
+                              <TableRow
+                                className="cursor-pointer bg-slate-800 hover:bg-slate-800/90 dark:bg-slate-900"
+                                onClick={() => toggleCat(categoria)}
+                              >
+                                <TableCell className="py-2.5">
+                                  {isCollapsed
+                                    ? <ChevronRight className="h-4 w-4 text-slate-200" />
+                                    : <ChevronDown className="h-4 w-4 text-slate-200" />}
+                                </TableCell>
+                                <TableCell className="py-2.5 text-slate-100 font-semibold uppercase tracking-wide text-xs">
+                                  {categoria}
+                                </TableCell>
+                                <TableCell colSpan={3} className="py-2.5 text-right text-slate-200 tabular-nums text-xs">
+                                  {fmtNum(catUnits)} un proy.
+                                </TableCell>
+                                <TableCell colSpan={2} className="py-2.5 text-right text-slate-200 tabular-nums text-xs">
+                                  {fmtMoney(catSales)} proy.
+                                </TableCell>
+                                <TableCell className="py-2.5 text-right text-slate-200 tabular-nums text-xs">
+                                  {catPct.toFixed(1)}%
+                                </TableCell>
+                              </TableRow>
+
+                              {/* Color rows */}
+                              {!isCollapsed && colors.map((r) => {
+                                const key = `${r.categoria}||${r.familia_color}`;
+                                const isOpen = expandedColor.has(key);
+                                const curva = curvaIndex.get(key) ?? [];
+                                return (
+                                  <Fragment key={key}>
+                                    <TableRow
+                                      className="cursor-pointer bg-background"
+                                      onClick={() => toggleColor(key)}
+                                    >
+                                      <TableCell className="py-2 pl-6">
+                                        {isOpen
+                                          ? <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
+                                          : <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />}
+                                      </TableCell>
+                                      <TableCell className="py-2">{r.familia_color}</TableCell>
+                                      <TableCell className="py-2 text-right tabular-nums">{fmtNum(r.unidades_2025)}</TableCell>
+                                      <TableCell className="py-2 text-right tabular-nums">{fmtNum(r.unidades_2026)}</TableCell>
+                                      <TableCell className="py-2 text-right tabular-nums font-medium">{fmtNum(r.proyeccion_2027)}</TableCell>
+                                      <TableCell className="py-2 text-right tabular-nums">{fmtMoney(r.precio_promedio)}</TableCell>
+                                      <TableCell className="py-2 text-right tabular-nums">{fmtMoney(r.venta_proyectada)}</TableCell>
+                                      <TableCell className="py-2 text-right tabular-nums">
+                                        {Number(r.pct_color_en_categoria).toFixed(1)}%
+                                      </TableCell>
+                                    </TableRow>
+                                    {isOpen && (
+                                      <TableRow key={`${key}-curva`} className="bg-muted/30 hover:bg-muted/30">
+                                        <TableCell />
+                                        <TableCell colSpan={7} className="py-3">
+                                          {curva.length === 0 ? (
+                                            <div className="text-xs text-muted-foreground">Sin curva de tallas disponible.</div>
+                                          ) : (
+                                            <div>
+                                              <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-2">
+                                                Curva de tallas
                                               </div>
-                                            ))}
-                                          </div>
-                                        </div>
-                                      )}
-                                    </TableCell>
-                                  </TableRow>
-                                )}
-                              </Fragment>
-                            );
-                          })
-                        )}
+                                              <div className="flex flex-wrap gap-2">
+                                                {curva.map((c) => (
+                                                  <div
+                                                    key={`${key}-${c.talla}`}
+                                                    className="flex flex-col items-center min-w-[72px] px-3 py-2 rounded-md border bg-background"
+                                                  >
+                                                    <div className="flex items-baseline gap-1.5">
+                                                      <span className="font-semibold text-sm">{c.talla}</span>
+                                                      <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
+                                                        {Number(c.pct_talla_en_color).toFixed(0)}%
+                                                      </Badge>
+                                                    </div>
+                                                    <div className="text-xs text-muted-foreground tabular-nums mt-0.5">
+                                                      {fmtNum(c.proyeccion_2027)} un
+                                                    </div>
+                                                  </div>
+                                                ))}
+                                              </div>
+                                            </div>
+                                          )}
+                                        </TableCell>
+                                      </TableRow>
+                                    )}
+                                  </Fragment>
+                                );
+                              })}
+                            </Fragment>
+                          );
+                        })}
                       </TableBody>
                     </Table>
                   </div>
