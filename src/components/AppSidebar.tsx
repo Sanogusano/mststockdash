@@ -232,6 +232,9 @@ export function AppSidebar() {
               {/* 5 - Cierre de Colecciones */}
               {can(cierreColeccionItem.module, cierreColeccionItem.action) && renderItem(cierreColeccionItem)}
 
+              {/* 5b - Proyección de Demanda */}
+              {can(proyeccionDemandaItem.module, proyeccionDemandaItem.action) && renderItem(proyeccionDemandaItem)}
+
               {/* 6 - Manejo de Stock */}
               {visibleStock.length > 0 && (
                 <>
