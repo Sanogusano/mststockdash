@@ -443,6 +443,21 @@ export type Database = {
         }
         Relationships: []
       }
+      color_mapping: {
+        Row: {
+          color_hex: string
+          familia_color: string
+        }
+        Insert: {
+          color_hex: string
+          familia_color: string
+        }
+        Update: {
+          color_hex?: string
+          familia_color?: string
+        }
+        Relationships: []
+      }
       commission_batches: {
         Row: {
           anio: number
