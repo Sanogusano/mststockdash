@@ -147,9 +147,12 @@ export default function ProyeccionDemandaPage() {
   const kpis = useMemo(() => {
     const totalUnits = rows.reduce((s, r) => s + Number(r.proyeccion_2027 || 0), 0);
     const totalSales = rows.reduce((s, r) => s + Number(r.venta_proyectada || 0), 0);
+    const totalFull = rows.reduce((s, r) => s + Number(r.venta_full_price || 0), 0);
+    const totalPromo = rows.reduce((s, r) => s + Number(r.venta_promo || 0), 0);
     const categorias = new Set(rows.map((r) => r.categoria)).size;
     const precioPond = totalUnits > 0 ? totalSales / totalUnits : 0;
-    return { totalUnits, totalSales, categorias, precioPond };
+    const pctFull = totalSales > 0 ? (totalFull / totalSales) * 100 : 0;
+    return { totalUnits, totalSales, categorias, precioPond, totalFull, totalPromo, pctFull };
   }, [rows]);
 
   const toggleColor = (key: string) => {
