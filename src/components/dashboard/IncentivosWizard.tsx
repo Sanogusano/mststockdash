@@ -96,6 +96,7 @@ export function IncentivosWizard({ open, onOpenChange, onCreated }: Props) {
         return {
           operador: (parametros.operador as string) || "AND",
           condiciones: {
+            cumplimiento_presupuesto_pct: { activa: !!cond.cumplimiento_presupuesto_pct?.activa, min: toNumber(cond.cumplimiento_presupuesto_pct?.min) },
             upt:             { activa: !!cond.upt?.activa,             min: toNumber(cond.upt?.min) },
             full_price_pct:  { activa: !!cond.full_price_pct?.activa,  min: toNumber(cond.full_price_pct?.min) },
             ticket_promedio: { activa: !!cond.ticket_promedio?.activa, min: toNumber(cond.ticket_promedio?.min) },
