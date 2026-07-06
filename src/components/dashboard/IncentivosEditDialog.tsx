@@ -74,6 +74,11 @@ export function IncentivosEditDialog({ incentivo, open, onOpenChange, onSaved }:
         setTipoPago(rc.tipo_pago);
         setValorPago(String(rc.valor));
         setTopeMinimo(rc.tope_minimo ? String(rc.tope_minimo) : "");
+        const pp = (rc as { parametros_pago?: Record<string, unknown> }).parametros_pago;
+        if (pp) {
+          if (typeof pp.tipo_especie === "string") setTipoEspecie(pp.tipo_especie);
+          if (typeof pp.descripcion === "string") setDescripcionEspecie(pp.descripcion);
+        }
       }
       setLoadingDetails(false);
     };
