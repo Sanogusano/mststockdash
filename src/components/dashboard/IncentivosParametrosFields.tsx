@@ -10,11 +10,12 @@ interface Props {
 }
 
 /** Rule types that calculate valor_objetivo automatically — hide the field */
-export const RULES_WITHOUT_VALOR_OBJETIVO = ["presupuesto_semanal_dual"];
+export const RULES_WITHOUT_VALOR_OBJETIVO = ["presupuesto_semanal_dual", "tienda_cumplimiento"];
 
 /** Canonical list of rule types shown in selects */
 export const TIPO_REGLA_OPTIONS: { value: string; label: string; description?: string }[] = [
   { value: "presupuesto_semanal_dual", label: "Presupuesto Semanal", description: "Cumplimiento de presupuesto por semana con transacciones" },
+  { value: "tienda_cumplimiento", label: "Cumplimiento de Tienda", description: "UPT, % Full Price y/o Ticket Promedio con operador AND/OR, por canal" },
   { value: "venta_categoria", label: "Venta por Categoría", description: "Unidades vendidas de una o varias categorías" },
   { value: "venta_sku", label: "Venta por SKU", description: "Unidades vendidas de SKUs específicos" },
   { value: "ticket_minimo", label: "Ticket Mínimo", description: "Transacciones con valor mínimo" },
@@ -25,6 +26,7 @@ export const TIPO_REGLA_OPTIONS: { value: string; label: string; description?: s
 /** Rules with a fixed (non-selectable) alcance */
 export const FIXED_ALCANCE: Record<string, string> = {
   presupuesto_semanal_dual: "tienda",
+  tienda_cumplimiento: "tienda",
   venta_categoria: "asesor",
   venta_sku: "asesor",
 };
@@ -32,14 +34,34 @@ export const FIXED_ALCANCE: Record<string, string> = {
 /** Tipo de pago options per rule type */
 export function getTipoPagoOptions(tipoRegla: string): { value: string; label: string }[] {
   if (tipoRegla === "presupuesto_semanal_dual") {
-    return [{ value: "monto_fijo", label: "Monto Fijo" }];
+    return [
+      { value: "monto_fijo", label: "Monto Fijo" },
+      { value: "bono_monto", label: "Bono en Dinero ($)" },
+      { value: "bono_especie", label: "Bono en Especie" },
+    ];
+  }
+  if (tipoRegla === "tienda_cumplimiento") {
+    return [
+      { value: "monto_fijo", label: "Monto Fijo" },
+      { value: "bono_monto", label: "Bono en Dinero ($)" },
+      { value: "bono_especie", label: "Bono en Especie (Almuerzo / Cine / Ropa)" },
+    ];
   }
   return [
     { value: "monto_fijo", label: "Monto Fijo" },
     { value: "por_unidad", label: "Por Unidad" },
     { value: "porcentaje_venta", label: "Porcentaje sobre Venta" },
+    { value: "bono_monto", label: "Bono en Dinero ($)" },
+    { value: "bono_especie", label: "Bono en Especie" },
   ];
 }
+
+/** Options for in-kind bonuses */
+export const TIPO_ESPECIE_OPTIONS = [
+  { value: "almuerzo", label: "Bono Almuerzo" },
+  { value: "cine", label: "Bono Cine" },
+  { value: "ropa", label: "Bono Ropa" },
+] as const;
 
 type FieldDef = { label: string; key: string; type: "number" | "text"; placeholder: string };
 
