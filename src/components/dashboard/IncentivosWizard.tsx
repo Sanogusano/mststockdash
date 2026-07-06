@@ -159,15 +159,36 @@ export function IncentivosWizard({ open, onOpenChange, onCreated }: Props) {
       return false;
     }
 
+    if (tipoRegla === "tienda_cumplimiento") {
+      const cond = (parametros.condiciones as Record<string, { activa?: boolean; min?: number }>) || {};
+      const active = ["upt", "full_price_pct", "ticket_promedio"].filter(
+        (k) => cond[k]?.activa && toNumber(cond[k]?.min) > 0
+      );
+      if (active.length === 0) {
+        toast.error("Activa al menos una condición (UPT, %FP o Ticket) con un valor > 0");
+        return false;
+      }
+    }
+
     return true;
   };
 
   const validateStep3 = () => {
-    if (!tipoPago || !valorPago) {
-      toast.error("Completa los campos de pago");
+    if (!tipoPago) {
+      toast.error("Selecciona el tipo de pago");
       return false;
     }
-
+    if (tipoPago === "bono_especie") {
+      if (!tipoEspecie) {
+        toast.error("Selecciona el tipo de bono en especie");
+        return false;
+      }
+      return true;
+    }
+    if (!valorPago) {
+      toast.error("Completa el valor del pago");
+      return false;
+    }
     return true;
   };
 
