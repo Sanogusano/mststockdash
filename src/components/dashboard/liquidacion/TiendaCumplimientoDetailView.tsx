@@ -100,6 +100,7 @@ export function TiendaCumplimientoDetailView({ campana, rows, locMap }: Props) {
                   <TableHeader>
                     <TableRow>
                       <TableHead>Tienda</TableHead>
+                      <TableHead className="text-right">% Presup.</TableHead>
                       <TableHead className="text-right">UPT</TableHead>
                       <TableHead className="text-right">%FP</TableHead>
                       <TableHead className="text-right">Ticket Prom</TableHead>
