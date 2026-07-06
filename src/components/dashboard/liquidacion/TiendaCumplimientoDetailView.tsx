@@ -122,6 +122,17 @@ export function TiendaCumplimientoDetailView({ campana, rows, locMap }: Props) {
                           <TableRow key={r.id}>
                             <TableCell className="font-medium">{tienda}</TableCell>
                             <TableCell className="text-right tabular-nums">
+                              {(() => {
+                                const val = Number(p.cumplimiento_presupuesto_pct);
+                                if (!Number.isFinite(val)) return <span className="text-muted-foreground">—</span>;
+                                return (
+                                  <span className={res.cumplimiento_presupuesto_pct === false ? "text-destructive" : res.cumplimiento_presupuesto_pct ? "text-[hsl(var(--success))]" : ""}>
+                                    {fmtDec(val, 1)}%
+                                  </span>
+                                );
+                              })()}
+                            </TableCell>
+                            <TableCell className="text-right tabular-nums">
                               <span className={res.upt === false ? "text-destructive" : res.upt ? "text-[hsl(var(--success))]" : ""}>
                                 {fmtDec(Number(p.upt) || 0, 2)}
                               </span>
