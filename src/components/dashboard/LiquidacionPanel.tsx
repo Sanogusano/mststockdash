@@ -149,6 +149,8 @@ export function LiquidacionPanel() {
           <CampanasListView campanas={campanas} onSelect={setSelectedId} />
         ) : selected.tipo_regla === "presupuesto_semanal_dual" ? (
           <SemanalDetailView campana={selected} rows={selectedRows} locMap={locMap} />
+        ) : selected.tipo_regla === "tienda_cumplimiento" ? (
+          <TiendaCumplimientoDetailView campana={selected} rows={selectedRows} locMap={locMap} />
         ) : selected.tipo_regla === "venta_categoria" ? (
           <CategoriaDetailView campana={selected} rows={selectedRows} vendedorMap={vendedorMap} />
         ) : selected.tipo_regla === "venta_sku" ? (
