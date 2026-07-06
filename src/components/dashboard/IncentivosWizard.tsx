@@ -251,7 +251,7 @@ export function IncentivosWizard({ open, onOpenChange, onCreated }: Props) {
         valor: tipoPago === "bono_especie" ? 0 : Number(valorPago),
         tope_minimo: topeMinimo ? Number(topeMinimo) : 0,
         parametros_pago: parametrosPago as unknown as Json,
-      } as never);
+      });
 
       if (recompensaError) {
         throw new Error(recompensaError.message || "Error al guardar la recompensa");
