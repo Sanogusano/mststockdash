@@ -58,6 +58,8 @@ export function IncentivosWizard({ open, onOpenChange, onCreated }: Props) {
   const [tipoPago, setTipoPago] = useState("");
   const [valorPago, setValorPago] = useState("");
   const [topeMinimo, setTopeMinimo] = useState("");
+  const [tipoEspecie, setTipoEspecie] = useState("almuerzo");
+  const [descripcionEspecie, setDescripcionEspecie] = useState("");
 
   const requiresValorObjetivo = !RULES_WITHOUT_VALOR_OBJETIVO.includes(tipoRegla);
 
