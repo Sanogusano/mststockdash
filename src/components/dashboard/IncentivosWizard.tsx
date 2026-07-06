@@ -238,12 +238,18 @@ export function IncentivosWizard({ open, onOpenChange, onCreated }: Props) {
         throw new Error(reglaError.message || "Error al guardar la regla");
       }
 
+      const parametrosPago: Record<string, unknown> =
+        tipoPago === "bono_especie"
+          ? { tipo_especie: tipoEspecie, descripcion: descripcionEspecie }
+          : {};
+
       const { error: recompensaError } = await supabase.from("incentivo_recompensas").insert({
         incentivo_id: createdIncentivoId,
         tipo_pago: tipoPago,
-        valor: Number(valorPago),
+        valor: tipoPago === "bono_especie" ? 0 : Number(valorPago),
         tope_minimo: topeMinimo ? Number(topeMinimo) : 0,
-      });
+        parametros_pago: parametrosPago as unknown as Json,
+      } as never);
 
       if (recompensaError) {
         throw new Error(recompensaError.message || "Error al guardar la recompensa");
