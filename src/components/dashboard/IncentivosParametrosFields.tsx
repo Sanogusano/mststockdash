@@ -103,7 +103,7 @@ export function IncentivosParametrosFields({ tipoRegla, params, onChange }: Prop
   // ---- Cumplimiento de Tienda helpers ----
   const cond = (params.condiciones as Record<string, { activa?: boolean; min?: number }>) || {};
   const operador = ((params.operador as string) || "AND").toUpperCase();
-  const setCond = (key: "upt" | "full_price_pct" | "ticket_promedio", patch: Partial<{ activa: boolean; min: number }>) => {
+  const setCond = (key: "cumplimiento_presupuesto_pct" | "upt" | "full_price_pct" | "ticket_promedio", patch: Partial<{ activa: boolean; min: number }>) => {
     const next = { ...cond, [key]: { ...(cond[key] || {}), ...patch } };
     onChange({ ...params, condiciones: next });
   };
