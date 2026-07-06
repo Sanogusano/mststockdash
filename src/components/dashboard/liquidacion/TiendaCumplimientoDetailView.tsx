@@ -60,6 +60,9 @@ export function TiendaCumplimientoDetailView({ campana, rows, locMap }: Props) {
       {/* Header chips */}
       <div className="flex flex-wrap gap-2 items-center">
         <Badge variant="secondary" className="text-xs">Operador: {operador}</Badge>
+        {activas.includes("cumplimiento_presupuesto_pct") && metas && (
+          <Badge variant="outline" className="text-xs">% Presup. ≥ {fmtDec(metas.cumplimiento_presupuesto_pct ?? 0, 0)}%</Badge>
+        )}
         {activas.includes("upt") && metas && (
           <Badge variant="outline" className="text-xs">UPT ≥ {fmtDec(metas.upt ?? 0, 1)}</Badge>
         )}
