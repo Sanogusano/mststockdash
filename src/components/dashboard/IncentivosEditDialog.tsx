@@ -46,6 +46,8 @@ export function IncentivosEditDialog({ incentivo, open, onOpenChange, onSaved }:
   const [tipoPago, setTipoPago] = useState("");
   const [valorPago, setValorPago] = useState("");
   const [topeMinimo, setTopeMinimo] = useState("");
+  const [tipoEspecie, setTipoEspecie] = useState("almuerzo");
+  const [descripcionEspecie, setDescripcionEspecie] = useState("");
 
   const [saving, setSaving] = useState(false);
   const [loadingDetails, setLoadingDetails] = useState(true);
