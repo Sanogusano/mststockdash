@@ -1,8 +1,10 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { CheckCircle2, XCircle } from "lucide-react";
+import { CheckCircle2, Download, XCircle } from "lucide-react";
+import { exportToCSV } from "@/lib/csv-export";
 import type { CampanaResumen, LiquidacionRow } from "./types";
 
 interface Props {
