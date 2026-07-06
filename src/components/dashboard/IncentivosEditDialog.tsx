@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
-import { IncentivosParametrosFields, parseParamsFromJson, RULES_WITHOUT_VALOR_OBJETIVO, TIPO_REGLA_OPTIONS, FIXED_ALCANCE, getTipoPagoOptions } from "./IncentivosParametrosFields";
+import { IncentivosParametrosFields, parseParamsFromJson, RULES_WITHOUT_VALOR_OBJETIVO, TIPO_REGLA_OPTIONS, FIXED_ALCANCE, getTipoPagoOptions, TIPO_ESPECIE_OPTIONS } from "./IncentivosParametrosFields";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
