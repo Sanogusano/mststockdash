@@ -103,7 +103,7 @@ export function IncentivosParametrosFields({ tipoRegla, params, onChange }: Prop
   // ---- Cumplimiento de Tienda helpers ----
   const cond = (params.condiciones as Record<string, { activa?: boolean; min?: number }>) || {};
   const operador = ((params.operador as string) || "AND").toUpperCase();
-  const setCond = (key: "upt" | "full_price_pct" | "ticket_promedio", patch: Partial<{ activa: boolean; min: number }>) => {
+  const setCond = (key: "cumplimiento_presupuesto_pct" | "upt" | "full_price_pct" | "ticket_promedio", patch: Partial<{ activa: boolean; min: number }>) => {
     const next = { ...cond, [key]: { ...(cond[key] || {}), ...patch } };
     onChange({ ...params, condiciones: next });
   };
@@ -151,6 +151,7 @@ export function IncentivosParametrosFields({ tipoRegla, params, onChange }: Prop
           </div>
 
           {([
+            { key: "cumplimiento_presupuesto_pct", label: "% Cumplim. Presupuesto ≥", placeholder: "Ej: 100", step: "1", suffix: "%" },
             { key: "upt",             label: "UPT ≥",                placeholder: "Ej: 2.0",      step: "0.1" },
             { key: "full_price_pct",  label: "% Venta Full Price ≥", placeholder: "Ej: 60",       step: "1", suffix: "%" },
             { key: "ticket_promedio", label: "Ticket Promedio ≥ $",  placeholder: "Ej: 700000",   step: "1000" },
@@ -165,7 +166,7 @@ export function IncentivosParametrosFields({ tipoRegla, params, onChange }: Prop
                   checked={activa}
                   onChange={(e) => setCond(c.key, { activa: e.target.checked })}
                 />
-                <Label className="min-w-[190px] text-xs">{c.label}</Label>
+                <Label className="min-w-[210px] text-xs">{c.label}</Label>
                 <Input
                   type="number"
                   step={c.step}
@@ -181,7 +182,8 @@ export function IncentivosParametrosFields({ tipoRegla, params, onChange }: Prop
           })}
           <p className="text-[11px] text-muted-foreground leading-snug">
             Se evalúa por tienda dentro de todo el rango del incentivo, agrupado por canal
-            (Tiendas / Outlets / Tienda Online / Personal Shopper). Se excluyen BOLSA e INSUMOS.
+            (Tiendas / Outlets / Tienda Online / Personal Shopper). El % de cumplimiento
+            de presupuesto solo aplica a tiendas físicas con presupuesto configurado. Se excluyen BOLSA e INSUMOS.
           </p>
         </div>
       )}

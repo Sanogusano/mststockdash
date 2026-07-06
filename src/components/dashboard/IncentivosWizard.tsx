@@ -96,6 +96,7 @@ export function IncentivosWizard({ open, onOpenChange, onCreated }: Props) {
         return {
           operador: (parametros.operador as string) || "AND",
           condiciones: {
+            cumplimiento_presupuesto_pct: { activa: !!cond.cumplimiento_presupuesto_pct?.activa, min: toNumber(cond.cumplimiento_presupuesto_pct?.min) },
             upt:             { activa: !!cond.upt?.activa,             min: toNumber(cond.upt?.min) },
             full_price_pct:  { activa: !!cond.full_price_pct?.activa,  min: toNumber(cond.full_price_pct?.min) },
             ticket_promedio: { activa: !!cond.ticket_promedio?.activa, min: toNumber(cond.ticket_promedio?.min) },
@@ -163,11 +164,11 @@ export function IncentivosWizard({ open, onOpenChange, onCreated }: Props) {
 
     if (tipoRegla === "tienda_cumplimiento") {
       const cond = (parametros.condiciones as Record<string, { activa?: boolean; min?: number }>) || {};
-      const active = ["upt", "full_price_pct", "ticket_promedio"].filter(
+      const active = ["cumplimiento_presupuesto_pct", "upt", "full_price_pct", "ticket_promedio"].filter(
         (k) => cond[k]?.activa && toNumber(cond[k]?.min) > 0
       );
       if (active.length === 0) {
-        toast.error("Activa al menos una condición (UPT, %FP o Ticket) con un valor > 0");
+        toast.error("Activa al menos una condición (% Presupuesto, UPT, %FP o Ticket) con un valor > 0");
         return false;
       }
     }

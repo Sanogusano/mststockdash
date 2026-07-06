@@ -60,6 +60,9 @@ export function TiendaCumplimientoDetailView({ campana, rows, locMap }: Props) {
       {/* Header chips */}
       <div className="flex flex-wrap gap-2 items-center">
         <Badge variant="secondary" className="text-xs">Operador: {operador}</Badge>
+        {activas.includes("cumplimiento_presupuesto_pct") && metas && (
+          <Badge variant="outline" className="text-xs">% Presup. ≥ {fmtDec(metas.cumplimiento_presupuesto_pct ?? 0, 0)}%</Badge>
+        )}
         {activas.includes("upt") && metas && (
           <Badge variant="outline" className="text-xs">UPT ≥ {fmtDec(metas.upt ?? 0, 1)}</Badge>
         )}
@@ -97,6 +100,7 @@ export function TiendaCumplimientoDetailView({ campana, rows, locMap }: Props) {
                   <TableHeader>
                     <TableRow>
                       <TableHead>Tienda</TableHead>
+                      <TableHead className="text-right">% Presup.</TableHead>
                       <TableHead className="text-right">UPT</TableHead>
                       <TableHead className="text-right">%FP</TableHead>
                       <TableHead className="text-right">Ticket Prom</TableHead>
@@ -117,6 +121,17 @@ export function TiendaCumplimientoDetailView({ campana, rows, locMap }: Props) {
                         return (
                           <TableRow key={r.id}>
                             <TableCell className="font-medium">{tienda}</TableCell>
+                            <TableCell className="text-right tabular-nums">
+                              {(() => {
+                                const val = Number(p.cumplimiento_presupuesto_pct);
+                                if (!Number.isFinite(val)) return <span className="text-muted-foreground">—</span>;
+                                return (
+                                  <span className={res.cumplimiento_presupuesto_pct === false ? "text-destructive" : res.cumplimiento_presupuesto_pct ? "text-[hsl(var(--success))]" : ""}>
+                                    {fmtDec(val, 1)}%
+                                  </span>
+                                );
+                              })()}
+                            </TableCell>
                             <TableCell className="text-right tabular-nums">
                               <span className={res.upt === false ? "text-destructive" : res.upt ? "text-[hsl(var(--success))]" : ""}>
                                 {fmtDec(Number(p.upt) || 0, 2)}
