@@ -648,6 +648,7 @@ export type Database = {
           created_at: string | null
           id: string
           incentivo_id: string
+          parametros_pago: Json
           tipo_pago: string
           tope_maximo: number | null
           tope_minimo: number | null
@@ -657,6 +658,7 @@ export type Database = {
           created_at?: string | null
           id?: string
           incentivo_id: string
+          parametros_pago?: Json
           tipo_pago: string
           tope_maximo?: number | null
           tope_minimo?: number | null
@@ -666,6 +668,7 @@ export type Database = {
           created_at?: string | null
           id?: string
           incentivo_id?: string
+          parametros_pago?: Json
           tipo_pago?: string
           tope_maximo?: number | null
           tope_minimo?: number | null
