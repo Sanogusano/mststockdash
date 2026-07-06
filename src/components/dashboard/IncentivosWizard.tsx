@@ -321,13 +321,19 @@ export function IncentivosWizard({ open, onOpenChange, onCreated }: Props) {
             </div>
             <div>
               <Label>Alcance</Label>
-              <Select value={alcance} onValueChange={setAlcance}>
-                <SelectTrigger><SelectValue placeholder="Seleccionar..." /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="tienda">Tienda</SelectItem>
-                  <SelectItem value="asesor">Asesor</SelectItem>
-                </SelectContent>
-              </Select>
+              {FIXED_ALCANCE[tipoRegla] ? (
+                <div className="h-10 flex items-center">
+                  <Badge variant="secondary" className="capitalize">{FIXED_ALCANCE[tipoRegla]}</Badge>
+                </div>
+              ) : (
+                <Select value={alcance} onValueChange={setAlcance}>
+                  <SelectTrigger><SelectValue placeholder="Seleccionar..." /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="tienda">Tienda</SelectItem>
+                    <SelectItem value="asesor">Asesor</SelectItem>
+                  </SelectContent>
+                </Select>
+              )}
             </div>
             <Button className="w-full" onClick={handleStep1} disabled={saving}>
               {saving ? "Guardando..." : "Siguiente"}
