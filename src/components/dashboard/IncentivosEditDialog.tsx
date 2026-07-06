@@ -276,16 +276,36 @@ export function IncentivosEditDialog({ incentivo, open, onOpenChange, onSaved }:
                   </SelectContent>
                 </Select>
               </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <Label>Valor</Label>
-                  <Input type="number" placeholder="Ej: 50000" value={valorPago} onChange={(e) => setValorPago(e.target.value)} />
+              {tipoPago === "bono_especie" ? (
+                <>
+                  <div>
+                    <Label>Tipo de Bono</Label>
+                    <Select value={tipoEspecie} onValueChange={setTipoEspecie}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {TIPO_ESPECIE_OPTIONS.map((o) => (
+                          <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label>Descripción (opcional)</Label>
+                    <Input placeholder="Ej: Bono Cine para 2 personas" value={descripcionEspecie} onChange={(e) => setDescripcionEspecie(e.target.value)} />
+                  </div>
+                </>
+              ) : (
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label>Valor</Label>
+                    <Input type="number" placeholder="Ej: 50000" value={valorPago} onChange={(e) => setValorPago(e.target.value)} />
+                  </div>
+                  <div>
+                    <Label>Tope Mínimo</Label>
+                    <Input type="number" placeholder="0" value={topeMinimo} onChange={(e) => setTopeMinimo(e.target.value)} />
+                  </div>
                 </div>
-                <div>
-                  <Label>Tope Mínimo</Label>
-                  <Input type="number" placeholder="0" value={topeMinimo} onChange={(e) => setTopeMinimo(e.target.value)} />
-                </div>
-              </div>
+              )}
             </div>
 
             <Button className="w-full" onClick={handleSave} disabled={saving}>
