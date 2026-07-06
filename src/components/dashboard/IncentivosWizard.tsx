@@ -392,20 +392,42 @@ export function IncentivosWizard({ open, onOpenChange, onCreated }: Props) {
               <Select value={tipoPago} onValueChange={setTipoPago}>
                 <SelectTrigger><SelectValue placeholder="Seleccionar..." /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="monto_fijo">Monto Fijo</SelectItem>
-                  <SelectItem value="por_unidad">Por Unidad</SelectItem>
-                  <SelectItem value="porcentaje">Porcentaje</SelectItem>
+                  {getTipoPagoOptions(tipoRegla).map((o) => (
+                    <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
-            <div>
-              <Label>Valor</Label>
-              <Input type="number" placeholder="Ej: 50000" value={valorPago} onChange={(e) => setValorPago(e.target.value)} />
-            </div>
-            <div>
-              <Label>Tope Mínimo</Label>
-              <Input type="number" placeholder="Ej: 0" value={topeMinimo} onChange={(e) => setTopeMinimo(e.target.value)} />
-            </div>
+            {tipoPago === "bono_especie" ? (
+              <>
+                <div>
+                  <Label>Tipo de Bono</Label>
+                  <Select value={tipoEspecie} onValueChange={setTipoEspecie}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {TIPO_ESPECIE_OPTIONS.map((o) => (
+                        <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>Descripción (opcional)</Label>
+                  <Input placeholder="Ej: Bono Cine para 2 personas" value={descripcionEspecie} onChange={(e) => setDescripcionEspecie(e.target.value)} />
+                </div>
+              </>
+            ) : (
+              <>
+                <div>
+                  <Label>Valor</Label>
+                  <Input type="number" placeholder="Ej: 50000" value={valorPago} onChange={(e) => setValorPago(e.target.value)} />
+                </div>
+                <div>
+                  <Label>Tope Mínimo</Label>
+                  <Input type="number" placeholder="Ej: 0" value={topeMinimo} onChange={(e) => setTopeMinimo(e.target.value)} />
+                </div>
+              </>
+            )}
             <div className="flex gap-2">
               <Button variant="outline" className="flex-1" onClick={() => setStep(1)} disabled={saving}>
                 Atrás
