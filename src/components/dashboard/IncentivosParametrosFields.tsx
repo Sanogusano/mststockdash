@@ -10,7 +10,7 @@ interface Props {
 }
 
 /** Rule types that calculate valor_objetivo automatically — hide the field */
-export const RULES_WITHOUT_VALOR_OBJETIVO = ["presupuesto_semanal_dual", "tienda_cumplimiento"];
+export const RULES_WITHOUT_VALOR_OBJETIVO = ["tienda_cumplimiento"];
 
 /** Canonical list of rule types shown in selects */
 export const TIPO_REGLA_OPTIONS: { value: string; label: string; description?: string }[] = [
