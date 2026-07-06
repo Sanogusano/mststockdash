@@ -134,6 +134,57 @@ export function IncentivosParametrosFields({ tipoRegla, params, onChange }: Prop
   return (
     <div className="space-y-3">
       <p className="text-xs text-muted-foreground">Parámetros específicos</p>
+      {isTiendaCumplimiento && (
+        <div className="space-y-3 rounded-md border p-3">
+          <div>
+            <Label className="text-xs">Operador entre condiciones</Label>
+            <Select
+              value={operador}
+              onValueChange={(v) => onChange({ ...params, operador: v })}
+            >
+              <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="AND">AND · Excluyente (cumple TODAS las activas)</SelectItem>
+                <SelectItem value="OR">OR · Incluyente (basta con UNA activa)</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {([
+            { key: "upt",             label: "UPT ≥",                placeholder: "Ej: 2.0",      step: "0.1" },
+            { key: "full_price_pct",  label: "% Venta Full Price ≥", placeholder: "Ej: 60",       step: "1", suffix: "%" },
+            { key: "ticket_promedio", label: "Ticket Promedio ≥ $",  placeholder: "Ej: 700000",   step: "1000" },
+          ] as const).map((c) => {
+            const activa = !!cond[c.key]?.activa;
+            const min = cond[c.key]?.min ?? "";
+            return (
+              <div key={c.key} className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  className="h-4 w-4"
+                  checked={activa}
+                  onChange={(e) => setCond(c.key, { activa: e.target.checked })}
+                />
+                <Label className="min-w-[190px] text-xs">{c.label}</Label>
+                <Input
+                  type="number"
+                  step={c.step}
+                  placeholder={c.placeholder}
+                  disabled={!activa}
+                  value={min === 0 ? "" : String(min)}
+                  onChange={(e) => setCond(c.key, { min: e.target.value === "" ? 0 : Number(e.target.value) })}
+                  className="h-9"
+                />
+                {"suffix" in c && c.suffix && <span className="text-xs text-muted-foreground">{c.suffix}</span>}
+              </div>
+            );
+          })}
+          <p className="text-[11px] text-muted-foreground leading-snug">
+            Se evalúa por tienda dentro de todo el rango del incentivo, agrupado por canal
+            (Tiendas / Outlets / Tienda Online / Personal Shopper). Se excluyen BOLSA e INSUMOS.
+          </p>
+        </div>
+      )}
       {isSkuRule && (
         <SkuSearchPicker
           label="SKUs incluidos"
