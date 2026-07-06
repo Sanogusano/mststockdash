@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
-import { IncentivosParametrosFields, parseParamsFromJson, RULES_WITHOUT_VALOR_OBJETIVO, TIPO_REGLA_OPTIONS, FIXED_ALCANCE, getTipoPagoOptions } from "./IncentivosParametrosFields";
+import { IncentivosParametrosFields, parseParamsFromJson, RULES_WITHOUT_VALOR_OBJETIVO, TIPO_REGLA_OPTIONS, FIXED_ALCANCE, getTipoPagoOptions, TIPO_ESPECIE_OPTIONS } from "./IncentivosParametrosFields";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
@@ -46,6 +46,8 @@ export function IncentivosEditDialog({ incentivo, open, onOpenChange, onSaved }:
   const [tipoPago, setTipoPago] = useState("");
   const [valorPago, setValorPago] = useState("");
   const [topeMinimo, setTopeMinimo] = useState("");
+  const [tipoEspecie, setTipoEspecie] = useState("almuerzo");
+  const [descripcionEspecie, setDescripcionEspecie] = useState("");
 
   const [saving, setSaving] = useState(false);
   const [loadingDetails, setLoadingDetails] = useState(true);
@@ -72,6 +74,11 @@ export function IncentivosEditDialog({ incentivo, open, onOpenChange, onSaved }:
         setTipoPago(rc.tipo_pago);
         setValorPago(String(rc.valor));
         setTopeMinimo(rc.tope_minimo ? String(rc.tope_minimo) : "");
+        const pp = (rc as { parametros_pago?: Record<string, unknown> }).parametros_pago;
+        if (pp) {
+          if (typeof pp.tipo_especie === "string") setTipoEspecie(pp.tipo_especie);
+          if (typeof pp.descripcion === "string") setDescripcionEspecie(pp.descripcion);
+        }
       }
       setLoadingDetails(false);
     };
@@ -118,10 +125,15 @@ export function IncentivosEditDialog({ incentivo, open, onOpenChange, onSaved }:
 
       // Update or insert reward
       if (tipoPago) {
+        const parametrosPago: Record<string, unknown> =
+          tipoPago === "bono_especie"
+            ? { tipo_especie: tipoEspecie, descripcion: descripcionEspecie }
+            : {};
         const recompensaPayload = {
           tipo_pago: tipoPago,
-          valor: Number(valorPago) || 0,
+          valor: tipoPago === "bono_especie" ? 0 : Number(valorPago) || 0,
           tope_minimo: topeMinimo ? Number(topeMinimo) : 0,
+          parametros_pago: parametrosPago,
         };
         if (recompensaId) {
           const { error: e3 } = await supabase
@@ -264,16 +276,36 @@ export function IncentivosEditDialog({ incentivo, open, onOpenChange, onSaved }:
                   </SelectContent>
                 </Select>
               </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <Label>Valor</Label>
-                  <Input type="number" placeholder="Ej: 50000" value={valorPago} onChange={(e) => setValorPago(e.target.value)} />
+              {tipoPago === "bono_especie" ? (
+                <>
+                  <div>
+                    <Label>Tipo de Bono</Label>
+                    <Select value={tipoEspecie} onValueChange={setTipoEspecie}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {TIPO_ESPECIE_OPTIONS.map((o) => (
+                          <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label>Descripción (opcional)</Label>
+                    <Input placeholder="Ej: Bono Cine para 2 personas" value={descripcionEspecie} onChange={(e) => setDescripcionEspecie(e.target.value)} />
+                  </div>
+                </>
+              ) : (
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label>Valor</Label>
+                    <Input type="number" placeholder="Ej: 50000" value={valorPago} onChange={(e) => setValorPago(e.target.value)} />
+                  </div>
+                  <div>
+                    <Label>Tope Mínimo</Label>
+                    <Input type="number" placeholder="0" value={topeMinimo} onChange={(e) => setTopeMinimo(e.target.value)} />
+                  </div>
                 </div>
-                <div>
-                  <Label>Tope Mínimo</Label>
-                  <Input type="number" placeholder="0" value={topeMinimo} onChange={(e) => setTopeMinimo(e.target.value)} />
-                </div>
-              </div>
+              )}
             </div>
 
             <Button className="w-full" onClick={handleSave} disabled={saving}>

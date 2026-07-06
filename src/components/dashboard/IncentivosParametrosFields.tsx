@@ -10,11 +10,12 @@ interface Props {
 }
 
 /** Rule types that calculate valor_objetivo automatically — hide the field */
-export const RULES_WITHOUT_VALOR_OBJETIVO = ["presupuesto_semanal_dual"];
+export const RULES_WITHOUT_VALOR_OBJETIVO = ["presupuesto_semanal_dual", "tienda_cumplimiento"];
 
 /** Canonical list of rule types shown in selects */
 export const TIPO_REGLA_OPTIONS: { value: string; label: string; description?: string }[] = [
   { value: "presupuesto_semanal_dual", label: "Presupuesto Semanal", description: "Cumplimiento de presupuesto por semana con transacciones" },
+  { value: "tienda_cumplimiento", label: "Cumplimiento de Tienda", description: "UPT, % Full Price y/o Ticket Promedio con operador AND/OR, por canal" },
   { value: "venta_categoria", label: "Venta por Categoría", description: "Unidades vendidas de una o varias categorías" },
   { value: "venta_sku", label: "Venta por SKU", description: "Unidades vendidas de SKUs específicos" },
   { value: "ticket_minimo", label: "Ticket Mínimo", description: "Transacciones con valor mínimo" },
@@ -25,6 +26,7 @@ export const TIPO_REGLA_OPTIONS: { value: string; label: string; description?: s
 /** Rules with a fixed (non-selectable) alcance */
 export const FIXED_ALCANCE: Record<string, string> = {
   presupuesto_semanal_dual: "tienda",
+  tienda_cumplimiento: "tienda",
   venta_categoria: "asesor",
   venta_sku: "asesor",
 };
@@ -32,14 +34,34 @@ export const FIXED_ALCANCE: Record<string, string> = {
 /** Tipo de pago options per rule type */
 export function getTipoPagoOptions(tipoRegla: string): { value: string; label: string }[] {
   if (tipoRegla === "presupuesto_semanal_dual") {
-    return [{ value: "monto_fijo", label: "Monto Fijo" }];
+    return [
+      { value: "monto_fijo", label: "Monto Fijo" },
+      { value: "bono_monto", label: "Bono en Dinero ($)" },
+      { value: "bono_especie", label: "Bono en Especie" },
+    ];
+  }
+  if (tipoRegla === "tienda_cumplimiento") {
+    return [
+      { value: "monto_fijo", label: "Monto Fijo" },
+      { value: "bono_monto", label: "Bono en Dinero ($)" },
+      { value: "bono_especie", label: "Bono en Especie (Almuerzo / Cine / Ropa)" },
+    ];
   }
   return [
     { value: "monto_fijo", label: "Monto Fijo" },
     { value: "por_unidad", label: "Por Unidad" },
     { value: "porcentaje_venta", label: "Porcentaje sobre Venta" },
+    { value: "bono_monto", label: "Bono en Dinero ($)" },
+    { value: "bono_especie", label: "Bono en Especie" },
   ];
 }
+
+/** Options for in-kind bonuses */
+export const TIPO_ESPECIE_OPTIONS = [
+  { value: "almuerzo", label: "Bono Almuerzo" },
+  { value: "cine", label: "Bono Cine" },
+  { value: "ropa", label: "Bono Ropa" },
+] as const;
 
 type FieldDef = { label: string; key: string; type: "number" | "text"; placeholder: string };
 
@@ -74,8 +96,17 @@ export function IncentivosParametrosFields({ tipoRegla, params, onChange }: Prop
   const fields = RULE_FIELDS[normalizedTipo];
   const showTipoVenta = RULES_WITH_TIPO_VENTA.includes(normalizedTipo);
   const isSkuRule = normalizedTipo === "venta_sku";
+  const isTiendaCumplimiento = normalizedTipo === "tienda_cumplimiento";
 
-  if ((!fields || fields.length === 0) && !showTipoVenta && !isSkuRule) return null;
+  if ((!fields || fields.length === 0) && !showTipoVenta && !isSkuRule && !isTiendaCumplimiento) return null;
+
+  // ---- Cumplimiento de Tienda helpers ----
+  const cond = (params.condiciones as Record<string, { activa?: boolean; min?: number }>) || {};
+  const operador = ((params.operador as string) || "AND").toUpperCase();
+  const setCond = (key: "upt" | "full_price_pct" | "ticket_promedio", patch: Partial<{ activa: boolean; min: number }>) => {
+    const next = { ...cond, [key]: { ...(cond[key] || {}), ...patch } };
+    onChange({ ...params, condiciones: next });
+  };
 
   const handleChange = (key: string, value: string, type: "number" | "text") => {
     const parsed: unknown = type === "number" ? (value === "" ? 0 : Number(value)) : value;
@@ -103,6 +134,57 @@ export function IncentivosParametrosFields({ tipoRegla, params, onChange }: Prop
   return (
     <div className="space-y-3">
       <p className="text-xs text-muted-foreground">Parámetros específicos</p>
+      {isTiendaCumplimiento && (
+        <div className="space-y-3 rounded-md border p-3">
+          <div>
+            <Label className="text-xs">Operador entre condiciones</Label>
+            <Select
+              value={operador}
+              onValueChange={(v) => onChange({ ...params, operador: v })}
+            >
+              <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="AND">AND · Excluyente (cumple TODAS las activas)</SelectItem>
+                <SelectItem value="OR">OR · Incluyente (basta con UNA activa)</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {([
+            { key: "upt",             label: "UPT ≥",                placeholder: "Ej: 2.0",      step: "0.1" },
+            { key: "full_price_pct",  label: "% Venta Full Price ≥", placeholder: "Ej: 60",       step: "1", suffix: "%" },
+            { key: "ticket_promedio", label: "Ticket Promedio ≥ $",  placeholder: "Ej: 700000",   step: "1000" },
+          ] as const).map((c) => {
+            const activa = !!cond[c.key]?.activa;
+            const min = cond[c.key]?.min ?? "";
+            return (
+              <div key={c.key} className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  className="h-4 w-4"
+                  checked={activa}
+                  onChange={(e) => setCond(c.key, { activa: e.target.checked })}
+                />
+                <Label className="min-w-[190px] text-xs">{c.label}</Label>
+                <Input
+                  type="number"
+                  step={c.step}
+                  placeholder={c.placeholder}
+                  disabled={!activa}
+                  value={min === 0 ? "" : String(min)}
+                  onChange={(e) => setCond(c.key, { min: e.target.value === "" ? 0 : Number(e.target.value) })}
+                  className="h-9"
+                />
+                {"suffix" in c && c.suffix && <span className="text-xs text-muted-foreground">{c.suffix}</span>}
+              </div>
+            );
+          })}
+          <p className="text-[11px] text-muted-foreground leading-snug">
+            Se evalúa por tienda dentro de todo el rango del incentivo, agrupado por canal
+            (Tiendas / Outlets / Tienda Online / Personal Shopper). Se excluyen BOLSA e INSUMOS.
+          </p>
+        </div>
+      )}
       {isSkuRule && (
         <SkuSearchPicker
           label="SKUs incluidos"

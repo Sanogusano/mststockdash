@@ -9,6 +9,7 @@ import { SemanalDetailView } from "./liquidacion/SemanalDetailView";
 import { CategoriaDetailView } from "./liquidacion/CategoriaDetailView";
 import { SkuDetailView } from "./liquidacion/SkuDetailView";
 import { TransaccionesDetailView } from "./liquidacion/TransaccionesDetailView";
+import { TiendaCumplimientoDetailView } from "./liquidacion/TiendaCumplimientoDetailView";
 import type { CampanaResumen, LiquidacionRow } from "./liquidacion/types";
 
 export function LiquidacionPanel() {
@@ -148,6 +149,8 @@ export function LiquidacionPanel() {
           <CampanasListView campanas={campanas} onSelect={setSelectedId} />
         ) : selected.tipo_regla === "presupuesto_semanal_dual" ? (
           <SemanalDetailView campana={selected} rows={selectedRows} locMap={locMap} />
+        ) : selected.tipo_regla === "tienda_cumplimiento" ? (
+          <TiendaCumplimientoDetailView campana={selected} rows={selectedRows} locMap={locMap} />
         ) : selected.tipo_regla === "venta_categoria" ? (
           <CategoriaDetailView campana={selected} rows={selectedRows} vendedorMap={vendedorMap} />
         ) : selected.tipo_regla === "venta_sku" ? (

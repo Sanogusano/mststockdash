@@ -8,7 +8,8 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { CheckCircle2 } from "lucide-react";
-import { IncentivosParametrosFields, RULES_WITHOUT_VALOR_OBJETIVO } from "./IncentivosParametrosFields";
+import { IncentivosParametrosFields, RULES_WITHOUT_VALOR_OBJETIVO, TIPO_REGLA_OPTIONS, FIXED_ALCANCE, getTipoPagoOptions, TIPO_ESPECIE_OPTIONS } from "./IncentivosParametrosFields";
+import { Badge } from "@/components/ui/badge";
 
 interface Props {
   open: boolean;
@@ -57,6 +58,8 @@ export function IncentivosWizard({ open, onOpenChange, onCreated }: Props) {
   const [tipoPago, setTipoPago] = useState("");
   const [valorPago, setValorPago] = useState("");
   const [topeMinimo, setTopeMinimo] = useState("");
+  const [tipoEspecie, setTipoEspecie] = useState("almuerzo");
+  const [descripcionEspecie, setDescripcionEspecie] = useState("");
 
   const requiresValorObjetivo = !RULES_WITHOUT_VALOR_OBJETIVO.includes(tipoRegla);
 
@@ -72,6 +75,8 @@ export function IncentivosWizard({ open, onOpenChange, onCreated }: Props) {
     setTipoPago("");
     setValorPago("");
     setTopeMinimo("");
+    setTipoEspecie("almuerzo");
+    setDescripcionEspecie("");
   };
 
   const handleDialogOpenChange = (nextOpen: boolean) => {
@@ -86,6 +91,17 @@ export function IncentivosWizard({ open, onOpenChange, onCreated }: Props) {
           semanas_mes: toNumber(parametros.semanas_mes),
           ticket_meta: toNumber(parametros.ticket_meta),
         };
+      case "tienda_cumplimiento": {
+        const cond = (parametros.condiciones as Record<string, { activa?: boolean; min?: number }>) || {};
+        return {
+          operador: (parametros.operador as string) || "AND",
+          condiciones: {
+            upt:             { activa: !!cond.upt?.activa,             min: toNumber(cond.upt?.min) },
+            full_price_pct:  { activa: !!cond.full_price_pct?.activa,  min: toNumber(cond.full_price_pct?.min) },
+            ticket_promedio: { activa: !!cond.ticket_promedio?.activa, min: toNumber(cond.ticket_promedio?.min) },
+          },
+        };
+      }
       case "venta_categoria":
         return { categorias: toStringArray(parametros.categorias) };
       case "venta_sku":
@@ -145,15 +161,36 @@ export function IncentivosWizard({ open, onOpenChange, onCreated }: Props) {
       return false;
     }
 
+    if (tipoRegla === "tienda_cumplimiento") {
+      const cond = (parametros.condiciones as Record<string, { activa?: boolean; min?: number }>) || {};
+      const active = ["upt", "full_price_pct", "ticket_promedio"].filter(
+        (k) => cond[k]?.activa && toNumber(cond[k]?.min) > 0
+      );
+      if (active.length === 0) {
+        toast.error("Activa al menos una condición (UPT, %FP o Ticket) con un valor > 0");
+        return false;
+      }
+    }
+
     return true;
   };
 
   const validateStep3 = () => {
-    if (!tipoPago || !valorPago) {
-      toast.error("Completa los campos de pago");
+    if (!tipoPago) {
+      toast.error("Selecciona el tipo de pago");
       return false;
     }
-
+    if (tipoPago === "bono_especie") {
+      if (!tipoEspecie) {
+        toast.error("Selecciona el tipo de bono en especie");
+        return false;
+      }
+      return true;
+    }
+    if (!valorPago) {
+      toast.error("Completa el valor del pago");
+      return false;
+    }
     return true;
   };
 
@@ -203,11 +240,17 @@ export function IncentivosWizard({ open, onOpenChange, onCreated }: Props) {
         throw new Error(reglaError.message || "Error al guardar la regla");
       }
 
+      const parametrosPago: Record<string, unknown> =
+        tipoPago === "bono_especie"
+          ? { tipo_especie: tipoEspecie, descripcion: descripcionEspecie }
+          : {};
+
       const { error: recompensaError } = await supabase.from("incentivo_recompensas").insert({
         incentivo_id: createdIncentivoId,
         tipo_pago: tipoPago,
-        valor: Number(valorPago),
+        valor: tipoPago === "bono_especie" ? 0 : Number(valorPago),
         tope_minimo: topeMinimo ? Number(topeMinimo) : 0,
+        parametros_pago: parametrosPago as unknown as Json,
       });
 
       if (recompensaError) {
@@ -280,13 +323,19 @@ export function IncentivosWizard({ open, onOpenChange, onCreated }: Props) {
             </div>
             <div>
               <Label>Alcance</Label>
-              <Select value={alcance} onValueChange={setAlcance}>
-                <SelectTrigger><SelectValue placeholder="Seleccionar..." /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="tienda">Tienda</SelectItem>
-                  <SelectItem value="asesor">Asesor</SelectItem>
-                </SelectContent>
-              </Select>
+              {FIXED_ALCANCE[tipoRegla] ? (
+                <div className="h-10 flex items-center">
+                  <Badge variant="secondary" className="capitalize">{FIXED_ALCANCE[tipoRegla]}</Badge>
+                </div>
+              ) : (
+                <Select value={alcance} onValueChange={setAlcance}>
+                  <SelectTrigger><SelectValue placeholder="Seleccionar..." /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="tienda">Tienda</SelectItem>
+                    <SelectItem value="asesor">Asesor</SelectItem>
+                  </SelectContent>
+                </Select>
+              )}
             </div>
             <Button className="w-full" onClick={handleStep1} disabled={saving}>
               {saving ? "Guardando..." : "Siguiente"}
@@ -299,15 +348,19 @@ export function IncentivosWizard({ open, onOpenChange, onCreated }: Props) {
           <div className="space-y-4">
             <div>
               <Label>Tipo de Regla</Label>
-              <Select value={tipoRegla} onValueChange={setTipoRegla}>
+              <Select
+                value={tipoRegla}
+                onValueChange={(v) => {
+                  setTipoRegla(v);
+                  const fixed = FIXED_ALCANCE[v];
+                  if (fixed) setAlcance(fixed);
+                }}
+              >
                 <SelectTrigger><SelectValue placeholder="Seleccionar..." /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="presupuesto">Presupuesto</SelectItem>
-                  <SelectItem value="presupuesto_semanal_dual">Presupuesto Semanal Dual</SelectItem>
-                  <SelectItem value="venta_categoria">Venta por Categoría</SelectItem>
-                  <SelectItem value="venta_sku">Venta por SKUs</SelectItem>
-                  <SelectItem value="ticket_minimo">Ticket Mínimo</SelectItem>
-                  <SelectItem value="metodo_pago">Método de Pago</SelectItem>
+                  {TIPO_REGLA_OPTIONS.map((o) => (
+                    <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
@@ -341,20 +394,42 @@ export function IncentivosWizard({ open, onOpenChange, onCreated }: Props) {
               <Select value={tipoPago} onValueChange={setTipoPago}>
                 <SelectTrigger><SelectValue placeholder="Seleccionar..." /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="monto_fijo">Monto Fijo</SelectItem>
-                  <SelectItem value="por_unidad">Por Unidad</SelectItem>
-                  <SelectItem value="porcentaje">Porcentaje</SelectItem>
+                  {getTipoPagoOptions(tipoRegla).map((o) => (
+                    <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
-            <div>
-              <Label>Valor</Label>
-              <Input type="number" placeholder="Ej: 50000" value={valorPago} onChange={(e) => setValorPago(e.target.value)} />
-            </div>
-            <div>
-              <Label>Tope Mínimo</Label>
-              <Input type="number" placeholder="Ej: 0" value={topeMinimo} onChange={(e) => setTopeMinimo(e.target.value)} />
-            </div>
+            {tipoPago === "bono_especie" ? (
+              <>
+                <div>
+                  <Label>Tipo de Bono</Label>
+                  <Select value={tipoEspecie} onValueChange={setTipoEspecie}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {TIPO_ESPECIE_OPTIONS.map((o) => (
+                        <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>Descripción (opcional)</Label>
+                  <Input placeholder="Ej: Bono Cine para 2 personas" value={descripcionEspecie} onChange={(e) => setDescripcionEspecie(e.target.value)} />
+                </div>
+              </>
+            ) : (
+              <>
+                <div>
+                  <Label>Valor</Label>
+                  <Input type="number" placeholder="Ej: 50000" value={valorPago} onChange={(e) => setValorPago(e.target.value)} />
+                </div>
+                <div>
+                  <Label>Tope Mínimo</Label>
+                  <Input type="number" placeholder="Ej: 0" value={topeMinimo} onChange={(e) => setTopeMinimo(e.target.value)} />
+                </div>
+              </>
+            )}
             <div className="flex gap-2">
               <Button variant="outline" className="flex-1" onClick={() => setStep(1)} disabled={saving}>
                 Atrás
