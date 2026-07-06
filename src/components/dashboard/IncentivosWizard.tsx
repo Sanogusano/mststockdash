@@ -346,15 +346,19 @@ export function IncentivosWizard({ open, onOpenChange, onCreated }: Props) {
           <div className="space-y-4">
             <div>
               <Label>Tipo de Regla</Label>
-              <Select value={tipoRegla} onValueChange={setTipoRegla}>
+              <Select
+                value={tipoRegla}
+                onValueChange={(v) => {
+                  setTipoRegla(v);
+                  const fixed = FIXED_ALCANCE[v];
+                  if (fixed) setAlcance(fixed);
+                }}
+              >
                 <SelectTrigger><SelectValue placeholder="Seleccionar..." /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="presupuesto">Presupuesto</SelectItem>
-                  <SelectItem value="presupuesto_semanal_dual">Presupuesto Semanal Dual</SelectItem>
-                  <SelectItem value="venta_categoria">Venta por Categoría</SelectItem>
-                  <SelectItem value="venta_sku">Venta por SKUs</SelectItem>
-                  <SelectItem value="ticket_minimo">Ticket Mínimo</SelectItem>
-                  <SelectItem value="metodo_pago">Método de Pago</SelectItem>
+                  {TIPO_REGLA_OPTIONS.map((o) => (
+                    <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
