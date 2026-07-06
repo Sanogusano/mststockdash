@@ -1,8 +1,10 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { CheckCircle2, XCircle } from "lucide-react";
+import { CheckCircle2, Download, XCircle } from "lucide-react";
+import { exportToCSV } from "@/lib/csv-export";
 import type { CampanaResumen, LiquidacionRow } from "./types";
 
 interface Props {
@@ -55,9 +57,57 @@ export function TiendaCumplimientoDetailView({ campana, rows, locMap }: Props) {
   const activas = ((rows[0]?.progreso_actual as Record<string, unknown> | null)?.condiciones_activas as string[]) || [];
   const operador = ((rows[0]?.progreso_actual as Record<string, unknown> | null)?.operador as string) || "AND";
 
+  const [exporting, setExporting] = useState(false);
+
+  const buildExportRows = () => {
+    return canales.flatMap((canal) => {
+      const rowsCanal = grouped.get(canal)!;
+      return rowsCanal.map((r) => {
+        const p = (r.progreso_actual ?? {}) as Record<string, unknown>;
+        const tienda = locMap.get(r.location_id ?? "") ?? r.location_id ?? "—";
+        const cpp = Number(p.cumplimiento_presupuesto_pct);
+        return {
+          Canal: canal,
+          Tienda: tienda,
+          Campaña: campana.nombre,
+          "% Cumpl. Presup.": Number.isFinite(cpp) ? Number(cpp.toFixed(2)) : "",
+          Presupuesto: Math.round(Number(p.presupuesto) || 0),
+          UPT: Number((Number(p.upt) || 0).toFixed(2)),
+          "% Full Price": Number((Number(p.full_price_pct) || 0).toFixed(1)),
+          "Ticket Promedio": Math.round(Number(p.ticket_promedio) || 0),
+          Pedidos: Math.round(Number(p.pedidos) || 0),
+          Unidades: Math.round(Number(p.unidades) || 0),
+          "Venta Neta": Math.round(Number(p.venta_neta) || 0),
+          "¿Cumple?": r.cumple_meta ? "Sí" : "No",
+          Recompensa:
+            r.cumple_meta && tipoPago === "bono_especie"
+              ? especieLabel(especie ?? "")
+              : Math.round(r.monto_ganado ?? 0),
+        };
+      });
+    });
+  };
+
+  const exportCSV = () => {
+    exportToCSV(buildExportRows(), `liquidacion_${campana.nombre}`);
+  };
+
+  const exportExcel = async () => {
+    setExporting(true);
+    try {
+      const data = buildExportRows();
+      const XLSX = await import("xlsx");
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(data), "Liquidación");
+      XLSX.writeFile(wb, `liquidacion_${campana.nombre}.xlsx`);
+    } finally {
+      setExporting(false);
+    }
+  };
+
   return (
     <div className="space-y-4">
-      {/* Header chips */}
+      {/* Header chips + export */}
       <div className="flex flex-wrap gap-2 items-center">
         <Badge variant="secondary" className="text-xs">Operador: {operador}</Badge>
         {activas.includes("cumplimiento_presupuesto_pct") && metas && (
@@ -81,6 +131,12 @@ export function TiendaCumplimientoDetailView({ campana, rows, locMap }: Props) {
         ) : (
           <Badge variant="secondary">Total a pagar: {fmtCOP(totalMonto)}</Badge>
         )}
+        <Button variant="outline" size="sm" className="gap-1.5" onClick={exportCSV} disabled={rows.length === 0}>
+          <Download className="h-3.5 w-3.5" /> CSV
+        </Button>
+        <Button variant="outline" size="sm" className="gap-1.5" onClick={exportExcel} disabled={exporting || rows.length === 0}>
+          <Download className="h-3.5 w-3.5" /> Excel
+        </Button>
       </div>
 
       {canales.map((canal) => {
