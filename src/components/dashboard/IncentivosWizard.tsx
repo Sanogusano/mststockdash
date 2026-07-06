@@ -75,6 +75,8 @@ export function IncentivosWizard({ open, onOpenChange, onCreated }: Props) {
     setTipoPago("");
     setValorPago("");
     setTopeMinimo("");
+    setTipoEspecie("almuerzo");
+    setDescripcionEspecie("");
   };
 
   const handleDialogOpenChange = (nextOpen: boolean) => {
