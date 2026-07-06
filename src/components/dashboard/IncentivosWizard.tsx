@@ -8,7 +8,8 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { CheckCircle2 } from "lucide-react";
-import { IncentivosParametrosFields, RULES_WITHOUT_VALOR_OBJETIVO } from "./IncentivosParametrosFields";
+import { IncentivosParametrosFields, RULES_WITHOUT_VALOR_OBJETIVO, TIPO_REGLA_OPTIONS, FIXED_ALCANCE, getTipoPagoOptions, TIPO_ESPECIE_OPTIONS } from "./IncentivosParametrosFields";
+import { Badge } from "@/components/ui/badge";
 
 interface Props {
   open: boolean;
