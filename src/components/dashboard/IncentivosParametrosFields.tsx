@@ -96,8 +96,17 @@ export function IncentivosParametrosFields({ tipoRegla, params, onChange }: Prop
   const fields = RULE_FIELDS[normalizedTipo];
   const showTipoVenta = RULES_WITH_TIPO_VENTA.includes(normalizedTipo);
   const isSkuRule = normalizedTipo === "venta_sku";
+  const isTiendaCumplimiento = normalizedTipo === "tienda_cumplimiento";
 
-  if ((!fields || fields.length === 0) && !showTipoVenta && !isSkuRule) return null;
+  if ((!fields || fields.length === 0) && !showTipoVenta && !isSkuRule && !isTiendaCumplimiento) return null;
+
+  // ---- Cumplimiento de Tienda helpers ----
+  const cond = (params.condiciones as Record<string, { activa?: boolean; min?: number }>) || {};
+  const operador = ((params.operador as string) || "AND").toUpperCase();
+  const setCond = (key: "upt" | "full_price_pct" | "ticket_promedio", patch: Partial<{ activa: boolean; min: number }>) => {
+    const next = { ...cond, [key]: { ...(cond[key] || {}), ...patch } };
+    onChange({ ...params, condiciones: next });
+  };
 
   const handleChange = (key: string, value: string, type: "number" | "text") => {
     const parsed: unknown = type === "number" ? (value === "" ? 0 : Number(value)) : value;
