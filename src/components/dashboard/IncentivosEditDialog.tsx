@@ -125,10 +125,15 @@ export function IncentivosEditDialog({ incentivo, open, onOpenChange, onSaved }:
 
       // Update or insert reward
       if (tipoPago) {
+        const parametrosPago: Record<string, unknown> =
+          tipoPago === "bono_especie"
+            ? { tipo_especie: tipoEspecie, descripcion: descripcionEspecie }
+            : {};
         const recompensaPayload = {
           tipo_pago: tipoPago,
-          valor: Number(valorPago) || 0,
+          valor: tipoPago === "bono_especie" ? 0 : Number(valorPago) || 0,
           tope_minimo: topeMinimo ? Number(topeMinimo) : 0,
+          parametros_pago: parametrosPago,
         };
         if (recompensaId) {
           const { error: e3 } = await supabase
