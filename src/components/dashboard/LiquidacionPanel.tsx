@@ -9,6 +9,7 @@ import { SemanalDetailView } from "./liquidacion/SemanalDetailView";
 import { CategoriaDetailView } from "./liquidacion/CategoriaDetailView";
 import { SkuDetailView } from "./liquidacion/SkuDetailView";
 import { TransaccionesDetailView } from "./liquidacion/TransaccionesDetailView";
+import { TiendaCumplimientoDetailView } from "./liquidacion/TiendaCumplimientoDetailView";
 import type { CampanaResumen, LiquidacionRow } from "./liquidacion/types";
 
 export function LiquidacionPanel() {
