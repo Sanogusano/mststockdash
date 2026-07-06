@@ -89,6 +89,17 @@ export function IncentivosWizard({ open, onOpenChange, onCreated }: Props) {
           semanas_mes: toNumber(parametros.semanas_mes),
           ticket_meta: toNumber(parametros.ticket_meta),
         };
+      case "tienda_cumplimiento": {
+        const cond = (parametros.condiciones as Record<string, { activa?: boolean; min?: number }>) || {};
+        return {
+          operador: (parametros.operador as string) || "AND",
+          condiciones: {
+            upt:             { activa: !!cond.upt?.activa,             min: toNumber(cond.upt?.min) },
+            full_price_pct:  { activa: !!cond.full_price_pct?.activa,  min: toNumber(cond.full_price_pct?.min) },
+            ticket_promedio: { activa: !!cond.ticket_promedio?.activa, min: toNumber(cond.ticket_promedio?.min) },
+          },
+        };
+      }
       case "venta_categoria":
         return { categorias: toStringArray(parametros.categorias) };
       case "venta_sku":
