@@ -164,11 +164,11 @@ export function IncentivosWizard({ open, onOpenChange, onCreated }: Props) {
 
     if (tipoRegla === "tienda_cumplimiento") {
       const cond = (parametros.condiciones as Record<string, { activa?: boolean; min?: number }>) || {};
-      const active = ["upt", "full_price_pct", "ticket_promedio"].filter(
+      const active = ["cumplimiento_presupuesto_pct", "upt", "full_price_pct", "ticket_promedio"].filter(
         (k) => cond[k]?.activa && toNumber(cond[k]?.min) > 0
       );
       if (active.length === 0) {
-        toast.error("Activa al menos una condición (UPT, %FP o Ticket) con un valor > 0");
+        toast.error("Activa al menos una condición (% Presupuesto, UPT, %FP o Ticket) con un valor > 0");
         return false;
       }
     }
