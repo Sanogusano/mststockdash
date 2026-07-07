@@ -32,16 +32,30 @@ const emptyKpis: AddiKpis = {
 const PAGE_SIZE_OPTIONS = [50, 100, 200];
 const toNumber = (v: unknown) => Number(v ?? 0);
 
-function currentMonth() {
+function todayISO() {
   const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+  return d.toISOString().slice(0, 10);
 }
+function firstOfMonthISO() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-01`;
+}
+
+const ESTADO_OPTS = [
+  { value: "all", label: "Todos los estados" },
+  { value: "conciliado", label: "✅ Conciliado" },
+  { value: "discrepancia", label: "⚠️ Discrepancia" },
+  { value: "sin_factura", label: "📄 Sin factura NS" },
+  { value: "sin_cruce", label: "🔴 Sin cruce" },
+];
 
 // ============== Tab Conciliación ==============
 function TabConciliacion() {
-  const [mes, setMes] = useState<string>(currentMonth()); // YYYY-MM
+  const [desde, setDesde] = useState<string>(firstOfMonthISO()); // YYYY-MM-DD
+  const [hasta, setHasta] = useState<string>(todayISO());
+  const [estado, setEstado] = useState<string>("all");
   const [loading, setLoading] = useState(true);
-  const [rows, setRows] = useState<any[]>([]);
+  const [allRows, setAllRows] = useState<any[]>([]);
   const [kpis, setKpis] = useState<AddiKpis>(emptyKpis);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(50);
@@ -49,78 +63,86 @@ function TabConciliacion() {
   useEffect(() => {
     void cargar();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mes, page, pageSize]);
+  }, [desde, hasta]);
 
-  function getMonthRange() {
-    const [y, m] = mes.split("-").map(Number);
-    const desde = new Date(Date.UTC(y, m - 1, 1));
-    const hasta = new Date(Date.UTC(y, m, 1));
+  useEffect(() => { setPage(1); }, [estado, pageSize, desde, hasta]);
+
+  function getRange() {
+    // hasta inclusive: sumar 1 día para el límite superior
+    const h = new Date(`${hasta}T00:00:00Z`);
+    h.setUTCDate(h.getUTCDate() + 1);
     return {
-      pMes: `${mes}-01`,
-      desde: desde.toISOString(),
-      hasta: hasta.toISOString(),
+      desdeISO: new Date(`${desde}T00:00:00Z`).toISOString(),
+      hastaISO: h.toISOString(),
     };
   }
 
-  function normalizeKpis(raw: any): AddiKpis {
-    const total = toNumber(raw?.total);
-    const conc = toNumber(raw?.conciliadas);
+  async function fetchAllRows() {
+    const { desdeISO, hastaISO } = getRange();
+    const chunkSize = 1000;
+    const all: any[] = [];
+    let from = 0;
+    for (;;) {
+      const { data, error } = await (supabase as any).rpc(
+        "reporte_addi_conciliacion",
+        { p_desde: desdeISO, p_hasta: hastaISO }
+      ).range(from, from + chunkSize - 1);
+      if (error) throw error;
+      const batch = data ?? [];
+      all.push(...batch);
+      if (batch.length < chunkSize) break;
+      from += chunkSize;
+    }
+    return all;
+  }
+
+  function computeKpis(rows: any[]): AddiKpis {
+    const total = rows.length;
+    let conc = 0, disc = 0, sinFact = 0, sinCruce = 0, discMonto = 0;
+    for (const r of rows) {
+      switch (r.estado_final) {
+        case "conciliado": conc++; break;
+        case "discrepancia":
+          disc++;
+          discMonto += Math.abs(toNumber(r.ns_valor) - toNumber(r.monto_shopify) / 1.19);
+          break;
+        case "sin_factura": sinFact++; break;
+        case "sin_cruce": sinCruce++; break;
+      }
+    }
     return {
-      total,
-      conc,
+      total, conc, disc, sinFact, sinCruce,
       pctConc: total ? (conc / total) * 100 : 0,
-      disc: toNumber(raw?.con_discrepancia),
-      discMonto: toNumber(raw?.monto_discrepancia),
-      sinFact: toNumber(raw?.sin_factura_ns),
-      sinCruce: toNumber(raw?.sin_cruce),
+      discMonto,
     };
   }
 
   async function cargar() {
     setLoading(true);
     try {
-      const { pMes, desde, hasta } = getMonthRange();
-      const from = (page - 1) * pageSize;
-      const to = from + pageSize - 1;
-
-      const [kpiResult, detalleResult] = await Promise.all([
-        (supabase as any).rpc("get_addi_conciliacion_kpis", {
-          p_mes: pMes, p_canal: "all", p_tipo: "all", p_estado: "all", p_discrepancia: "all",
-        }),
-        (supabase as any).rpc("reporte_addi_conciliacion",
-          { p_desde: desde, p_hasta: hasta },
-          { count: "exact" }
-        ).range(from, to),
-      ]);
-
-      if (kpiResult.error) throw kpiResult.error;
-      if (detalleResult.error) throw detalleResult.error;
-
-      const rawKpi = Array.isArray(kpiResult.data) ? kpiResult.data[0] : kpiResult.data;
-      setKpis(normalizeKpis(rawKpi));
-      setRows(detalleResult.data ?? []);
+      const rows = await fetchAllRows();
+      setAllRows(rows);
+      setKpis(computeKpis(rows));
     } catch (e: any) {
       toast.error(`Error cargando conciliación Addi: ${e.message ?? e}`);
-      setRows([]);
+      setAllRows([]);
       setKpis(emptyKpis);
     } finally {
       setLoading(false);
     }
   }
 
-  async function exportar() {
+  const filtered = estado === "all" ? allRows : allRows.filter((r) => r.estado_final === estado);
+  const totalFiltrado = filtered.length;
+  const totalPaginas = Math.max(1, Math.ceil(totalFiltrado / pageSize));
+  const currentPage = Math.min(page, totalPaginas);
+  const rowStart = totalFiltrado === 0 ? 0 : (currentPage - 1) * pageSize + 1;
+  const rowEnd = Math.min(currentPage * pageSize, totalFiltrado);
+  const rows = filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+
+  function exportar() {
     try {
-      const { desde, hasta } = getMonthRange();
-      const chunkSize = 1000;
-      const all: any[] = [];
-      for (let f = 0; f < kpis.total; f += chunkSize) {
-        const { data, error } = await (supabase as any).rpc(
-          "reporte_addi_conciliacion", { p_desde: desde, p_hasta: hasta }
-        ).range(f, f + chunkSize - 1);
-        if (error) throw error;
-        all.push(...(data ?? []));
-      }
-      const data = all.map((r) => ({
+      const data = filtered.map((r) => ({
         id_transaccion: r.id_orden ?? "",
         canal: r.canal ?? "",
         tipo_venta: r.tipo_de_venta ?? "",
@@ -132,15 +154,11 @@ function TabConciliacion() {
         estado: r.estado_final,
         fecha: r.fecha_creacion ? new Date(r.fecha_creacion).toISOString().slice(0, 10) : "",
       }));
-      exportToXLS(data, `conciliacion-addi-${mes}`, "Conciliación");
+      exportToXLS(data, `conciliacion-addi-${desde}_a_${hasta}`, "Conciliación");
     } catch (e: any) {
       toast.error(`Error exportando conciliación Addi: ${e.message ?? e}`);
     }
   }
-
-  const totalPaginas = Math.max(1, Math.ceil(kpis.total / pageSize));
-  const rowStart = kpis.total === 0 ? 0 : (page - 1) * pageSize + 1;
-  const rowEnd = Math.min(page * pageSize, kpis.total);
 
   const estadoBadge = (estado: string) => {
     switch (estado) {
@@ -163,15 +181,35 @@ function TabConciliacion() {
       <Card>
         <CardContent className="p-4 flex flex-wrap gap-3 items-end">
           <div>
-            <label className="text-xs text-muted-foreground block mb-1">Mes</label>
+            <label className="text-xs text-muted-foreground block mb-1">Desde</label>
             <Input
-              type="month"
-              value={mes}
-              onChange={(e) => { setPage(1); setMes(e.target.value || currentMonth()); }}
+              type="date"
+              value={desde}
+              max={hasta}
+              onChange={(e) => setDesde(e.target.value || firstOfMonthISO())}
               className="h-9 w-44"
             />
           </div>
-          <Button onClick={exportar} variant="outline" className="gap-2 ml-auto">
+          <div>
+            <label className="text-xs text-muted-foreground block mb-1">Hasta</label>
+            <Input
+              type="date"
+              value={hasta}
+              min={desde}
+              onChange={(e) => setHasta(e.target.value || todayISO())}
+              className="h-9 w-44"
+            />
+          </div>
+          <div>
+            <label className="text-xs text-muted-foreground block mb-1">Estado</label>
+            <Select value={estado} onValueChange={setEstado}>
+              <SelectTrigger className="h-9 w-56"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {ESTADO_OPTS.map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+          <Button onClick={exportar} variant="outline" className="gap-2 ml-auto" disabled={loading || totalFiltrado === 0}>
             <Download className="h-4 w-4" /> Exportar Excel
           </Button>
         </CardContent>
@@ -215,7 +253,7 @@ function TabConciliacion() {
             </div>
           ) : rows.length === 0 ? (
             <div className="p-10 text-center text-sm text-muted-foreground">
-              Sin transacciones para el mes seleccionado.
+              Sin transacciones para los filtros seleccionados.
             </div>
           ) : (
             <div className="overflow-x-auto">
@@ -255,12 +293,12 @@ function TabConciliacion() {
               </table>
               <div className="flex flex-col gap-3 border-t px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
                 <p className="text-xs text-muted-foreground">
-                  Mostrando {fmtInt(rowStart)}–{fmtInt(rowEnd)} de {fmtInt(kpis.total)} · Página {fmtInt(page)} de {fmtInt(totalPaginas)}
+                  Mostrando {fmtInt(rowStart)}–{fmtInt(rowEnd)} de {fmtInt(totalFiltrado)} · Página {fmtInt(currentPage)} de {fmtInt(totalPaginas)}
                 </p>
                 <div className="flex flex-wrap items-center gap-3">
                   <div className="flex items-center gap-2">
                     <span className="text-xs text-muted-foreground">Por página</span>
-                    <Select value={String(pageSize)} onValueChange={(v) => { setPage(1); setPageSize(Number(v)); }}>
+                    <Select value={String(pageSize)} onValueChange={(v) => setPageSize(Number(v))}>
                       <SelectTrigger className="h-8 w-20"><SelectValue /></SelectTrigger>
                       <SelectContent>
                         {PAGE_SIZE_OPTIONS.map((o) => <SelectItem key={o} value={String(o)}>{o}</SelectItem>)}
@@ -268,8 +306,8 @@ function TabConciliacion() {
                     </Select>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Button type="button" variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage((p) => Math.max(1, p - 1))}>Anterior</Button>
-                    <Button type="button" variant="outline" size="sm" disabled={page >= totalPaginas} onClick={() => setPage((p) => Math.min(totalPaginas, p + 1))}>Siguiente</Button>
+                    <Button type="button" variant="outline" size="sm" disabled={currentPage <= 1} onClick={() => setPage((p) => Math.max(1, p - 1))}>Anterior</Button>
+                    <Button type="button" variant="outline" size="sm" disabled={currentPage >= totalPaginas} onClick={() => setPage((p) => Math.min(totalPaginas, p + 1))}>Siguiente</Button>
                   </div>
                 </div>
               </div>
@@ -280,6 +318,7 @@ function TabConciliacion() {
     </div>
   );
 }
+
 
 // ============== Tab placeholder ==============
 function TabSoon({ msg }: { msg: string }) {
