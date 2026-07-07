@@ -400,7 +400,9 @@ Deno.serve(async (req) => {
         if (!f.shopify_order_number) { sinCruce++; return f; }
         const match = ordersMap.get(f.shopify_order_number);
         if (!match) { sinCruce++; return f; }
-        const diferencia = Math.round((f.valor_facturado - match.total_price) * 100) / 100;
+        // total_price de Shopify incluye IVA (19%); valor_facturado de NetSuite es base gravable.
+        const shopifyBase = Math.round((match.total_price / 1.19) * 100) / 100;
+        const diferencia = Math.round((f.valor_facturado - shopifyBase) * 100) / 100;
         return {
           ...f,
           shopify_order_id: match.shopify_order_id,
