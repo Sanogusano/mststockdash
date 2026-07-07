@@ -427,6 +427,145 @@ Deno.serve(async (req) => {
           resultado.insertados += batch.length;
         }
       }
+    } else if (tipoDetectado === "addi_liquidaciones") {
+      if (!workbook) throw new Error("No se pudo leer el archivo Excel");
+      // Buscar hoja de detalle (contiene "transacc" en el nombre) o caer a la primera
+      const hojaDetalle =
+        workbook.SheetNames.find((n: string) => norm(n).includes("transacc")) ??
+        primeraHoja;
+      if (!hojaDetalle) throw new Error("No se encontró hoja de transacciones en el archivo de liquidaciones");
+      const sheetLiq = workbook.Sheets[hojaDetalle];
+      const allRowsLiq = XLSX.utils.sheet_to_json(sheetLiq, { header: 1, raw: true }) as any[][];
+
+      // Detectar dinámicamente la fila de encabezados: debe contener "Estado de la transacción" y "Total a pagar"
+      let headerIdxLiq = -1;
+      for (let i = 0; i < Math.min(allRowsLiq.length, 20); i++) {
+        const row = (allRowsLiq[i] ?? []).map((c) => normCompact(String(c ?? "")));
+        const hasEstado = row.some((c) => c.includes("estadodelatransac"));
+        const hasTotal = row.some((c) => c === "totalapagar" || c.includes("totalapagar"));
+        if (hasEstado && hasTotal) {
+          headerIdxLiq = i;
+          break;
+        }
+      }
+      if (headerIdxLiq < 0) throw new Error("No se encontró fila de encabezados en la hoja de liquidaciones (se busca 'Estado de la transacción' + 'Total a pagar')");
+
+      const headerRowLiq = (allRowsLiq[headerIdxLiq] ?? []).map((c) => String(c ?? "").trim());
+      const colIdxLiq = (...keys: string[]) => {
+        for (const k of keys) {
+          const want = normCompact(k);
+          const idx = headerRowLiq.findIndex((h) => normCompact(h) === want);
+          if (idx >= 0) return idx;
+        }
+        for (const k of keys) {
+          const want = normCompact(k);
+          const idx = headerRowLiq.findIndex((h) => normCompact(h).includes(want));
+          if (idx >= 0) return idx;
+        }
+        return -1;
+      };
+
+      const cEstado = colIdxLiq("Estado de la transacción", "Estado");
+      const cAliado = colIdxLiq("Nombre del aliado", "Nombre aliado");
+      const cTienda = colIdxLiq("Nombre tienda", "Nombre Tienda");
+      const cTipoVenta = colIdxLiq("Tipo de venta");
+      const cIdOp = colIdxLiq("ID Operación", "ID Operacion");
+      const cIdCredito = colIdxLiq("ID Crédito", "ID Credito");
+      const cNumDocLiq = colIdxLiq("Número de documento", "Numero de documento");
+      const cFechaVenta = colIdxLiq("Fecha de venta");
+      const cFechaCancel = colIdxLiq("Fecha cancelación", "Fecha cancelacion");
+      const cFechaPago = colIdxLiq("Fecha de Pago", "Fecha de pago");
+      const cTotalVentas = colIdxLiq("Total Ventas (1)", "Total Ventas");
+      const cTotalCancel = colIdxLiq("Total Cancelaciones");
+      const cDescAddi = colIdxLiq("Descuento Addi");
+      const cDescComercio = colIdxLiq("Descuento Comercio");
+      const cTarifaInter = colIdxLiq("Tarifa de intermediación ($)", "Tarifa de intermediacion ($)");
+      const cTarifaShop = colIdxLiq("Tarifa Addi-Shop ($)", "Tarifa AddiShop ($)");
+      const cTarifaMkt = colIdxLiq("Tarifa Marketplace ($)");
+      const cTotalTarifas = colIdxLiq("Total Tarifas Addi", "Total Tarifas");
+      const cValorNeto = colIdxLiq("Valor Neto Después de Tarifas Addi (3)", "Valor Neto");
+      const cReteIVA = colIdxLiq("Rete IVA");
+      const cReteICA = colIdxLiq("Rete ICA");
+      const cReteFuente = colIdxLiq("Rete Fuente");
+      const cIVA = colIdxLiq("IVA");
+      const cTotalImp = colIdxLiq("Total Impuestos (4)", "Total Impuestos");
+      const cTotalPagar = colIdxLiq("Total a pagar");
+      const cEmailVend = colIdxLiq("Email vendedor");
+      const cIdPedido = colIdxLiq("Id pedido", "ID pedido");
+
+      if (cIdOp < 0) throw new Error("Columna 'ID Operación' no encontrada en liquidaciones");
+
+      const cellNum = (row: any[], idx: number) => idx < 0 ? 0 : parseNumero(row[idx]);
+      const cellStr = (row: any[], idx: number) => idx < 0 ? null : (String(row[idx] ?? "").trim() || null);
+      const cellDate = (row: any[], idx: number) => {
+        if (idx < 0) return null;
+        const f = parseFecha(row[idx]);
+        return f ? f.substring(0, 10) : null;
+      };
+
+      const liqRecords: any[] = [];
+      let filasLiq = 0;
+      for (let r = headerIdxLiq + 1; r < allRowsLiq.length; r++) {
+        const row = allRowsLiq[r] ?? [];
+        if (!row || row.every((c) => c === null || c === undefined || String(c).trim() === "")) continue;
+        const idOp = cellStr(row, cIdOp);
+        if (!idOp) continue;
+        filasLiq++;
+
+        const idPedido = cellStr(row, cIdPedido);
+        liqRecords.push({
+          id_reporte: idOp,
+          estado_pago: cellStr(row, cEstado),
+          nombre_aliado: cellStr(row, cAliado),
+          nombre_tienda: cellStr(row, cTienda),
+          tipo_de_venta: cellStr(row, cTipoVenta),
+          fecha_venta: cellDate(row, cFechaVenta),
+          fecha_cancelacion: cellDate(row, cFechaCancel),
+          fecha_pago: cellDate(row, cFechaPago),
+          total_ventas: cellNum(row, cTotalVentas),
+          total_cancelaciones: cellNum(row, cTotalCancel),
+          descuento_addi: cellNum(row, cDescAddi),
+          descuento_comercio: cellNum(row, cDescComercio),
+          tarifa_intermediacion: cellNum(row, cTarifaInter),
+          tarifa_addi_shop: cellNum(row, cTarifaShop),
+          tarifa_marketplace: cellNum(row, cTarifaMkt),
+          total_tarifas: cellNum(row, cTotalTarifas),
+          valor_neto: cellNum(row, cValorNeto),
+          rete_iva: cellNum(row, cReteIVA),
+          rete_ica: cellNum(row, cReteICA),
+          rete_fuente: cellNum(row, cReteFuente),
+          iva: cellNum(row, cIVA),
+          total_impuestos: cellNum(row, cTotalImp),
+          total_a_pagar: cellNum(row, cTotalPagar),
+          email_vendedor: cellStr(row, cEmailVend),
+          id_pedido: idPedido,
+          shopify_order_id: idPedido, // Id pedido en Addi = shopify order id (UUID de la orden)
+        });
+      }
+
+      resultado.total = liqRecords.length;
+      resultado.diagnostico = { hoja: hojaDetalle, headerIdx: headerIdxLiq, filas_procesadas: filasLiq };
+
+      // Borrar previos por id_reporte (idempotencia) y reinsertar
+      const ids = liqRecords.map((r) => r.id_reporte);
+      for (let i = 0; i < ids.length; i += 200) {
+        const slice = ids.slice(i, i + 200);
+        const { error: delErr } = await supabase.from("addi_liquidaciones").delete().in("id_reporte", slice);
+        if (delErr) console.error("Delete liquidaciones batch:", delErr);
+      }
+      for (let i = 0; i < liqRecords.length; i += 200) {
+        const batch = liqRecords.slice(i, i + 200);
+        const { error } = await supabase.from("addi_liquidaciones").insert(batch);
+        if (error) {
+          console.error("Insert liquidaciones error:", error);
+          resultado.errores += batch.length;
+        } else {
+          resultado.insertados += batch.length;
+        }
+      }
+
+      // Cruce sin_cruce: cuántas no tienen id_pedido
+      resultado.sin_cruce = liqRecords.filter((r) => !r.id_pedido).length;
     } else {
       throw new Error(`Tipo no soportado todavía: ${tipoDetectado ?? "desconocido"}`);
     }
