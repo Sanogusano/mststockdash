@@ -129,8 +129,26 @@ Deno.serve(async (req) => {
 
     if (tipoDetectado === "addi_transacciones") {
       if (!workbook || !primeraHoja) throw new Error("No se pudo leer el archivo Excel");
-      // Headers están en fila 1 (índice 1), no en fila 0. Datos arrancan en fila 2.
-      const rowsRaw = XLSX.utils.sheet_to_json(workbook.Sheets[primeraHoja], { range: 1 }) as any[];
+      // Detectar dinámicamente la fila de encabezados (buscar "ID Transacción" o "Canal").
+      // Addi ha cambiado el formato: a veces headers en fila 0, a veces en fila 1.
+      const sheetRef = workbook.Sheets[primeraHoja];
+      const allRowsAddi = XLSX.utils.sheet_to_json(sheetRef, { header: 1, raw: false }) as any[][];
+      let headerRowIdx = -1;
+      for (let i = 0; i < Math.min(allRowsAddi.length, 10); i++) {
+        const row = (allRowsAddi[i] ?? []).map((c) => normCompact(String(c ?? "")));
+        const hasIdTrans = row.some((c) => c === "idtransaccion" || c === "idtransacción" || c.includes("idtransac"));
+        const hasCanal = row.some((c) => c === "canal");
+        const hasEstado = row.some((c) => c === "estado" || c.includes("estadodelatransac"));
+        if ((hasIdTrans && hasCanal) || (hasIdTrans && hasEstado) || (hasCanal && hasEstado)) {
+          headerRowIdx = i;
+          break;
+        }
+      }
+      if (headerRowIdx < 0) {
+        throw new Error("No se encontró fila de encabezados con 'ID Transacción'/'Canal'/'Estado' en el archivo Addi");
+      }
+      console.log("Addi header row index:", headerRowIdx);
+      const rowsRaw = XLSX.utils.sheet_to_json(sheetRef, { range: headerRowIdx }) as any[];
       console.log("Total rows:", rowsRaw.length);
       console.log("Keys:", rowsRaw.length > 0 ? Object.keys(rowsRaw[0]).slice(0, 10) : []);
 
