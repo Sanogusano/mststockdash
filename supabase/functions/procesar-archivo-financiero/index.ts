@@ -160,9 +160,19 @@ Deno.serve(async (req) => {
       });
 
       const get = (r: any, ...keys: string[]) => {
+        const entries = Object.entries(r);
+        // 1) Exact match on normCompact key
         for (const k of keys) {
           const wanted = normCompact(k);
-          const found = Object.entries(r).find(([rk]) => normCompact(rk).includes(wanted) || wanted.includes(normCompact(rk)));
+          const found = entries.find(([rk]) => normCompact(rk) === wanted);
+          const v = found?.[1];
+          if (v !== undefined && v !== null && String(v).trim() !== "") return v;
+        }
+        // 2) Partial match: header key contains wanted (avoid the reverse direction
+        //    which caused "Sub-estado" to swallow "Estado" lookups).
+        for (const k of keys) {
+          const wanted = normCompact(k);
+          const found = entries.find(([rk]) => normCompact(rk).includes(wanted));
           const v = found?.[1];
           if (v !== undefined && v !== null && String(v).trim() !== "") return v;
         }
@@ -182,15 +192,6 @@ Deno.serve(async (req) => {
       resultado.diagnostico = { headers: headersDetect, estadosCount, totalFilas: rows.length };
 
       const records = rows
-        .filter((r) => {
-          // Buscar columna que contenga "transacci" o "estado" en su nombre
-          const entry = Object.entries(r).find(([k]) => {
-            const kl = k.toLowerCase();
-            return kl.includes("transacci") || kl.includes("estado");
-          });
-          const val = String(entry?.[1] ?? "");
-          return norm(val).startsWith("transacci");
-        })
         .map((r) => {
           const canalRaw = String(get(r, "Canal", "Nombre del aliado", "Nombre tienda") ?? "").trim();
           const nombreTienda = get(r, "Nombre tienda", "Nombre Tienda");
