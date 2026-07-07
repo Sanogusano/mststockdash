@@ -216,7 +216,7 @@ Deno.serve(async (req) => {
             id_credito: get(r, "ID Crédito", "ID Credito") ? String(get(r, "ID Crédito", "ID Credito")) : null,
             email_vendedor: get(r, "Email vendedor", "Email Vendedor") ? String(get(r, "Email vendedor", "Email Vendedor")) : null,
             id_orden: idOrden ? String(idOrden) : null,
-            shopify_order_id: canal === "PAY_LINK" && idOrden ? String(idOrden) : null,
+            shopify_order_id: null, // lo llena la RPC cruzar_addi_con_shopify por monto+fecha
           };
         })
         .filter((r) => r.id_transaccion);
