@@ -158,6 +158,7 @@ function InventorySection({
 export function InventoryHealth({ days }: Props) {
   const [data, setData] = useState<HealthRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [locationMap, setLocationMap] = useState<Record<string, string>>({});
   const [showGlobal, setShowGlobal] = useState(false);
 
@@ -165,6 +166,7 @@ export function InventoryHealth({ days }: Props) {
     async function fetchData() {
       if (!isValidDays(days)) return;
       setLoading(true);
+      setError(null);
       const effectiveDays = resolveDays(days);
 
       try {
@@ -175,6 +177,8 @@ export function InventoryHealth({ days }: Props) {
 
         if (healthRes.error) {
           console.error("Error fetching inventory health:", healthRes.error);
+          setError(`Error cargando inventario: ${healthRes.error.message}`);
+          setData([]);
         } else if (healthRes.data) {
           setData(healthRes.data as HealthRow[]);
         }
@@ -188,6 +192,8 @@ export function InventoryHealth({ days }: Props) {
         }
       } catch (err) {
         console.error("Unexpected error:", err);
+        setError(`Error inesperado cargando inventario: ${err instanceof Error ? err.message : String(err)}`);
+        setData([]);
       }
 
       setLoading(false);
@@ -196,6 +202,7 @@ export function InventoryHealth({ days }: Props) {
   }, [days]);
 
   if (loading) return <LoadingState rows={5} />;
+  if (error) return <EmptyState message={error} />;
   if (!data.length) return <EmptyState message="No hay datos de inventario disponibles." />;
 
   const prendas = data.filter((r) => r.tipo === "PRENDAS");
