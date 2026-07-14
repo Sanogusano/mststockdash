@@ -1510,7 +1510,7 @@ function aggregateKpis(kpiMap: Record<string, KpiData>, selected: string[]): Kpi
 }
 
 /* ── Brand-wide KPI Panel ── */
-function BrandOverviewPanel({ days, comparisonPeriod = "previous" }: { days: number; comparisonPeriod?: ComparisonPeriod }) {
+function BrandOverviewPanel({ days, comparisonPeriod = "previous", customFrom, customTo }: { days: number; comparisonPeriod?: ComparisonPeriod; customFrom?: Date; customTo?: Date }) {
   const [channelKpis, setChannelKpis] = useState<Record<string, KpiData>>({});
   const [prevChannelKpis, setPrevChannelKpis] = useState<Record<string, KpiData>>({});
   const [totalM2, setTotalM2] = useState<number>(0);
@@ -1524,22 +1524,27 @@ function BrandOverviewPanel({ days, comparisonPeriod = "previous" }: { days: num
       if (!isValidDays(days)) return;
       setLoading(true);
       const effectiveDays = resolveDays(days);
-      const cr = resolveComparisonRange(days, comparisonPeriod);
+      const cr = resolveComparisonRange(days, comparisonPeriod, customFrom, customTo);
+
+      // Range mode is active when the user picked a custom range OR when the
+      // current preset requires explicit date bounds (this month, prev month, yesterday, custom sentinel).
+      const hasCustomRange = !!(customFrom && customTo);
+      const currentUsesRange = hasCustomRange || needsDateRange(days);
+      const currentRange = currentUsesRange ? getDateRange(hasCustomRange ? CUSTOM_SENTINEL : days, customFrom, customTo) : null;
 
       // Channel contribution: use reporte_desempeño_por_canal.
-      // It always returns 3 rows with stable `canal_key` values: 'digital' | 'tiendas' | 'outlets'.
-      // NEVER compare `canal` text — always index by `canal_key`.
-      const currentUsesRange = needsDateRange(days);
-      const currentRange = currentUsesRange ? getDateRange(days) : null;
+      // Two mutually-exclusive modes — never mix.
+      //   Range  → { p_desde, p_hasta }   (NO dias_atras)
+      //   Preset → { dias_atras }         (NO p_desde/p_hasta)
       const desempenoActualParams: any = currentUsesRange
         ? { p_desde: toDateStr(currentRange!.from), p_hasta: toDateStr(currentRange!.to) }
         : { dias_atras: effectiveDays };
       const desempenoAnteriorParams: any = { p_desde: toDateStr(cr.from), p_hasta: toDateStr(cr.to) };
 
       const [kpiTiendasRes, kpiOutletsRes, kpiDigitalRes, prevTiendasRes, prevOutletsRes, prevDigitalRes, m2Res, desempenoActualRes, desempenoAnteriorRes] = await Promise.all([
-        buildKpiCall(days, effectiveDays, { p_canal: "tiendas", p_location_id: null }),
-        buildKpiCall(days, effectiveDays, { p_canal: "outlets", p_location_id: null }),
-        buildKpiCall(days, effectiveDays, { p_canal: "digital", p_location_id: null }),
+        buildKpiCall(days, effectiveDays, { p_canal: "tiendas", p_location_id: null, customFrom, customTo }),
+        buildKpiCall(days, effectiveDays, { p_canal: "outlets", p_location_id: null, customFrom, customTo }),
+        buildKpiCall(days, effectiveDays, { p_canal: "digital", p_location_id: null, customFrom, customTo }),
         supabase.rpc("reporte_kpis_por_rango" as any, { p_desde: toDateStr(cr.from), p_hasta: toDateStr(cr.to), p_canal: "tiendas", p_location_id: null }),
         supabase.rpc("reporte_kpis_por_rango" as any, { p_desde: toDateStr(cr.from), p_hasta: toDateStr(cr.to), p_canal: "outlets", p_location_id: null }),
         supabase.rpc("reporte_kpis_por_rango" as any, { p_desde: toDateStr(cr.from), p_hasta: toDateStr(cr.to), p_canal: "digital", p_location_id: null }),
