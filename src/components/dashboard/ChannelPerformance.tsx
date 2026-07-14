@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { isValidDays } from "@/lib/validation";
-import { resolveDays, getFilterEndDate } from "@/components/dashboard/TimeFilter";
+import { resolveDays, toDateStr } from "@/components/dashboard/TimeFilter";
 import { LoadingState, EmptyState } from "./LoadingState";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Store, Globe, Tag } from "lucide-react";
@@ -17,6 +17,9 @@ interface ChannelRow {
 
 interface Props {
   days: number;
+  /** When provided (custom range mode), sends p_desde/p_hasta and omits dias_atras. */
+  customFrom?: Date;
+  customTo?: Date;
 }
 
 function formatCompactMoney(value: number) {
@@ -62,7 +65,7 @@ function ChannelTab({ row }: { row: ChannelRow }) {
 
 const EMPTY_ROW: ChannelRow = { canal: null, canal_key: null, ventas_totales: 0, total_pedidos: 0 };
 
-export function ChannelPerformance({ days }: Props) {
+export function ChannelPerformance({ days, customFrom, customTo }: Props) {
   const [data, setData] = useState<ChannelRow[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -70,17 +73,21 @@ export function ChannelPerformance({ days }: Props) {
     async function fetchData() {
       if (!isValidDays(days)) return;
       setLoading(true);
-      const effectiveDays = resolveDays(days);
-      const hastaParam = getFilterEndDate(days);
+      const isCustomRange = !!(customFrom && customTo);
+      // Two modes — never mix. Custom range → p_desde + p_hasta.
+      // Preset → dias_atras only.
+      const params = isCustomRange
+        ? { p_desde: toDateStr(customFrom!), p_hasta: toDateStr(customTo!) }
+        : { dias_atras: resolveDays(days) };
       const { data: rows, error } = await supabase.rpc(
         "reporte_desempeño_por_canal",
-        { dias_atras: effectiveDays, p_hasta: hastaParam }
+        params as any
       );
       if (!error && rows) setData(rows as unknown as ChannelRow[]);
       setLoading(false);
     }
     fetchData();
-  }, [days]);
+  }, [days, customFrom, customTo]);
 
   if (loading) return <LoadingState rows={4} />;
   if (!data.length) return <EmptyState message="No hay datos de canales para este período." />;
