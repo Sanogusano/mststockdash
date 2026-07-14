@@ -331,6 +331,13 @@ export type Database = {
             referencedRelation: "netsuite_inventory_snapshots"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "allocation_runs_snapshot_id_fkey"
+            columns: ["snapshot_id"]
+            isOneToOne: false
+            referencedRelation: "v_inv_ejec_base"
+            referencedColumns: ["snapshot_id"]
+          },
         ]
       }
       budget_expenses: {
@@ -934,6 +941,7 @@ export type Database = {
           coleccion: string | null
           coleccion_sku: string | null
           color: string | null
+          costo: number | null
           created_at: string
           genero: string | null
           id: string
@@ -951,6 +959,7 @@ export type Database = {
           coleccion?: string | null
           coleccion_sku?: string | null
           color?: string | null
+          costo?: number | null
           created_at?: string
           genero?: string | null
           id?: string
@@ -968,6 +977,7 @@ export type Database = {
           coleccion?: string | null
           coleccion_sku?: string | null
           color?: string | null
+          costo?: number | null
           created_at?: string
           genero?: string | null
           id?: string
@@ -1009,6 +1019,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "netsuite_inventory_snapshots"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "netsuite_inventory_lines_snapshot_id_fkey"
+            columns: ["snapshot_id"]
+            isOneToOne: false
+            referencedRelation: "v_inv_ejec_base"
+            referencedColumns: ["snapshot_id"]
           },
         ]
       }
@@ -1953,6 +1970,40 @@ export type Database = {
           sku: string | null
           total_sold_30d: number | null
           variant_id: string | null
+        }
+        Relationships: []
+      }
+      v_inv_ejec_base: {
+        Row: {
+          bodega: string | null
+          bodega_raw: string | null
+          coleccion_sku: string | null
+          color: string | null
+          costo: number | null
+          costo_unitario: number | null
+          en_traslados: boolean | null
+          genero: string | null
+          id: string | null
+          linea_origen: string | null
+          nombre: string | null
+          sku: string | null
+          snapshot_date: string | null
+          snapshot_id: string | null
+          sub_tipo: string | null
+          talla: string | null
+          tipo_bodega: string | null
+          tipo_mapping: string | null
+          unidades: number | null
+        }
+        Relationships: []
+      }
+      v_inv_ejec_sku_dim: {
+        Row: {
+          coleccion_sku: string | null
+          linea: string | null
+          nombre: string | null
+          sku: string | null
+          sub_tipo: string | null
         }
         Relationships: []
       }
@@ -3662,6 +3713,87 @@ export type Database = {
               venta_promedio_semanal: number
             }[]
           }
+      rpc_inv_ejec_alertas: {
+        Args: { p_fecha?: string }
+        Returns: {
+          codigo: string
+          detalle: string
+          severidad: string
+          valor: number
+        }[]
+      }
+      rpc_inv_ejec_fechas: {
+        Args: never
+        Returns: {
+          filas: number
+          snapshot_anterior: string
+          snapshot_date: string
+          tiene_costo: boolean
+        }[]
+      }
+      rpc_inv_ejec_kpis: {
+        Args: { p_fecha?: string; p_sub_tipos?: string[] }
+        Returns: {
+          bodegas: number
+          costo_actual: number
+          costo_anterior: number
+          costo_unit_prom: number
+          fecha: string
+          fecha_anterior: string
+          lineas: number
+          skus: number
+          uds_actual: number
+          uds_anterior: number
+          var_costo: number
+          var_uds: number
+        }[]
+      }
+      rpc_inv_ejec_linea_detalle: {
+        Args: { p_fecha?: string; p_linea: string }
+        Returns: {
+          bodega: string
+          costo_actual: number
+          tipo_bodega: string
+          uds_actual: number
+          uds_anterior: number
+          var_pct: number
+        }[]
+      }
+      rpc_inv_ejec_por_bodega: {
+        Args: { p_fecha?: string; p_sub_tipos?: string[]; p_tipos?: string[] }
+        Returns: {
+          bodega: string
+          costo_actual: number
+          costo_anterior: number
+          costo_unit_prom: number
+          en_traslados: boolean
+          part_costo: number
+          part_uds: number
+          tipo_bodega: string
+          uds_actual: number
+          uds_anterior: number
+          var_costo: number
+          var_uds: number
+        }[]
+      }
+      rpc_inv_ejec_por_linea: {
+        Args: { p_fecha?: string; p_min_uds?: number; p_sub_tipos?: string[] }
+        Returns: {
+          costo_actual: number
+          costo_unit_prom: number
+          delta_uds: number
+          fuente_ingreso: string
+          ingreso_prov_costo: number
+          ingreso_prov_uds: number
+          linea: string
+          part_costo: number
+          salida_neta_uds: number
+          sub_tipo: string
+          uds_actual: number
+          uds_anterior: number
+          var_pct: number
+        }[]
+      }
       sincronizar_params_desde_tipo_tienda: { Args: never; Returns: number }
       stock_general_por_producto: {
         Args: never
