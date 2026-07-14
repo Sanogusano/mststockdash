@@ -26,6 +26,20 @@ function ColombiaDateTime() {
 export default function ExecutivePage() {
   const [days, setDays] = useState(THIS_MONTH_SENTINEL);
   const [comparisonPeriod, setComparisonPeriod] = useState<ComparisonPeriod>("previous");
+  const [customFrom, setCustomFrom] = useState<Date | undefined>();
+  const [customTo, setCustomTo] = useState<Date | undefined>();
+
+  const handleDaysChange = (d: number) => {
+    // A preset click clears any active custom range.
+    setCustomFrom(undefined);
+    setCustomTo(undefined);
+    setDays(d);
+  };
+
+  const handleCustomRangeChange = (from: Date, to: Date) => {
+    setCustomFrom(from);
+    setCustomTo(to);
+  };
 
   return (
     <SidebarProvider>
