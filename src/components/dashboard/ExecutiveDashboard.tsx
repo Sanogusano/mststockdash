@@ -2159,7 +2159,7 @@ function ZoneStoreRankCard({ days, canal, locationId, locationName, allRanking, 
 }
 
 /* ── Main Component ── */
-export function ExecutiveDashboard({ days, comparisonPeriod = "previous" }: Props) {
+export function ExecutiveDashboard({ days, comparisonPeriod = "previous", customFrom, customTo }: Props) {
   return (
     <Tabs defaultValue="venta-directa" className="w-full">
       <TabsList className="w-full grid grid-cols-3 bg-muted/50 rounded-xl p-1 h-auto border border-border mb-6">
@@ -2181,7 +2181,7 @@ export function ExecutiveDashboard({ days, comparisonPeriod = "previous" }: Prop
       </TabsList>
 
       <TabsContent value="venta-directa">
-        <BrandOverviewPanel days={days} comparisonPeriod={comparisonPeriod} />
+        <BrandOverviewPanel days={days} comparisonPeriod={comparisonPeriod} customFrom={customFrom} customTo={customTo} />
         <BrandParetoPreview days={days} />
       </TabsContent>
 
