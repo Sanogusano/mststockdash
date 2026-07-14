@@ -2901,156 +2901,81 @@ export type Database = {
           r_zona: string
         }[]
       }
-      reporte_ejecutivo_kpis:
-        | {
-            Args: {
-              canal_filtro?: string
-              dias_atras: number
-              location_filtro?: string
-            }
-            Returns: {
-              ticket_promedio: number
-              unidades_totales: number
-              ventas_totales: number
-            }[]
-          }
-        | {
-            Args: {
-              canal_filtro?: string
-              dias_atras: number
-              location_filtro?: string
-              p_hasta?: string
-            }
-            Returns: {
-              ticket_promedio: number
-              unidades_totales: number
-              ventas_totales: number
-            }[]
-          }
-      reporte_ejecutivo_productos:
-        | {
-            Args: {
-              canal_filtro?: string
-              dias_atras: number
-              limite?: number
-              location_filtro?: string
-              orden?: string
-              zona_filtro?: string
-            }
-            Returns: {
-              categoria: string
-              clasificacion: string
-              coleccion: string
-              foto: string
-              precio_prom_venta: number
-              producto: string
-              sell_through_pct: number
-              sku: string
-              stock_disponible: number
-              unidades_vendidas: number
-              wos: number
-            }[]
-          }
-        | {
-            Args: {
-              canal_filtro?: string
-              dias_atras: number
-              limite?: number
-              location_filtro?: string
-              orden?: string
-              p_hasta?: string
-              zona_filtro?: string
-            }
-            Returns: {
-              categoria: string
-              clasificacion: string
-              coleccion: string
-              foto: string
-              precio_prom_venta: number
-              producto: string
-              sell_through_pct: number
-              sku: string
-              stock_disponible: number
-              unidades_vendidas: number
-              wos: number
-            }[]
-          }
-      reporte_kpis_comerciales:
-        | {
-            Args: {
-              dias_atras: number
-              p_canal?: string
-              p_location_id?: string
-              p_zona?: string
-            }
-            Returns: {
-              ingresos_netos: number
-              pct_pedidos_con_descuento: number
-              pct_pedidos_full_price: number
-              pct_pedidos_rebajas: number
-              ticket_promedio: number
-              total_pedidos: number
-              unidades_vendidas: number
-              upt: number
-            }[]
-          }
-        | {
-            Args: {
-              dias_atras: number
-              p_canal?: string
-              p_hasta?: string
-              p_location_id?: string
-              p_zona?: string
-            }
-            Returns: {
-              ingresos_netos: number
-              pct_pedidos_con_descuento: number
-              pct_pedidos_full_price: number
-              pct_pedidos_rebajas: number
-              ticket_promedio: number
-              total_pedidos: number
-              unidades_vendidas: number
-              upt: number
-            }[]
-          }
-      reporte_kpis_periodo_anterior:
-        | {
-            Args: {
-              dias_atras: number
-              p_canal?: string
-              p_location_id?: string
-              p_zona?: string
-            }
-            Returns: {
-              ingresos_netos: number
-              pct_pedidos_con_descuento: number
-              pct_pedidos_full_price: number
-              pct_pedidos_rebajas: number
-              ticket_promedio: number
-              total_pedidos: number
-              unidades_vendidas: number
-              upt: number
-            }[]
-          }
-        | {
-            Args: {
-              dias_atras: number
-              p_canal?: string
-              p_hasta?: string
-              p_location_id?: string
-              p_zona?: string
-            }
-            Returns: {
-              ingresos_netos: number
-              pct_pedidos_con_descuento: number
-              pct_pedidos_full_price: number
-              pct_pedidos_rebajas: number
-              ticket_promedio: number
-              total_pedidos: number
-              unidades_vendidas: number
-              upt: number
-            }[]
-          }
+      reporte_ejecutivo_kpis: {
+        Args: {
+          canal_filtro?: string
+          dias_atras: number
+          location_filtro?: string
+          p_hasta?: string
+        }
+        Returns: {
+          ticket_promedio: number
+          unidades_totales: number
+          ventas_totales: number
+        }[]
+      }
+      reporte_ejecutivo_productos: {
+        Args: {
+          canal_filtro?: string
+          dias_atras: number
+          limite?: number
+          location_filtro?: string
+          orden?: string
+          p_hasta?: string
+          zona_filtro?: string
+        }
+        Returns: {
+          categoria: string
+          clasificacion: string
+          coleccion: string
+          foto: string
+          precio_prom_venta: number
+          producto: string
+          sell_through_pct: number
+          sku: string
+          stock_disponible: number
+          unidades_vendidas: number
+          wos: number
+        }[]
+      }
+      reporte_kpis_comerciales: {
+        Args: {
+          dias_atras: number
+          p_canal?: string
+          p_hasta?: string
+          p_location_id?: string
+          p_zona?: string
+        }
+        Returns: {
+          ingresos_netos: number
+          pct_pedidos_con_descuento: number
+          pct_pedidos_full_price: number
+          pct_pedidos_rebajas: number
+          ticket_promedio: number
+          total_pedidos: number
+          unidades_vendidas: number
+          upt: number
+        }[]
+      }
+      reporte_kpis_periodo_anterior: {
+        Args: {
+          dias_atras: number
+          p_canal?: string
+          p_hasta?: string
+          p_location_id?: string
+          p_zona?: string
+        }
+        Returns: {
+          ingresos_netos: number
+          pct_pedidos_con_descuento: number
+          pct_pedidos_full_price: number
+          pct_pedidos_rebajas: number
+          ticket_promedio: number
+          total_pedidos: number
+          unidades_vendidas: number
+          upt: number
+        }[]
+      }
       reporte_kpis_por_rango: {
         Args: {
           p_canal?: string
