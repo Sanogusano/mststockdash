@@ -4,15 +4,15 @@ import { isValidDays } from "@/lib/validation";
 import { resolveDays, getFilterEndDate } from "@/components/dashboard/TimeFilter";
 import { LoadingState, EmptyState } from "./LoadingState";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Store, Globe, TrendingUp, TrendingDown } from "lucide-react";
+import { Store, Globe, Tag } from "lucide-react";
+
+type CanalKey = "digital" | "tiendas" | "outlets";
 
 interface ChannelRow {
   canal: string | null;
-  unidades_vendidas: number | null;
-  ingresos_netos: number | null;
-  ticket_promedio: number | null;
-  sku_top: string | null;
-  sku_peor: string | null;
+  canal_key: CanalKey | string | null;
+  ventas_totales: number | null;
+  total_pedidos: number | null;
 }
 
 interface Props {
@@ -37,69 +37,30 @@ function KpiCard({ label, value, mobileValue, prefix = "" }: { label: string; va
   );
 }
 
-function SkuPill({ sku, type }: { sku: string | null; type: "top" | "bottom" }) {
-  const isTop = type === "top";
-  return (
-    <div className={`flex items-center gap-2 px-3 py-2.5 rounded-lg border ${
-      isTop 
-        ? "bg-success/5 border-success/20" 
-        : "bg-danger/5 border-danger/20"
-    }`}>
-      {isTop ? (
-        <TrendingUp className="h-3.5 w-3.5 text-success shrink-0" />
-      ) : (
-        <TrendingDown className="h-3.5 w-3.5 text-danger shrink-0" />
-      )}
-      <span className={`text-sm font-mono font-medium ${isTop ? "text-success" : "text-danger"}`}>
-        {sku ?? "—"}
-      </span>
-    </div>
-  );
-}
-
 function ChannelTab({ row }: { row: ChannelRow }) {
+  const ventas = row.ventas_totales ?? 0;
+  const pedidos = row.total_pedidos ?? 0;
+  const ticket = pedidos > 0 ? ventas / pedidos : 0;
   return (
-    <div className="space-y-5">
-      {/* KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        <KpiCard
-          label="Ingresos Netos"
-          value={(row.ingresos_netos ?? 0).toLocaleString()}
-          mobileValue={formatCompactMoney(row.ingresos_netos ?? 0)}
-          prefix="$"
-        />
-        <KpiCard
-          label="Unidades Vendidas"
-          value={(row.unidades_vendidas ?? 0).toLocaleString()}
-        />
-        <KpiCard
-          label="Ticket Promedio"
-          value={(row.ticket_promedio ?? 0).toLocaleString()}
-          mobileValue={formatCompactMoney(row.ticket_promedio ?? 0)}
-          prefix="$"
-        />
-      </div>
-
-      {/* Top & Bottom SKUs */}
-      <div className="grid grid-cols-2 gap-3">
-        <div className="glass-card rounded-xl p-4 space-y-3">
-          <p className="text-xs text-muted-foreground uppercase tracking-widest flex items-center gap-1.5">
-            <TrendingUp className="h-3 w-3 text-success" />
-            Top Ganador
-          </p>
-          <SkuPill sku={row.sku_top} type="top" />
-        </div>
-        <div className="glass-card rounded-xl p-4 space-y-3">
-          <p className="text-xs text-muted-foreground uppercase tracking-widest flex items-center gap-1.5">
-            <TrendingDown className="h-3 w-3 text-danger" />
-            Mayor Hueso
-          </p>
-          <SkuPill sku={row.sku_peor} type="bottom" />
-        </div>
-      </div>
+    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+      <KpiCard
+        label="Ventas Totales"
+        value={ventas.toLocaleString()}
+        mobileValue={formatCompactMoney(ventas)}
+        prefix="$"
+      />
+      <KpiCard label="Total Pedidos" value={pedidos.toLocaleString()} />
+      <KpiCard
+        label="Ticket Promedio"
+        value={Math.round(ticket).toLocaleString()}
+        mobileValue={formatCompactMoney(Math.round(ticket))}
+        prefix="$"
+      />
     </div>
   );
 }
+
+const EMPTY_ROW: ChannelRow = { canal: null, canal_key: null, ventas_totales: 0, total_pedidos: 0 };
 
 export function ChannelPerformance({ days }: Props) {
   const [data, setData] = useState<ChannelRow[]>([]);
@@ -124,55 +85,64 @@ export function ChannelPerformance({ days }: Props) {
   if (loading) return <LoadingState rows={4} />;
   if (!data.length) return <EmptyState message="No hay datos de canales para este período." />;
 
-  const posData = data.find((r) => r.canal?.includes("POS"));
-  const digitalData = data.find((r) => !r.canal?.includes("POS"));
+  // Mapeo explícito por canal_key — nunca comparar texto de `canal`.
+  const porCanal = Object.fromEntries(
+    data.map((r) => [r.canal_key, r])
+  ) as Record<string, ChannelRow | undefined>;
 
-  // Total KPIs across channels
-  const totalRevenue = data.reduce((s, r) => s + (r.ingresos_netos ?? 0), 0);
-  const totalUnits = data.reduce((s, r) => s + (r.unidades_vendidas ?? 0), 0);
+  const digital = porCanal.digital ?? EMPTY_ROW;
+  const tiendas = porCanal.tiendas ?? EMPTY_ROW;
+  const outlets = porCanal.outlets ?? EMPTY_ROW;
+
+  const totalRevenue = (digital.ventas_totales ?? 0) + (tiendas.ventas_totales ?? 0) + (outlets.ventas_totales ?? 0);
+  const totalPedidos = (digital.total_pedidos ?? 0) + (tiendas.total_pedidos ?? 0) + (outlets.total_pedidos ?? 0);
 
   return (
     <div className="space-y-5">
       {/* Global summary */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div className="glass-card rounded-xl p-4">
-          <p className="text-xs text-muted-foreground uppercase tracking-widest mb-1">Ingresos Totales</p>
+          <p className="text-xs text-muted-foreground uppercase tracking-widest mb-1">Ventas Totales</p>
           <p className="text-2xl font-display font-bold text-primary whitespace-normal break-words tabular-nums">
             <span className="sm:hidden">${formatCompactMoney(totalRevenue)}</span>
             <span className="hidden sm:inline">${totalRevenue.toLocaleString()}</span>
           </p>
         </div>
         <div className="glass-card rounded-xl p-4">
-          <p className="text-xs text-muted-foreground uppercase tracking-widest mb-1">Unidades Totales</p>
-          <p className="text-2xl font-display font-bold text-foreground">{totalUnits.toLocaleString()}</p>
+          <p className="text-xs text-muted-foreground uppercase tracking-widest mb-1">Pedidos Totales</p>
+          <p className="text-2xl font-display font-bold text-foreground">{totalPedidos.toLocaleString()}</p>
         </div>
       </div>
 
       {/* Channel Tabs */}
-      <Tabs defaultValue="pos" className="w-full">
-        <TabsList className="w-full grid grid-cols-2 bg-muted/50 rounded-lg p-1">
+      <Tabs defaultValue="tiendas" className="w-full">
+        <TabsList className="w-full grid grid-cols-3 bg-muted/50 rounded-lg p-1">
           <TabsTrigger
-            value="pos"
+            value="tiendas"
             className="flex items-center gap-2 text-sm data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-md"
           >
             <Store className="h-4 w-4" />
-            Canal POS
+            Tiendas Físicas
+          </TabsTrigger>
+          <TabsTrigger
+            value="outlets"
+            className="flex items-center gap-2 text-sm data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-md"
+          >
+            <Tag className="h-4 w-4" />
+            Outlets
           </TabsTrigger>
           <TabsTrigger
             value="digital"
             className="flex items-center gap-2 text-sm data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-md"
           >
             <Globe className="h-4 w-4" />
-            Canal Digital
+            Digital
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="pos">
-          {posData ? <ChannelTab row={posData} /> : <EmptyState message="Sin datos POS." />}
-        </TabsContent>
-        <TabsContent value="digital">
-          {digitalData ? <ChannelTab row={digitalData} /> : <EmptyState message="Sin datos digitales." />}
-        </TabsContent>
+        <TabsContent value="tiendas"><ChannelTab row={tiendas} /></TabsContent>
+        <TabsContent value="outlets"><ChannelTab row={outlets} /></TabsContent>
+        <TabsContent value="digital"><ChannelTab row={digital} /></TabsContent>
       </Tabs>
     </div>
   );
