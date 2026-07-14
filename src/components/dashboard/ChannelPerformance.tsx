@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { isValidDays } from "@/lib/validation";
-import { resolveDays, getFilterEndDate } from "@/components/dashboard/TimeFilter";
+import { resolveDays, toDateStr } from "@/components/dashboard/TimeFilter";
 import { LoadingState, EmptyState } from "./LoadingState";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Store, Globe, Tag } from "lucide-react";
@@ -17,6 +17,9 @@ interface ChannelRow {
 
 interface Props {
   days: number;
+  /** When provided (custom range mode), sends p_desde/p_hasta and omits dias_atras. */
+  customFrom?: Date;
+  customTo?: Date;
 }
 
 function formatCompactMoney(value: number) {
