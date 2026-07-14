@@ -26,6 +26,20 @@ function ColombiaDateTime() {
 export default function ExecutivePage() {
   const [days, setDays] = useState(THIS_MONTH_SENTINEL);
   const [comparisonPeriod, setComparisonPeriod] = useState<ComparisonPeriod>("previous");
+  const [customFrom, setCustomFrom] = useState<Date | undefined>();
+  const [customTo, setCustomTo] = useState<Date | undefined>();
+
+  const handleDaysChange = (d: number) => {
+    // A preset click clears any active custom range.
+    setCustomFrom(undefined);
+    setCustomTo(undefined);
+    setDays(d);
+  };
+
+  const handleCustomRangeChange = (from: Date, to: Date) => {
+    setCustomFrom(from);
+    setCustomTo(to);
+  };
 
   return (
     <SidebarProvider>
@@ -44,12 +58,20 @@ export default function ExecutivePage() {
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <TimeFilter value={days} onChange={setDays} comparisonPeriod={comparisonPeriod} onComparisonChange={setComparisonPeriod} />
+              <TimeFilter
+                value={days}
+                onChange={handleDaysChange}
+                comparisonPeriod={comparisonPeriod}
+                onComparisonChange={setComparisonPeriod}
+                customFrom={customFrom}
+                customTo={customTo}
+                onCustomRangeChange={handleCustomRangeChange}
+              />
               <ReportGeneratorButton days={days} />
             </div>
           </header>
           <div className="flex-1 px-4 sm:px-6 py-4 sm:py-6">
-            <ExecutiveDashboard days={days} comparisonPeriod={comparisonPeriod} />
+            <ExecutiveDashboard days={days} comparisonPeriod={comparisonPeriod} customFrom={customFrom} customTo={customTo} />
           </div>
         </main>
       </div>
