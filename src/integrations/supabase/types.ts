@@ -2766,7 +2766,7 @@ export type Database = {
             }[]
           }
       reporte_desempeño_por_canal: {
-        Args: { dias_atras: number; p_hasta?: string }
+        Args: { dias_atras?: number; p_desde?: string; p_hasta?: string }
         Returns: {
           canal: string
           canal_key: string
