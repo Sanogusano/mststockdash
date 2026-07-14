@@ -97,6 +97,8 @@ interface Location {
 interface Props {
   days: number;
   comparisonPeriod?: ComparisonPeriod;
+  customFrom?: Date;
+  customTo?: Date;
 }
 
 /** Format a Date as "YYYY-MM-DD" for RPC date params */
