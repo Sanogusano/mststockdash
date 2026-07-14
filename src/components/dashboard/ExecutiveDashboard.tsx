@@ -1594,7 +1594,7 @@ function BrandOverviewPanel({ days, comparisonPeriod = "previous", customFrom, c
       setLoading(false);
     }
     fetch();
-  }, [days, comparisonPeriod]);
+  }, [days, comparisonPeriod, customFrom, customTo]);
 
   if (loading) return <LoadingState rows={4} />;
 
