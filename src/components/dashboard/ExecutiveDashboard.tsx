@@ -112,8 +112,14 @@ function buildKpiCall(
   effectiveDays: number,
   opts: { p_canal?: string | null; p_location_id?: string | null; p_zona?: string | null; customFrom?: Date; customTo?: Date }
 ) {
-  if (needsDateRange(days)) {
-    const { from, to } = getDateRange(days, opts.customFrom, opts.customTo);
+  const hasCustomRange = !!(opts.customFrom && opts.customTo);
+  const usesRange = hasCustomRange || needsDateRange(days);
+  if (usesRange) {
+    const { from, to } = getDateRange(
+      hasCustomRange ? CUSTOM_SENTINEL : days,
+      opts.customFrom,
+      opts.customTo
+    );
     return supabase.rpc("reporte_kpis_por_rango" as any, {
       p_desde: toDateStr(from),
       p_hasta: toDateStr(to),
