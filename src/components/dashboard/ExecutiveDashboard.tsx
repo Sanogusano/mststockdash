@@ -1523,7 +1523,18 @@ function BrandOverviewPanel({ days, comparisonPeriod = "previous" }: { days: num
       setLoading(true);
       const effectiveDays = resolveDays(days);
       const cr = resolveComparisonRange(days, comparisonPeriod);
-      const [kpiTiendasRes, kpiOutletsRes, kpiDigitalRes, prevTiendasRes, prevOutletsRes, prevDigitalRes, m2Res] = await Promise.all([
+
+      // Channel contribution: use reporte_desempeño_por_canal.
+      // It always returns 3 rows with stable `canal_key` values: 'digital' | 'tiendas' | 'outlets'.
+      // NEVER compare `canal` text — always index by `canal_key`.
+      const currentUsesRange = needsDateRange(days);
+      const currentRange = currentUsesRange ? getDateRange(days) : null;
+      const desempenoActualParams: any = currentUsesRange
+        ? { p_desde: toDateStr(currentRange!.from), p_hasta: toDateStr(currentRange!.to) }
+        : { dias_atras: effectiveDays };
+      const desempenoAnteriorParams: any = { p_desde: toDateStr(cr.from), p_hasta: toDateStr(cr.to) };
+
+      const [kpiTiendasRes, kpiOutletsRes, kpiDigitalRes, prevTiendasRes, prevOutletsRes, prevDigitalRes, m2Res, desempenoActualRes, desempenoAnteriorRes] = await Promise.all([
         buildKpiCall(days, effectiveDays, { p_canal: "tiendas", p_location_id: null }),
         buildKpiCall(days, effectiveDays, { p_canal: "outlets", p_location_id: null }),
         buildKpiCall(days, effectiveDays, { p_canal: "digital", p_location_id: null }),
@@ -1531,6 +1542,8 @@ function BrandOverviewPanel({ days, comparisonPeriod = "previous" }: { days: num
         supabase.rpc("reporte_kpis_por_rango" as any, { p_desde: toDateStr(cr.from), p_hasta: toDateStr(cr.to), p_canal: "outlets", p_location_id: null }),
         supabase.rpc("reporte_kpis_por_rango" as any, { p_desde: toDateStr(cr.from), p_hasta: toDateStr(cr.to), p_canal: "digital", p_location_id: null }),
         supabase.from("locations").select("dimension_m2, name, location_id").eq("is_active", true).not("dimension_m2", "is", null),
+        supabase.rpc("reporte_desempeño_por_canal" as any, desempenoActualParams),
+        supabase.rpc("reporte_desempeño_por_canal" as any, desempenoAnteriorParams),
       ]);
 
       const emptyKpi = normalizeKpiData({});
@@ -1550,10 +1563,21 @@ function BrandOverviewPanel({ days, comparisonPeriod = "previous" }: { days: num
       };
       setPrevChannelKpis(prevChKpis);
 
+      // Build channel contribution strictly from canal_key mapping — never from canal text.
+      if (import.meta.env.DEV) {
+        // eslint-disable-next-line no-console
+        console.log("[Aporte por Canal] RPC actual:", desempenoActualRes.data);
+        // eslint-disable-next-line no-console
+        console.log("[Aporte por Canal] RPC anterior:", desempenoAnteriorRes.data);
+      }
+      const porCanalActual = Object.fromEntries(((desempenoActualRes.data as any[]) ?? []).map((r: any) => [r.canal_key, r]));
+      const porCanalAnterior = Object.fromEntries(((desempenoAnteriorRes.data as any[]) ?? []).map((r: any) => [r.canal_key, r]));
+      const readVentas = (map: Record<string, any>, key: string) => toNumber(map[key]?.ventas_totales);
+
       setChannelData([
-        { name: "Tiendas", key: "tiendas", actual: chKpis.tiendas.ingresos_netos, anterior: prevChKpis.tiendas.ingresos_netos },
-        { name: "Outlets", key: "outlets", actual: chKpis.outlets.ingresos_netos, anterior: prevChKpis.outlets.ingresos_netos },
-        { name: "Digital", key: "digital", actual: chKpis.digital.ingresos_netos, anterior: prevChKpis.digital.ingresos_netos },
+        { name: "Tiendas", key: "tiendas", actual: readVentas(porCanalActual, "tiendas"), anterior: readVentas(porCanalAnterior, "tiendas") },
+        { name: "Outlets", key: "outlets", actual: readVentas(porCanalActual, "outlets"), anterior: readVentas(porCanalAnterior, "outlets") },
+        { name: "Digital", key: "digital", actual: readVentas(porCanalActual, "digital"), anterior: readVentas(porCanalAnterior, "digital") },
       ]);
 
       if (m2Res.data) {
