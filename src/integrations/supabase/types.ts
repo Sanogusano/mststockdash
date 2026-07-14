@@ -2765,23 +2765,15 @@ export type Database = {
               unidades_vendidas: number
             }[]
           }
-      reporte_desempeño_por_canal:
-        | {
-            Args: { dias_atras: number }
-            Returns: {
-              canal: string
-              total_pedidos: number
-              ventas_totales: number
-            }[]
-          }
-        | {
-            Args: { dias_atras: number; p_hasta?: string }
-            Returns: {
-              canal: string
-              total_pedidos: number
-              ventas_totales: number
-            }[]
-          }
+      reporte_desempeño_por_canal: {
+        Args: { dias_atras: number; p_hasta?: string }
+        Returns: {
+          canal: string
+          canal_key: string
+          total_pedidos: number
+          ventas_totales: number
+        }[]
+      }
       reporte_desempeno_por_linea:
         | {
             Args: { dias_atras: number; p_canal?: string; p_categoria?: string }
