@@ -1567,6 +1567,9 @@ function BrandOverviewPanel({ days, comparisonPeriod = "previous", customFrom, c
         outlets: extract(kpiOutletsRes),
         digital: extract(kpiDigitalRes),
       };
+      console.log("[KPI CARDS] modo:", { days, hasCustomRange: !!(customFrom && customTo), customFrom, customTo });
+      console.log("[KPI CARDS] tiendas:", chKpis.tiendas.ingresos_netos, "outlets:", chKpis.outlets.ingresos_netos, "digital:", chKpis.digital.ingresos_netos);
+      console.log("[KPI CARDS] selectedChannels:", selectedChannels);
       setChannelKpis(chKpis);
 
       const prevChKpis: Record<string, KpiData> = {
