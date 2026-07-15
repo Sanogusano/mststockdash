@@ -227,8 +227,6 @@ export function TimeFilter({ value, onChange, comparisonPeriod, onComparisonChan
     if (onCustomRangeChange) {
       onCustomRangeChange(fromDate, toDate);
     }
-    const days = differenceInCalendarDays(toDate, fromDate);
-    onChange(Math.max(days, 0));
     setShowCalendar(false);
     setCalendarStep("from");
     setMenuOpen(false);
