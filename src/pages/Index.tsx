@@ -40,6 +40,7 @@ export default function ExecutivePage() {
   const handleCustomRangeChange = (from: Date, to: Date) => {
     setCustomFrom(from);
     setCustomTo(to);
+    setDays(Math.max(differenceInCalendarDays(to, from), 0));
   };
 
   return (
