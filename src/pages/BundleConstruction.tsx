@@ -208,7 +208,12 @@ export default function BundleConstructionPage() {
         image_url: catalog.imgs[r.product_id],
         sizeStock: sizeStockByProduct.get(r.product_id) ?? {},
       }))
-      .filter((r) => Object.keys(r.sizeStock).length > 0);
+      .filter((r) => Object.keys(r.sizeStock).length > 0)
+      .filter((r) => {
+        if (selectedColecciones.length === 0) return true;
+        const col = catalog.colecciones[r.product_id] ?? "Otros";
+        return selectedColecciones.includes(col);
+      });
 
     // Agrupar por categoría
     const byCat = new Map<string, BundleItem[]>();
