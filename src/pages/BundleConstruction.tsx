@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Package, Download, Sparkles, Layers } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { exportToXLS } from "@/lib/xls-export";
+import { MultiSelectFilter } from "@/components/dashboard/MultiSelectFilter";
 
 type Location = { location_id: string; name: string; tipo_tienda?: string | null };
 
