@@ -1362,8 +1362,8 @@ function BrandTopBottomProducts({ days }: { days: number }) {
       const effectiveDays = resolveDays(days);
       const hastaParam = getFilterEndDate(days);
       const [topRes, bottomRes] = await Promise.all([
-        supabase.rpc("reporte_top_productos_global" as any, { dias_atras: effectiveDays, p_orden: "TOP", p_limite: 5, p_hasta: hastaParam }),
-        supabase.rpc("reporte_top_productos_global" as any, { dias_atras: effectiveDays, p_orden: "BOTTOM", p_limite: 5, p_hasta: hastaParam }),
+        supabase.rpc("reporte_top_productos_global" as any, { dias_atras: effectiveDays, p_canal: null, p_categoria: null, p_orden: "TOP", p_limite: 5, p_hasta: hastaParam }),
+        supabase.rpc("reporte_top_productos_global" as any, { dias_atras: effectiveDays, p_canal: null, p_categoria: null, p_orden: "BOTTOM", p_limite: 5, p_hasta: hastaParam }),
       ]);
       if (topRes.data) setTop5(topRes.data as unknown as GlobalProductRow[]);
       if (bottomRes.data) setBottom5(bottomRes.data as unknown as GlobalProductRow[]);
