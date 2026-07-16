@@ -49,12 +49,20 @@ export function MultiSelectFilter({ label, options, selected, onChange, classNam
       </Button>
       {open && (
         <div className="absolute z-50 mt-1 w-56 rounded-md border bg-popover p-2 shadow-lg max-h-64 overflow-y-auto">
-          <button
-            className="w-full text-left text-xs px-2 py-1.5 rounded hover:bg-muted text-primary font-medium"
-            onClick={() => onChange([])}
-          >
-            Seleccionar todos
-          </button>
+          <div className="flex gap-1">
+            <button
+              className="flex-1 text-left text-xs px-2 py-1.5 rounded hover:bg-muted text-primary font-medium"
+              onClick={() => onChange([...options])}
+            >
+              Marcar todos
+            </button>
+            <button
+              className="flex-1 text-left text-xs px-2 py-1.5 rounded hover:bg-muted text-muted-foreground font-medium"
+              onClick={() => onChange([])}
+            >
+              Limpiar
+            </button>
+          </div>
           <div className="border-t border-border my-1" />
           {options.map((opt) => (
             <label
