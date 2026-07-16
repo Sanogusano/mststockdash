@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Package, Download, Sparkles, Layers } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { exportToXLS } from "@/lib/xls-export";
+import { MultiSelectFilter } from "@/components/dashboard/MultiSelectFilter";
 
 type Location = { location_id: string; name: string; tipo_tienda?: string | null };
 
@@ -79,6 +80,7 @@ export default function BundleConstructionPage() {
   const [locationId, setLocationId] = useState<string>("");
   const [size, setSize] = useState<"2" | "3">("2");
   const [maxBundles, setMaxBundles] = useState<number>(30);
+  const [selectedColecciones, setSelectedColecciones] = useState<string[]>([]);
 
   const { data: locations = [] } = useQuery<Location[]>({
     queryKey: ["locations-bundle"],
@@ -119,30 +121,40 @@ export default function BundleConstructionPage() {
 
   const productIds = useMemo(() => candidatos.map((r) => r.product_id), [candidatos]);
 
-  // Catálogo (imagen + variantes con talla)
-  const { data: catalog = { imgs: {}, variants: [] as { product_id: string; variant_id: string; size: string }[] } } =
-    useQuery<{ imgs: Record<string, string>; variants: { product_id: string; variant_id: string; size: string }[] }>({
+  // Catálogo (imagen + variantes con talla + colección)
+  const { data: catalog = { imgs: {}, variants: [] as { product_id: string; variant_id: string; size: string }[], colecciones: {} as Record<string, string> } } =
+    useQuery<{ imgs: Record<string, string>; variants: { product_id: string; variant_id: string; size: string }[]; colecciones: Record<string, string> }>({
       queryKey: ["bundle-catalog", productIds.length, productIds.slice(0, 5).join(",")],
       enabled: productIds.length > 0,
       queryFn: async () => {
         const imgs: Record<string, string> = {};
+        const colecciones: Record<string, string> = {};
         const variants: { product_id: string; variant_id: string; size: string }[] = [];
         for (let i = 0; i < productIds.length; i += 200) {
           const chunk = productIds.slice(i, i + 200);
           const { data } = await supabase
             .from("product_catalog")
-            .select("product_id,image_url,variant_id,variant_name")
+            .select("product_id,image_url,variant_id,variant_name,collection_season")
             .in("product_id", chunk);
           (data ?? []).forEach((r: any) => {
             if (r.product_id && r.image_url && !imgs[r.product_id]) imgs[r.product_id] = r.image_url;
+            if (r.product_id && !colecciones[r.product_id]) {
+              colecciones[r.product_id] = r.collection_season && String(r.collection_season).trim() ? String(r.collection_season) : "Otros";
+            }
             if (r.product_id && r.variant_id && r.variant_name) {
               variants.push({ product_id: r.product_id, variant_id: r.variant_id, size: String(r.variant_name) });
             }
           });
         }
-        return { imgs, variants };
+        return { imgs, variants, colecciones };
       },
     });
+
+  const coleccionesOptions = useMemo(() => {
+    const set = new Set<string>();
+    Object.values(catalog.colecciones).forEach((c) => set.add(c || "Otros"));
+    return [...set].sort((a, b) => (a === "Otros" ? 1 : b === "Otros" ? -1 : a.localeCompare(b)));
+  }, [catalog.colecciones]);
 
   // Snapshot más reciente para la ubicación + stock por variant_id
   const variantIds = useMemo(() => catalog.variants.map((v) => v.variant_id), [catalog.variants]);
@@ -203,7 +215,12 @@ export default function BundleConstructionPage() {
         image_url: catalog.imgs[r.product_id],
         sizeStock: sizeStockByProduct.get(r.product_id) ?? {},
       }))
-      .filter((r) => Object.keys(r.sizeStock).length > 0);
+      .filter((r) => Object.keys(r.sizeStock).length > 0)
+      .filter((r) => {
+        if (selectedColecciones.length === 0) return true;
+        const col = catalog.colecciones[r.product_id] ?? "Otros";
+        return selectedColecciones.includes(col);
+      });
 
     // Agrupar por categoría
     const byCat = new Map<string, BundleItem[]>();
@@ -276,7 +293,7 @@ export default function BundleConstructionPage() {
     }
     // Priorizar bundles con más unidades vendibles (mayor cobertura de tallas)
     return out.sort((a, b) => b.totalPairable - a.totalPairable || b.wosProm - a.wosProm);
-  }, [candidatos, size, catalog.imgs, sizeStockByProduct, maxBundles]);
+  }, [candidatos, size, catalog.imgs, catalog.colecciones, sizeStockByProduct, maxBundles, selectedColecciones]);
 
   const totals = useMemo(() => {
     const pairable = bundles.reduce((a, b) => a + b.totalPairable, 0);
@@ -380,6 +397,18 @@ export default function BundleConstructionPage() {
                     </SelectContent>
                   </Select>
                 </div>
+                <div>
+                  <label className="text-xs text-muted-foreground mb-1 block">Colección</label>
+                  <MultiSelectFilter
+                    label="Colección"
+                    options={coleccionesOptions}
+                    selected={selectedColecciones}
+                    onChange={setSelectedColecciones}
+                    className="w-[220px]"
+                  />
+                </div>
+
+
 
                 <div className="ml-auto text-xs text-muted-foreground space-y-1 max-w-xs">
                   <div>Excluye <b>BOLSAS</b> e <b>INSUMOS</b>.</div>
