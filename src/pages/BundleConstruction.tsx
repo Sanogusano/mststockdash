@@ -119,28 +119,32 @@ export default function BundleConstructionPage() {
 
   const productIds = useMemo(() => candidatos.map((r) => r.product_id), [candidatos]);
 
-  // Catálogo (imagen + variantes con talla)
-  const { data: catalog = { imgs: {}, variants: [] as { product_id: string; variant_id: string; size: string }[] } } =
-    useQuery<{ imgs: Record<string, string>; variants: { product_id: string; variant_id: string; size: string }[] }>({
+  // Catálogo (imagen + variantes con talla + colección)
+  const { data: catalog = { imgs: {}, variants: [] as { product_id: string; variant_id: string; size: string }[], colecciones: {} as Record<string, string> } } =
+    useQuery<{ imgs: Record<string, string>; variants: { product_id: string; variant_id: string; size: string }[]; colecciones: Record<string, string> }>({
       queryKey: ["bundle-catalog", productIds.length, productIds.slice(0, 5).join(",")],
       enabled: productIds.length > 0,
       queryFn: async () => {
         const imgs: Record<string, string> = {};
+        const colecciones: Record<string, string> = {};
         const variants: { product_id: string; variant_id: string; size: string }[] = [];
         for (let i = 0; i < productIds.length; i += 200) {
           const chunk = productIds.slice(i, i + 200);
           const { data } = await supabase
             .from("product_catalog")
-            .select("product_id,image_url,variant_id,variant_name")
+            .select("product_id,image_url,variant_id,variant_name,collection_season")
             .in("product_id", chunk);
           (data ?? []).forEach((r: any) => {
             if (r.product_id && r.image_url && !imgs[r.product_id]) imgs[r.product_id] = r.image_url;
+            if (r.product_id && !colecciones[r.product_id]) {
+              colecciones[r.product_id] = r.collection_season && String(r.collection_season).trim() ? String(r.collection_season) : "Otros";
+            }
             if (r.product_id && r.variant_id && r.variant_name) {
               variants.push({ product_id: r.product_id, variant_id: r.variant_id, size: String(r.variant_name) });
             }
           });
         }
-        return { imgs, variants };
+        return { imgs, variants, colecciones };
       },
     });
 
