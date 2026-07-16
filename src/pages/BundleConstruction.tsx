@@ -150,11 +150,24 @@ export default function BundleConstructionPage() {
       },
     });
 
-  const coleccionesOptions = useMemo(() => {
-    const set = new Set<string>();
-    Object.values(catalog.colecciones).forEach((c) => set.add(c || "Otros"));
-    return [...set].sort((a, b) => (a === "Otros" ? 1 : b === "Otros" ? -1 : a.localeCompare(b)));
-  }, [catalog.colecciones]);
+  const { data: coleccionesOptions = [] } = useQuery<string[]>({
+    queryKey: ["bundle-colecciones-all"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("product_catalog")
+        .select("collection_season")
+        .not("collection_season", "is", null)
+        .limit(10000);
+      if (error) throw error;
+      const set = new Set<string>();
+      (data ?? []).forEach((r: any) => {
+        const v = r.collection_season ? String(r.collection_season).trim() : "";
+        if (v) set.add(v);
+      });
+      set.add("Otros");
+      return [...set].sort((a, b) => (a === "Otros" ? 1 : b === "Otros" ? -1 : a.localeCompare(b)));
+    },
+  });
 
   // Snapshot más reciente para la ubicación + stock por variant_id
   const variantIds = useMemo(() => catalog.variants.map((v) => v.variant_id), [catalog.variants]);
