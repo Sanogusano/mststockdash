@@ -53,7 +53,7 @@ export function MultiSelectFilter({ label, options, selected, onChange, classNam
             className="w-full text-left text-xs px-2 py-1.5 rounded hover:bg-muted text-primary font-medium"
             onClick={() => onChange([])}
           >
-            Seleccionar todos
+            Limpiar selección (mostrar todos)
           </button>
           <div className="border-t border-border my-1" />
           {options.map((opt) => (
