@@ -390,6 +390,18 @@ export default function BundleConstructionPage() {
                     </SelectContent>
                   </Select>
                 </div>
+                <div>
+                  <label className="text-xs text-muted-foreground mb-1 block">Colección</label>
+                  <MultiSelectFilter
+                    label="Colección"
+                    options={coleccionesOptions}
+                    selected={selectedColecciones}
+                    onChange={setSelectedColecciones}
+                    className="w-[220px]"
+                  />
+                </div>
+
+
 
                 <div className="ml-auto text-xs text-muted-foreground space-y-1 max-w-xs">
                   <div>Excluye <b>BOLSAS</b> e <b>INSUMOS</b>.</div>
