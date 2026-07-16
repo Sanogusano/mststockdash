@@ -150,6 +150,12 @@ export default function BundleConstructionPage() {
       },
     });
 
+  const coleccionesOptions = useMemo(() => {
+    const set = new Set<string>();
+    Object.values(catalog.colecciones).forEach((c) => set.add(c || "Otros"));
+    return [...set].sort((a, b) => (a === "Otros" ? 1 : b === "Otros" ? -1 : a.localeCompare(b)));
+  }, [catalog.colecciones]);
+
   // Snapshot más reciente para la ubicación + stock por variant_id
   const variantIds = useMemo(() => catalog.variants.map((v) => v.variant_id), [catalog.variants]);
 
