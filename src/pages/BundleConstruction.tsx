@@ -79,6 +79,7 @@ export default function BundleConstructionPage() {
   const [locationId, setLocationId] = useState<string>("");
   const [size, setSize] = useState<"2" | "3">("2");
   const [maxBundles, setMaxBundles] = useState<number>(30);
+  const [selectedColecciones, setSelectedColecciones] = useState<string[]>([]);
 
   const { data: locations = [] } = useQuery<Location[]>({
     queryKey: ["locations-bundle"],
