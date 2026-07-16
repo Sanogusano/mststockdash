@@ -286,7 +286,7 @@ export default function BundleConstructionPage() {
     }
     // Priorizar bundles con más unidades vendibles (mayor cobertura de tallas)
     return out.sort((a, b) => b.totalPairable - a.totalPairable || b.wosProm - a.wosProm);
-  }, [candidatos, size, catalog.imgs, sizeStockByProduct, maxBundles]);
+  }, [candidatos, size, catalog.imgs, catalog.colecciones, sizeStockByProduct, maxBundles, selectedColecciones]);
 
   const totals = useMemo(() => {
     const pairable = bundles.reduce((a, b) => a + b.totalPairable, 0);
