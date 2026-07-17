@@ -1381,8 +1381,8 @@ function BrandTopBottomProducts({ days }: { days: number }) {
           p_hasta: hastaParam,
         }),
       ]);
-      if (topRes.error) console.error("Error en reporte_ejecutivo_productos Top 5 (TOP):", topRes.error);
-      if (bottomRes.error) console.error("Error en reporte_ejecutivo_productos Top 5 (BOTTOM):", bottomRes.error);
+      if (import.meta.env.DEV && topRes.error) console.error("Error en reporte_ejecutivo_productos Top 5 (TOP):", topRes.error);
+      if (import.meta.env.DEV && bottomRes.error) console.error("Error en reporte_ejecutivo_productos Top 5 (BOTTOM):", bottomRes.error);
       if (topRes.data) setTop5((topRes.data as any[]).map((r: any) => ({
         foto: r.foto ?? null,
         producto: r.producto ?? null,
@@ -1599,9 +1599,11 @@ function BrandOverviewPanel({ days, comparisonPeriod = "previous", customFrom, c
         outlets: extract(kpiOutletsRes),
         digital: extract(kpiDigitalRes),
       };
-      console.log("[KPI CARDS] modo:", { days, hasCustomRange: !!(customFrom && customTo), customFrom, customTo });
-      console.log("[KPI CARDS] tiendas:", chKpis.tiendas.ingresos_netos, "outlets:", chKpis.outlets.ingresos_netos, "digital:", chKpis.digital.ingresos_netos);
-      console.log("[KPI CARDS] selectedChannels:", selectedChannels);
+      if (import.meta.env.DEV) {
+        console.log("[KPI CARDS] modo:", { days, hasCustomRange: !!(customFrom && customTo), customFrom, customTo });
+        console.log("[KPI CARDS] tiendas:", chKpis.tiendas.ingresos_netos, "outlets:", chKpis.outlets.ingresos_netos, "digital:", chKpis.digital.ingresos_netos);
+        console.log("[KPI CARDS] selectedChannels:", selectedChannels);
+      }
       setChannelKpis(chKpis);
 
       const prevChKpis: Record<string, KpiData> = {
