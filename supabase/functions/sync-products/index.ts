@@ -147,10 +147,12 @@ Deno.serve(async (req) => {
         const color = optionValue(opts, ["color"]);
         const size = optionValue(opts, ["size", "talla"]);
 
+        if (!v.sku) continue; // sku es NOT NULL en product_catalog
+
         rows.push({
           product_id: productId,
           variant_id: gidToId(v.id),
-          sku: v.sku ?? null,
+          sku: v.sku,
           title: p.title ?? null,
           category: p.productType ?? null,
           image_url: p.featuredImage?.url ?? null,
