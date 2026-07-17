@@ -1362,11 +1362,43 @@ function BrandTopBottomProducts({ days }: { days: number }) {
       const effectiveDays = resolveDays(days);
       const hastaParam = getFilterEndDate(days);
       const [topRes, bottomRes] = await Promise.all([
-        supabase.rpc("reporte_top_productos_global" as any, { dias_atras: effectiveDays, p_canal: null, p_categoria: null, p_orden: "TOP", p_limite: 5, p_hasta: hastaParam }),
-        supabase.rpc("reporte_top_productos_global" as any, { dias_atras: effectiveDays, p_canal: null, p_categoria: null, p_orden: "BOTTOM", p_limite: 5, p_hasta: hastaParam }),
+        supabase.rpc("reporte_ejecutivo_productos" as any, {
+          dias_atras: effectiveDays,
+          canal_filtro: null,
+          location_filtro: null,
+          orden: "TOP",
+          limite: 5,
+          zona_filtro: null,
+          p_hasta: hastaParam,
+        }),
+        supabase.rpc("reporte_ejecutivo_productos" as any, {
+          dias_atras: effectiveDays,
+          canal_filtro: null,
+          location_filtro: null,
+          orden: "BOTTOM",
+          limite: 5,
+          zona_filtro: null,
+          p_hasta: hastaParam,
+        }),
       ]);
-      if (topRes.data) setTop5(topRes.data as unknown as GlobalProductRow[]);
-      if (bottomRes.data) setBottom5(bottomRes.data as unknown as GlobalProductRow[]);
+      if (topRes.error) console.error("Error en reporte_ejecutivo_productos Top 5 (TOP):", topRes.error);
+      if (bottomRes.error) console.error("Error en reporte_ejecutivo_productos Top 5 (BOTTOM):", bottomRes.error);
+      if (topRes.data) setTop5((topRes.data as any[]).map((r: any) => ({
+        foto: r.foto ?? null,
+        producto: r.producto ?? null,
+        categoria: r.categoria ?? null,
+        und_total: r.unidades_vendidas ?? r.und_total ?? 0,
+        clasificacion: r.clasificacion ?? null,
+        coleccion: r.coleccion ?? "Otros",
+      })));
+      if (bottomRes.data) setBottom5((bottomRes.data as any[]).map((r: any) => ({
+        foto: r.foto ?? null,
+        producto: r.producto ?? null,
+        categoria: r.categoria ?? null,
+        und_total: r.unidades_vendidas ?? r.und_total ?? 0,
+        clasificacion: r.clasificacion ?? null,
+        coleccion: r.coleccion ?? "Otros",
+      })));
       setLoading(false);
     }
     fetch();
