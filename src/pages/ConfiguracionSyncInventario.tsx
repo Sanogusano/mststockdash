@@ -4,9 +4,10 @@ import { AppSidebar } from "@/components/AppSidebar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { RefreshCw, Loader2, CheckCircle2, AlertCircle, Clock } from "lucide-react";
+import { RefreshCw, Loader2, CheckCircle2, AlertCircle, Clock, PackageSearch } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useUserRole } from "@/hooks/useUserRole";
 
 type SyncState = {
   status: string | null;
@@ -173,6 +174,8 @@ export default function ConfiguracionSyncInventarioPage() {
                 </p>
               </CardContent>
             </Card>
+
+            <ProductsSyncCard />
           </div>
         </main>
       </div>
