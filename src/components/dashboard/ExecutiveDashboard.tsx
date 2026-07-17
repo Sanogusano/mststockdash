@@ -1349,7 +1349,7 @@ interface GlobalProductRow {
   coleccion: string | null;
 }
 
-function BrandTopBottomProducts({ days }: { days: number }) {
+function BrandTopBottomProducts({ days, customTo }: { days: number; customTo?: Date }) {
   const [top5, setTop5] = useState<GlobalProductRow[]>([]);
   const [bottom5, setBottom5] = useState<GlobalProductRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -1360,49 +1360,54 @@ function BrandTopBottomProducts({ days }: { days: number }) {
       if (!isValidDays(days)) return;
       setLoading(true);
       const effectiveDays = resolveDays(days);
-      const hastaParam = getFilterEndDate(days);
-      const [topRes, bottomRes] = await Promise.all([
-        supabase.rpc("reporte_ejecutivo_productos" as any, {
-          dias_atras: effectiveDays,
-          canal_filtro: null,
-          location_filtro: null,
-          orden: "TOP",
-          limite: 5,
-          zona_filtro: null,
-          p_hasta: hastaParam,
-        }),
-        supabase.rpc("reporte_ejecutivo_productos" as any, {
-          dias_atras: effectiveDays,
-          canal_filtro: null,
-          location_filtro: null,
-          orden: "BOTTOM",
-          limite: 5,
-          zona_filtro: null,
-          p_hasta: hastaParam,
-        }),
-      ]);
-      if (import.meta.env.DEV && topRes.error) console.error("Error en reporte_ejecutivo_productos Top 5 (TOP):", topRes.error);
-      if (import.meta.env.DEV && bottomRes.error) console.error("Error en reporte_ejecutivo_productos Top 5 (BOTTOM):", bottomRes.error);
-      if (topRes.data) setTop5((topRes.data as any[]).map((r: any) => ({
+      const hastaParam = customTo ? toDateStr(customTo) : getFilterEndDate(days);
+      const { data, error } = await supabase.rpc("reporte_comportamiento_producto", {
+        dias_atras: effectiveDays,
+        p_location_id: null,
+        p_hasta: hastaParam,
+      });
+
+      if (import.meta.env.DEV && error) console.error("Error en reporte_comportamiento_producto Top/Bottom 5:", error);
+
+      const rows = ((data as any[]) ?? []).filter((r: any) => {
+        const categoria = String(r.categoria ?? "").toUpperCase();
+        const producto = String(r.producto ?? "").toUpperCase();
+        return !categoria.includes("INSUMOS") && !categoria.includes("BOLSA") && !producto.includes("BOLSA");
+      });
+
+      setTop5([...rows]
+        .filter((r: any) => toNumber(r.und_vendidas) > 0)
+        .sort((a: any, b: any) => toNumber(b.und_vendidas) - toNumber(a.und_vendidas))
+        .slice(0, 5)
+        .map((r: any) => ({
         foto: r.foto ?? null,
         producto: r.producto ?? null,
         categoria: r.categoria ?? null,
-        und_total: r.unidades_vendidas ?? r.und_total ?? 0,
+        und_total: r.und_vendidas ?? 0,
         clasificacion: r.clasificacion ?? null,
         coleccion: r.coleccion ?? "Otros",
       })));
-      if (bottomRes.data) setBottom5((bottomRes.data as any[]).map((r: any) => ({
+
+      setBottom5([...rows]
+        .filter((r: any) => toNumber(r.stock_tiendas) + toNumber(r.stock_digital) > 0)
+        .sort((a: any, b: any) => {
+          const sellThroughDiff = toNumber(a.sell_through_pct) - toNumber(b.sell_through_pct);
+          if (Math.abs(sellThroughDiff) > 0.01) return sellThroughDiff;
+          return toNumber(b.wos) - toNumber(a.wos);
+        })
+        .slice(0, 5)
+        .map((r: any) => ({
         foto: r.foto ?? null,
         producto: r.producto ?? null,
         categoria: r.categoria ?? null,
-        und_total: r.unidades_vendidas ?? r.und_total ?? 0,
+        und_total: r.und_vendidas ?? 0,
         clasificacion: r.clasificacion ?? null,
         coleccion: r.coleccion ?? "Otros",
       })));
       setLoading(false);
     }
     fetch();
-  }, [days]);
+  }, [days, customTo]);
 
   if (loading) return <LoadingState rows={2} />;
 
@@ -1704,7 +1709,7 @@ function BrandOverviewPanel({ days, comparisonPeriod = "previous", customFrom, c
         <ChannelContributionChart channelData={filteredChannelData} />
       </div>
       <CollectionCompositionCard days={days} canal={singleCanal ?? undefined} />
-      <BrandTopBottomProducts days={days} />
+      <BrandTopBottomProducts days={days} customTo={customTo} />
     </div>
   );
 }
