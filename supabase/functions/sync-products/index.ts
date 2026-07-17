@@ -137,8 +137,10 @@ Deno.serve(async (req) => {
       const productId = gidToId(p.id);
       const metafields = (p.metafields?.edges ?? []).map((e: any) => e.node);
 
-      const collection_season = pickMetafield(metafields, ["collection", "season", "coleccion"]);
-      const target_gender = pickMetafield(metafields, ["gender", "genero"]);
+      const seasonMf = metafields.find((m: any) => m.namespace === "custom" && m.key === "colecci_n_temporada");
+      const collection_season = seasonMf?.value ?? null;
+      const genderMf = metafields.find((m: any) => m.namespace === "shopify" && m.key === "target-gender");
+      const target_gender = genderMf?.value ?? null;
 
       const variants = p.variants?.edges ?? [];
       for (const vEdge of variants) {
