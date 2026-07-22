@@ -314,9 +314,14 @@ export default function BajaRotacionPage() {
                 </p>
               </div>
             </div>
-            <Button onClick={handleExport} disabled={!filtered.length} size="sm" className="gap-2">
-              <Download className="h-4 w-4" /> Exportar Excel
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button onClick={handleExportPDF} disabled={!filtered.length} size="sm" variant="outline" className="gap-2">
+                <Download className="h-4 w-4" /> Exportar PDF
+              </Button>
+              <Button onClick={handleExport} disabled={!filtered.length} size="sm" className="gap-2">
+                <Download className="h-4 w-4" /> Exportar Excel
+              </Button>
+            </div>
           </header>
 
           <div className="flex-1 px-4 sm:px-6 py-4 sm:py-6 space-y-6">
