@@ -12,6 +12,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Download, AlertTriangle, AlertCircle, CircleOff, ChevronDown, ChevronRight, Store, Tag, Globe } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { exportToXLS } from "@/lib/xls-export";
+import { exportToPDF } from "@/lib/pdf-export";
 
 type TallaInfo = {
   talla?: string;
@@ -277,6 +278,27 @@ export default function BajaRotacionPage() {
     exportToXLS(data, `baja-rotacion-${new Date().toISOString().slice(0, 10)}`, "Baja Rotación");
   };
 
+  const handleExportPDF = () => {
+    const data = filtered.map((r) => ({
+      Producto: r.titulo,
+      Categoría: r.category,
+      Color: r.color,
+      Colección: r.collection_season ?? "",
+      "Sem.": Number(r.semanas_en_tienda).toFixed(1),
+      "Uds Vend.": r.unidades_vendidas,
+      Stock: r.stock_actual,
+      "Línea": Number(r.stock_linea) || 0,
+      "Outlet": Number(r.stock_outlet) || 0,
+      "Digital": Number(r.stock_digital) || 0,
+      "ST %": Number(r.sell_through).toFixed(1),
+      "Precio": fmtCOP(Number(r.precio_actual) || 0),
+      "Desc. Sug. %": Number(r.descuento_sugerido).toFixed(1),
+      Nivel: NIVEL_LABELS[r.nivel]?.label ?? r.nivel,
+      Acción: r.accion,
+    }));
+    exportToPDF(data, `baja-rotacion-${new Date().toISOString().slice(0, 10)}`, "Baja Rotación");
+  };
+
   return (
     <SidebarProvider>
       <div className="flex min-h-screen w-full bg-background">
@@ -292,9 +314,14 @@ export default function BajaRotacionPage() {
                 </p>
               </div>
             </div>
-            <Button onClick={handleExport} disabled={!filtered.length} size="sm" className="gap-2">
-              <Download className="h-4 w-4" /> Exportar Excel
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button onClick={handleExportPDF} disabled={!filtered.length} size="sm" variant="outline" className="gap-2">
+                <Download className="h-4 w-4" /> Exportar PDF
+              </Button>
+              <Button onClick={handleExport} disabled={!filtered.length} size="sm" className="gap-2">
+                <Download className="h-4 w-4" /> Exportar Excel
+              </Button>
+            </div>
           </header>
 
           <div className="flex-1 px-4 sm:px-6 py-4 sm:py-6 space-y-6">
