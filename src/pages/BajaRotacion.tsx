@@ -278,6 +278,27 @@ export default function BajaRotacionPage() {
     exportToXLS(data, `baja-rotacion-${new Date().toISOString().slice(0, 10)}`, "Baja Rotación");
   };
 
+  const handleExportPDF = () => {
+    const data = filtered.map((r) => ({
+      Producto: r.titulo,
+      Categoría: r.category,
+      Color: r.color,
+      Colección: r.collection_season ?? "",
+      "Sem.": Number(r.semanas_en_tienda).toFixed(1),
+      "Uds Vend.": r.unidades_vendidas,
+      Stock: r.stock_actual,
+      "Línea": Number(r.stock_linea) || 0,
+      "Outlet": Number(r.stock_outlet) || 0,
+      "Digital": Number(r.stock_digital) || 0,
+      "ST %": Number(r.sell_through).toFixed(1),
+      "Precio": fmtCOP(Number(r.precio_actual) || 0),
+      "Desc. Sug. %": Number(r.descuento_sugerido).toFixed(1),
+      Nivel: NIVEL_LABELS[r.nivel]?.label ?? r.nivel,
+      Acción: r.accion,
+    }));
+    exportToPDF(data, `baja-rotacion-${new Date().toISOString().slice(0, 10)}`, "Baja Rotación");
+  };
+
   return (
     <SidebarProvider>
       <div className="flex min-h-screen w-full bg-background">
