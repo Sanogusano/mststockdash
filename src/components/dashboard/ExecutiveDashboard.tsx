@@ -2,7 +2,7 @@ import { useEffect, useState, Fragment } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { isValidDays } from "@/lib/validation";
-import { resolveDays, resolveComparisonRange, getDateRange, needsDateRange, toDateStr as _toDateStr, getFilterEndDate, CUSTOM_SENTINEL, PREV_MONTH_SENTINEL, THIS_MONTH_SENTINEL, type ComparisonPeriod } from "@/components/dashboard/TimeFilter";
+import { resolveDays, resolveComparisonRange, getDateRange, needsDateRange, toDateStr as _toDateStr, getFilterEndDate, buildRpcDateParams, CUSTOM_SENTINEL, PREV_MONTH_SENTINEL, THIS_MONTH_SENTINEL, type ComparisonPeriod } from "@/components/dashboard/TimeFilter";
 import { exportToCSV } from "@/lib/csv-export";
 import { cn } from "@/lib/utils";
 import { exportToPDF } from "@/lib/pdf-export";
@@ -232,9 +232,10 @@ function getWosStatusColor(wos: number) {
   return "text-destructive";
 }
 
-function ProductTable({ data, title, exportFilename, days, canalFiltro, locationFiltro }: {
+function ProductTable({ data, title, exportFilename, days, canalFiltro, locationFiltro, customFrom, customTo }: {
   data: ProductRow[]; title: string; exportFilename: string;
   days: number; canalFiltro?: string; locationFiltro?: string | null;
+  customFrom?: Date; customTo?: Date;
 }) {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [skuDetails, setSkuDetails] = useState<SkuDetailRow[]>([]);
@@ -265,8 +266,7 @@ function ProductTable({ data, title, exportFilename, days, canalFiltro, location
     }
     setExpandedId(productId);
     setSkuLoading(true);
-    const effectiveDays = resolveDays(days);
-    const hastaParam = getFilterEndDate(days);
+    const { dias_atras: effectiveDays, p_hasta: hastaParam } = buildRpcDateParams(days, customFrom, customTo);
     const { data: rows } = await supabase.rpc("reporte_detalle_skus_producto" as any, {
       dias_atras: effectiveDays,
       p_product_id: productId,
@@ -418,7 +418,7 @@ interface VentasTipoData {
   pct_desc_promo: number;
 }
 
-function VentasTipoCards({ days, canal, locationId, zona }: { days: number; canal?: string | null; locationId?: string | null; zona?: string | null }) {
+function VentasTipoCards({ days, canal, locationId, zona, customFrom, customTo }: { days: number; canal?: string | null; locationId?: string | null; zona?: string | null; customFrom?: Date; customTo?: Date }) {
   const [data, setData] = useState<VentasTipoData | null>(null);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
@@ -427,8 +427,7 @@ function VentasTipoCards({ days, canal, locationId, zona }: { days: number; cana
     async function fetch() {
       if (!isValidDays(days)) return;
       setLoading(true);
-      const effectiveDays = resolveDays(days);
-      const hastaParam = getFilterEndDate(days);
+      const { dias_atras: effectiveDays, p_hasta: hastaParam } = buildRpcDateParams(days, customFrom, customTo);
       const { data: rows } = await supabase.rpc("reporte_pct_ventas_por_tipo" as any, {
         dias_atras: effectiveDays,
         p_canal: canal || null,
@@ -449,7 +448,7 @@ function VentasTipoCards({ days, canal, locationId, zona }: { days: number; cana
       setLoading(false);
     }
     fetch();
-  }, [days, canal, locationId, zona]);
+  }, [days, canal, locationId, zona, customFrom, customTo]);
 
   if (loading) return <LoadingState rows={1} />;
 
@@ -477,7 +476,7 @@ function VentasTipoCards({ days, canal, locationId, zona }: { days: number; cana
 }
 
 /* ── Pareto Chart (Top 10 + Otros) ── */
-function ParetoChart({ days, canal, locationId }: { days: number; canal: string; locationId?: string | null }) {
+function ParetoChart({ days, canal, locationId, customFrom, customTo }: { days: number; canal: string; locationId?: string | null; customFrom?: Date; customTo?: Date }) {
   const [data, setData] = useState<ParetoRow[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -485,8 +484,7 @@ function ParetoChart({ days, canal, locationId }: { days: number; canal: string;
     async function fetch() {
       if (!isValidDays(days)) return;
       setLoading(true);
-      const effectiveDays = resolveDays(days);
-      const hastaParam = getFilterEndDate(days);
+      const { dias_atras: effectiveDays, p_hasta: hastaParam } = buildRpcDateParams(days, customFrom, customTo);
       const { data: rows } = await supabase.rpc("reporte_pareto_categorias" as any, {
         dias_atras: effectiveDays,
         p_canal: canal || null,
@@ -516,7 +514,7 @@ function ParetoChart({ days, canal, locationId }: { days: number; canal: string;
       setLoading(false);
     }
     fetch();
-  }, [days, canal, locationId]);
+  }, [days, canal, locationId, customFrom, customTo]);
 
   if (loading) return <LoadingState rows={3} />;
   if (!data.length) return null;
@@ -634,7 +632,7 @@ interface ComportamientoRow {
   und_vendidas: number | null;
 }
 
-function WorstLinesRecommendation({ days, canal, locationId }: { days: number; canal: string; locationId?: string | null }) {
+function WorstLinesRecommendation({ days, canal, locationId, customFrom, customTo }: { days: number; canal: string; locationId?: string | null; customFrom?: Date; customTo?: Date }) {
   const [data, setData] = useState<ComportamientoRow[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -642,8 +640,7 @@ function WorstLinesRecommendation({ days, canal, locationId }: { days: number; c
     async function fetch() {
       if (!isValidDays(days)) return;
       setLoading(true);
-      const effectiveDays = resolveDays(days);
-      const hastaParam = getFilterEndDate(days);
+      const { dias_atras: effectiveDays, p_hasta: hastaParam } = buildRpcDateParams(days, customFrom, customTo);
       const { data: rows } = await supabase.rpc("reporte_comportamiento_producto", {
         dias_atras: effectiveDays,
         p_location_id: locationId || null,
@@ -653,7 +650,7 @@ function WorstLinesRecommendation({ days, canal, locationId }: { days: number; c
       setLoading(false);
     }
     fetch();
-  }, [days, canal, locationId]);
+  }, [days, canal, locationId, customFrom, customTo]);
 
   if (loading) return <LoadingState rows={2} />;
   if (!data.length) return null;
@@ -732,7 +729,7 @@ interface AlertRow {
   sell_through_pct: number | null;
 }
 
-function StockOutAlerts({ days, locationId }: { days: number; locationId?: string | null }) {
+function StockOutAlerts({ days, locationId, customFrom, customTo }: { days: number; locationId?: string | null; customFrom?: Date; customTo?: Date }) {
   const [alerts, setAlerts] = useState<AlertRow[]>([]);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
@@ -741,8 +738,7 @@ function StockOutAlerts({ days, locationId }: { days: number; locationId?: strin
     async function fetch() {
       if (!isValidDays(days)) return;
       setLoading(true);
-      const effectiveDays = resolveDays(days);
-      const hastaParam = getFilterEndDate(days);
+      const { dias_atras: effectiveDays, p_hasta: hastaParam } = buildRpcDateParams(days, customFrom, customTo);
       const { data: rows } = await supabase.rpc("reporte_comportamiento_producto", {
         dias_atras: effectiveDays,
         p_location_id: locationId || null,
@@ -759,7 +755,7 @@ function StockOutAlerts({ days, locationId }: { days: number; locationId?: strin
       setLoading(false);
     }
     fetch();
-  }, [days, locationId]);
+  }, [days, locationId, customFrom, customTo]);
 
   if (loading) return <LoadingState rows={2} />;
   if (!alerts.length) return null;
@@ -804,8 +800,9 @@ function StockOutAlerts({ days, locationId }: { days: number; locationId?: strin
 }
 
 /* ── Store Rank Card (when a specific location is selected) ── */
-function StoreRankCard({ days, canal, locationId, locationName }: {
+function StoreRankCard({ days, canal, locationId, locationName, customFrom, customTo }: {
   days: number; canal?: string; locationId: string; locationName: string;
+  customFrom?: Date; customTo?: Date;
 }) {
   const [rank, setRank] = useState<number | null>(null);
   const [total, setTotal] = useState(0);
@@ -818,8 +815,7 @@ function StoreRankCard({ days, canal, locationId, locationName }: {
     async function fetch() {
       if (!isValidDays(days)) return;
       setLoading(true);
-      const effectiveDays = resolveDays(days);
-      const hastaParam = getFilterEndDate(days);
+      const { dias_atras: effectiveDays, p_hasta: hastaParam } = buildRpcDateParams(days, customFrom, customTo);
 
       const [rankRes, metricsRes] = await Promise.all([
         supabase.rpc("reporte_ranking_tiendas", { dias_atras: effectiveDays, p_canal: canal || null, p_hasta: hastaParam }),
@@ -848,7 +844,7 @@ function StoreRankCard({ days, canal, locationId, locationName }: {
       setLoading(false);
     }
     fetch();
-  }, [days, canal, locationId, locationName]);
+  }, [days, canal, locationId, locationName, customFrom, customTo]);
 
   if (loading) return <LoadingState rows={2} />;
   if (rank === null) return <EmptyState message="Esta tienda no aparece en el ranking del período." />;
@@ -945,7 +941,7 @@ function StoreRankCard({ days, canal, locationId, locationName }: {
 }
 
 /* ── Digital Channel Card ── */
-function DigitalChannelCard({ days }: { days: number }) {
+function DigitalChannelCard({ days, customFrom, customTo }: { days: number; customFrom?: Date; customTo?: Date }) {
   const [rank, setRank] = useState<number | null>(null);
   const [total, setTotal] = useState(0);
   const [extraMetrics, setExtraMetrics] = useState<ExtraMetrics | null>(null);
@@ -956,8 +952,7 @@ function DigitalChannelCard({ days }: { days: number }) {
     async function fetch() {
       if (!isValidDays(days)) return;
       setLoading(true);
-      const effectiveDays = resolveDays(days);
-      const hastaParam = getFilterEndDate(days);
+      const { dias_atras: effectiveDays, p_hasta: hastaParam } = buildRpcDateParams(days, customFrom, customTo);
 
       const [rankRes, metricsRes] = await Promise.all([
         supabase.rpc("reporte_ranking_tiendas", { dias_atras: effectiveDays, p_canal: null, p_hasta: hastaParam }),
@@ -982,7 +977,7 @@ function DigitalChannelCard({ days }: { days: number }) {
       setLoading(false);
     }
     fetch();
-  }, [days]);
+  }, [days, customFrom, customTo]);
 
   if (loading) return <LoadingState rows={2} />;
 
@@ -1067,9 +1062,10 @@ interface RankingRow {
 }
 
 /* ── Channel Panel ── */
-function ChannelPanel({ days, canal, showLocationFilter, locationFilter, comparisonPeriod = "previous" }: {
+function ChannelPanel({ days, canal, showLocationFilter, locationFilter, comparisonPeriod = "previous", customFrom, customTo }: {
   days: number; canal: string; showLocationFilter: boolean;
   locationFilter?: "tiendas" | "outlets"; comparisonPeriod?: ComparisonPeriod;
+  customFrom?: Date; customTo?: Date;
 }) {
   const [kpis, setKpis] = useState<KpiData | null>(null);
   const [prevKpis, setPrevKpis] = useState<KpiData | null>(null);
@@ -1109,12 +1105,13 @@ function ChannelPanel({ days, canal, showLocationFilter, locationFilter, compari
       const effectiveDays = resolveDays(days);
       const locParam = selectedLocation === "all" ? null : selectedLocation;
       const canalFiltro = canal === "digital" ? "DIGITAL" : canal === "outlets" ? "OUTLET" : "TIENDAS";
+      const { p_hasta: hastaParam } = buildRpcDateParams(days, customFrom, customTo);
 
       try {
         const [kpiRes, prevKpiRes, topRes, bottomRes, m2Res] = await Promise.all([
-          buildKpiCall(days, effectiveDays, { p_canal: canal, p_location_id: locParam }),
+          buildKpiCall(days, effectiveDays, { p_canal: canal, p_location_id: locParam, customFrom, customTo }),
           (() => {
-            const compRange = resolveComparisonRange(days, comparisonPeriod);
+            const compRange = resolveComparisonRange(days, comparisonPeriod, customFrom, customTo);
             return supabase.rpc("reporte_kpis_por_rango" as any, {
               p_desde: toDateStr(compRange.from),
               p_hasta: toDateStr(compRange.to),
@@ -1128,7 +1125,7 @@ function ChannelPanel({ days, canal, showLocationFilter, locationFilter, compari
             location_filtro: locParam,
             orden: "TOP",
             limite: 20,
-            p_hasta: getFilterEndDate(days),
+            p_hasta: hastaParam,
           }),
           supabase.rpc("reporte_ejecutivo_productos", {
             dias_atras: effectiveDays,
@@ -1136,7 +1133,7 @@ function ChannelPanel({ days, canal, showLocationFilter, locationFilter, compari
             location_filtro: locParam,
             orden: "BOTTOM",
             limite: 20,
-            p_hasta: getFilterEndDate(days),
+            p_hasta: hastaParam,
           }),
           // Fetch m² for the selected location or all relevant locations
           locParam
@@ -1201,7 +1198,7 @@ function ChannelPanel({ days, canal, showLocationFilter, locationFilter, compari
       setLoading(false);
     }
     fetchAll();
-  }, [days, canal, selectedLocation, comparisonPeriod]);
+  }, [days, canal, selectedLocation, comparisonPeriod, customFrom, customTo]);
 
   if (loading) return <LoadingState rows={6} />;
 
@@ -1290,33 +1287,35 @@ function ChannelPanel({ days, canal, showLocationFilter, locationFilter, compari
               )}
             </div>
             {/* Row 3: % Full Price, % Rebajas, % Desc. Promo (line-item level) */}
-            <VentasTipoCards days={days} canal={canal} locationId={locParam} />
+            <VentasTipoCards days={days} canal={canal} locationId={locParam} customFrom={customFrom} customTo={customTo} />
           </div>
         );
       })()}
 
       {canal === "digital" ? (
-        <DigitalChannelCard days={days} />
+        <DigitalChannelCard days={days} customFrom={customFrom} customTo={customTo} />
       ) : selectedLocation === "all" ? (
-        <StoreLeaderboard days={days} canal={canal === "outlets" ? "outlets" : "tiendas"} />
+        <StoreLeaderboard days={days} canal={canal === "outlets" ? "outlets" : "tiendas"} customFrom={customFrom} customTo={customTo} />
       ) : (
         <StoreRankCard
           days={days}
           canal={canal === "outlets" ? "outlets" : "tiendas"}
           locationId={selectedLocation}
           locationName={locations.find(l => l.location_id === selectedLocation)?.name ?? selectedLocation}
+          customFrom={customFrom}
+          customTo={customTo}
         />
       )}
 
       <div className="cursor-pointer hover:ring-2 hover:ring-primary/30 transition-all" onClick={() => navigate(`/lineas?canal=${canal}&days=${days}`)}>
-        <ParetoChart days={days} canal={canal} locationId={locParam} />
+        <ParetoChart days={days} canal={canal} locationId={locParam} customFrom={customFrom} customTo={customTo} />
       </div>
 
-      <CollectionCompositionCard days={days} canal={canal} locationId={locParam} />
+      <CollectionCompositionCard days={days} canal={canal} locationId={locParam} customFrom={customFrom} customTo={customTo} />
 
-      <WorstLinesRecommendation days={days} canal={canal} locationId={locParam} />
+      <WorstLinesRecommendation days={days} canal={canal} locationId={locParam} customFrom={customFrom} customTo={customTo} />
 
-      <StockOutAlerts days={days} locationId={locParam} />
+      <StockOutAlerts days={days} locationId={locParam} customFrom={customFrom} customTo={customTo} />
 
       <ProductTable
         data={topProducts}
@@ -1325,6 +1324,8 @@ function ChannelPanel({ days, canal, showLocationFilter, locationFilter, compari
         days={days}
         canalFiltro={canal === "digital" ? "DIGITAL" : "POS"}
         locationFiltro={locParam}
+        customFrom={customFrom}
+        customTo={customTo}
       />
 
       <ProductTable
@@ -1334,6 +1335,8 @@ function ChannelPanel({ days, canal, showLocationFilter, locationFilter, compari
         days={days}
         canalFiltro={canal === "digital" ? "DIGITAL" : "POS"}
         locationFiltro={locParam}
+        customFrom={customFrom}
+        customTo={customTo}
       />
     </div>
   );
@@ -1349,7 +1352,7 @@ interface GlobalProductRow {
   coleccion: string | null;
 }
 
-function BrandTopBottomProducts({ days, customTo }: { days: number; customTo?: Date }) {
+function BrandTopBottomProducts({ days, customFrom, customTo }: { days: number; customFrom?: Date; customTo?: Date }) {
   const [top5, setTop5] = useState<GlobalProductRow[]>([]);
   const [bottom5, setBottom5] = useState<GlobalProductRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -1359,8 +1362,7 @@ function BrandTopBottomProducts({ days, customTo }: { days: number; customTo?: D
     async function fetch() {
       if (!isValidDays(days)) return;
       setLoading(true);
-      const effectiveDays = resolveDays(days);
-      const hastaParam = customTo ? toDateStr(customTo) : getFilterEndDate(days);
+      const { dias_atras: effectiveDays, p_hasta: hastaParam } = buildRpcDateParams(days, customFrom, customTo);
       const { data, error } = await supabase.rpc("reporte_comportamiento_producto", {
         dias_atras: effectiveDays,
         p_location_id: null,
@@ -1407,7 +1409,7 @@ function BrandTopBottomProducts({ days, customTo }: { days: number; customTo?: D
       setLoading(false);
     }
     fetch();
-  }, [days, customTo]);
+  }, [days, customFrom, customTo]);
 
   if (loading) return <LoadingState rows={2} />;
 
@@ -1703,32 +1705,32 @@ function BrandOverviewPanel({ days, comparisonPeriod = "previous", customFrom, c
         </div>
         {/* Row 3: % Full Price, % Rebajas, % Desc. Promo (line-item level) */}
         <div className="mt-4">
-          <VentasTipoCards days={days} canal={singleCanal} />
+          <VentasTipoCards days={days} canal={singleCanal} customFrom={customFrom} customTo={customTo} />
         </div>
         {/* Channel Contribution Chart */}
         <ChannelContributionChart channelData={filteredChannelData} />
       </div>
-      <CollectionCompositionCard days={days} canal={singleCanal ?? undefined} />
-      <BrandTopBottomProducts days={days} customTo={customTo} />
+      <CollectionCompositionCard days={days} canal={singleCanal ?? undefined} customFrom={customFrom} customTo={customTo} />
+      <BrandTopBottomProducts days={days} customFrom={customFrom} customTo={customTo} />
     </div>
   );
 }
 
 /* ── Brand Pareto (all channels, clickable) ── */
-function BrandParetoPreview({ days }: { days: number }) {
+function BrandParetoPreview({ days, customFrom, customTo }: { days: number; customFrom?: Date; customTo?: Date }) {
   const navigate = useNavigate();
   return (
     <div
       className="cursor-pointer hover:ring-2 hover:ring-primary/30 transition-all mb-6"
       onClick={() => navigate(`/lineas?days=${days}`)}
     >
-      <ParetoChart days={days} canal="" locationId={null} />
+      <ParetoChart days={days} canal="" locationId={null} customFrom={customFrom} customTo={customTo} />
     </div>
   );
 }
 
 /* ── Zone Panel ── */
-function ZonePanel({ days, locationFilter, comparisonPeriod = "previous" }: { days: number; locationFilter: "tiendas" | "outlets"; comparisonPeriod?: ComparisonPeriod }) {
+function ZonePanel({ days, locationFilter, comparisonPeriod = "previous", customFrom, customTo }: { days: number; locationFilter: "tiendas" | "outlets"; comparisonPeriod?: ComparisonPeriod; customFrom?: Date; customTo?: Date }) {
   const [locations, setLocations] = useState<Location[]>([]);
   const [selectedZone, setSelectedZone] = useState("all");
   const [selectedLocation, setSelectedLocation] = useState("all");
@@ -1773,23 +1775,24 @@ function ZonePanel({ days, locationFilter, comparisonPeriod = "previous" }: { da
       const effectiveDays = resolveDays(days);
       const locParam = selectedLocation !== "all" ? selectedLocation : null;
       const zonaParam = selectedZone !== "all" ? selectedZone : null;
+      const { p_hasta: hastaParam } = buildRpcDateParams(days, customFrom, customTo);
 
       const [kpiRes, prevKpiRes, rankRes, topRes, bottomRes, m2Res, zoneMetricsRes] = await Promise.all([
-        buildKpiCall(days, effectiveDays, { p_canal: canal, p_location_id: locParam, p_zona: zonaParam }),
-        (() => { const cr = resolveComparisonRange(days, comparisonPeriod); return supabase.rpc("reporte_kpis_por_rango" as any, { p_desde: toDateStr(cr.from), p_hasta: toDateStr(cr.to), p_canal: canal, p_location_id: locParam, p_zona: zonaParam }); })(),
-        supabase.rpc("reporte_ranking_tiendas", { dias_atras: effectiveDays, p_canal: canal, p_hasta: getFilterEndDate(days) }),
+        buildKpiCall(days, effectiveDays, { p_canal: canal, p_location_id: locParam, p_zona: zonaParam, customFrom, customTo }),
+        (() => { const cr = resolveComparisonRange(days, comparisonPeriod, customFrom, customTo); return supabase.rpc("reporte_kpis_por_rango" as any, { p_desde: toDateStr(cr.from), p_hasta: toDateStr(cr.to), p_canal: canal, p_location_id: locParam, p_zona: zonaParam }); })(),
+        supabase.rpc("reporte_ranking_tiendas", { dias_atras: effectiveDays, p_canal: canal, p_hasta: hastaParam }),
         supabase.rpc("reporte_ejecutivo_productos" as any, {
-          dias_atras: effectiveDays, canal_filtro: canalFiltro, location_filtro: locParam, orden: "TOP", limite: 20, zona_filtro: zonaParam, p_hasta: getFilterEndDate(days),
+          dias_atras: effectiveDays, canal_filtro: canalFiltro, location_filtro: locParam, orden: "TOP", limite: 20, zona_filtro: zonaParam, p_hasta: hastaParam,
         }),
         supabase.rpc("reporte_ejecutivo_productos" as any, {
-          dias_atras: effectiveDays, canal_filtro: canalFiltro, location_filtro: locParam, orden: "BOTTOM", limite: 20, zona_filtro: zonaParam, p_hasta: getFilterEndDate(days),
+          dias_atras: effectiveDays, canal_filtro: canalFiltro, location_filtro: locParam, orden: "BOTTOM", limite: 20, zona_filtro: zonaParam, p_hasta: hastaParam,
         }),
         locParam
           ? supabase.from("locations").select("dimension_m2").eq("location_id", locParam)
           : supabase.from("locations").select("dimension_m2, location_id, tipo_tienda, zona").eq("is_active", true).not("dimension_m2", "is", null),
         locParam
-          ? supabase.rpc("reporte_metricas_tienda_individual" as any, { dias_atras: effectiveDays, p_location_id: locParam, p_hasta: getFilterEndDate(days) })
-          : supabase.rpc("reporte_metricas_zona" as any, { dias_atras: effectiveDays, p_canal: canal, p_zona: zonaParam, p_hasta: getFilterEndDate(days) }),
+          ? supabase.rpc("reporte_metricas_tienda_individual" as any, { dias_atras: effectiveDays, p_location_id: locParam, p_hasta: hastaParam })
+          : supabase.rpc("reporte_metricas_zona" as any, { dias_atras: effectiveDays, p_canal: canal, p_zona: zonaParam, p_hasta: hastaParam }),
       ]);
 
       const emptyKpi = normalizeKpiData({});
@@ -1830,7 +1833,7 @@ function ZonePanel({ days, locationFilter, comparisonPeriod = "previous" }: { da
       setLoading(false);
     }
     fetchAll();
-  }, [days, canal, selectedLocation, selectedZone, comparisonPeriod]);
+  }, [days, canal, selectedLocation, selectedZone, comparisonPeriod, customFrom, customTo]);
 
   if (loading) return <LoadingState rows={6} />;
 
@@ -1920,7 +1923,7 @@ function ZonePanel({ days, locationFilter, comparisonPeriod = "previous" }: { da
         </div>
         {/* Row 3: % Full Price, % Rebajas, % Desc. Promo */}
         <div className="mt-4">
-          <VentasTipoCards days={days} canal={canal} locationId={locParam} zona={zonaParam} />
+          <VentasTipoCards days={days} canal={canal} locationId={locParam} zona={zonaParam} customFrom={customFrom} customTo={customTo} />
         </div>
       </div>
 
@@ -1985,6 +1988,8 @@ function ZonePanel({ days, locationFilter, comparisonPeriod = "previous" }: { da
           allRanking={allRanking}
           zoneRanking={zoneRanking}
           zoneName={selectedZone}
+          customFrom={customFrom}
+          customTo={customTo}
         />
       ) : null}
 
@@ -2056,24 +2061,25 @@ function ZonePanel({ days, locationFilter, comparisonPeriod = "previous" }: { da
 
       {/* Pareto */}
       <div className="cursor-pointer hover:ring-2 hover:ring-primary/30 transition-all" onClick={() => navigate(`/lineas?canal=${canal}&days=${days}`)}>
-        <ParetoChart days={days} canal={canal} locationId={locParam} />
+        <ParetoChart days={days} canal={canal} locationId={locParam} customFrom={customFrom} customTo={customTo} />
       </div>
 
-      <CollectionCompositionCard days={days} canal={canal} locationId={locParam} zona={zonaParam} />
+      <CollectionCompositionCard days={days} canal={canal} locationId={locParam} zona={zonaParam} customFrom={customFrom} customTo={customTo} />
 
       {/* Top/Bottom Products */}
       <ProductTable data={topProducts} title="Top 20 — Más Vendidos" exportFilename={`top20_zona_${canal}_${days}d`}
-        days={days} canalFiltro={canalFiltro} locationFiltro={locParam} />
+        days={days} canalFiltro={canalFiltro} locationFiltro={locParam} customFrom={customFrom} customTo={customTo} />
       <ProductTable data={bottomProducts} title="Bottom 20 — Menor Rotación (con stock)" exportFilename={`bottom20_zona_${canal}_${days}d`}
-        days={days} canalFiltro={canalFiltro} locationFiltro={locParam} />
+        days={days} canalFiltro={canalFiltro} locationFiltro={locParam} customFrom={customFrom} customTo={customTo} />
     </div>
   );
 }
 
 /* ── Zone Store Rank Card (with zone + national ranking) ── */
-function ZoneStoreRankCard({ days, canal, locationId, locationName, allRanking, zoneRanking, zoneName }: {
+function ZoneStoreRankCard({ days, canal, locationId, locationName, allRanking, zoneRanking, zoneName, customFrom, customTo }: {
   days: number; canal: string; locationId: string; locationName: string;
   allRanking: RankingRow[]; zoneRanking: RankingRow[]; zoneName: string;
+  customFrom?: Date; customTo?: Date;
 }) {
   const [extraMetrics, setExtraMetrics] = useState<ExtraMetrics | null>(null);
   const [loading, setLoading] = useState(true);
@@ -2084,7 +2090,7 @@ function ZoneStoreRankCard({ days, canal, locationId, locationName, allRanking, 
   const zoneRank = zoneIdx >= 0 ? zoneIdx + 1 : null;
   const ventasNetas = nationalIdx >= 0 ? allRanking[nationalIdx].ventas_totales : 0;
 
-  const effectiveDays = resolveDays(days);
+  const { dias_atras: effectiveDays, p_hasta: zsrHastaParam } = buildRpcDateParams(days, customFrom, customTo);
   const allDailySales = allRanking.map(r => r.ventas_totales / effectiveDays);
   const storeDailySales = nationalIdx >= 0 ? allRanking[nationalIdx].ventas_totales / effectiveDays : 0;
   const perfClassNational = getPerformanceClass(storeDailySales, allDailySales);
@@ -2096,7 +2102,7 @@ function ZoneStoreRankCard({ days, canal, locationId, locationName, allRanking, 
     async function fetch() {
       if (!isValidDays(days)) return;
       setLoading(true);
-      const hastaParam = getFilterEndDate(days);
+      const hastaParam = zsrHastaParam;
       const { data: metricsData } = await supabase.rpc("reporte_metricas_tienda_individual" as any, {
         dias_atras: effectiveDays, p_location_id: locationId, p_hasta: hastaParam,
       });
@@ -2106,7 +2112,7 @@ function ZoneStoreRankCard({ days, canal, locationId, locationName, allRanking, 
       setLoading(false);
     }
     fetch();
-  }, [days, locationId]);
+  }, [days, locationId, customFrom, customTo]);
 
   if (loading) return <LoadingState rows={2} />;
 
@@ -2235,7 +2241,7 @@ export function ExecutiveDashboard({ days, comparisonPeriod = "previous", custom
 
       <TabsContent value="venta-directa">
         <BrandOverviewPanel days={days} comparisonPeriod={comparisonPeriod} customFrom={customFrom} customTo={customTo} />
-        <BrandParetoPreview days={days} />
+        <BrandParetoPreview days={days} customFrom={customFrom} customTo={customTo} />
       </TabsContent>
 
       <TabsContent value="por-zona">
@@ -2253,10 +2259,10 @@ export function ExecutiveDashboard({ days, comparisonPeriod = "previous", custom
           </TabsList>
 
           <TabsContent value="tiendas" className="mt-6">
-            <ZonePanel days={days} locationFilter="tiendas" comparisonPeriod={comparisonPeriod} />
+            <ZonePanel days={days} locationFilter="tiendas" comparisonPeriod={comparisonPeriod} customFrom={customFrom} customTo={customTo} />
           </TabsContent>
           <TabsContent value="outlets" className="mt-6">
-            <ZonePanel days={days} locationFilter="outlets" comparisonPeriod={comparisonPeriod} />
+            <ZonePanel days={days} locationFilter="outlets" comparisonPeriod={comparisonPeriod} customFrom={customFrom} customTo={customTo} />
           </TabsContent>
         </Tabs>
       </TabsContent>
@@ -2280,13 +2286,13 @@ export function ExecutiveDashboard({ days, comparisonPeriod = "previous", custom
           </TabsList>
 
           <TabsContent value="tiendas" className="mt-6">
-            <ChannelPanel days={days} canal="tiendas" showLocationFilter={true} locationFilter="tiendas" comparisonPeriod={comparisonPeriod} />
+            <ChannelPanel days={days} canal="tiendas" showLocationFilter={true} locationFilter="tiendas" comparisonPeriod={comparisonPeriod} customFrom={customFrom} customTo={customTo} />
           </TabsContent>
           <TabsContent value="outlets" className="mt-6">
-            <ChannelPanel days={days} canal="outlets" showLocationFilter={true} locationFilter="outlets" comparisonPeriod={comparisonPeriod} />
+            <ChannelPanel days={days} canal="outlets" showLocationFilter={true} locationFilter="outlets" comparisonPeriod={comparisonPeriod} customFrom={customFrom} customTo={customTo} />
           </TabsContent>
           <TabsContent value="digital" className="mt-6">
-            <ChannelPanel days={days} canal="digital" showLocationFilter={false} comparisonPeriod={comparisonPeriod} />
+            <ChannelPanel days={days} canal="digital" showLocationFilter={false} comparisonPeriod={comparisonPeriod} customFrom={customFrom} customTo={customTo} />
           </TabsContent>
         </Tabs>
       </TabsContent>
