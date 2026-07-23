@@ -1419,6 +1419,63 @@ export type Database = {
         }
         Relationships: []
       }
+      product_catalog_backup_20260723: {
+        Row: {
+          category: string | null
+          collection_season: string | null
+          color: string | null
+          compare_at_price: number | null
+          fecha_cargue_inventario: string | null
+          fecha_creacion: string | null
+          fecha_publicacion: string | null
+          image_url: string | null
+          price: number | null
+          product_id: string | null
+          sku: string | null
+          target_gender: string | null
+          title: string | null
+          updated_at: string | null
+          variant_id: string | null
+          variant_name: string | null
+        }
+        Insert: {
+          category?: string | null
+          collection_season?: string | null
+          color?: string | null
+          compare_at_price?: number | null
+          fecha_cargue_inventario?: string | null
+          fecha_creacion?: string | null
+          fecha_publicacion?: string | null
+          image_url?: string | null
+          price?: number | null
+          product_id?: string | null
+          sku?: string | null
+          target_gender?: string | null
+          title?: string | null
+          updated_at?: string | null
+          variant_id?: string | null
+          variant_name?: string | null
+        }
+        Update: {
+          category?: string | null
+          collection_season?: string | null
+          color?: string | null
+          compare_at_price?: number | null
+          fecha_cargue_inventario?: string | null
+          fecha_creacion?: string | null
+          fecha_publicacion?: string | null
+          image_url?: string | null
+          price?: number | null
+          product_id?: string | null
+          sku?: string | null
+          target_gender?: string | null
+          title?: string | null
+          updated_at?: string | null
+          variant_id?: string | null
+          variant_name?: string | null
+        }
+        Relationships: []
+      }
       role_permissions: {
         Row: {
           action_key: string
