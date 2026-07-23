@@ -77,6 +77,36 @@ const normalizeKpiData = (row: any): KpiData => ({
   pct_pedidos_con_descuento: toNumber(row?.pct_pedidos_con_descuento),
 });
 
+/* ── Cache compartido para reporte_comportamiento_producto ──
+   Es la RPC más pesada del dashboard (10-25s en rangos largos) y hasta 3
+   componentes la piden con parámetros idénticos. Este memo garantiza UNA
+   sola consulta por combinación de parámetros, compartida entre componentes
+   y pestañas, con TTL de 5 minutos para no servir datos viejos. */
+const comportamientoCache = new Map<string, { at: number; promise: Promise<any[]> }>();
+const COMPORTAMIENTO_TTL_MS = 5 * 60 * 1000;
+
+function fetchComportamientoProducto(params: {
+  dias_atras: number;
+  p_location_id: string | null;
+  p_hasta: string | null;
+}): Promise<any[]> {
+  const key = JSON.stringify(params);
+  const hit = comportamientoCache.get(key);
+  if (hit && Date.now() - hit.at < COMPORTAMIENTO_TTL_MS) return hit.promise;
+  const promise = supabase
+    .rpc("reporte_comportamiento_producto", params as any)
+    .then(({ data, error }) => {
+      if (error) {
+        comportamientoCache.delete(key);
+        if (import.meta.env.DEV) console.error("Error en reporte_comportamiento_producto:", error);
+        return [] as any[];
+      }
+      return ((data as any[]) ?? []);
+    });
+  comportamientoCache.set(key, { at: Date.now(), promise });
+  return promise;
+}
+
 interface SkuDetailRow {
   sku: string;
   unidades_vendidas: number;
@@ -641,7 +671,7 @@ function WorstLinesRecommendation({ days, canal, locationId, customFrom, customT
       if (!isValidDays(days)) return;
       setLoading(true);
       const { dias_atras: effectiveDays, p_hasta: hastaParam } = buildRpcDateParams(days, customFrom, customTo);
-      const { data: rows } = await supabase.rpc("reporte_comportamiento_producto", {
+      const rows = await fetchComportamientoProducto({
         dias_atras: effectiveDays,
         p_location_id: locationId || null,
         p_hasta: hastaParam,
@@ -739,7 +769,7 @@ function StockOutAlerts({ days, locationId, customFrom, customTo }: { days: numb
       if (!isValidDays(days)) return;
       setLoading(true);
       const { dias_atras: effectiveDays, p_hasta: hastaParam } = buildRpcDateParams(days, customFrom, customTo);
-      const { data: rows } = await supabase.rpc("reporte_comportamiento_producto", {
+      const rows = await fetchComportamientoProducto({
         dias_atras: effectiveDays,
         p_location_id: locationId || null,
         p_hasta: hastaParam,
@@ -1363,13 +1393,11 @@ function BrandTopBottomProducts({ days, customFrom, customTo }: { days: number; 
       if (!isValidDays(days)) return;
       setLoading(true);
       const { dias_atras: effectiveDays, p_hasta: hastaParam } = buildRpcDateParams(days, customFrom, customTo);
-      const { data, error } = await supabase.rpc("reporte_comportamiento_producto", {
+      const data = await fetchComportamientoProducto({
         dias_atras: effectiveDays,
         p_location_id: null,
         p_hasta: hastaParam,
       });
-
-      if (import.meta.env.DEV && error) console.error("Error en reporte_comportamiento_producto Top/Bottom 5:", error);
 
       const rows = ((data as any[]) ?? []).filter((r: any) => {
         const categoria = String(r.categoria ?? "").toUpperCase();
