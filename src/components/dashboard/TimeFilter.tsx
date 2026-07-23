@@ -64,6 +64,27 @@ export function getFilterEndDate(value: number): string | null {
   return null;
 }
 
+/**
+ * Única fuente de verdad para los parámetros de fecha de las RPCs (dias_atras + p_hasta).
+ * Semántica del backend (_col_date_boundary / _col_upper_boundary):
+ *   ventana = [p_hasta - dias_atras, p_hasta] — días completos, TZ Bogotá.
+ * Rango personalizado: dias_atras = (to - from), p_hasta = to  →  ventana = [from, to].
+ * Sin rango: comportamiento idéntico al actual (presets y sentinelas intactos).
+ */
+export function buildRpcDateParams(
+  value: number,
+  customFrom?: Date,
+  customTo?: Date
+): { dias_atras: number; p_hasta: string | null } {
+  if (customFrom && customTo) {
+    return {
+      dias_atras: Math.max(differenceInCalendarDays(customTo, customFrom), 0),
+      p_hasta: toDateStr(customTo),
+    };
+  }
+  return { dias_atras: resolveDays(value), p_hasta: getFilterEndDate(value) };
+}
+
 /** Returns the actual date range for a given filter value */
 export function getDateRange(value: number, customFrom?: Date, customTo?: Date): { from: Date; to: Date } {
   const now = new Date();

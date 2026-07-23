@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { isValidDays } from "@/lib/validation";
-import { resolveDays, getFilterEndDate } from "@/components/dashboard/TimeFilter";
+import { buildRpcDateParams } from "@/components/dashboard/TimeFilter";
 import { exportToCSV } from "@/lib/csv-export";
 import { exportToPDF } from "@/lib/pdf-export";
 import { LoadingState, EmptyState } from "./LoadingState";
@@ -106,7 +106,7 @@ const TABLE_HEADER = (
   </tr>
 );
 
-export function StoreLeaderboard({ days, canal }: { days: number; canal?: string }) {
+export function StoreLeaderboard({ days, canal, customFrom, customTo }: { days: number; canal?: string; customFrom?: Date; customTo?: Date }) {
   const [data, setData] = useState<RankingRow[]>([]);
   const [prevData, setPrevData] = useState<PrevRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -116,8 +116,7 @@ export function StoreLeaderboard({ days, canal }: { days: number; canal?: string
     async function load() {
       if (!isValidDays(days)) return;
       setLoading(true);
-      const effectiveDays = resolveDays(days);
-      const hastaParam = getFilterEndDate(days);
+      const { dias_atras: effectiveDays, p_hasta: hastaParam } = buildRpcDateParams(days, customFrom, customTo);
       const [curRes, prevRes] = await Promise.all([
         supabase.rpc("reporte_ranking_tiendas", { dias_atras: effectiveDays, p_canal: canal || null, p_hasta: hastaParam }),
         supabase.rpc("reporte_ranking_tiendas_anterior" as any, { dias_atras: effectiveDays, p_canal: canal || null, p_hasta: hastaParam }),
@@ -127,7 +126,7 @@ export function StoreLeaderboard({ days, canal }: { days: number; canal?: string
       setLoading(false);
     }
     load();
-  }, [days, canal]);
+  }, [days, canal, customFrom, customTo]);
 
   if (loading) return <LoadingState rows={4} />;
   if (!data.length) return <EmptyState message="Sin datos de ranking para este período." />;

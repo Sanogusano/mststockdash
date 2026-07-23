@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { isValidDays } from "@/lib/validation";
-import { resolveDays, getFilterEndDate } from "./TimeFilter";
+import { buildRpcDateParams } from "./TimeFilter";
 import { LoadingState } from "./LoadingState";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 import { Layers, ChevronDown, ChevronRight } from "lucide-react";
@@ -27,9 +27,11 @@ interface Props {
   canal?: string | null;
   locationId?: string | null;
   zona?: string | null;
+  customFrom?: Date;
+  customTo?: Date;
 }
 
-export function CollectionCompositionCard({ days, canal, locationId, zona }: Props) {
+export function CollectionCompositionCard({ days, canal, locationId, zona, customFrom, customTo }: Props) {
   const [data, setData] = useState<Row[]>([]);
   const [detail, setDetail] = useState<DetailRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -39,8 +41,7 @@ export function CollectionCompositionCard({ days, canal, locationId, zona }: Pro
     async function fetch() {
       if (!isValidDays(days)) return;
       setLoading(true);
-      const effectiveDays = resolveDays(days);
-      const hastaParam = getFilterEndDate(days);
+      const { dias_atras: effectiveDays, p_hasta: hastaParam } = buildRpcDateParams(days, customFrom, customTo);
       const params = {
         dias_atras: effectiveDays,
         p_canal: canal || null,
@@ -57,7 +58,7 @@ export function CollectionCompositionCard({ days, canal, locationId, zona }: Pro
       setLoading(false);
     }
     fetch();
-  }, [days, canal, locationId, zona]);
+  }, [days, canal, locationId, zona, customFrom, customTo]);
 
   if (loading) return <LoadingState rows={2} />;
   if (!data.length) return null;
