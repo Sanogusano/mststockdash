@@ -257,7 +257,7 @@ export default function DesempenoProductosPage() {
                           <TableCell>
                             <div className="flex items-center gap-3">
                               {row.foto ? (
-                                <img src={row.foto} alt="" className="w-12 h-12 rounded-lg object-cover bg-muted shrink-0" onError={e => { e.currentTarget.style.display = "none"; }} />
+                                <ProductImageThumb src={row.foto} alt={row.producto} sku={row.sku} title={row.producto} className="w-12 h-12 rounded-lg object-cover bg-muted shrink-0" onError={e => { e.currentTarget.style.display = "none"; }} />
                               ) : (
                                 <div className="w-12 h-12 rounded-lg bg-muted/50 flex items-center justify-center text-lg shrink-0">📦</div>
                               )}
