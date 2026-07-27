@@ -1133,10 +1133,9 @@ function ChannelPanel({ days, canal, showLocationFilter, locationFilter, compari
     async function fetchAll() {
       if (!isValidDays(days)) return;
       setLoading(true);
-      const effectiveDays = resolveDays(days);
       const locParam = selectedLocation === "all" ? null : selectedLocation;
       const canalFiltro = canal === "digital" ? "DIGITAL" : canal === "outlets" ? "OUTLET" : "TIENDAS";
-      const { p_hasta: hastaParam } = buildRpcDateParams(days, customFrom, customTo);
+      const { dias_atras: effectiveDays, p_hasta: hastaParam } = buildRpcDateParams(days, customFrom, customTo);
 
       try {
         const [kpiRes, prevKpiRes, topRes, bottomRes, m2Res] = await Promise.all([
@@ -1801,10 +1800,9 @@ function ZonePanel({ days, locationFilter, comparisonPeriod = "previous", custom
     async function fetchAll() {
       if (!isValidDays(days)) return;
       setLoading(true);
-      const effectiveDays = resolveDays(days);
       const locParam = selectedLocation !== "all" ? selectedLocation : null;
       const zonaParam = selectedZone !== "all" ? selectedZone : null;
-      const { p_hasta: hastaParam } = buildRpcDateParams(days, customFrom, customTo);
+      const { dias_atras: effectiveDays, p_hasta: hastaParam } = buildRpcDateParams(days, customFrom, customTo);
 
       const [kpiRes, prevKpiRes, rankRes, topRes, bottomRes, m2Res, zoneMetricsRes] = await Promise.all([
         buildKpiCall(days, effectiveDays, { p_canal: canal, p_location_id: locParam, p_zona: zonaParam, customFrom, customTo }),
