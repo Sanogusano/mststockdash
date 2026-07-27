@@ -1,7 +1,7 @@
 import { useEffect, useState, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { isValidDays } from "@/lib/validation";
-import { resolveDays, getFilterEndDate } from "@/components/dashboard/TimeFilter";
+import { buildRpcDateParams } from "@/components/dashboard/TimeFilter";
 import { exportToCSV } from "@/lib/csv-export";
 import { exportToPDF } from "@/lib/pdf-export";
 import { exportToXLS } from "@/lib/xls-export";
@@ -51,6 +51,8 @@ interface GroupedProduct {
 
 interface Props {
   days: number;
+  customFrom?: Date;
+  customTo?: Date;
 }
 
 // Flat export row for downloads
@@ -92,7 +94,7 @@ function sortTallas(tallas: GroupedProduct["tallas"]) {
   });
 }
 
-export function LogisticsTransfers({ days }: Props) {
+export function LogisticsTransfers({ days, customFrom, customTo }: Props) {
   const [data, setData] = useState<CurvaRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [origenFilter, setOrigenFilter] = useState<string>("all");
@@ -108,8 +110,7 @@ export function LogisticsTransfers({ days }: Props) {
     async function fetchData() {
       if (!isValidDays(days)) return;
       setLoading(true);
-      const effectiveDays = resolveDays(days);
-      const hastaParam = getFilterEndDate(days);
+      const { dias_atras: effectiveDays, p_hasta: hastaParam } = buildRpcDateParams(days, customFrom, customTo);
       const { data: rows, error } = await supabase.rpc("reporte_curva_traslados" as any, {
         dias_atras: effectiveDays,
         p_origen: origenFilter === "all" ? null : origenFilter,
@@ -121,7 +122,7 @@ export function LogisticsTransfers({ days }: Props) {
       setLoading(false);
     }
     fetchData();
-  }, [days, origenFilter, destinoFilter]);
+  }, [days, origenFilter, destinoFilter, customFrom, customTo]);
 
   // Fetch stock general via RPC (avoids 1000-row limit)
   useEffect(() => {
