@@ -5,6 +5,8 @@ import { isValidDays } from "@/lib/validation";
 import { resolveDays, getFilterEndDate } from "@/components/dashboard/TimeFilter";
 import { StatusBadge } from "./StatusBadge";
 import { CollectionBadge } from "./CollectionBadge";
+import { ProductImageThumb } from "./ProductImageThumb";
+
 
 interface ExecutiveRow {
   foto: string | null;
