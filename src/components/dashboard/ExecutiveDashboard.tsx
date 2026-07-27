@@ -93,16 +93,15 @@ function fetchComportamientoProducto(params: {
   const key = JSON.stringify(params);
   const hit = comportamientoCache.get(key);
   if (hit && Date.now() - hit.at < COMPORTAMIENTO_TTL_MS) return hit.promise;
-  const promise = supabase
-    .rpc("reporte_comportamiento_producto", params as any)
-    .then(({ data, error }) => {
-      if (error) {
-        comportamientoCache.delete(key);
-        if (import.meta.env.DEV) console.error("Error en reporte_comportamiento_producto:", error);
-        return [] as any[];
-      }
-      return ((data as any[]) ?? []);
-    });
+  const promise: Promise<any[]> = (async () => {
+    const { data, error } = await supabase.rpc("reporte_comportamiento_producto", params as any);
+    if (error) {
+      comportamientoCache.delete(key);
+      if (import.meta.env.DEV) console.error("Error en reporte_comportamiento_producto:", error);
+      return [] as any[];
+    }
+    return ((data as any[]) ?? []);
+  })();
   comportamientoCache.set(key, { at: Date.now(), promise });
   return promise;
 }
