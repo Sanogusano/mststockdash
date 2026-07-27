@@ -91,12 +91,15 @@ export function ExecutiveSummary({ days }: Props) {
                 <td className="px-4 py-3">
                   <div className="flex items-center gap-3">
                     {row.foto ? (
-                      <img
+                      <ProductImageThumb
                         src={row.foto}
                         alt={row.producto ?? ""}
+                        sku={row.sku}
+                        title={row.producto}
                         className="w-10 h-10 rounded-lg object-cover bg-muted"
                         onError={(e) => { e.currentTarget.style.display = "none"; }}
                       />
+
                     ) : (
                       <div className="w-10 h-10 rounded-lg bg-muted/50 flex items-center justify-center text-lg">
                         👗
