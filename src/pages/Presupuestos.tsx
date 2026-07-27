@@ -6,8 +6,9 @@ import { PresupuestosWizard } from "@/components/dashboard/PresupuestosWizard";
 import { CumplimientoDashboard } from "@/components/dashboard/CumplimientoDashboard";
 import { PresupuestosGuardados } from "@/components/dashboard/PresupuestosGuardados";
 import { ProyeccionCierreDashboard } from "@/components/dashboard/ProyeccionCierreDashboard";
+import { CumplimientoAnual } from "@/components/dashboard/CumplimientoAnual";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { BarChart3, Eye, PlusCircle, TrendingUp } from "lucide-react";
+import { BarChart3, CalendarRange, Eye, PlusCircle, TrendingUp } from "lucide-react";
 
 export default function PresupuestosPage() {
   const { isAdmin, loading } = useUserRole();
@@ -54,6 +55,9 @@ export default function PresupuestosPage() {
                   <TabsTrigger value="proyeccion" className="gap-1.5 data-[state=active]:bg-emerald-600 data-[state=active]:text-white">
                     <TrendingUp className="h-4 w-4" /> Proyección Cierre
                   </TabsTrigger>
+                  <TabsTrigger value="anual" className="gap-1.5 data-[state=active]:bg-emerald-600 data-[state=active]:text-white">
+                    <CalendarRange className="h-4 w-4" /> Año Completo
+                  </TabsTrigger>
                   <TabsTrigger value="crear" className="gap-1.5 data-[state=active]:bg-emerald-600 data-[state=active]:text-white">
                     <PlusCircle className="h-4 w-4" /> Crear Presupuesto
                   </TabsTrigger>
@@ -63,6 +67,9 @@ export default function PresupuestosPage() {
                 </TabsContent>
                 <TabsContent value="proyeccion">
                   <ProyeccionCierreDashboard />
+                </TabsContent>
+                <TabsContent value="anual">
+                  <CumplimientoAnual />
                 </TabsContent>
                 <TabsContent value="ver">
                   <PresupuestosGuardados
@@ -87,12 +94,18 @@ export default function PresupuestosPage() {
                   <TabsTrigger value="proyeccion" className="gap-1.5 data-[state=active]:bg-emerald-600 data-[state=active]:text-white">
                     <TrendingUp className="h-4 w-4" /> Proyección Cierre
                   </TabsTrigger>
+                  <TabsTrigger value="anual" className="gap-1.5 data-[state=active]:bg-emerald-600 data-[state=active]:text-white">
+                    <CalendarRange className="h-4 w-4" /> Año Completo
+                  </TabsTrigger>
                 </TabsList>
                 <TabsContent value="cumplimiento">
                   <CumplimientoDashboard />
                 </TabsContent>
                 <TabsContent value="proyeccion">
                   <ProyeccionCierreDashboard />
+                </TabsContent>
+                <TabsContent value="anual">
+                  <CumplimientoAnual />
                 </TabsContent>
               </Tabs>
             )}
