@@ -3,7 +3,7 @@ import { useSearchParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
-import { TimeFilter, THIS_MONTH_SENTINEL, resolveDays, getFilterEndDate } from "@/components/dashboard/TimeFilter";
+import { TimeFilter, THIS_MONTH_SENTINEL, resolveDays, buildRpcDateParams } from "@/components/dashboard/TimeFilter";
 import { LoadingState, EmptyState } from "@/components/dashboard/LoadingState";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -75,8 +75,11 @@ export default function DesempenoProductosPage() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const initialCanal = searchParams.get("canal") || "all";
+  const orden = searchParams.get("orden") === "BOTTOM" ? "BOTTOM" : "TOP";
+  const daysQP = searchParams.get("days");
+  const initialDays = daysQP && Number(daysQP) > 0 ? Number(daysQP) : THIS_MONTH_SENTINEL;
 
-  const [days, setDays] = useState(THIS_MONTH_SENTINEL);
+  const [days, setDays] = useState<number>(initialDays);
   const [canal, setCanal] = useState(initialCanal);
   const [catFilter, setCatFilter] = useState("all");
   const [search, setSearch] = useState("");
@@ -88,15 +91,14 @@ export default function DesempenoProductosPage() {
     async function fetch() {
       setLoading(true);
       setError(null);
-      const effectiveDays = resolveDays(days);
-      const hastaParam = getFilterEndDate(days);
+      const { dias_atras: effectiveDays, p_hasta: hastaParam } = buildRpcDateParams(days);
       const canalParam = canal === "all" ? null : canal;
       const catParam = catFilter === "all" ? null : catFilter;
       const { data: rows, error: err } = await supabase.rpc("reporte_top_productos_global" as any, {
         dias_atras: effectiveDays,
         p_canal: canalParam,
         p_categoria: catParam,
-        p_orden: "TOP",
+        p_orden: orden,
         p_limite: 50,
         p_hasta: hastaParam,
       });
@@ -109,7 +111,7 @@ export default function DesempenoProductosPage() {
       setLoading(false);
     }
     fetch();
-  }, [days, canal, catFilter]);
+  }, [days, canal, catFilter, orden]);
 
   const categories = useMemo(() => {
     return [...new Set(data.map(r => r.categoria).filter(Boolean))].sort();
@@ -162,8 +164,8 @@ export default function DesempenoProductosPage() {
                 <ArrowLeft className="h-4 w-4" />
               </Button>
               <div>
-                <h1 className="text-base sm:text-lg font-semibold text-foreground">Top Productos — Venta Directa</h1>
-                <p className="text-[10px] sm:text-xs text-muted-foreground">Ranking por unidades vendidas, mezcla de precios y stock actualizado</p>
+                <h1 className="text-base sm:text-lg font-semibold text-foreground">{orden === "BOTTOM" ? "Menor Rotación — Venta Directa" : "Top Productos — Venta Directa"}</h1>
+                <p className="text-[10px] sm:text-xs text-muted-foreground">{orden === "BOTTOM" ? "Productos con menor rotación, mezcla de precios y stock actualizado" : "Ranking por unidades vendidas, mezcla de precios y stock actualizado"}</p>
               </div>
             </div>
             <TimeFilter value={days} onChange={setDays} />

@@ -1441,8 +1441,8 @@ function BrandTopBottomProducts({ days, customFrom, customTo }: { days: number; 
 
   if (loading) return <LoadingState rows={2} />;
 
-  const renderList = (items: GlobalProductRow[], icon: React.ReactNode, title: string, color: string) => (
-    <div className="glass-card p-4">
+  const renderList = (items: GlobalProductRow[], icon: React.ReactNode, title: string, color: string, onClick: () => void) => (
+    <div className="glass-card p-4 cursor-pointer hover:ring-2 hover:ring-primary/30 transition-all" onClick={onClick}>
       <div className="flex items-center gap-2 mb-3">
         {icon}
         <h4 className="text-xs font-semibold text-foreground uppercase tracking-wider">{title}</h4>
@@ -1480,12 +1480,11 @@ function BrandTopBottomProducts({ days, customFrom, customTo }: { days: number; 
   );
 
   return (
-    <div
-      className="grid grid-cols-1 lg:grid-cols-2 gap-4 cursor-pointer"
-      onClick={() => navigate(`/desempeno-productos?days=${resolveDays(days)}`)}
-    >
-      {renderList(top5, <TrendingUp className="h-4 w-4 text-emerald-600" />, "Top 5 Más Vendidos", "text-emerald-600")}
-      {renderList(bottom5, <TrendingDown className="h-4 w-4 text-destructive" />, "Top 5 Menor Rotación", "text-destructive")}
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      {renderList(top5, <TrendingUp className="h-4 w-4 text-emerald-600" />, "Top 5 Más Vendidos", "text-emerald-600",
+        () => navigate(`/desempeno-productos?orden=TOP&days=${resolveDays(days)}`))}
+      {renderList(bottom5, <TrendingDown className="h-4 w-4 text-destructive" />, "Top 5 Menor Rotación", "text-destructive",
+        () => navigate(`/desempeno-productos?orden=BOTTOM&days=${resolveDays(days)}`))}
     </div>
   );
 }
