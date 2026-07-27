@@ -1,11 +1,28 @@
 import { useState } from "react";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
+import { differenceInCalendarDays } from "date-fns";
 import { TimeFilter } from "@/components/dashboard/TimeFilter";
 import { LogisticsTransfers } from "@/components/dashboard/LogisticsTransfers";
 
 export default function LogisticaPage() {
-  const [days, setDays] = useState(30);
+  const [days, setDays] = useState<number>(30);
+  const [customFrom, setCustomFrom] = useState<Date | undefined>();
+  const [customTo, setCustomTo] = useState<Date | undefined>();
+
+  const handleDaysChange = (d: number) => {
+    // Un preset limpia cualquier rango personalizado activo.
+    setCustomFrom(undefined);
+    setCustomTo(undefined);
+    setDays(d);
+  };
+
+  const handleCustomRangeChange = (from: Date, to: Date) => {
+    setCustomFrom(from);
+    setCustomTo(to);
+    setDays(Math.max(differenceInCalendarDays(to, from), 0));
+  };
+
 
   return (
     <SidebarProvider>
@@ -20,10 +37,10 @@ export default function LogisticaPage() {
                 <p className="text-[10px] sm:text-xs text-muted-foreground">Allocation · Feed de accionables</p>
               </div>
             </div>
-            <TimeFilter value={days} onChange={setDays} />
+            <TimeFilter value={days} onChange={handleDaysChange} customFrom={customFrom} customTo={customTo} onCustomRangeChange={handleCustomRangeChange} />
           </header>
           <div className="flex-1 px-4 sm:px-6 py-4 sm:py-6">
-            <LogisticsTransfers days={days} />
+            <LogisticsTransfers days={days} customFrom={customFrom} customTo={customTo} />
           </div>
         </main>
       </div>
