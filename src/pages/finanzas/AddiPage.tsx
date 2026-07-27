@@ -14,6 +14,7 @@ import { exportToXLS } from "@/lib/xls-export";
 import { toast } from "sonner";
 import { TabProyeccionPagos } from "./AddiProyeccionTab";
 import { TabCargarArchivo } from "./AddiCargarTab";
+import { TabTesoreria, TabLiquidacionesContable } from "./AddiConciliacionTabs";
 
 type AddiKpis = {
   total: number;
@@ -346,9 +347,9 @@ export default function AddiPage() {
             <Upload className="h-3.5 w-3.5" /> Cargar Archivo
           </TabsTrigger>
         </TabsList>
-        <TabsContent value="resumen"><TabSoon msg="KPIs, tendencia mensual y participación por canal — próxima iteración." /></TabsContent>
+        <TabsContent value="resumen"><TabTesoreria /></TabsContent>
         <TabsContent value="conciliacion"><TabConciliacion /></TabsContent>
-        <TabsContent value="liquidaciones"><TabSoon msg="Liquidaciones contables con desglose de tarifas y retenciones — próxima iteración." /></TabsContent>
+        <TabsContent value="liquidaciones"><TabLiquidacionesContable /></TabsContent>
         <TabsContent value="proyeccion"><TabProyeccionPagos /></TabsContent>
         <TabsContent value="cargar"><TabCargarArchivo /></TabsContent>
       </Tabs>
