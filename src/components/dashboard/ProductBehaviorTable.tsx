@@ -360,7 +360,7 @@ export function ProductBehaviorTable({ days, initialWosFilter, initialLocationId
                       <TableCell>
                         <div className="flex items-center gap-3">
                           {row.foto ? (
-                            <img src={row.foto} alt={row.producto} className="h-14 w-14 rounded-lg object-cover border border-border shrink-0" />
+                            <ProductImageThumb src={row.foto} alt={row.producto} sku={row.sku} title={row.producto} className="h-14 w-14 rounded-lg object-cover border border-border shrink-0" />
                           ) : (
                             <div className="h-14 w-14 rounded-lg bg-muted/50 flex items-center justify-center text-muted-foreground text-xs shrink-0">N/A</div>
                           )}
