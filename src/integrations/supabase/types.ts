@@ -1783,6 +1783,60 @@ export type Database = {
           },
         ]
       }
+      store_traffic: {
+        Row: {
+          created_at: string
+          entradas: number
+          fecha: string
+          fuente: string
+          hora_inicio: string
+          id: number
+          location_id: string
+          minutos: number
+          salidas: number
+        }
+        Insert: {
+          created_at?: string
+          entradas?: number
+          fecha: string
+          fuente?: string
+          hora_inicio: string
+          id?: never
+          location_id: string
+          minutos?: number
+          salidas?: number
+        }
+        Update: {
+          created_at?: string
+          entradas?: number
+          fecha?: string
+          fuente?: string
+          hora_inicio?: string
+          id?: never
+          location_id?: string
+          minutos?: number
+          salidas?: number
+        }
+        Relationships: []
+      }
+      traffic_ingest_config: {
+        Row: {
+          created_at: string
+          id: number
+          token: string
+        }
+        Insert: {
+          created_at?: string
+          id?: number
+          token?: string
+        }
+        Update: {
+          created_at?: string
+          id?: number
+          token?: string
+        }
+        Relationships: []
+      }
       transfer_cost_matrix: {
         Row: {
           costo_por_unidad_cop: number
@@ -2405,6 +2459,10 @@ export type Database = {
           transacciones: number
         }[]
       }
+      registrar_trafico: {
+        Args: { p_location_id: string; p_registros: Json; p_token: string }
+        Returns: number
+      }
       reporte_addi_conciliacion: {
         Args: { p_desde: string; p_hasta: string }
         Returns: {
@@ -2665,6 +2723,17 @@ export type Database = {
           coleccion: string
           pct: number
           unidades: number
+        }[]
+      }
+      reporte_conversion_trafico: {
+        Args: { dias_atras: number; p_hasta?: string; p_location_id?: string }
+        Returns: {
+          conversion_pct: number
+          entradas: number
+          fecha: string
+          location_id: string
+          pedidos: number
+          tienda: string
         }[]
       }
       reporte_cumplimiento_whatsapp: {
