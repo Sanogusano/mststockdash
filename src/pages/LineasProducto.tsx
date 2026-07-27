@@ -151,6 +151,7 @@ export default function LineasProductoPage() {
           dias_atras: effectiveDays,
           p_canal: canalParam,
           p_hasta: hastaParam,
+          p_location_id: locationId === "all" ? null : locationId,
         }),
         supabase.rpc("stock_insumos_agregado" as any),
         supabase.rpc("stock_general_por_producto" as any),
@@ -181,7 +182,7 @@ export default function LineasProductoPage() {
       setLoading(false);
     }
     fetch();
-  }, [days, canal, customFrom, customTo]);
+  }, [days, canal, locationId, customFrom, customTo]);
 
   // Available categories for multi-select
   const availableCategories = useMemo(() => {

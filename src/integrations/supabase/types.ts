@@ -3044,6 +3044,7 @@ export type Database = {
           p_canal?: string
           p_categoria?: string
           p_hasta?: string
+          p_location_id?: string
         }
         Returns: {
           categoria: string
