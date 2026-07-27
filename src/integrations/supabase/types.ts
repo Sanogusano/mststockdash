@@ -2435,7 +2435,9 @@ export type Database = {
           tallas_totales: number
           titulo: string
           unidades_vendidas: number
+          velocidad_8sem: number
           velocidad_semanal: number
+          wos_actual: number
         }[]
       }
       get_centro_accion_comercial: {
@@ -2783,6 +2785,35 @@ export type Database = {
           coleccion: string
           pct: number
           unidades: number
+        }[]
+      }
+      reporte_conciliacion_addi: {
+        Args: never
+        Returns: {
+          cobertura: string
+          creditos: number
+          impuestos: number
+          liq_sin_transaccion: number
+          liq_sin_transaccion_neto: number
+          liquidado_bruto: number
+          liquidado_neto: number
+          liquidados: number
+          mes: string
+          pendiente_bruto: number
+          pendientes: number
+          tarifas: number
+          vendido: number
+        }[]
+      }
+      reporte_conciliacion_addi_pendientes: {
+        Args: never
+        Returns: {
+          dias_espera: number
+          fecha: string
+          id_credito: string
+          monto: number
+          nombre_cliente: string
+          nombre_tienda: string
         }[]
       }
       reporte_conversion_trafico: {
