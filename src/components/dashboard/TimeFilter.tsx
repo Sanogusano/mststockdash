@@ -76,10 +76,15 @@ export function buildRpcDateParams(
   customFrom?: Date,
   customTo?: Date
 ): { dias_atras: number; p_hasta: string | null } {
-  if (customFrom && customTo) {
+  const hasCustom = !!(customFrom && customTo);
+  // Sentinelas de rango (Ayer, Mes Anterior, Este Mes) y rango custom:
+  // derivar SIEMPRE de getDateRange para que la ventana sea exacta.
+  // Corrige el off-by-one de "Ayer" (sumaba 2 días) y "Mes Anterior" (31 días).
+  if (hasCustom || needsDateRange(value)) {
+    const { from, to } = getDateRange(hasCustom ? CUSTOM_SENTINEL : value, customFrom, customTo);
     return {
-      dias_atras: Math.max(differenceInCalendarDays(customTo, customFrom), 0),
-      p_hasta: toDateStr(customTo),
+      dias_atras: Math.max(differenceInCalendarDays(to, from), 0),
+      p_hasta: toDateStr(to),
     };
   }
   return { dias_atras: resolveDays(value), p_hasta: getFilterEndDate(value) };
