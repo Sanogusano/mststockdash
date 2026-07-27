@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { resolveDays, getFilterEndDate } from "./TimeFilter";
+import { buildRpcDateParams } from "./TimeFilter";
 import { LoadingState, EmptyState } from "./LoadingState";
 import { StatusBadge } from "./StatusBadge";
 import { ProductDetailDrawer } from "./ProductDetailDrawer";
@@ -100,7 +100,7 @@ function SalesBreakdownBars({ full, rebajas, promo, total }: { full: number; reb
   );
 }
 
-export function ProductBehaviorTable({ days, initialWosFilter, initialLocationId }: { days: number; initialWosFilter?: string; initialLocationId?: string }) {
+export function ProductBehaviorTable({ days, initialWosFilter, initialLocationId, customFrom, customTo }: { days: number; initialWosFilter?: string; initialLocationId?: string; customFrom?: Date; customTo?: Date }) {
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(0);
   const [selectedProduct, setSelectedProduct] = useState<ProductRow | null>(null);
@@ -109,7 +109,7 @@ export function ProductBehaviorTable({ days, initialWosFilter, initialLocationId
   const [canalFilter, setCanalFilter] = useState("all");
   const [locationId, setLocationId] = useState(initialLocationId ?? "all");
 
-  const resolvedDays = resolveDays(days);
+  const { dias_atras: resolvedDays, p_hasta: hastaParam } = buildRpcDateParams(days, customFrom, customTo);
 
   const { data: allLocations } = useQuery({
     queryKey: ["locations-active-full"],
@@ -141,9 +141,9 @@ export function ProductBehaviorTable({ days, initialWosFilter, initialLocationId
   }, [canalFilter, filteredLocations]);
 
   const { data, isLoading, error } = useQuery({
-    queryKey: ["producto-comportamiento", resolvedDays, search, locationId],
+    queryKey: ["producto-comportamiento", resolvedDays, hastaParam, search, locationId],
     queryFn: async () => {
-      const params: { dias_atras: number; p_sku_filter?: string; p_location_id?: string; p_hasta?: string | null } = { dias_atras: resolvedDays, p_hasta: getFilterEndDate(days) };
+      const params: { dias_atras: number; p_sku_filter?: string; p_location_id?: string; p_hasta?: string | null } = { dias_atras: resolvedDays, p_hasta: hastaParam };
       if (search.trim()) params.p_sku_filter = search.trim();
       if (locationId !== "all") params.p_location_id = locationId;
       const { data, error } = await supabase.rpc("reporte_comportamiento_producto", params);
@@ -432,7 +432,7 @@ export function ProductBehaviorTable({ days, initialWosFilter, initialLocationId
           </>
         )}
       </div>
-      <ProductDetailDrawer product={selectedProduct} days={resolveDays(days)} onClose={() => setSelectedProduct(null)} />
+      <ProductDetailDrawer product={selectedProduct} days={resolvedDays} onClose={() => setSelectedProduct(null)} />
     </div>
   );
 }

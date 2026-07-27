@@ -13,7 +13,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { exportToCSV } from "@/lib/csv-export";
 import { exportToPDF } from "@/lib/pdf-export";
 import { LoadingState } from "@/components/dashboard/LoadingState";
-import { TimeFilter, resolveDays, getFilterEndDate } from "@/components/dashboard/TimeFilter";
+import { differenceInCalendarDays } from "date-fns";
+import { TimeFilter, resolveDays, buildRpcDateParams } from "@/components/dashboard/TimeFilter";
 
 interface OrderRow {
   numero_pedido: string;
@@ -46,7 +47,23 @@ export default function PedidosDetallePage() {
   const initialCanal = searchParams.get("canal") || "";
   const initialDays = parseInt(searchParams.get("days") || "30", 10);
 
-  const [days, setDays] = useState(initialDays);
+  const [days, setDays] = useState<number>(initialDays);
+  const [customFrom, setCustomFrom] = useState<Date | undefined>();
+  const [customTo, setCustomTo] = useState<Date | undefined>();
+
+  const handleDaysChange = (d: number) => {
+    // Un preset limpia cualquier rango personalizado activo.
+    setCustomFrom(undefined);
+    setCustomTo(undefined);
+    setDays(d);
+  };
+
+  const handleCustomRangeChange = (from: Date, to: Date) => {
+    setCustomFrom(from);
+    setCustomTo(to);
+    setDays(Math.max(differenceInCalendarDays(to, from), 0));
+  };
+
   const [selectedCanal, setSelectedCanal] = useState(initialCanal);
   const [data, setData] = useState<OrderRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -153,8 +170,7 @@ export default function PedidosDetallePage() {
     setLoading(true);
     const locParam = selectedLocation === "all" ? null : selectedLocation;
     const canalParam = selectedCanal || null;
-    const effectiveDays = resolveDays(days);
-    const hastaParam = getFilterEndDate(days);
+    const { dias_atras: effectiveDays, p_hasta: hastaParam } = buildRpcDateParams(days, customFrom, customTo);
 
     supabase.rpc("reporte_pedidos_por_tipo_venta", {
       dias_atras: effectiveDays,
@@ -171,7 +187,7 @@ export default function PedidosDetallePage() {
       }
       setLoading(false);
     });
-  }, [days, selectedCanal, selectedLocation, tipo]);
+  }, [days, selectedCanal, selectedLocation, tipo, customFrom, customTo]);
 
   const calcDiscountPct = (row: OrderRow) => {
     if (row.tipo_venta === "Descuento de Producto" && row.compare_at_price > 0) {
@@ -385,7 +401,7 @@ export default function PedidosDetallePage() {
             </div>
 
             {/* Time filter */}
-            <TimeFilter value={days} onChange={setDays} />
+            <TimeFilter value={days} onChange={handleDaysChange} customFrom={customFrom} customTo={customTo} onCustomRangeChange={handleCustomRangeChange} />
 
             <span className="ml-auto text-xs text-muted-foreground">{filteredData.length} registros</span>
           </div>

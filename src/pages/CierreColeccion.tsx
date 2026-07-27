@@ -1,11 +1,28 @@
 import { useState } from "react";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
+import { differenceInCalendarDays } from "date-fns";
 import { TimeFilter, THIS_MONTH_SENTINEL } from "@/components/dashboard/TimeFilter";
 import { CierreColeccionDashboard } from "@/components/dashboard/CierreColeccionDashboard";
 
 export default function CierreColeccionPage() {
-  const [days, setDays] = useState(THIS_MONTH_SENTINEL);
+  const [days, setDays] = useState<number>(THIS_MONTH_SENTINEL);
+  const [customFrom, setCustomFrom] = useState<Date | undefined>();
+  const [customTo, setCustomTo] = useState<Date | undefined>();
+
+  const handleDaysChange = (d: number) => {
+    // Un preset limpia cualquier rango personalizado activo.
+    setCustomFrom(undefined);
+    setCustomTo(undefined);
+    setDays(d);
+  };
+
+  const handleCustomRangeChange = (from: Date, to: Date) => {
+    setCustomFrom(from);
+    setCustomTo(to);
+    setDays(Math.max(differenceInCalendarDays(to, from), 0));
+  };
+
 
   return (
     <SidebarProvider>
@@ -20,10 +37,10 @@ export default function CierreColeccionPage() {
                 <p className="text-[10px] sm:text-xs text-muted-foreground mt-0.5">Análisis de desempeño por colección & gestión de remanentes</p>
               </div>
             </div>
-            <TimeFilter value={days} onChange={setDays} />
+            <TimeFilter value={days} onChange={handleDaysChange} customFrom={customFrom} customTo={customTo} onCustomRangeChange={handleCustomRangeChange} />
           </header>
           <div className="flex-1 px-4 sm:px-6 py-4 sm:py-6">
-            <CierreColeccionDashboard days={days} />
+            <CierreColeccionDashboard days={days} customFrom={customFrom} customTo={customTo} />
           </div>
         </main>
       </div>

@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { isValidDays } from "@/lib/validation";
-import { resolveDays, getFilterEndDate } from "@/components/dashboard/TimeFilter";
+import { buildRpcDateParams } from "@/components/dashboard/TimeFilter";
 import {
   BarChart,
   Bar,
@@ -31,6 +31,8 @@ interface HealthRow {
 
 interface Props {
   days: number;
+  customFrom?: Date;
+  customTo?: Date;
 }
 
 const getBarColor = (semanas: number | null) => {
@@ -155,7 +157,7 @@ function InventorySection({
 
 
 /* ─── Main Component ─── */
-export function InventoryHealth({ days }: Props) {
+export function InventoryHealth({ days, customFrom, customTo }: Props) {
   const [data, setData] = useState<HealthRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -167,11 +169,11 @@ export function InventoryHealth({ days }: Props) {
       if (!isValidDays(days)) return;
       setLoading(true);
       setError(null);
-      const effectiveDays = resolveDays(days);
+      const { dias_atras: effectiveDays, p_hasta: hastaParam } = buildRpcDateParams(days, customFrom, customTo);
 
       try {
         const [healthRes, locsRes] = await Promise.all([
-          supabase.rpc("reporte_salud_inventario", { dias_atras: effectiveDays, p_hasta: getFilterEndDate(days) }),
+          supabase.rpc("reporte_salud_inventario", { dias_atras: effectiveDays, p_hasta: hastaParam }),
           supabase.from("locations").select("location_id, name").eq("is_active", true),
         ]);
 
@@ -199,7 +201,7 @@ export function InventoryHealth({ days }: Props) {
       setLoading(false);
     }
     fetchData();
-  }, [days]);
+  }, [days, customFrom, customTo]);
 
   if (loading) return <LoadingState rows={5} />;
   if (error) return <EmptyState message={error} />;
