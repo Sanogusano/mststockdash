@@ -633,6 +633,10 @@ const translateDay = (d: string) => DAY_MAP[d] ?? d;
 const fmtCurrency = (v: number) =>
   new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(v);
 
+/** Promedios por tipo de día: "—" cuando el rango no contiene esos días */
+const fmtPromDia = (v: number) => (v > 0 ? fmtCurrency(v) : "\u2014");
+const fmtPromDiaCompact = (v: number) => (v > 0 ? fmtCurrencyCompact(v) : "\u2014");
+
 const fmtCurrencyCompact = (v: number) => {
   const abs = Math.abs(v);
   if (abs >= 1_000_000_000) return `$${(v / 1_000_000_000).toLocaleString("es-CO", { maximumFractionDigits: 2 })}MM`;
@@ -922,11 +926,11 @@ function StoreRankCard({ days, canal, locationId, locationName, customFrom, cust
               </div>
               <div className="p-3 rounded-lg bg-muted/40 border border-border">
                 <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Prom. Lun-Vie</p>
-                <p className="text-sm font-semibold text-foreground"><span className="sm:hidden">{fmtCurrencyCompact(extraMetrics?.venta_promedio_semana ?? 0)}</span><span className="hidden sm:inline">{fmtCurrency(extraMetrics?.venta_promedio_semana ?? 0)}</span></p>
+                <p className="text-sm font-semibold text-foreground"><span className="sm:hidden">{fmtPromDiaCompact(extraMetrics?.venta_promedio_semana ?? 0)}</span><span className="hidden sm:inline">{fmtPromDia(extraMetrics?.venta_promedio_semana ?? 0)}</span></p>
               </div>
               <div className="p-3 rounded-lg bg-muted/40 border border-border">
                 <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Prom. Sáb-Dom</p>
-                <p className="text-sm font-semibold text-foreground"><span className="sm:hidden">{fmtCurrencyCompact(extraMetrics?.venta_promedio_finde ?? 0)}</span><span className="hidden sm:inline">{fmtCurrency(extraMetrics?.venta_promedio_finde ?? 0)}</span></p>
+                <p className="text-sm font-semibold text-foreground"><span className="sm:hidden">{fmtPromDiaCompact(extraMetrics?.venta_promedio_finde ?? 0)}</span><span className="hidden sm:inline">{fmtPromDia(extraMetrics?.venta_promedio_finde ?? 0)}</span></p>
               </div>
             </div>
             {/* Row 2: Promedios diarios con comparativa */}
@@ -1052,11 +1056,11 @@ function DigitalChannelCard({ days, customFrom, customTo }: { days: number; cust
               </div>
               <div className="p-3 rounded-lg bg-muted/40 border border-border">
                 <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Prom. Lun-Vie</p>
-                <p className="text-sm font-semibold text-foreground"><span className="sm:hidden">{fmtCurrencyCompact(extraMetrics?.venta_promedio_semana ?? 0)}</span><span className="hidden sm:inline">{fmtCurrency(extraMetrics?.venta_promedio_semana ?? 0)}</span></p>
+                <p className="text-sm font-semibold text-foreground"><span className="sm:hidden">{fmtPromDiaCompact(extraMetrics?.venta_promedio_semana ?? 0)}</span><span className="hidden sm:inline">{fmtPromDia(extraMetrics?.venta_promedio_semana ?? 0)}</span></p>
               </div>
               <div className="p-3 rounded-lg bg-muted/40 border border-border">
                 <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Prom. Sáb-Dom</p>
-                <p className="text-sm font-semibold text-foreground"><span className="sm:hidden">{fmtCurrencyCompact(extraMetrics?.venta_promedio_finde ?? 0)}</span><span className="hidden sm:inline">{fmtCurrency(extraMetrics?.venta_promedio_finde ?? 0)}</span></p>
+                <p className="text-sm font-semibold text-foreground"><span className="sm:hidden">{fmtPromDiaCompact(extraMetrics?.venta_promedio_finde ?? 0)}</span><span className="hidden sm:inline">{fmtPromDia(extraMetrics?.venta_promedio_finde ?? 0)}</span></p>
               </div>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -1975,11 +1979,11 @@ function ZonePanel({ days, locationFilter, comparisonPeriod = "previous", custom
               </div>
               <div className="p-3 rounded-lg bg-muted/40 border border-border">
                 <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Prom. Lun-Vie</p>
-                <p className="text-sm font-semibold text-foreground"><span className="sm:hidden">{fmtCurrencyCompact(zoneMetrics?.venta_promedio_semana ?? 0)}</span><span className="hidden sm:inline">{fmtCurrency(zoneMetrics?.venta_promedio_semana ?? 0)}</span></p>
+                <p className="text-sm font-semibold text-foreground"><span className="sm:hidden">{fmtPromDiaCompact(zoneMetrics?.venta_promedio_semana ?? 0)}</span><span className="hidden sm:inline">{fmtPromDia(zoneMetrics?.venta_promedio_semana ?? 0)}</span></p>
               </div>
               <div className="p-3 rounded-lg bg-muted/40 border border-border">
                 <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Prom. Sáb-Dom</p>
-                <p className="text-sm font-semibold text-foreground"><span className="sm:hidden">{fmtCurrencyCompact(zoneMetrics?.venta_promedio_finde ?? 0)}</span><span className="hidden sm:inline">{fmtCurrency(zoneMetrics?.venta_promedio_finde ?? 0)}</span></p>
+                <p className="text-sm font-semibold text-foreground"><span className="sm:hidden">{fmtPromDiaCompact(zoneMetrics?.venta_promedio_finde ?? 0)}</span><span className="hidden sm:inline">{fmtPromDia(zoneMetrics?.venta_promedio_finde ?? 0)}</span></p>
               </div>
             </div>
             {/* Row 2: Daily averages with comparison */}
@@ -2197,11 +2201,11 @@ function ZoneStoreRankCard({ days, canal, locationId, locationName, allRanking, 
               </div>
               <div className="p-3 rounded-lg bg-muted/40 border border-border">
                 <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Prom. Lun-Vie</p>
-                <p className="text-sm font-semibold text-foreground"><span className="sm:hidden">{fmtCurrencyCompact(extraMetrics?.venta_promedio_semana ?? 0)}</span><span className="hidden sm:inline">{fmtCurrency(extraMetrics?.venta_promedio_semana ?? 0)}</span></p>
+                <p className="text-sm font-semibold text-foreground"><span className="sm:hidden">{fmtPromDiaCompact(extraMetrics?.venta_promedio_semana ?? 0)}</span><span className="hidden sm:inline">{fmtPromDia(extraMetrics?.venta_promedio_semana ?? 0)}</span></p>
               </div>
               <div className="p-3 rounded-lg bg-muted/40 border border-border">
                 <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Prom. Sáb-Dom</p>
-                <p className="text-sm font-semibold text-foreground"><span className="sm:hidden">{fmtCurrencyCompact(extraMetrics?.venta_promedio_finde ?? 0)}</span><span className="hidden sm:inline">{fmtCurrency(extraMetrics?.venta_promedio_finde ?? 0)}</span></p>
+                <p className="text-sm font-semibold text-foreground"><span className="sm:hidden">{fmtPromDiaCompact(extraMetrics?.venta_promedio_finde ?? 0)}</span><span className="hidden sm:inline">{fmtPromDia(extraMetrics?.venta_promedio_finde ?? 0)}</span></p>
               </div>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
