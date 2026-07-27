@@ -372,14 +372,14 @@ Deno.serve(async (req) => {
       const resvg = new Resvg(svgStr, opts);
       const png = resvg.render().asPng();
 
-      const fileName = `reporte-${reporte.fecha}.png`;
+      const fileName = `reporte-${reporte.fecha}-${tipo}-${Date.now()}.png`;
       const { error: upErr } = await supabase.storage
         .from("reportes-whatsapp")
-        .upload(fileName, png, { contentType: "image/png", upsert: true });
+        .upload(fileName, png, { contentType: "image/png", upsert: true, cacheControl: "0" });
 
       if (!upErr) {
         const { data: urlData } = supabase.storage.from("reportes-whatsapp").getPublicUrl(fileName);
-        imageUrl = urlData?.publicUrl;
+        imageUrl = urlData?.publicUrl ? `${urlData.publicUrl}?v=${Date.now()}` : undefined;
         console.log("PNG OK:", imageUrl);
       } else {
         console.warn("Upload error:", upErr.message);
@@ -388,12 +388,13 @@ Deno.serve(async (req) => {
       console.warn("Imagen error:", e.message);
     }
 
-    // 3. Destinatarios
-    const { data: dests } = await supabase
+    // 3. Destinatarios (filtrados por tipo de reporte)
+    const { data: allDests } = await supabase
       .from("whatsapp_destinatarios")
-      .select("nombre,numero")
+      .select("nombre,numero,tipo_reporte")
       .eq("activo", true);
-    console.log("Destinatarios:", dests?.length || 0);
+    const dests = (allDests || []).filter((d: any) => (d.tipo_reporte ?? "horas") === tipo);
+    console.log(`Destinatarios (${tipo}):`, dests.length);
 
     // 4. Enviar
     const msg = generarTexto(reporte);
