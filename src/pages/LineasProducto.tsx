@@ -3,7 +3,8 @@ import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
-import { TimeFilter, THIS_MONTH_SENTINEL, resolveDays, getFilterEndDate } from "@/components/dashboard/TimeFilter";
+import { differenceInCalendarDays } from "date-fns";
+import { TimeFilter, THIS_MONTH_SENTINEL, buildRpcDateParams } from "@/components/dashboard/TimeFilter";
 import { LoadingState, EmptyState } from "@/components/dashboard/LoadingState";
 import { StatusBadge } from "@/components/dashboard/StatusBadge";
 import { CategoryProductsDrawer } from "@/components/dashboard/CategoryProductsDrawer";
@@ -89,7 +90,22 @@ export default function LineasProductoPage() {
   const [searchParams] = useSearchParams();
   const initialCanal = searchParams.get("canal") || "all";
 
-  const [days, setDays] = useState(THIS_MONTH_SENTINEL);
+  const [days, setDays] = useState<number>(THIS_MONTH_SENTINEL);
+  const [customFrom, setCustomFrom] = useState<Date | undefined>();
+  const [customTo, setCustomTo] = useState<Date | undefined>();
+
+  const handleDaysChange = (d: number) => {
+    // Un preset limpia cualquier rango personalizado activo.
+    setCustomFrom(undefined);
+    setCustomTo(undefined);
+    setDays(d);
+  };
+
+  const handleCustomRangeChange = (from: Date, to: Date) => {
+    setCustomFrom(from);
+    setCustomTo(to);
+    setDays(Math.max(differenceInCalendarDays(to, from), 0));
+  };
   const [canal, setCanal] = useState(initialCanal);
   const [locationId, setLocationId] = useState("all");
   const [search, setSearch] = useState("");
@@ -128,8 +144,7 @@ export default function LineasProductoPage() {
     async function fetch() {
       setLoading(true);
       setError(null);
-      const effectiveDays = resolveDays(days);
-      const hastaParam = getFilterEndDate(days);
+      const { dias_atras: effectiveDays, p_hasta: hastaParam } = buildRpcDateParams(days, customFrom, customTo);
       const canalParam = canal === "all" ? null : canal;
       const [res, supplyRes, stockCountRes] = await Promise.all([
         supabase.rpc("reporte_desempeno_por_linea" as any, {
@@ -166,7 +181,7 @@ export default function LineasProductoPage() {
       setLoading(false);
     }
     fetch();
-  }, [days, canal]);
+  }, [days, canal, customFrom, customTo]);
 
   // Available categories for multi-select
   const availableCategories = useMemo(() => {
@@ -255,7 +270,7 @@ export default function LineasProductoPage() {
                 <p className="text-[10px] sm:text-xs text-muted-foreground">Stock, ventas por canal, participación, sell-through y salud por categoría</p>
               </div>
             </div>
-            <TimeFilter value={days} onChange={setDays} />
+            <TimeFilter value={days} onChange={handleDaysChange} customFrom={customFrom} customTo={customTo} onCustomRangeChange={handleCustomRangeChange} />
           </header>
           <div className="flex-1 px-4 sm:px-6 py-4 sm:py-6 space-y-4">
             {/* Summary Cards */}
