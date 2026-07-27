@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
+import { differenceInCalendarDays } from "date-fns";
 import { TimeFilter } from "@/components/dashboard/TimeFilter";
 import { ProductBehaviorTable } from "@/components/dashboard/ProductBehaviorTable";
 
@@ -18,7 +19,23 @@ export default function ComportamientoProductoPage() {
     estancado: "stagnant",
   };
 
-  const [days, setDays] = useState(initialDays);
+  const [days, setDays] = useState<number>(initialDays);
+  const [customFrom, setCustomFrom] = useState<Date | undefined>();
+  const [customTo, setCustomTo] = useState<Date | undefined>();
+
+  const handleDaysChange = (d: number) => {
+    // Un preset limpia cualquier rango personalizado activo.
+    setCustomFrom(undefined);
+    setCustomTo(undefined);
+    setDays(d);
+  };
+
+  const handleCustomRangeChange = (from: Date, to: Date) => {
+    setCustomFrom(from);
+    setCustomTo(to);
+    setDays(Math.max(differenceInCalendarDays(to, from), 0));
+  };
+
 
   return (
     <SidebarProvider>
@@ -33,11 +50,13 @@ export default function ComportamientoProductoPage() {
                 <p className="text-[10px] sm:text-xs text-muted-foreground">Análisis de sell-through, WOS y salud por producto</p>
               </div>
             </div>
-            <TimeFilter value={days} onChange={setDays} />
+            <TimeFilter value={days} onChange={handleDaysChange} customFrom={customFrom} customTo={customTo} onCustomRangeChange={handleCustomRangeChange} />
           </header>
           <div className="flex-1 px-4 sm:px-6 py-4 sm:py-6">
             <ProductBehaviorTable
               days={days}
+              customFrom={customFrom}
+              customTo={customTo}
               initialWosFilter={initialSalud ? saludMap[initialSalud] ?? "all" : undefined}
               initialLocationId={initialLocation}
             />

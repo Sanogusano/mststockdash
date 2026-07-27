@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { useUserScope } from "@/hooks/useUserScope";
+import { differenceInCalendarDays } from "date-fns";
 import { TimeFilter } from "@/components/dashboard/TimeFilter";
 import { LoadingState, EmptyState } from "@/components/dashboard/LoadingState";
 import { StatusBadge } from "@/components/dashboard/StatusBadge";
@@ -12,7 +13,7 @@ import { MultiSelectFilter } from "@/components/dashboard/MultiSelectFilter";
 import { ArrowLeft, DollarSign, Receipt, ShoppingBag, Star, Percent, Package, Filter, Tag } from "lucide-react";
 import { CollectionInventoryCard } from "@/components/dashboard/CollectionInventoryCard";
 import { isValidDays } from "@/lib/validation";
-import { resolveDays, needsDateRange, getDateRange, toDateStr, getFilterEndDate } from "@/components/dashboard/TimeFilter";
+import { resolveDays, needsDateRange, getDateRange, toDateStr, getFilterEndDate, buildRpcDateParams } from "@/components/dashboard/TimeFilter";
 import { cn } from "@/lib/utils";
 import { CategoryProductsDrawer } from "@/components/dashboard/CategoryProductsDrawer";
 
@@ -88,7 +89,23 @@ function KpiCard({ label, value, mobileValue, prefix = "", icon: Icon, className
 export default function TiendaDetailPage() {
   const { id } = useParams<{ id: string }>();
   const { scope, loading: scopeLoading } = useUserScope();
-  const [days, setDays] = useState(30);
+  const [days, setDays] = useState<number>(30);
+  const [customFrom, setCustomFrom] = useState<Date | undefined>();
+  const [customTo, setCustomTo] = useState<Date | undefined>();
+
+  const handleDaysChange = (d: number) => {
+    // Un preset limpia cualquier rango personalizado activo.
+    setCustomFrom(undefined);
+    setCustomTo(undefined);
+    setDays(d);
+  };
+
+  const handleCustomRangeChange = (from: Date, to: Date) => {
+    setCustomFrom(from);
+    setCustomTo(to);
+    setDays(Math.max(differenceInCalendarDays(to, from), 0));
+  };
+
   const [data, setData] = useState<WosCategoryRow[]>([]);
   const [wosCatData, setWosCatData] = useState<WosCatGlobalRow[]>([]);
   const [kpis, setKpis] = useState<KpiData | null>(null);
@@ -106,8 +123,7 @@ export default function TiendaDetailPage() {
     async function fetchData() {
       if (!id || !isValidDays(days)) return;
       setLoading(true);
-      const effectiveDays = resolveDays(days);
-      const hastaParam = getFilterEndDate(days);
+      const { dias_atras: effectiveDays, p_hasta: hastaParam } = buildRpcDateParams(days, customFrom, customTo);
 
       const [locRes, wosRes, kpiRes, supplyRes, wosCatRes] = await Promise.all([
         supabase.from("locations").select("name").eq("location_id", id).single(),
@@ -159,7 +175,7 @@ export default function TiendaDetailPage() {
       setLoading(false);
     }
     fetchData();
-  }, [id, days]);
+  }, [id, days, customFrom, customTo]);
 
   // Compute stock-based % full price and % rebajado from WOS global data
   const stockPcts = useMemo(() => {
@@ -222,7 +238,7 @@ export default function TiendaDetailPage() {
                 <p className="text-[10px] sm:text-xs text-muted-foreground">Salud de inventario por categoría</p>
               </div>
             </div>
-            <TimeFilter value={days} onChange={setDays} />
+            <TimeFilter value={days} onChange={handleDaysChange} customFrom={customFrom} customTo={customTo} onCustomRangeChange={handleCustomRangeChange} />
           </header>
           <div className="flex-1 px-4 sm:px-6 py-4 sm:py-6">
             {loading ? (

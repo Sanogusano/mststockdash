@@ -3,10 +3,11 @@ import { useSearchParams, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
+import { differenceInCalendarDays } from "date-fns";
 import { TimeFilter } from "@/components/dashboard/TimeFilter";
 import { LoadingState, EmptyState } from "@/components/dashboard/LoadingState";
 import { isValidDays } from "@/lib/validation";
-import { resolveDays } from "@/components/dashboard/TimeFilter";
+import { resolveDays, buildRpcDateParams } from "@/components/dashboard/TimeFilter";
 import { getFilterEndDate } from "@/components/dashboard/TimeFilter";
 import { exportToCSV } from "@/lib/csv-export";
 import { exportToPDF } from "@/lib/pdf-export";
@@ -51,15 +52,30 @@ export default function VentaM2Page() {
   const initialDays = Number(searchParams.get("days")) || 30;
   const canalParam = searchParams.get("canal") || "";
 
-  const [days, setDays] = useState(initialDays);
+  const [days, setDays] = useState<number>(initialDays);
+  const [customFrom, setCustomFrom] = useState<Date | undefined>();
+  const [customTo, setCustomTo] = useState<Date | undefined>();
+
+  const handleDaysChange = (d: number) => {
+    // Un preset limpia cualquier rango personalizado activo.
+    setCustomFrom(undefined);
+    setCustomTo(undefined);
+    setDays(d);
+  };
+
+  const handleCustomRangeChange = (from: Date, to: Date) => {
+    setCustomFrom(from);
+    setCustomTo(to);
+    setDays(Math.max(differenceInCalendarDays(to, from), 0));
+  };
+
   const [data, setData] = useState<StoreM2Row[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function fetchData() {
       setLoading(true);
-      const effectiveDays = isValidDays(days) ? resolveDays(days) : days;
-      const hastaParam = getFilterEndDate(days);
+      const { dias_atras: effectiveDays, p_hasta: hastaParam } = buildRpcDateParams(days, customFrom, customTo);
 
       const [rankTiendasRes, rankOutletsRes, locRes] = await Promise.all([
         supabase.rpc("reporte_ranking_tiendas", { dias_atras: effectiveDays, p_canal: "tiendas", p_hasta: hastaParam }),
@@ -108,7 +124,7 @@ export default function VentaM2Page() {
       setLoading(false);
     }
     fetchData();
-  }, [days, canalParam]);
+  }, [days, canalParam, customFrom, customTo]);
 
   const MEDALS = ["🥇", "🥈", "🥉"];
 
@@ -140,7 +156,7 @@ export default function VentaM2Page() {
                 <p className="text-[10px] sm:text-xs text-muted-foreground">Ranking de tiendas por eficiencia de superficie</p>
               </div>
             </div>
-            <TimeFilter value={days} onChange={setDays} />
+            <TimeFilter value={days} onChange={handleDaysChange} customFrom={customFrom} customTo={customTo} onCustomRangeChange={handleCustomRangeChange} />
           </header>
 
           <div className="flex-1 px-4 sm:px-6 py-4 sm:py-6">

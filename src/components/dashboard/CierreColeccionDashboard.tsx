@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Loader2, TrendingUp, Award, DollarSign, Package, Truck, ShoppingBag, Palette } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Treemap } from "recharts";
 import { toast } from "sonner";
-import { resolveDays, getFilterEndDate } from "./TimeFilter";
+import { buildRpcDateParams } from "./TimeFilter";
 
 // Strip common category words from extracted color names
 const CATEGORY_WORDS = new Set([
@@ -69,9 +69,11 @@ interface RemanentRow {
 
 interface Props {
   days: number;
+  customFrom?: Date;
+  customTo?: Date;
 }
 
-export function CierreColeccionDashboard({ days }: Props) {
+export function CierreColeccionDashboard({ days, customFrom, customTo }: Props) {
   const [coleccion, setColeccion] = useState<string | null>(null);
   const [genero, setGenero] = useState<string | null>(null);
   const [canal, setCanal] = useState<string | null>(null);
@@ -131,8 +133,7 @@ export function CierreColeccionDashboard({ days }: Props) {
   const fetchData = useCallback(async () => {
     setLoading(true);
     const params = baseParams();
-    const resolvedDays = resolveDays(days);
-    const hastaParam = getFilterEndDate(days);
+    const { dias_atras: resolvedDays, p_hasta: hastaParam } = buildRpcDateParams(days, customFrom, customTo);
 
     const [kpiRes, paretoRes, colorRes, tallaRes, remRes, compVentaRes, invColRes, catColRes] = await Promise.all([
       supabase.rpc("reporte_cierre_coleccion_kpis", params),
@@ -156,7 +157,7 @@ export function CierreColeccionDashboard({ days }: Props) {
     setCatColData((catColRes.data || []) as unknown as CatColRow[]);
     setRemanentes((remRes.data || []) as unknown as RemanentRow[]);
     setLoading(false);
-  }, [baseParams, days]);
+  }, [baseParams, days, customFrom, customTo]);
 
   const fetchColores = useCallback(async () => {
     setLoadingColores(true);
@@ -180,8 +181,7 @@ export function CierreColeccionDashboard({ days }: Props) {
 
   const fetchTreemap = useCallback(async () => {
     setLoadingTreemap(true);
-    const resolvedDays = resolveDays(days);
-    const hastaParam = getFilterEndDate(days);
+    const { dias_atras: resolvedDays, p_hasta: hastaParam } = buildRpcDateParams(days, customFrom, customTo);
     const res = await supabase.rpc("reporte_cierre_coleccion_treemap_colores" as any, {
       dias_atras: resolvedDays,
       ...baseParams(),
@@ -190,7 +190,7 @@ export function CierreColeccionDashboard({ days }: Props) {
     });
     setTreemapColores((res.data || []) as unknown as TreemapColorRow[]);
     setLoadingTreemap(false);
-  }, [baseParams, categoriaTreemap, days]);
+  }, [baseParams, categoriaTreemap, days, customFrom, customTo]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
