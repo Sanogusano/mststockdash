@@ -335,17 +335,24 @@ Deno.serve(async (req) => {
 
     const supabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
 
-    // Permite override desde el body para pruebas: { fecha: 'YYYY-MM-DD' }
+    // Permite override desde el body: { fecha: 'YYYY-MM-DD', tipo: 'horas'|'cierre_anterior'|'cierre_dia' }
     let fechaOverride: string | undefined;
+    let tipo = "horas";
     try {
       if (req.method === "POST") {
         const body = await req.json().catch(() => ({}));
         if (body?.fecha && /^\d{4}-\d{2}-\d{2}$/.test(body.fecha)) fechaOverride = body.fecha;
+        if (["horas", "cierre_anterior", "cierre_dia"].includes(body?.tipo)) tipo = body.tipo;
       }
     } catch (_e) { /* ignore */ }
 
-    const fecha = fechaOverride ?? fechaBogota();
-    console.log(`Fecha Bogotá usada: ${fecha} (UTC now: ${new Date().toISOString()})`);
+    let fecha = fechaOverride ?? fechaBogota();
+    if (!fechaOverride && tipo === "cierre_anterior") {
+      const d = new Date(fecha + "T12:00:00Z");
+      d.setUTCDate(d.getUTCDate() - 1);
+      fecha = d.toISOString().slice(0, 10);
+    }
+    console.log(`Tipo: ${tipo} | Fecha Bogotá usada: ${fecha} (UTC now: ${new Date().toISOString()})`);
 
     // 1. Datos — pasamos la fecha de Bogotá explícita
     const { data: raw, error } = await supabase.rpc("reporte_cumplimiento_whatsapp", { p_fecha: fecha });
@@ -365,14 +372,14 @@ Deno.serve(async (req) => {
       const resvg = new Resvg(svgStr, opts);
       const png = resvg.render().asPng();
 
-      const fileName = `reporte-${reporte.fecha}.png`;
+      const fileName = `reporte-${reporte.fecha}-${tipo}-${Date.now()}.png`;
       const { error: upErr } = await supabase.storage
         .from("reportes-whatsapp")
-        .upload(fileName, png, { contentType: "image/png", upsert: true });
+        .upload(fileName, png, { contentType: "image/png", upsert: true, cacheControl: "0" });
 
       if (!upErr) {
         const { data: urlData } = supabase.storage.from("reportes-whatsapp").getPublicUrl(fileName);
-        imageUrl = urlData?.publicUrl;
+        imageUrl = urlData?.publicUrl ? `${urlData.publicUrl}?v=${Date.now()}` : undefined;
         console.log("PNG OK:", imageUrl);
       } else {
         console.warn("Upload error:", upErr.message);
@@ -381,12 +388,13 @@ Deno.serve(async (req) => {
       console.warn("Imagen error:", e.message);
     }
 
-    // 3. Destinatarios
-    const { data: dests } = await supabase
+    // 3. Destinatarios (filtrados por tipo de reporte)
+    const { data: allDests } = await supabase
       .from("whatsapp_destinatarios")
-      .select("nombre,numero")
+      .select("nombre,numero,tipo_reporte")
       .eq("activo", true);
-    console.log("Destinatarios:", dests?.length || 0);
+    const dests = (allDests || []).filter((d: any) => (d.tipo_reporte ?? "horas") === tipo);
+    console.log(`Destinatarios (${tipo}):`, dests.length);
 
     // 4. Enviar
     const msg = generarTexto(reporte);
@@ -398,7 +406,7 @@ Deno.serve(async (req) => {
     }
 
     return new Response(
-      JSON.stringify({ success: true, fecha_solicitada: fecha, fecha_reporte: reporte?.fecha, imagen: imageUrl, resultados }),
+      JSON.stringify({ success: true, tipo, fecha_solicitada: fecha, fecha_reporte: reporte?.fecha, imagen: imageUrl, resultados }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   } catch (err: any) {
