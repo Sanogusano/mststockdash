@@ -9,6 +9,8 @@ import { exportToCSV } from "@/lib/csv-export";
 import { exportComportamientoProductoPDF } from "@/lib/comportamiento-producto-pdf";
 import { Search, Download, FileText, Tag } from "lucide-react";
 import { CollectionBadge } from "./CollectionBadge";
+import { ProductImageThumb } from "./ProductImageThumb";
+
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
