@@ -406,7 +406,7 @@ Deno.serve(async (req) => {
     }
 
     return new Response(
-      JSON.stringify({ success: true, fecha_solicitada: fecha, fecha_reporte: reporte?.fecha, imagen: imageUrl, resultados }),
+      JSON.stringify({ success: true, tipo, fecha_solicitada: fecha, fecha_reporte: reporte?.fecha, imagen: imageUrl, resultados }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   } catch (err: any) {
