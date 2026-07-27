@@ -1476,6 +1476,75 @@ export type Database = {
         }
         Relationships: []
       }
+      product_images: {
+        Row: {
+          alt_text: string | null
+          analysis_eligible: boolean
+          created_at: string
+          height: number | null
+          id: string
+          image_role: string | null
+          image_url: string
+          is_featured: boolean
+          is_variant_image: boolean
+          media_status: string | null
+          media_type: string | null
+          position: number | null
+          product_id: string
+          shopify_image_id: string | null
+          shopify_media_id: string | null
+          source_updated_at: string | null
+          synced_at: string
+          updated_at: string
+          variant_id: string | null
+          width: number | null
+        }
+        Insert: {
+          alt_text?: string | null
+          analysis_eligible?: boolean
+          created_at?: string
+          height?: number | null
+          id?: string
+          image_role?: string | null
+          image_url: string
+          is_featured?: boolean
+          is_variant_image?: boolean
+          media_status?: string | null
+          media_type?: string | null
+          position?: number | null
+          product_id: string
+          shopify_image_id?: string | null
+          shopify_media_id?: string | null
+          source_updated_at?: string | null
+          synced_at?: string
+          updated_at?: string
+          variant_id?: string | null
+          width?: number | null
+        }
+        Update: {
+          alt_text?: string | null
+          analysis_eligible?: boolean
+          created_at?: string
+          height?: number | null
+          id?: string
+          image_role?: string | null
+          image_url?: string
+          is_featured?: boolean
+          is_variant_image?: boolean
+          media_status?: string | null
+          media_type?: string | null
+          position?: number | null
+          product_id?: string
+          shopify_image_id?: string | null
+          shopify_media_id?: string | null
+          source_updated_at?: string | null
+          synced_at?: string
+          updated_at?: string
+          variant_id?: string | null
+          width?: number | null
+        }
+        Relationships: []
+      }
       proyecciones_snapshot: {
         Row: {
           anio: number
@@ -2805,6 +2874,21 @@ export type Database = {
           vendido: number
         }[]
       }
+      reporte_conciliacion_addi_contable: {
+        Args: never
+        Returns: {
+          cruzado: boolean
+          descuento_addi: number
+          descuento_comercio: number
+          mes_pago: string
+          pedidos: number
+          total_a_pagar: number
+          total_cancelaciones: number
+          total_impuestos: number
+          total_tarifas: number
+          total_ventas: number
+        }[]
+      }
       reporte_conciliacion_addi_pendientes: {
         Args: never
         Returns: {
@@ -2814,6 +2898,19 @@ export type Database = {
           monto: number
           nombre_cliente: string
           nombre_tienda: string
+        }[]
+      }
+      reporte_conciliacion_addi_totales: {
+        Args: never
+        Returns: {
+          meses_sin_cargar: string
+          no_cruzado_neto: number
+          no_cruzado_pedidos: number
+          primer_pago: string
+          total_impuestos: number
+          total_liquidado_neto: number
+          total_tarifas: number
+          ultimo_pago: string
         }[]
       }
       reporte_conversion_trafico: {
