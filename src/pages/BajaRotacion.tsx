@@ -13,6 +13,8 @@ import { Download, AlertTriangle, AlertCircle, CircleOff, ChevronDown, ChevronRi
 import { supabase } from "@/integrations/supabase/client";
 import { exportToXLS } from "@/lib/xls-export";
 import { exportToPDF } from "@/lib/pdf-export";
+import { ProductImageThumb } from "@/components/dashboard/ProductImageThumb";
+
 
 type TallaInfo = {
   talla?: string;
