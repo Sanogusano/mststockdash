@@ -17,6 +17,8 @@ import {
 } from "@/components/ui/table";
 import { exportDesempenoPDF } from "@/lib/desempeno-pdf-export";
 import { exportToCSV } from "@/lib/csv-export";
+import { ProductImageThumb } from "@/components/dashboard/ProductImageThumb";
+
 
 interface ProductRow {
   foto: string;
