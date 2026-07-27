@@ -335,17 +335,24 @@ Deno.serve(async (req) => {
 
     const supabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
 
-    // Permite override desde el body para pruebas: { fecha: 'YYYY-MM-DD' }
+    // Permite override desde el body: { fecha: 'YYYY-MM-DD', tipo: 'horas'|'cierre_anterior'|'cierre_dia' }
     let fechaOverride: string | undefined;
+    let tipo = "horas";
     try {
       if (req.method === "POST") {
         const body = await req.json().catch(() => ({}));
         if (body?.fecha && /^\d{4}-\d{2}-\d{2}$/.test(body.fecha)) fechaOverride = body.fecha;
+        if (["horas", "cierre_anterior", "cierre_dia"].includes(body?.tipo)) tipo = body.tipo;
       }
     } catch (_e) { /* ignore */ }
 
-    const fecha = fechaOverride ?? fechaBogota();
-    console.log(`Fecha Bogotá usada: ${fecha} (UTC now: ${new Date().toISOString()})`);
+    let fecha = fechaOverride ?? fechaBogota();
+    if (!fechaOverride && tipo === "cierre_anterior") {
+      const d = new Date(fecha + "T12:00:00Z");
+      d.setUTCDate(d.getUTCDate() - 1);
+      fecha = d.toISOString().slice(0, 10);
+    }
+    console.log(`Tipo: ${tipo} | Fecha Bogotá usada: ${fecha} (UTC now: ${new Date().toISOString()})`);
 
     // 1. Datos — pasamos la fecha de Bogotá explícita
     const { data: raw, error } = await supabase.rpc("reporte_cumplimiento_whatsapp", { p_fecha: fecha });
