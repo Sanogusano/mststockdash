@@ -563,12 +563,14 @@ export default function BajaRotacionPage() {
                                 </TableCell>
                                 <TableCell>
                                   {img ? (
-                                    <img
+                                    <ProductImageThumb
                                       src={img}
                                       alt={r.titulo}
-                                      loading="lazy"
+                                      productId={r.product_id}
+                                      title={r.titulo}
                                       className="h-12 w-12 rounded object-cover border border-border bg-muted"
                                     />
+
                                   ) : (
                                     <div className="h-12 w-12 rounded border border-dashed border-border bg-muted" />
                                   )}
