@@ -1476,6 +1476,66 @@ export type Database = {
         }
         Relationships: []
       }
+      proyecciones_snapshot: {
+        Row: {
+          anio: number
+          cierre_conservador: number | null
+          cierre_optimista: number | null
+          cierre_probable: number | null
+          created_at: string
+          dias_mes: number | null
+          dias_transcurridos: number | null
+          fecha_snapshot: string
+          id: number
+          mes: number
+          nombre: string
+          pct_cumplimiento_fecha: number | null
+          pct_cumplimiento_general: number | null
+          presupuesto_mes: number | null
+          tipo: string | null
+          venta_actual: number | null
+          zona: string | null
+        }
+        Insert: {
+          anio: number
+          cierre_conservador?: number | null
+          cierre_optimista?: number | null
+          cierre_probable?: number | null
+          created_at?: string
+          dias_mes?: number | null
+          dias_transcurridos?: number | null
+          fecha_snapshot: string
+          id?: never
+          mes: number
+          nombre: string
+          pct_cumplimiento_fecha?: number | null
+          pct_cumplimiento_general?: number | null
+          presupuesto_mes?: number | null
+          tipo?: string | null
+          venta_actual?: number | null
+          zona?: string | null
+        }
+        Update: {
+          anio?: number
+          cierre_conservador?: number | null
+          cierre_optimista?: number | null
+          cierre_probable?: number | null
+          created_at?: string
+          dias_mes?: number | null
+          dias_transcurridos?: number | null
+          fecha_snapshot?: string
+          id?: never
+          mes?: number
+          nombre?: string
+          pct_cumplimiento_fecha?: number | null
+          pct_cumplimiento_general?: number | null
+          presupuesto_mes?: number | null
+          tipo?: string | null
+          venta_actual?: number | null
+          zona?: string | null
+        }
+        Relationships: []
+      }
       role_permissions: {
         Row: {
           action_key: string
@@ -2736,6 +2796,20 @@ export type Database = {
           tienda: string
         }[]
       }
+      reporte_cumplimiento_anual: {
+        Args: { p_anio: number }
+        Returns: {
+          fecha_ultima_proy: string
+          fotos_disponibles: number
+          mes: number
+          pct_cumplimiento: number
+          presupuesto: number
+          proy_corte_dia10: number
+          proy_corte_dia20: number
+          proy_ultima: number
+          venta_real: number
+        }[]
+      }
       reporte_cumplimiento_whatsapp: {
         Args: { p_fecha?: string }
         Returns: Json
@@ -3462,6 +3536,7 @@ export type Database = {
         }[]
       }
       sincronizar_params_desde_tipo_tienda: { Args: never; Returns: number }
+      snapshot_proyecciones_diario: { Args: never; Returns: number }
       stock_general_por_producto: {
         Args: never
         Returns: {
