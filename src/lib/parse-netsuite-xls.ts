@@ -5,7 +5,11 @@
  * Notas clave:
  * - El archivo NO es Excel binario; es XML con extensión .xls
  * - Las celdas vacías se comprimen usando ss:Index — debe respetarse
- * - Solo procesamos sub_tipo = 'PRENDAS' (las demás no entran al allocation)
+ * - Las columnas se localizan POR NOMBRE de header, no por índice fijo:
+ *   NetSuite puede agregar/reordenar columnas (p. ej. "Código UPC", bodegas
+ *   nuevas) y el parser debe seguir funcionando sin cambios.
+ * - Se incluyen los sub_tipo vendibles: PRENDAS, ACCESORIOS y CALZADO.
+ *   Se excluyen MUESTRAS, INSUMOS, TELA, MATERIAL DE EMPAQUE, GANCHO, Total.
  */
 
 export interface NetsuiteLine {
@@ -36,23 +40,54 @@ export interface NetsuiteSnapshotData {
   uniqueLocationNames: string[];
 }
 
-const NUM_COLS = 60;
+const NUM_COLS = 80;
+const HEADER_ROW_INDEX = 6;
+const DATA_START_ROW = 7;
+
+// Sub_tipos que SÍ entran al inventario (vendibles). Todo lo demás se ignora.
+const SUBTIPOS_INCLUIDOS = new Set(["PRENDAS", "ACCESORIOS", "CALZADO"]);
+
+// Nombres de las columnas de atributo de producto en el header NetSuite.
+const COL_SUBTIPO = "Sub tipo";
+const COL_COLECCION = "Colección temporada";
+const COL_COLECCION_SKU = "Colección SKU";
+const COL_ARTICULO = "Artículo";
+const COL_NOMBRE = "Nombre para mostrar";
+const COL_LINEA = "Línea";
+const COL_GENERO = "Género";
+const COL_COLOR = "Color";
+const COL_TALLA = "Talla";
+const COL_TOTAL = "Total";
+
+// Columnas que NO son ubicaciones (atributos de producto + Total).
+// Cualquier otra columna con nombre se trata como ubicación.
+const NON_LOCATION_HEADERS = new Set([
+  COL_SUBTIPO,
+  "Proveedor",
+  COL_COLECCION,
+  COL_COLECCION_SKU,
+  COL_ARTICULO,
+  "Código UPC",
+  COL_NOMBRE,
+  COL_LINEA,
+  COL_GENERO,
+  COL_COLOR,
+  COL_TALLA,
+  COL_TOTAL,
+  "",
+]);
 
 /**
- * Normaliza el SKU. NetSuite a veces lo entrega como "VARIANT_ID:SKU".
+ * Normaliza el SKU. NetSuite a veces lo entrega como "PADRE:VARIANTE".
  * Si contiene ':', se queda con la parte después del ':'.
  */
 function normalizeSku(raw: string): string {
   if (!raw) return "";
   if (raw.includes(":")) {
-    return raw.split(":")[1].trim();
+    return raw.split(":").pop()!.trim();
   }
   return raw.trim();
 }
-const HEADER_ROW_INDEX = 6;
-const DATA_START_ROW = 8;
-const LOCATION_COL_START = 10;
-const LOCATION_COL_END = 59; // exclusivo: 10..58
 
 /**
  * Parsea una fila respetando ss:Index (celdas vacías comprimidas).
@@ -61,7 +96,6 @@ function parseRow(rowElement: Element, numCols: number = NUM_COLS): string[] {
   const result: string[] = new Array(numCols).fill("");
   let pos = 0;
 
-  // :scope > Cell para no capturar celdas anidadas accidentalmente
   const cells = rowElement.querySelectorAll(":scope > Cell");
 
   cells.forEach((cell) => {
@@ -78,12 +112,34 @@ function parseRow(rowElement: Element, numCols: number = NUM_COLS): string[] {
   return result;
 }
 
+/**
+ * Construye un índice nombre-de-columna → posición a partir del header.
+ * Lanza error si falta una columna de atributo esperada (aviso temprano
+ * en vez de fallar en silencio si NetSuite cambia el reporte).
+ */
+function buildColumnIndex(headers: string[]): Record<string, number> {
+  const idx: Record<string, number> = {};
+  headers.forEach((h, i) => {
+    if (h && !(h in idx)) idx[h] = i;
+  });
+
+  const requeridas = [COL_SUBTIPO, COL_ARTICULO];
+  const faltantes = requeridas.filter((c) => !(c in idx));
+  if (faltantes.length > 0) {
+    throw new Error(
+      `El archivo NetSuite no tiene las columnas esperadas: ${faltantes.join(
+        ", "
+      )}. ¿Cambió el formato del reporte?`
+    );
+  }
+  return idx;
+}
+
 export async function parseNetsuiteXls(
   file: File
 ): Promise<NetsuiteSnapshotData> {
   const text = await file.text();
 
-  // Validación de formato
   if (!text.trimStart().startsWith("<?xml") || !text.includes("<Workbook")) {
     throw new Error(
       "Formato inválido. El archivo debe ser XML Spreadsheet 2003 exportado desde NetSuite."
@@ -93,7 +149,6 @@ export async function parseNetsuiteXls(
   const parser = new DOMParser();
   const xmlDoc = parser.parseFromString(text, "text/xml");
 
-  // Validar parseo
   const parserError = xmlDoc.querySelector("parsererror");
   if (parserError) {
     throw new Error("No se pudo parsear el XML del archivo NetSuite.");
@@ -109,8 +164,28 @@ export async function parseNetsuiteXls(
     throw new Error("El archivo no tiene suficientes filas de datos.");
   }
 
-  // Extraer headers
+  // Header y mapa de columnas por nombre
   const headers = parseRow(rows[HEADER_ROW_INDEX], NUM_COLS);
+  const col = buildColumnIndex(headers);
+
+  // Posiciones de ubicación = cualquier header que no sea atributo/Total
+  const locationCols: number[] = [];
+  headers.forEach((h, i) => {
+    if (h && !NON_LOCATION_HEADERS.has(h)) locationCols.push(i);
+  });
+
+  const iSub = col[COL_SUBTIPO];
+  const iArt = col[COL_ARTICULO];
+  const iColeccion = col[COL_COLECCION] ?? -1;
+  const iColeccionSku = col[COL_COLECCION_SKU] ?? -1;
+  const iNombre = col[COL_NOMBRE] ?? -1;
+  const iLinea = col[COL_LINEA] ?? -1;
+  const iGenero = col[COL_GENERO] ?? -1;
+  const iColor = col[COL_COLOR] ?? -1;
+  const iTalla = col[COL_TALLA] ?? -1;
+
+  const get = (cells: string[], i: number): string | null =>
+    i >= 0 && cells[i] ? cells[i] : null;
 
   const lines: NetsuiteLine[] = [];
   const skuSet = new Set<string>();
@@ -121,23 +196,23 @@ export async function parseNetsuiteXls(
 
   for (let i = DATA_START_ROW; i < rows.length; i++) {
     const cells = parseRow(rows[i], NUM_COLS);
-    const subTipo = cells[0];
-    const rawSku = cells[3];
+    const subTipo = cells[iSub];
+    const rawSku = cells[iArt];
     const sku = normalizeSku(rawSku);
 
     if (!sku || subTipo === "Total") continue;
-    if (subTipo !== "PRENDAS") continue;
+    if (!SUBTIPOS_INCLUIDOS.has(subTipo)) continue;
 
     if (rawSku && rawSku.includes(":")) normalizedCount++;
 
-    for (let col = LOCATION_COL_START; col < LOCATION_COL_END; col++) {
-      const qtyStr = cells[col];
+    for (const c of locationCols) {
+      const qtyStr = cells[c];
       if (!qtyStr) continue;
       const qty = parseFloat(qtyStr);
       if (!qty || qty <= 0) continue;
 
       const qtyInt = Math.floor(qty);
-      const locationName = headers[col];
+      const locationName = headers[c];
       if (!locationName) continue;
 
       lines.push({
@@ -145,26 +220,26 @@ export async function parseNetsuiteXls(
         netsuiteLocationName: locationName,
         quantity: qtyInt,
         subTipo,
-        coleccion: cells[1] || null,
-        coleccionSku: cells[2] || null,
-        nombre: cells[5] || null,
-        linea: cells[6] || null,
-        genero: cells[7] || null,
-        color: cells[8] || null,
-        talla: cells[9] || null,
+        coleccion: get(cells, iColeccion),
+        coleccionSku: get(cells, iColeccionSku),
+        nombre: get(cells, iNombre),
+        linea: get(cells, iLinea),
+        genero: get(cells, iGenero),
+        color: get(cells, iColor),
+        talla: get(cells, iTalla),
       });
 
       skuSet.add(sku);
       totalUnits += qtyInt;
       locationUnits[locationName] = (locationUnits[locationName] || 0) + qtyInt;
-      const lineaKey = cells[6] || "(sin línea)";
+      const lineaKey = get(cells, iLinea) || "(sin línea)";
       lineaUnits[lineaKey] = (lineaUnits[lineaKey] || 0) + qtyInt;
     }
   }
 
   if (lines.length === 0) {
     throw new Error(
-      "No se encontraron productos PRENDAS con stock. ¿Es el archivo correcto?"
+      "No se encontraron productos vendibles (PRENDAS/ACCESORIOS/CALZADO) con stock. ¿Es el archivo correcto?"
     );
   }
 
@@ -184,7 +259,7 @@ export async function parseNetsuiteXls(
   const snapshotDate = today.toISOString().slice(0, 10);
 
   console.log(
-    `[Parser] Total SKUs: ${lines.length}, normalizados (tenían ':'): ${normalizedCount}`
+    `[Parser] Líneas: ${lines.length}, SKUs únicos: ${skuSet.size}, normalizados (tenían ':'): ${normalizedCount}`
   );
 
   return {
@@ -194,7 +269,7 @@ export async function parseNetsuiteXls(
     totalUnits,
     totalLocations: uniqueLocationNames.length,
     lines,
-    warnings: [], // se completan después al cruzar con netsuite_location_mapping
+    warnings: [],
     topLocations,
     topLineas,
     uniqueLocationNames,

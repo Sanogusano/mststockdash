@@ -46,11 +46,12 @@ export async function uploadSnapshot(
   params: UploadSnapshotParams,
   onProgress?: (pct: number) => void
 ): Promise<string> {
-  // 1. Desactivar snapshots activos del mismo día
+  // 1. Desactivar TODOS los snapshots activos (solo uno debe quedar activo:
+  //    el que se está subiendo). Antes solo desactivaba los del mismo día,
+  //    lo que dejaba activos los de días anteriores y acumulaba varios activos.
   const { error: deactErr } = await supabase
     .from("netsuite_inventory_snapshots")
     .update({ is_active: false })
-    .eq("snapshot_date", params.snapshotDate)
     .eq("is_active", true);
   if (deactErr) throw deactErr;
 
