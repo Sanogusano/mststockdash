@@ -2973,6 +2973,21 @@ export type Database = {
           ultimo_pago: string
         }[]
       }
+      reporte_conciliacion_log: {
+        Args: { p_tipo?: string }
+        Returns: {
+          color: string
+          id: number
+          location_id: string
+          producto: string
+          qty_netsuite: number
+          qty_shopify_antes: number
+          sku: string
+          talla: string
+          tipo: string
+          ubicacion: string
+        }[]
+      }
       reporte_conversion_trafico: {
         Args: { dias_atras: number; p_hasta?: string; p_location_id?: string }
         Returns: {

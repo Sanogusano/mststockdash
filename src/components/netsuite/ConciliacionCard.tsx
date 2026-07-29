@@ -20,6 +20,7 @@ import {
   AlertTriangle,
   PackagePlus,
   CheckCircle2,
+  Download,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -231,7 +232,7 @@ export function ConciliacionCard() {
                   producto/ubicación. No se modificaron — valida si son
                   productos nuevos o si deberían estar en 0.
                 </p>
-                <LogTable rows={omitidos} mostrarNetsuite={false} />
+                <LogTable rows={omitidos} mostrarNetsuite={false} nombreArchivo="conciliacion-omitidos" />
               </TabsContent>
 
               <TabsContent value="discrepancias">
@@ -239,7 +240,7 @@ export function ConciliacionCard() {
                   Cantidades que diferían entre los dos sistemas. Se aplicó el
                   valor de NetSuite.
                 </p>
-                <LogTable rows={discrepancias} mostrarNetsuite={true} />
+                <LogTable rows={discrepancias} mostrarNetsuite={true} nombreArchivo="conciliacion-discrepancias" />
               </TabsContent>
             </Tabs>
           </div>
@@ -252,54 +253,101 @@ export function ConciliacionCard() {
 function LogTable({
   rows,
   mostrarNetsuite,
+  nombreArchivo,
 }: {
   rows: ConciliacionLogRow[];
   mostrarNetsuite: boolean;
+  nombreArchivo: string;
 }) {
+  function exportar() {
+    try {
+      const headers = mostrarNetsuite
+        ? ["SKU", "Producto", "Color", "Talla", "Ubicacion", "Shopify", "NetSuite"]
+        : ["SKU", "Producto", "Color", "Talla", "Ubicacion", "Shopify"];
+      const escape = (v: string | number) => {
+        const s = String(v ?? "");
+        return /[",\n;]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+      };
+      const lines = [headers.join(";")];
+      for (const r of rows) {
+        const cols = [
+          r.sku ?? "",
+          r.producto ?? "",
+          r.color ?? "",
+          r.talla ?? "",
+          r.ubicacion,
+          r.qty_shopify_antes ?? 0,
+          ...(mostrarNetsuite ? [r.qty_netsuite ?? 0] : []),
+        ];
+        lines.push(cols.map(escape).join(";"));
+      }
+      // BOM para que Excel reconozca UTF-8 (acentos, ñ)
+      const blob = new Blob(["\ufeff" + lines.join("\n")], {
+        type: "text/csv;charset=utf-8;",
+      });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${nombreArchivo}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (e: any) {
+      toast.error(`Error al exportar: ${e.message ?? e}`);
+    }
+  }
+
   if (rows.length === 0) {
     return (
       <p className="text-sm text-muted-foreground py-4 text-center">
-        Sin registros en esta categoría.
+        Sin registros en esta categoria.
       </p>
     );
   }
-  const visibles = rows.slice(0, 200);
+
+  const visibles = rows.slice(0, 300);
   return (
-    <div className="overflow-x-auto rounded-lg border max-h-96 overflow-y-auto">
-      <table className="w-full text-sm">
-        <thead className="bg-muted/50 text-xs sticky top-0">
-          <tr className="text-left">
-            <th className="px-3 py-2">SKU</th>
-            <th className="px-3 py-2">Ubicación</th>
-            <th className="px-3 py-2 text-right">Shopify</th>
-            {mostrarNetsuite && (
-              <th className="px-3 py-2 text-right">NetSuite</th>
-            )}
-          </tr>
-        </thead>
-        <tbody>
-          {visibles.map((r) => (
-            <tr key={r.id} className="border-t">
-              <td className="px-3 py-2 font-mono text-xs">{r.sku ?? "—"}</td>
-              <td className="px-3 py-2 text-xs">{r.location_id}</td>
-              <td className="px-3 py-2 text-right tabular-nums">
-                {fmt(r.qty_shopify_antes)}
-              </td>
-              {mostrarNetsuite && (
-                <td className="px-3 py-2 text-right tabular-nums font-medium">
-                  {fmt(r.qty_netsuite)}
-                </td>
-              )}
+    <div className="space-y-2">
+      <div className="flex justify-end">
+        <Button variant="outline" size="sm" onClick={exportar} className="gap-1.5 h-8">
+          <Download className="h-3.5 w-3.5" /> Exportar Excel ({rows.length.toLocaleString("es-CO")})
+        </Button>
+      </div>
+      <div className="overflow-x-auto rounded-lg border max-h-96 overflow-y-auto">
+        <table className="w-full text-sm">
+          <thead className="bg-muted/50 text-xs sticky top-0">
+            <tr className="text-left">
+              <th className="px-3 py-2">Producto</th>
+              <th className="px-3 py-2">Talla</th>
+              <th className="px-3 py-2">Ubicacion</th>
+              <th className="px-3 py-2 text-right">Shopify</th>
+              {mostrarNetsuite && <th className="px-3 py-2 text-right">NetSuite</th>}
             </tr>
-          ))}
-        </tbody>
-      </table>
-      {rows.length > 200 && (
-        <p className="text-xs text-muted-foreground p-2 text-center border-t">
-          Mostrando 200 de {fmt(rows.length)}. Exporta desde Supabase para la
-          lista completa.
-        </p>
-      )}
+          </thead>
+          <tbody>
+            {visibles.map((r) => (
+              <tr key={r.id} className="border-t">
+                <td className="px-3 py-2">
+                  <span className="text-xs">{r.producto ?? r.sku ?? "-"}</span>
+                  {r.color && <span className="block text-[10px] text-muted-foreground">{r.color}</span>}
+                </td>
+                <td className="px-3 py-2 text-xs">{r.talla ?? "-"}</td>
+                <td className="px-3 py-2 text-xs">{r.ubicacion}</td>
+                <td className="px-3 py-2 text-right tabular-nums">{(r.qty_shopify_antes ?? 0).toLocaleString("es-CO")}</td>
+                {mostrarNetsuite && (
+                  <td className="px-3 py-2 text-right tabular-nums font-medium text-primary">
+                    {(r.qty_netsuite ?? 0).toLocaleString("es-CO")}
+                  </td>
+                )}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        {rows.length > 300 && (
+          <p className="text-xs text-muted-foreground p-2 text-center border-t">
+            Mostrando 300 de {rows.length.toLocaleString("es-CO")}. Usa "Exportar Excel" para la lista completa.
+          </p>
+        )}
+      </div>
     </div>
   );
 }
