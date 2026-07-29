@@ -254,13 +254,15 @@ export interface ConciliacionPreviewRow {
 
 export interface ConciliacionLogRow {
   id: number;
-  variant_id: string;
-  location_id: string;
-  sku: string | null;
   tipo: string;
+  sku: string | null;
+  producto: string | null;
+  color: string | null;
+  talla: string | null;
+  ubicacion: string;
+  location_id: string;
   qty_shopify_antes: number | null;
   qty_netsuite: number | null;
-  aplicado: boolean;
 }
 
 /** Preview (solo lectura): qué cambiaría la conciliación, sin escribir. */
@@ -292,15 +294,11 @@ export async function aplicarConciliacion(): Promise<{
   };
 }
 
-/** Trae el log de la última conciliación (omitidos + discrepancias). */
+/** Trae el log de la última conciliación con nombres legibles (producto + ubicación). */
 export async function fetchConciliacionLog(): Promise<ConciliacionLogRow[]> {
-  const { data, error } = await supabase
-    .from("conciliacion_netsuite_log")
-    .select(
-      "id, variant_id, location_id, sku, tipo, qty_shopify_antes, qty_netsuite, aplicado"
-    )
-    .order("id", { ascending: true })
-    .limit(1000);
+  const { data, error } = await supabase.rpc("reporte_conciliacion_log" as any, {
+    p_tipo: null,
+  });
   if (error) throw error;
   return (data ?? []) as ConciliacionLogRow[];
 }
