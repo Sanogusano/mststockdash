@@ -609,6 +609,48 @@ export type Database = {
           },
         ]
       }
+      conciliacion_netsuite_log: {
+        Row: {
+          aplicado: boolean
+          ejecutado_en: string
+          id: number
+          location_id: string
+          ns_snapshot_id: string | null
+          qty_netsuite: number | null
+          qty_shopify_antes: number | null
+          sku: string | null
+          snapshot_date: string
+          tipo: string
+          variant_id: string
+        }
+        Insert: {
+          aplicado: boolean
+          ejecutado_en?: string
+          id?: never
+          location_id: string
+          ns_snapshot_id?: string | null
+          qty_netsuite?: number | null
+          qty_shopify_antes?: number | null
+          sku?: string | null
+          snapshot_date: string
+          tipo: string
+          variant_id: string
+        }
+        Update: {
+          aplicado?: boolean
+          ejecutado_en?: string
+          id?: never
+          location_id?: string
+          ns_snapshot_id?: string | null
+          qty_netsuite?: number | null
+          qty_shopify_antes?: number | null
+          sku?: string | null
+          snapshot_date?: string
+          tipo?: string
+          variant_id?: string
+        }
+        Relationships: []
+      }
       incentivo_liquidaciones: {
         Row: {
           cumple_meta: boolean | null
@@ -2363,6 +2405,15 @@ export type Database = {
         Args: { p_incentivo_id: string }
         Returns: undefined
       }
+      aplicar_conciliacion_netsuite: {
+        Args: never
+        Returns: {
+          actualizados: number
+          discrepancias: number
+          insertados: number
+          omitidos: number
+        }[]
+      }
       asignar_codigo_netsuite: {
         Args: { p_location_id: string; p_netsuite_code: number }
         Returns: undefined
@@ -2576,6 +2627,15 @@ export type Database = {
       obtener_siguiente_consecutivo: {
         Args: { p_origen_netsuite_id: number }
         Returns: number
+      }
+      preview_conciliacion_netsuite: {
+        Args: never
+        Returns: {
+          combinaciones: number
+          tipo: string
+          uds_netsuite: number
+          uds_shopify: number
+        }[]
       }
       proyeccion_pagos_addi: {
         Args: { p_fecha_desde: string; p_fecha_hasta: string }
