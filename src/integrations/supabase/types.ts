@@ -2465,6 +2465,17 @@ export type Database = {
         Returns: string
       }
       cruzar_addi_con_shopify: { Args: never; Returns: undefined }
+      generar_archivo_shopify_inventario: {
+        Args: never
+        Returns: {
+          disponible_netsuite: number
+          disponible_shopify_antes: number
+          producto: string
+          sku: string
+          ubicacion_shopify: string
+          variant_id: string
+        }[]
+      }
       generar_export_netsuite: {
         Args: {
           p_empleado: string
