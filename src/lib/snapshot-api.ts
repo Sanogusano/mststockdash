@@ -242,3 +242,65 @@ export async function existsActiveSnapshotForDate(
   if (error) throw error;
   return (data as SnapshotRow) || null;
 }
+
+// ── Conciliación NetSuite ↔ Shopify ──────────────────────────────────────────
+
+export interface ConciliacionPreviewRow {
+  tipo: string;
+  combinaciones: number;
+  uds_shopify: number;
+  uds_netsuite: number;
+}
+
+export interface ConciliacionLogRow {
+  id: number;
+  variant_id: string;
+  location_id: string;
+  sku: string | null;
+  tipo: string;
+  qty_shopify_antes: number | null;
+  qty_netsuite: number | null;
+  aplicado: boolean;
+}
+
+/** Preview (solo lectura): qué cambiaría la conciliación, sin escribir. */
+export async function previewConciliacion(): Promise<ConciliacionPreviewRow[]> {
+  const { data, error } = await supabase.rpc(
+    "preview_conciliacion_netsuite" as any
+  );
+  if (error) throw error;
+  return (data ?? []) as ConciliacionPreviewRow[];
+}
+
+/** Aplica la conciliación (escribe NetSuite sobre el inventario de hoy). */
+export async function aplicarConciliacion(): Promise<{
+  actualizados: number;
+  insertados: number;
+  omitidos: number;
+  discrepancias: number;
+}> {
+  const { data, error } = await supabase.rpc(
+    "aplicar_conciliacion_netsuite" as any
+  );
+  if (error) throw error;
+  const r = (data ?? [])[0] ?? {};
+  return {
+    actualizados: Number(r.actualizados ?? 0),
+    insertados: Number(r.insertados ?? 0),
+    omitidos: Number(r.omitidos ?? 0),
+    discrepancias: Number(r.discrepancias ?? 0),
+  };
+}
+
+/** Trae el log de la última conciliación (omitidos + discrepancias). */
+export async function fetchConciliacionLog(): Promise<ConciliacionLogRow[]> {
+  const { data, error } = await supabase
+    .from("conciliacion_netsuite_log")
+    .select(
+      "id, variant_id, location_id, sku, tipo, qty_shopify_antes, qty_netsuite, aplicado"
+    )
+    .order("id", { ascending: true })
+    .limit(1000);
+  if (error) throw error;
+  return (data ?? []) as ConciliacionLogRow[];
+}
