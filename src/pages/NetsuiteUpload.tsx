@@ -17,6 +17,7 @@ import { useUserRole } from "@/hooks/useUserRole";
 import { UploadDropzone } from "@/components/netsuite/UploadDropzone";
 import { SnapshotPreview } from "@/components/netsuite/SnapshotPreview";
 import { SnapshotHistoryTable } from "@/components/netsuite/SnapshotHistoryTable";
+import { ConciliacionCard } from "@/components/netsuite/ConciliacionCard";
 import {
   fetchActiveSnapshot,
   fetchSnapshotHistory,
@@ -159,6 +160,9 @@ export default function NetsuiteUpload() {
                 onCancel={() => setParsed(null)}
               />
             )}
+
+            {/* Paso 2 — Conciliación (solo si hay snapshot activo y no hay carga en curso) */}
+            {activeQ.data && !parsed && <ConciliacionCard />}
 
             {/* Historial */}
             <Card>
