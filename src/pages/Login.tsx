@@ -36,11 +36,13 @@ export default function LoginPage() {
 
     const { error } = await supabase.auth.signInWithPassword({
       email: trimmedEmail,
-      password,
+      password: password.trim(),
     });
 
     if (error) {
-      setError("Credenciales inválidas. Intenta de nuevo.");
+      // Mostrar el mensaje real de Supabase para diagnóstico
+      setError(`Error: ${error.message}`);
+      console.error("Login error:", error);
     }
     setLoading(false);
   };
