@@ -302,3 +302,24 @@ export async function fetchConciliacionLog(): Promise<ConciliacionLogRow[]> {
   if (error) throw error;
   return (data ?? []) as ConciliacionLogRow[];
 }
+
+
+// ── Paso 3: archivo de actualización de inventario Shopify (Matrixify) ────────
+
+export interface ArchivoShopifyRow {
+  variant_id: string;
+  sku: string;
+  producto: string | null;
+  ubicacion_shopify: string;
+  disponible_netsuite: number;
+  disponible_shopify_antes: number;
+}
+
+/** Genera las filas de diferencias NetSuite vs Shopify para el archivo Matrixify. */
+export async function generarArchivoShopify(): Promise<ArchivoShopifyRow[]> {
+  const { data, error } = await supabase.rpc(
+    "generar_archivo_shopify_inventario" as any
+  );
+  if (error) throw error;
+  return (data ?? []) as ArchivoShopifyRow[];
+}
