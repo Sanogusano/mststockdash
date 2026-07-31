@@ -34,7 +34,7 @@ import {
 const fmt = (n: number | null | undefined) =>
   (n ?? 0).toLocaleString("es-CO");
 
-export function ConciliacionCard() {
+export function ConciliacionCard({ snapshotId }: { snapshotId?: string | null }) {
   const [preview, setPreview] = useState<ConciliacionPreviewRow[] | null>(null);
   const [loadingPreview, setLoadingPreview] = useState(false);
   const [applying, setApplying] = useState(false);
