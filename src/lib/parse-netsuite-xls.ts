@@ -49,7 +49,6 @@ const SUBTIPOS_INCLUIDOS = new Set([
   "PRENDAS",
   "ACCESORIOS",
   "CALZADO",
-  "INSUMOS",
   "MATERIAL DE EMPAQUE",
 ]);
 
@@ -245,7 +244,7 @@ export async function parseNetsuiteXls(
 
   if (lines.length === 0) {
     throw new Error(
-      "No se encontraron productos vendibles (PRENDAS/ACCESORIOS/CALZADO/INSUMOS/MATERIAL DE EMPAQUE) con stock. ¿Es el archivo correcto?"
+      "No se encontraron productos vendibles (PRENDAS/ACCESORIOS/CALZADO/MATERIAL DE EMPAQUE) con stock. ¿Es el archivo correcto?"
     );
   }
 
