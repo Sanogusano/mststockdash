@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { LoadingState, EmptyState } from "./LoadingState";
 import { StatusBadge } from "./StatusBadge";
-import { ConsumoInsumosMatriz } from "./ConsumoInsumosMatriz";
+import ConsumoInsumosMatriz from "./ConsumoInsumosMatriz";
 
 interface SupplyRow {
   foto: string | null;
