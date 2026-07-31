@@ -45,7 +45,13 @@ const HEADER_ROW_INDEX = 6;
 const DATA_START_ROW = 7;
 
 // Sub_tipos que SÍ entran al inventario (vendibles). Todo lo demás se ignora.
-const SUBTIPOS_INCLUIDOS = new Set(["PRENDAS", "ACCESORIOS", "CALZADO"]);
+const SUBTIPOS_INCLUIDOS = new Set([
+  "PRENDAS",
+  "ACCESORIOS",
+  "CALZADO",
+  "INSUMOS",
+  "MATERIAL DE EMPAQUE",
+]);
 
 // Nombres de las columnas de atributo de producto en el header NetSuite.
 const COL_SUBTIPO = "Sub tipo";
@@ -239,7 +245,7 @@ export async function parseNetsuiteXls(
 
   if (lines.length === 0) {
     throw new Error(
-      "No se encontraron productos vendibles (PRENDAS/ACCESORIOS/CALZADO) con stock. ¿Es el archivo correcto?"
+      "No se encontraron productos vendibles (PRENDAS/ACCESORIOS/CALZADO/INSUMOS/MATERIAL DE EMPAQUE) con stock. ¿Es el archivo correcto?"
     );
   }
 
