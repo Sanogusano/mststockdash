@@ -242,7 +242,12 @@ export function SuppliesManagement() {
 
   if (loading) return <LoadingState rows={5} />;
   if (!data.length)
-    return <EmptyState message="No hay insumos registrados en el CEDI." />;
+    return (
+      <div className="space-y-6">
+        <EmptyState message="No hay insumos registrados en el CEDI." />
+        <ConsumoPorTienda />
+      </div>
+    );
 
   const urgentes = data.filter((r) => (r.dias_autonomia ?? 999) < 15).length;
   const planear = data.filter((r) => {
