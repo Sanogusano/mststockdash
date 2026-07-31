@@ -7,7 +7,7 @@ import { Download, Search, Info } from "lucide-react";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { exportToCSV } from "@/lib/csv-export";
+import * as XLSX from "xlsx";
 
 /**
  * Matriz de consumo de insumos: insumos en filas (columna fija), tiendas en columnas.
@@ -209,23 +209,45 @@ export default function ConsumoInsumosMatriz({ desde, hasta }: Props) {
     [insumos, tiendas, modo]
   );
 
-  const exportar = () => {
+  /** Filas planas para exportar: SKU e Insumo van en columnas separadas. */
+  const datosExport = () =>
+    insumos.map(i => {
+      const row: Record<string, string | number> = { SKU: i.sku, Insumo: i.nombre };
+      tiendas.forEach(t => {
+        const v = valor(i.sku, t);
+        row[t.nombre] = modo === "unidades" ? v : Number(v.toFixed(1));
+      });
+      row.Total = Number(
+        tiendas.reduce((s, t) => s + valor(i.sku, t), 0).toFixed(modo === "unidades" ? 0 : 1)
+      );
+      return row;
+    });
+
+  const exportarExcel = () => {
     if (!insumos.length) return;
-    exportToCSV(
-      insumos.map(i => {
-        const row: Record<string, string | number> = { SKU: i.sku, Insumo: i.nombre };
-        tiendas.forEach(t => {
-          row[t.nombre] = modo === "unidades"
-            ? valor(i.sku, t)
-            : Number(valor(i.sku, t).toFixed(1));
-        });
-        row.Total = Number(
-          tiendas.reduce((s, t) => s + valor(i.sku, t), 0).toFixed(modo === "unidades" ? 0 : 1)
-        );
-        return row;
-      }),
-      `consumo-insumos-${modo}`
+    const datos = datosExport();
+
+    // Los datos arrancan en A3 para dejar dos filas de encabezado con el contexto
+    const ws = XLSX.utils.json_to_sheet(datos, { origin: "A3" });
+    XLSX.utils.sheet_add_aoa(
+      ws,
+      [
+        [`Consumo de insumos por tienda — ${modo === "unidades" ? "Unidades" : "Por 100 pedidos"}`],
+        [`Período: ${pDesde} a ${pHasta}${tipo !== "all" ? ` · Tipo ${tipo}` : ""}`],
+      ],
+      { origin: "A1" }
     );
+
+    ws["!cols"] = [
+      { wch: 12 },                        // SKU
+      { wch: 46 },                        // Insumo
+      ...tiendas.map(() => ({ wch: 15 })),
+      { wch: 12 },                        // Total
+    ];
+
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Consumo insumos");
+    XLSX.writeFile(wb, `consumo-insumos-${pDesde}_a_${pHasta}.xlsx`);
   };
 
   if (loading) return <div className="p-6"><LoadingState rows={8} /></div>;
@@ -342,8 +364,8 @@ export default function ConsumoInsumosMatriz({ desde, hasta }: Props) {
             {pDesde} a {pHasta} · {insumos.length} insumos · {tiendas.length} tiendas ·{" "}
             {modo === "unidades" ? `${nf(granTotal)} uds` : "normalizado"}
           </span>
-          <Button variant="outline" size="sm" onClick={exportar}>
-            <Download className="h-4 w-4 mr-1.5" /> CSV
+          <Button variant="default" size="sm" onClick={exportarExcel} disabled={!insumos.length}>
+            <Download className="h-4 w-4 mr-1.5" /> Excel
           </Button>
         </div>
       </div>
@@ -365,7 +387,10 @@ export default function ConsumoInsumosMatriz({ desde, hasta }: Props) {
         <table className="text-xs border-collapse">
           <thead className="sticky top-0 z-20">
             <tr>
-              <th className="sticky left-0 z-30 bg-muted text-left p-2 border-b border-r min-w-[260px]">
+              <th className="sticky left-0 z-30 bg-muted text-left p-2 border-b border-r w-[96px] min-w-[96px]">
+                SKU
+              </th>
+              <th className="sticky left-[96px] z-30 bg-muted text-left p-2 border-b border-r min-w-[240px]">
                 Insumo
               </th>
               <th className="bg-muted p-2 border-b border-r text-right min-w-[70px]">Total</th>
@@ -388,9 +413,11 @@ export default function ConsumoInsumosMatriz({ desde, hasta }: Props) {
           <tbody>
             {insumos.map(i => (
               <tr key={i.sku} className="hover:bg-muted/20">
-                <td className="sticky left-0 z-10 bg-background p-2 border-b border-r">
+                <td className="sticky left-0 z-10 bg-background p-2 border-b border-r font-mono text-[11px] text-muted-foreground align-top">
+                  {i.sku}
+                </td>
+                <td className="sticky left-[96px] z-10 bg-background p-2 border-b border-r">
                   <div className="font-medium leading-tight line-clamp-2">{i.nombre}</div>
-                  <div className="text-[10px] text-muted-foreground">{i.sku}</div>
                 </td>
                 <td className="p-2 border-b border-r text-right font-semibold tabular-nums bg-muted/30">
                   {nf(
@@ -415,7 +442,8 @@ export default function ConsumoInsumosMatriz({ desde, hasta }: Props) {
           </tbody>
           <tfoot className="sticky bottom-0 z-20">
             <tr>
-              <td className="sticky left-0 z-30 bg-muted p-2 border-t border-r font-semibold">
+              <td className="sticky left-0 z-30 bg-muted p-2 border-t border-r" />
+              <td className="sticky left-[96px] z-30 bg-muted p-2 border-t border-r font-semibold">
                 Total
               </td>
               <td className="bg-muted p-2 border-t border-r text-right font-semibold tabular-nums">
