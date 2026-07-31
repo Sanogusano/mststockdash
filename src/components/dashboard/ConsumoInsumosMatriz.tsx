@@ -228,7 +228,8 @@ export default function ConsumoInsumosMatriz({ desde, hasta }: Props) {
     const datos = datosExport();
 
     // Los datos arrancan en A3 para dejar dos filas de encabezado con el contexto
-    const ws = XLSX.utils.json_to_sheet(datos, { origin: "A3" });
+    const ws = XLSX.utils.aoa_to_sheet([[], []]);
+    XLSX.utils.sheet_add_json(ws, datos, { origin: "A3" });
     XLSX.utils.sheet_add_aoa(
       ws,
       [
