@@ -163,7 +163,9 @@ export default function NetsuiteUpload() {
             )}
 
             {/* Paso 2 — Conciliación (solo si hay snapshot activo y no hay carga en curso) */}
-            {activeQ.data && !parsed && <ConciliacionCard />}
+            {activeQ.data && !parsed && (
+              <ConciliacionCard snapshotId={activeQ.data.id} />
+            )}
             {activeQ.data && !parsed && <GenerarArchivoShopifyCard />}
 
             {/* Historial */}

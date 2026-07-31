@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Card,
   CardContent,
@@ -34,7 +34,7 @@ import {
 const fmt = (n: number | null | undefined) =>
   (n ?? 0).toLocaleString("es-CO");
 
-export function ConciliacionCard() {
+export function ConciliacionCard({ snapshotId }: { snapshotId?: string | null }) {
   const [preview, setPreview] = useState<ConciliacionPreviewRow[] | null>(null);
   const [loadingPreview, setLoadingPreview] = useState(false);
   const [applying, setApplying] = useState(false);
@@ -46,6 +46,15 @@ export function ConciliacionCard() {
     omitidos: number;
     discrepancias: number;
   } | null>(null);
+
+  // Al cambiar el snapshot activo, el conteo previo queda obsoleto: se descarta
+  // para forzar un recálculo contra el nuevo snapshot.
+  useEffect(() => {
+    setPreview(null);
+    setApplied(false);
+    setResumen(null);
+    setLog([]);
+  }, [snapshotId]);
 
   async function handlePreview() {
     setLoadingPreview(true);
@@ -80,9 +89,10 @@ export function ConciliacionCard() {
     }
   }
 
-  // Derivar cifras accionables del preview (excluye "coincide")
+  // Solo se escriben las combinaciones que NetSuite lista: discrepancias (b) y
+  // lo que NetSuite tiene y Shopify no ve (c). Los "omitidos" (d) no se escriben.
   const accionables = (preview ?? []).filter(
-    (r) => !r.tipo.startsWith("a)")
+    (r) => r.tipo.startsWith("b)") || r.tipo.startsWith("c)")
   );
   const totalAccionable = accionables.reduce(
     (s, r) => s + Number(r.combinaciones),
