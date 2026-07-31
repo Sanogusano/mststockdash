@@ -3149,6 +3149,20 @@ export type Database = {
           ubicacion: string
         }[]
       }
+      reporte_consumo_insumos_tienda: {
+        Args: { p_desde?: string; p_hasta?: string }
+        Returns: {
+          insumo: string
+          insumos_x_pedido: number
+          location_id: string
+          pedidos_tienda: number
+          sku: string
+          tienda: string
+          tipo_tienda: string
+          uds_producto: number
+          unidades: number
+        }[]
+      }
       reporte_conversion_trafico: {
         Args: { dias_atras: number; p_hasta?: string; p_location_id?: string }
         Returns: {
