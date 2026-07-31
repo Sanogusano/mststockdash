@@ -43,6 +43,7 @@ const inventariosItem: NavItem = { title: "Inventarios & Salud", url: "/inventar
 const bajaRotacionItem: NavItem = { title: "Baja Rotación", url: "/baja-rotacion", icon: AlertTriangle, description: "Sell-through bajo & antigüedad", module: "dashboards.inventario_salud", action: "view" };
 const insumosItem: NavItem = { title: "Gestión de Insumos", url: "/insumos", icon: Package, description: "CEDI & reorden", module: "dashboards.gestion_insumos", action: "view" };
 const bundleConstructionItem: NavItem = { title: "Bundle Construction", url: "/bundle-construction", icon: Sparkles, description: "Combos de baja rotación", module: "dashboards.inventario_salud", action: "view" };
+const validacionClasificacionItem: NavItem = { title: "Validación · Clasificación", url: "/validacion-clasificacion", icon: Layers, description: "Desempeño & cobertura por producto", module: "dashboards.inventario_salud", action: "view" };
 
 const manejoStockItems: NavItem[] = [
   saludProductoItem,
@@ -50,6 +51,7 @@ const manejoStockItems: NavItem[] = [
   inventariosItem,
   bajaRotacionItem,
   bundleConstructionItem,
+  validacionClasificacionItem,
   insumosItem,
 ];
 

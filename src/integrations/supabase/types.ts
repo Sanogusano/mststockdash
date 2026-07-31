@@ -340,6 +340,27 @@ export type Database = {
           },
         ]
       }
+      bkp_the_ten_20260730: {
+        Row: {
+          collection_season: string | null
+          product_id: string | null
+          sku: string | null
+          variant_id: string | null
+        }
+        Insert: {
+          collection_season?: string | null
+          product_id?: string | null
+          sku?: string | null
+          variant_id?: string | null
+        }
+        Update: {
+          collection_season?: string | null
+          product_id?: string | null
+          sku?: string | null
+          variant_id?: string | null
+        }
+        Relationships: []
+      }
       budget_expenses: {
         Row: {
           category: string
@@ -447,6 +468,30 @@ export type Database = {
         Update: {
           category_clean?: string
           category_raw?: string
+        }
+        Relationships: []
+      }
+      collection_calendar: {
+        Row: {
+          anio: number | null
+          coleccion: string
+          confiable: boolean | null
+          orden: number | null
+          tipo: string | null
+        }
+        Insert: {
+          anio?: number | null
+          coleccion: string
+          confiable?: boolean | null
+          orden?: number | null
+          tipo?: string | null
+        }
+        Update: {
+          anio?: number | null
+          coleccion?: string
+          confiable?: boolean | null
+          orden?: number | null
+          tipo?: string | null
         }
         Relationships: []
       }
@@ -2245,6 +2290,110 @@ export type Database = {
         }
         Relationships: []
       }
+      mv_producto_clasificacion: {
+        Row: {
+          accion: string | null
+          anio: number | null
+          base_cohorte: string | null
+          calculado_en: string | null
+          category: string | null
+          cobertura: string | null
+          coleccion: string | null
+          desempeno: string | null
+          fuera_de_ventana: boolean | null
+          genero: string | null
+          indice_ros: number | null
+          pct_venta_full: number | null
+          product_id: string | null
+          profundidad_desc_pct: number | null
+          ratio_cobertura: number | null
+          ros: number | null
+          ros_mediano_categoria: number | null
+          sell_through_pct: number | null
+          semanas_en_venta: number | null
+          semanas_objetivo: number | null
+          stock_actual: number | null
+          tiendas_con_stock: number | null
+          tipo: string | null
+          title: string | null
+          unidades_vendidas: number | null
+          wos: number | null
+        }
+        Relationships: []
+      }
+      producto_base: {
+        Row: {
+          anio: number | null
+          apto_curva: boolean | null
+          category: string | null
+          coleccion: string | null
+          coleccion_confiable: boolean | null
+          fecha_inicio: string | null
+          fecha_publicacion: string | null
+          genero: string | null
+          pct_venta_full: number | null
+          product_id: string | null
+          profundidad_desc_pct: number | null
+          sell_through_pct: number | null
+          semanas_en_venta: number | null
+          stock_actual: number | null
+          tiendas_con_stock: number | null
+          tiendas_con_venta: number | null
+          tipo: string | null
+          title: string | null
+          unidades_full: number | null
+          unidades_vendidas: number | null
+        }
+        Relationships: []
+      }
+      producto_clasificacion: {
+        Row: {
+          accion: string | null
+          anio: number | null
+          base_cohorte: string | null
+          category: string | null
+          cobertura: string | null
+          coleccion: string | null
+          desempeno: string | null
+          fuera_de_ventana: boolean | null
+          genero: string | null
+          indice_ros: number | null
+          pct_venta_full: number | null
+          product_id: string | null
+          profundidad_desc_pct: number | null
+          ratio_cobertura: number | null
+          ros: number | null
+          ros_mediano_categoria: number | null
+          sell_through_pct: number | null
+          semanas_en_venta: number | null
+          semanas_objetivo: number | null
+          stock_actual: number | null
+          tiendas_con_stock: number | null
+          tipo: string | null
+          title: string | null
+          unidades_vendidas: number | null
+          wos: number | null
+        }
+        Relationships: []
+      }
+      producto_edad: {
+        Row: {
+          anio: number | null
+          apto_analisis: boolean | null
+          category: string | null
+          coleccion: string | null
+          coleccion_confiable: boolean | null
+          dias_hasta_primera_venta: number | null
+          fecha_publicacion: string | null
+          genero: string | null
+          primera_venta: string | null
+          product_id: string | null
+          semanas_en_venta: number | null
+          tipo: string | null
+          title: string | null
+        }
+        Relationships: []
+      }
       reporte_cumplimiento_presupuesto: {
         Row: {
           diferencia_faltante: number | null
@@ -2661,6 +2810,7 @@ export type Database = {
           transacciones: number
         }[]
       }
+      refresh_producto_clasificacion: { Args: never; Returns: undefined }
       registrar_trafico: {
         Args: { p_location_id: string; p_registros: Json; p_token: string }
         Returns: number
