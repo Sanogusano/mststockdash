@@ -80,6 +80,7 @@ const App = () => (
           <Route path="/inventarios" element={<Guard module="dashboards.inventario_salud" action="view"><InventariosPage /></Guard>} />
           <Route path="/baja-rotacion" element={<Guard module="dashboards.inventario_salud" action="view"><BajaRotacionPage /></Guard>} />
           <Route path="/bundle-construction" element={<Guard module="dashboards.inventario_salud" action="view"><BundleConstructionPage /></Guard>} />
+          <Route path="/validacion-clasificacion" element={<Guard module="dashboards.inventario_salud" action="view"><ValidacionClasificacionPage /></Guard>} />
           <Route path="/tienda/:id" element={<Guard module="dashboards.resumen_ejecutivo" action="view" requireScope><TiendaDetailPage /></Guard>} />
           <Route path="/logistica" element={<Guard module="dashboards.logistica_traslados" action="view"><LogisticaPage /></Guard>} />
           <Route path="/logistica-traslados" element={<Guard module="dashboards.logistica_traslados" action="view"><LogisticaTrasladosPage /></Guard>} />
