@@ -47,6 +47,15 @@ export function ConciliacionCard({ snapshotId }: { snapshotId?: string | null })
     discrepancias: number;
   } | null>(null);
 
+  // Al cambiar el snapshot activo, el conteo previo queda obsoleto: se descarta
+  // para forzar un recálculo contra el nuevo snapshot.
+  useEffect(() => {
+    setPreview(null);
+    setApplied(false);
+    setResumen(null);
+    setLog([]);
+  }, [snapshotId]);
+
   async function handlePreview() {
     setLoadingPreview(true);
     setApplied(false);
