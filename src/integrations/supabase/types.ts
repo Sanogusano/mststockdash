@@ -3603,12 +3603,7 @@ export type Database = {
         }[]
       }
       reporte_proyeccion_insumos: {
-        Args: {
-          p_base_desde?: string
-          p_base_hasta?: string
-          p_crecimiento?: number
-          p_dias?: number
-        }
+        Args: { p_crecimiento?: number; p_dias?: number; p_dias_base?: number }
         Returns: {
           a_comprar: number
           consumo_dia: number
