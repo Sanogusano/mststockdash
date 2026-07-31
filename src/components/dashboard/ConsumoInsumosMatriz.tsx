@@ -73,15 +73,27 @@ export default function ConsumoInsumosMatriz({ desde, hasta }: Props) {
   const controlado = Boolean(desde && hasta);
 
   const [preset, setPreset] = useState("90");
-  const [customDesde, setCustomDesde] = useState(rangoPreset("90")[0]);
-  const [customHasta, setCustomHasta] = useState(rangoPreset("90")[1]);
+  // Borrador: lo que el usuario esta escribiendo en los campos de fecha.
+  const [draftDesde, setDraftDesde] = useState(rangoPreset("90")[0]);
+  const [draftHasta, setDraftHasta] = useState(rangoPreset("90")[1]);
+  // Rango realmente consultado. Solo cambia al elegir un preset o al pulsar Aplicar,
+  // nunca en cada tecla o clic del calendario.
+  const [rango, setRango] = useState<[string, string]>(rangoPreset("90"));
 
-  // Fechas efectivas: las del padre si vienen, si no las del control interno
-  const [pDesde, pHasta] = controlado
-    ? [desde as string, hasta as string]
-    : preset === "custom"
-      ? [customDesde, customHasta]
-      : rangoPreset(preset);
+  const [pDesde, pHasta] = controlado ? [desde as string, hasta as string] : rango;
+
+  const cambiarPreset = (p: string) => {
+    setPreset(p);
+    if (p !== "custom") {
+      const r = rangoPreset(p);
+      setDraftDesde(r[0]);
+      setDraftHasta(r[1]);
+      setRango(r);           // un preset es una intencion completa: se aplica solo
+    }
+  };
+
+  const rangoValido = Boolean(draftDesde && draftHasta && draftDesde <= draftHasta);
+  const hayCambios = draftDesde !== rango[0] || draftHasta !== rango[1];
 
   const [filas, setFilas] = useState<Fila[]>([]);
   const [loading, setLoading] = useState(true);
@@ -232,7 +244,7 @@ export default function ConsumoInsumosMatriz({ desde, hasta }: Props) {
       <div className="flex flex-wrap gap-2 items-center">
         {!controlado && (
           <>
-            <Select value={preset} onValueChange={setPreset}>
+            <Select value={preset} onValueChange={cambiarPreset}>
               <SelectTrigger className="w-[170px]"><SelectValue /></SelectTrigger>
               <SelectContent>
                 {PRESETS.map(p => (
@@ -245,19 +257,42 @@ export default function ConsumoInsumosMatriz({ desde, hasta }: Props) {
               <div className="flex items-center gap-1.5">
                 <Input
                   type="date"
-                  value={customDesde}
-                  max={customHasta}
-                  onChange={e => setCustomDesde(e.target.value)}
+                  value={draftDesde}
+                  max={draftHasta}
+                  onChange={e => setDraftDesde(e.target.value)}
+                  onKeyDown={e => {
+                    if (e.key === "Enter" && rangoValido && hayCambios) {
+                      setRango([draftDesde, draftHasta]);
+                    }
+                  }}
                   className="w-[150px]"
                 />
                 <span className="text-xs text-muted-foreground">a</span>
                 <Input
                   type="date"
-                  value={customHasta}
-                  min={customDesde}
-                  onChange={e => setCustomHasta(e.target.value)}
+                  value={draftHasta}
+                  min={draftDesde}
+                  onChange={e => setDraftHasta(e.target.value)}
+                  onKeyDown={e => {
+                    if (e.key === "Enter" && rangoValido && hayCambios) {
+                      setRango([draftDesde, draftHasta]);
+                    }
+                  }}
                   className="w-[150px]"
                 />
+                <Button
+                  size="sm"
+                  variant={hayCambios && rangoValido ? "default" : "outline"}
+                  disabled={!rangoValido || !hayCambios || loading}
+                  onClick={() => setRango([draftDesde, draftHasta])}
+                >
+                  Aplicar
+                </Button>
+                {!rangoValido && (
+                  <span className="text-xs text-destructive">
+                    La fecha inicial debe ser anterior a la final
+                  </span>
+                )}
               </div>
             )}
           </>
