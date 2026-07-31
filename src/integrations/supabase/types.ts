@@ -3266,6 +3266,23 @@ export type Database = {
           r_wos_objetivo_destino: number
         }[]
       }
+      reporte_demanda_insumos: {
+        Args: { p_dias_cobertura?: number }
+        Returns: {
+          a_reponer: number
+          consumo_dia: number
+          demanda_periodo: number
+          dias_autonomia: number
+          dias_base: number
+          estado: string
+          insumo: string
+          location_id: string
+          sku: string
+          stock_actual: number
+          tienda: string
+          tipo_tienda: string
+        }[]
+      }
       reporte_desempeño_comercial: {
         Args: { dias_atras: number; p_hasta?: string }
         Returns: {
@@ -3583,6 +3600,26 @@ export type Database = {
           sku: string
           ventas_periodo_anterior: number
           ventas_semana_actual: number
+        }[]
+      }
+      reporte_proyeccion_insumos: {
+        Args: {
+          p_base_desde?: string
+          p_base_hasta?: string
+          p_crecimiento?: number
+          p_dias?: number
+        }
+        Returns: {
+          a_comprar: number
+          consumo_dia: number
+          demanda: number
+          dias_base: number
+          insumo: string
+          location_id: string
+          sku: string
+          stock_actual: number
+          tienda: string
+          tipo_tienda: string
         }[]
       }
       reporte_ranking_tiendas: {
