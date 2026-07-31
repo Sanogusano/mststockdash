@@ -204,7 +204,7 @@ function ConsumoPorTienda() {
                           </td>
                         </tr>
                       )}
-                    </>
+                    </Fragment>
                   );
                 })}
               </tbody>
