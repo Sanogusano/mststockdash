@@ -162,7 +162,7 @@ function ConsumoPorTienda() {
                 {grupos.map((g) => {
                   const isOpen = expanded.has(g.location_id);
                   return (
-                    <>
+                    <Fragment key={g.location_id}>
                       <tr
                         key={g.location_id}
                         onClick={() => toggle(g.location_id)}
