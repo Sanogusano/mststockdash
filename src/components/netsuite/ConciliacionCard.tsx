@@ -89,9 +89,10 @@ export function ConciliacionCard({ snapshotId }: { snapshotId?: string | null })
     }
   }
 
-  // Derivar cifras accionables del preview (excluye "coincide")
+  // Solo se escriben las combinaciones que NetSuite lista: discrepancias (b) y
+  // lo que NetSuite tiene y Shopify no ve (c). Los "omitidos" (d) no se escriben.
   const accionables = (preview ?? []).filter(
-    (r) => !r.tipo.startsWith("a)")
+    (r) => r.tipo.startsWith("b)") || r.tipo.startsWith("c)")
   );
   const totalAccionable = accionables.reduce(
     (s, r) => s + Number(r.combinaciones),
