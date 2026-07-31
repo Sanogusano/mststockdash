@@ -337,6 +337,8 @@ export function SuppliesManagement() {
         </table>
         </div>
       </div>
+
+      <ConsumoPorTienda />
     </div>
   );
 }
