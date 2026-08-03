@@ -47,10 +47,13 @@ const validacionClasificacionItem: NavItem = { title: "Validación · Clasificac
 
 const clasificacionProductoItem: NavItem = { title: "Clasificación de producto", url: "/clasificacion-producto", icon: Layers, description: "Velocidad de rotación & cobertura", module: "dashboards.salud_producto", action: "view" };
 
+const saludPublicacionItem: NavItem = { title: "Salud de publicación", url: "/salud-publicacion", icon: Layers, description: "Diagnóstico del canal online", module: "dashboards.salud_producto", action: "view" };
+
 const zoomProductoItems: NavItem[] = [
   clasificacionProductoItem,
   bajaRotacionItem,
   validacionClasificacionItem,
+  saludPublicacionItem,
 ];
 
 const manejoStockItems: NavItem[] = [
