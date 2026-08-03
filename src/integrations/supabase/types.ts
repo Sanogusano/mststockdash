@@ -2292,7 +2292,6 @@ export type Database = {
       }
       mv_producto_clasificacion: {
         Row: {
-          accion: string | null
           anio: number | null
           base_cohorte: string | null
           calculado_en: string | null
@@ -2300,22 +2299,37 @@ export type Database = {
           cobertura: string | null
           coleccion: string | null
           desempeno: string | null
+          dias_en_venta: number | null
+          estuvo_en_online: boolean | null
+          estuvo_en_tienda: boolean | null
+          fecha_inicio: string | null
           fuera_de_ventana: boolean | null
           genero: string | null
-          indice_ros: number | null
+          image_url: string | null
+          indice_online: number | null
+          indice_tienda: number | null
+          indice_total: number | null
+          mix_online_cat: number | null
+          mix_online_pct: number | null
           pct_venta_full: number | null
+          perfil_canal: string | null
           product_id: string | null
           profundidad_desc_pct: number | null
           ratio_cobertura: number | null
-          ros: number | null
-          ros_mediano_categoria: number | null
+          ros_online: number | null
+          ros_tienda: number | null
+          ros_total: number | null
           sell_through_pct: number | null
           semanas_en_venta: number | null
           semanas_objetivo: number | null
           stock_actual: number | null
+          stock_online: number | null
           tiendas_con_stock: number | null
+          tiendas_con_venta: number | null
           tipo: string | null
           title: string | null
+          uds_online: number | null
+          uds_tienda: number | null
           unidades_vendidas: number | null
           wos: number | null
         }
@@ -2328,19 +2342,27 @@ export type Database = {
           category: string | null
           coleccion: string | null
           coleccion_confiable: boolean | null
+          dias_en_venta: number | null
+          estuvo_en_online: boolean | null
+          estuvo_en_tienda: boolean | null
           fecha_inicio: string | null
-          fecha_publicacion: string | null
           genero: string | null
+          image_url: string | null
           pct_venta_full: number | null
           product_id: string | null
           profundidad_desc_pct: number | null
           sell_through_pct: number | null
           semanas_en_venta: number | null
+          semanas_online: number | null
+          semanas_tienda: number | null
           stock_actual: number | null
+          stock_online: number | null
           tiendas_con_stock: number | null
           tiendas_con_venta: number | null
           tipo: string | null
           title: string | null
+          uds_online: number | null
+          uds_tienda: number | null
           unidades_full: number | null
           unidades_vendidas: number | null
         }
@@ -2348,29 +2370,43 @@ export type Database = {
       }
       producto_clasificacion: {
         Row: {
-          accion: string | null
           anio: number | null
           base_cohorte: string | null
           category: string | null
           cobertura: string | null
           coleccion: string | null
           desempeno: string | null
+          dias_en_venta: number | null
+          estuvo_en_online: boolean | null
+          estuvo_en_tienda: boolean | null
+          fecha_inicio: string | null
           fuera_de_ventana: boolean | null
           genero: string | null
-          indice_ros: number | null
+          image_url: string | null
+          indice_online: number | null
+          indice_tienda: number | null
+          indice_total: number | null
+          mix_online_cat: number | null
+          mix_online_pct: number | null
           pct_venta_full: number | null
+          perfil_canal: string | null
           product_id: string | null
           profundidad_desc_pct: number | null
           ratio_cobertura: number | null
-          ros: number | null
-          ros_mediano_categoria: number | null
+          ros_online: number | null
+          ros_tienda: number | null
+          ros_total: number | null
           sell_through_pct: number | null
           semanas_en_venta: number | null
           semanas_objetivo: number | null
           stock_actual: number | null
+          stock_online: number | null
           tiendas_con_stock: number | null
+          tiendas_con_venta: number | null
           tipo: string | null
           title: string | null
+          uds_online: number | null
+          uds_tienda: number | null
           unidades_vendidas: number | null
           wos: number | null
         }
