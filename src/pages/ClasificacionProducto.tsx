@@ -16,8 +16,10 @@ import * as XLSX from "xlsx";
  * Lee mv_producto_clasificacion (materializada, refresco diario post-snapshot).
  *
  * Dos ejes:
- *   Velocidad de rotacion — indice base 100 contra la mediana de su cohorte
+ *   RDV (Ritmo de Venta) — indice base 100 contra la mediana de su cohorte
  *     (coleccion x categoria). 100 = va al ritmo de sus pares.
+ *     NO usar "ROS" en interfaz: colisiona con Return on Sales (metrica
+ *     financiera). En BD los campos siguen siendo ros_*.
  *   Cobertura — semanas de inventario vs. semanas restantes de ventana comercial.
  *
  * Zoom por canal: cada canal se compara SOLO contra su propio canal.
@@ -149,8 +151,10 @@ function BarraVida({ sem, dias, fuera }: { sem: number; dias: number; fuera: boo
   );
 }
 
-/** Barra de rotacion con checkpoint en 100 (mediana de la cohorte). */
-function BarraRotacion({ indice, ros }: { indice: number | null; ros: number | null }) {
+/** Barra de RDV con checkpoint en 100 (mediana de la cohorte). */
+function BarraRotacion({ indice, ros, canal }: {
+  indice: number | null; ros: number | null; canal: string;
+}) {
   const { color, label } = nivelIndice(indice);
   if (indice == null) {
     return <span className="text-xs text-muted-foreground">No aplica</span>;
@@ -171,8 +175,9 @@ function BarraRotacion({ indice, ros }: { indice: number | null; ros: number | n
         <span className="text-sm font-medium tabular-nums" style={{ color }}>{indice}</span>
         <span className="text-[10px] text-muted-foreground">{label}</span>
         {ros != null && (
-          <span className="text-[10px] text-muted-foreground ml-auto tabular-nums">
-            {nf(ros, 2)}/sem
+          <span className="text-[10px] text-muted-foreground ml-auto tabular-nums"
+                title={canal === "online" ? "unidades por semana" : "unidades por tienda por semana"}>
+            {nf(ros, 2)} {canal === "online" ? "uds/sem" : "uds/t/sem"}
           </span>
         )}
       </div>
@@ -342,9 +347,9 @@ export default function ClasificacionProducto() {
       Coleccion: r.coleccion,
       "Semanas en venta": r.semanas_en_venta,
       "Días en venta": r.dias_en_venta,
-      "Índice total": r.indice_total,
-      "Índice tienda": r.indice_tienda,
-      "Índice online": r.indice_online,
+      "Índice RDV total": r.indice_total,
+      "Índice RDV tienda": r.indice_tienda,
+      "Índice RDV online": r.indice_online,
       "Uds tienda": r.uds_tienda,
       "Uds online": r.uds_online,
       "Uds total": r.unidades_vendidas,
@@ -363,10 +368,9 @@ export default function ClasificacionProducto() {
       Desempeño: r.desempeno,
       Cobertura: r.cobertura,
     }));
-    const ws = XLSX.utils.aoa_to_sheet([[], []]);
-    XLSX.utils.sheet_add_json(ws, datos, { origin: "A3" });
+    const ws = XLSX.utils.json_to_sheet(datos, { origin: "A3" });
     XLSX.utils.sheet_add_aoa(ws, [
-      ["Clasificación de producto — índice base 100 = mediana de su cohorte (colección × categoría)"],
+      ["Clasificación de producto — RDV (Ritmo de Venta), índice base 100 = mediana de su cohorte (colección × categoría)"],
       [`Ventana comercial ${VENTANA} semanas · métricas desde la primera venta de cada producto · ${new Date().toLocaleDateString("es-CO")}`],
     ], { origin: "A1" });
     ws["!cols"] = [{ wch: 42 }, { wch: 20 }, { wch: 14 }, ...Array(18).fill({ wch: 13 })];
@@ -399,7 +403,7 @@ export default function ClasificacionProducto() {
             <div>
               <h1 className="text-base font-semibold leading-tight">Clasificación de producto</h1>
               <p className="text-xs text-muted-foreground">
-                Índice 100 = ritmo de su cohorte · ventana comercial {VENTANA} semanas ·
+                RDV índice 100 = ritmo de su cohorte · ventana comercial {VENTANA} semanas ·
                 métricas desde la primera venta de cada producto
               </p>
             </div>
@@ -460,9 +464,9 @@ export default function ClasificacionProducto() {
 
             {canal === "online" && (
               <p className="text-xs text-muted-foreground">
-                En online el índice compara unidades por semana contra otros productos de su
-                categoría en online. No se divide entre tiendas ni se mezcla con el índice de
-                piso: son escalas distintas.
+                En online el RDV son unidades por semana, comparadas contra otros productos de su
+                categoría en online. No se divide entre tiendas ni se mezcla con el RDV de piso:
+                son escalas distintas.
               </p>
             )}
 
@@ -516,7 +520,7 @@ export default function ClasificacionProducto() {
                         <tr className="border-b bg-muted/40 text-xs text-muted-foreground">
                           <th className="text-left p-2.5 font-medium" colSpan={2}>Producto</th>
                           <th className="text-left p-2.5 font-medium">Vida</th>
-                          <th className="text-left p-2.5 font-medium">Velocidad de rotación</th>
+                          <th className="text-left p-2.5 font-medium">RDV · ritmo de venta</th>
                           <th className="text-left p-2.5 font-medium">Cobertura</th>
                           <th className="text-left p-2.5 font-medium">Tallas</th>
                           <th className="text-right p-2.5 font-medium">Ventas</th>
@@ -555,7 +559,7 @@ export default function ClasificacionProducto() {
                                            fuera={r.fuera_de_ventana} />
                               </td>
                               <td className="p-2.5">
-                                <BarraRotacion indice={indiceDe(r)} ros={rosDe(r)} />
+                                <BarraRotacion indice={indiceDe(r)} ros={rosDe(r)} canal={canal} />
                               </td>
                               <td className="p-2.5">
                                 <BarraCobertura wos={r.wos} objetivo={r.semanas_objetivo}
@@ -594,7 +598,7 @@ export default function ClasificacionProducto() {
 
                 {/* Leyenda */}
                 <div className="flex flex-wrap gap-x-5 gap-y-2 text-[11px] text-muted-foreground pt-1">
-                  <span className="font-medium text-foreground">Rotación:</span>
+                  <span className="font-medium text-foreground">RDV (índice 100 = ritmo de su cohorte):</span>
                   <span><i className="inline-block h-2 w-2 rounded-sm mr-1" style={{ background: "#2a78d6" }} />≥130 supera</span>
                   <span><i className="inline-block h-2 w-2 rounded-sm mr-1" style={{ background: "#0ca30c" }} />100–129 al ritmo</span>
                   <span><i className="inline-block h-2 w-2 rounded-sm mr-1" style={{ background: "#c98500" }} />70–99 se acerca</span>
