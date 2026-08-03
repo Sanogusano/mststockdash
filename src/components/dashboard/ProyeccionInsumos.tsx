@@ -11,11 +11,15 @@ import * as XLSX from "xlsx";
 
 /**
  * Proyeccion de demanda de insumos.
- * Fuente: RPC reporte_proyeccion_insumos(p_dias, p_crecimiento, p_dias_base).
+ * Fuente: RPC reporte_proyeccion_insumos(p_dias, p_crecimiento, p_desde, p_hasta).
  *
- *   consumo_dia  = bajas de stock del periodo / dias observados
- *   demanda      = consumo_dia * dias_cobertura * (1 + crecimiento%)
- *   a_comprar    = demanda - stock_actual  (minimo 0)
+ *   consumo_dia = unidades VENDIDAS del insumo en el rango / dias del rango
+ *   demanda     = consumo_dia * dias_cobertura * (1 + crecimiento%)
+ *   a_comprar   = demanda - stock_actual  (minimo 0)
+ *
+ * El rango historico es libre a proposito: proyectar temporada alta con una
+ * ventana movil reciente subestima el pico. Con la misma cobertura, la base
+ * nov-dic 2025 arroja casi el doble de demanda que los ultimos 90 dias.
  *
  * Dos vistas: consolidado por SKU (orden de compra) y detalle por tienda
  * (distribucion). El consolidado es plegable: clic en la fila abre sus tiendas.
@@ -41,11 +45,55 @@ const nf = (v: number | null | undefined, d = 0) =>
 
 const COBERTURAS = [30, 60, 90, 120, 180];
 
+const iso = (d: Date) => d.toISOString().slice(0, 10);
+
+/** Presets de base histórica. El rango decide la estacionalidad de la proyección. */
+function rangoPreset(p: string): [string, string] {
+  const hoy = new Date();
+  const y = hoy.getFullYear();
+  const m = hoy.getMonth();
+  switch (p) {
+    case "30":  return [iso(new Date(y, m, hoy.getDate() - 30)), iso(hoy)];
+    case "60":  return [iso(new Date(y, m, hoy.getDate() - 60)), iso(hoy)];
+    case "90":  return [iso(new Date(y, m, hoy.getDate() - 90)), iso(hoy)];
+    case "180": return [iso(new Date(y, m, hoy.getDate() - 180)), iso(hoy)];
+    // Mismo periodo del año pasado, con el ancho del horizonte que se proyecta
+    case "ap":  return [iso(new Date(y - 1, m, hoy.getDate())),
+                        iso(new Date(y - 1, m + 4, hoy.getDate()))];
+    default:    return [iso(new Date(y, m, hoy.getDate() - 90)), iso(hoy)];
+  }
+}
+
+const PRESETS_BASE = [
+  { value: "30",  label: "Últimos 30 días" },
+  { value: "60",  label: "Últimos 60 días" },
+  { value: "90",  label: "Últimos 90 días" },
+  { value: "180", label: "Últimos 180 días" },
+  { value: "ap",  label: "Mismo periodo año pasado" },
+  { value: "custom", label: "Rango personalizado" },
+];
+
 export default function ProyeccionInsumos() {
   const [dias, setDias] = useState(120);
   const [crecimiento, setCrecimiento] = useState(0);
   const [draftCrec, setDraftCrec] = useState("0");
-  const [diasBase, setDiasBase] = useState(30);
+
+  const [presetBase, setPresetBase] = useState("90");
+  const [draftDesde, setDraftDesde] = useState(rangoPreset("90")[0]);
+  const [draftHasta, setDraftHasta] = useState(rangoPreset("90")[1]);
+  // Rango efectivamente consultado: solo cambia con un preset o con "Aplicar"
+  const [rango, setRango] = useState<[string, string]>(rangoPreset("90"));
+
+  const cambiarPreset = (p: string) => {
+    setPresetBase(p);
+    if (p !== "custom") {
+      const r = rangoPreset(p);
+      setDraftDesde(r[0]); setDraftHasta(r[1]); setRango(r);
+    }
+  };
+
+  const rangoValido = Boolean(draftDesde && draftHasta && draftDesde <= draftHasta);
+  const rangoCambiado = draftDesde !== rango[0] || draftHasta !== rango[1];
 
   const [filas, setFilas] = useState<Fila[]>([]);
   const [loading, setLoading] = useState(true);
@@ -63,7 +111,8 @@ export default function ProyeccionInsumos() {
       const { data, error } = await supabase.rpc("reporte_proyeccion_insumos", {
         p_dias: dias,
         p_crecimiento: crecimiento,
-        p_dias_base: diasBase,
+        p_desde: rango[0],
+        p_hasta: rango[1],
       });
       if (!activo) return;
       if (error) setError(error.message);
@@ -71,7 +120,7 @@ export default function ProyeccionInsumos() {
       setLoading(false);
     })();
     return () => { activo = false; };
-  }, [dias, crecimiento, diasBase]);
+  }, [dias, crecimiento, rango]);
 
   const tiposDisponibles = useMemo(
     () => Array.from(new Set(filas.map(f => f.tipo_tienda).filter(Boolean) as string[])).sort(),
@@ -144,8 +193,7 @@ export default function ProyeccionInsumos() {
       "A comprar": Math.round(r.comprar),
       Tiendas: r.tiendas.length,
     }));
-    const ws1 = XLSX.utils.aoa_to_sheet([[], []]);
-    XLSX.utils.sheet_add_json(ws1, cons, { origin: "A3" });
+    const ws1 = XLSX.utils.json_to_sheet(cons, { origin: "A3" });
     XLSX.utils.sheet_add_aoa(ws1, [
       [`Proyección de insumos — cobertura ${dias} días — crecimiento ${crecimiento}%`],
       [`Base de cálculo: ${diasBaseReal} días de historia de inventario`],
@@ -213,16 +261,37 @@ export default function ProyeccionInsumos() {
         </div>
 
         <div>
-          <label className="text-xs text-muted-foreground block mb-1">Base de cálculo</label>
-          <Select value={String(diasBase)} onValueChange={v => setDiasBase(Number(v))}>
-            <SelectTrigger className="w-[150px]"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="7">Últimos 7 días</SelectItem>
-              <SelectItem value="14">Últimos 14 días</SelectItem>
-              <SelectItem value="30">Últimos 30 días</SelectItem>
-              <SelectItem value="60">Últimos 60 días</SelectItem>
-            </SelectContent>
-          </Select>
+          <label className="text-xs text-muted-foreground block mb-1">Base histórica</label>
+          <div className="flex items-center gap-1.5">
+            <Select value={presetBase} onValueChange={cambiarPreset}>
+              <SelectTrigger className="w-[210px]"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {PRESETS_BASE.map(p => (
+                  <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            {presetBase === "custom" && (
+              <>
+                <Input type="date" value={draftDesde} max={draftHasta}
+                       onChange={e => setDraftDesde(e.target.value)}
+                       className="w-[145px]" />
+                <span className="text-xs text-muted-foreground">a</span>
+                <Input type="date" value={draftHasta} min={draftDesde}
+                       onChange={e => setDraftHasta(e.target.value)}
+                       className="w-[145px]" />
+                <Button
+                  size="sm"
+                  variant={rangoCambiado && rangoValido ? "default" : "outline"}
+                  disabled={!rangoValido || !rangoCambiado || loading}
+                  onClick={() => setRango([draftDesde, draftHasta])}
+                >
+                  Aplicar
+                </Button>
+              </>
+            )}
+          </div>
         </div>
 
         <Select value={tipo} onValueChange={setTipo}>
@@ -267,7 +336,7 @@ export default function ProyeccionInsumos() {
       </div>
 
       <p className="text-xs text-muted-foreground">
-        Consumo diario calculado sobre {diasBaseReal || "—"} días de historia de inventario.
+        Consumo diario = unidades vendidas del insumo entre {rango[0]} y {rango[1]} ({diasBaseReal || "—"} días).
         Demanda = consumo diario × {dias} días{crecimiento !== 0 ? ` × ${(1 + crecimiento / 100).toFixed(2)}` : ""}.
         A comprar descuenta el stock actual.
       </p>
