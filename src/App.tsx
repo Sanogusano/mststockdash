@@ -9,7 +9,7 @@ import Index from "./pages/Index";
 import InventariosPage from "./pages/Inventarios";
 import BajaRotacionPage from "./pages/BajaRotacion";
 import BundleConstructionPage from "./pages/BundleConstruction";
-import ValidacionClasificacionPage from "./pages/ValidacionClasificacion";
+import DesempenoCategoriaPage from "./pages/DesempenoCategoria";
 import ClasificacionProductoPage from "./pages/ClasificacionProducto";
 import SaludPublicacionPage from "./pages/SaludPublicacion";
 import LogisticaPage from "./pages/Logistica";
@@ -82,7 +82,7 @@ const App = () => (
           <Route path="/inventarios" element={<Guard module="dashboards.inventario_salud" action="view"><InventariosPage /></Guard>} />
           <Route path="/baja-rotacion" element={<Guard module="dashboards.inventario_salud" action="view"><BajaRotacionPage /></Guard>} />
           <Route path="/bundle-construction" element={<Guard module="dashboards.inventario_salud" action="view"><BundleConstructionPage /></Guard>} />
-          <Route path="/validacion-clasificacion" element={<Guard module="dashboards.inventario_salud" action="view"><ValidacionClasificacionPage /></Guard>} />
+          <Route path="/desempeno-categoria" element={<Guard module="dashboards.inventario_salud" action="view"><DesempenoCategoriaPage /></Guard>} />
           <Route path="/tienda/:id" element={<Guard module="dashboards.resumen_ejecutivo" action="view" requireScope><TiendaDetailPage /></Guard>} />
           <Route path="/logistica" element={<Guard module="dashboards.logistica_traslados" action="view"><LogisticaPage /></Guard>} />
           <Route path="/logistica-traslados" element={<Guard module="dashboards.logistica_traslados" action="view"><LogisticaTrasladosPage /></Guard>} />
