@@ -60,6 +60,7 @@ const gestionComercialItems: NavItem[] = [
   { title: "Rendimiento Equipo", url: "/rendimiento-vendedores", icon: Users, description: "Desempeño por vendedor", module: "dashboards.rendimiento_vendedores", action: "view" },
   { title: "Liquidación Comisiones", url: "/comisiones", icon: Calculator, description: "Cálculo y aprobación", module: "comisiones", action: "view" },
   { title: "Equipo Comercial", url: "/vendedores", icon: UserCog, description: "Gestión de vendedores", module: "vendedores", action: "view" },
+  { title: "Clasificación de producto", url: "/clasificacion-producto", icon: Layers, description: "Velocidad de rotación & cobertura", module: "dashboards.salud_producto", action: "view" },
 ];
 
 const logisticaItems: NavItem[] = [
