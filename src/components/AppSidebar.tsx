@@ -43,7 +43,7 @@ const inventariosItem: NavItem = { title: "Inventarios & Salud", url: "/inventar
 const bajaRotacionItem: NavItem = { title: "Baja Rotación", url: "/baja-rotacion", icon: AlertTriangle, description: "Sell-through bajo & antigüedad", module: "dashboards.inventario_salud", action: "view" };
 const insumosItem: NavItem = { title: "Gestión de Insumos", url: "/insumos", icon: Package, description: "CEDI & reorden", module: "dashboards.gestion_insumos", action: "view" };
 const bundleConstructionItem: NavItem = { title: "Bundle Construction", url: "/bundle-construction", icon: Sparkles, description: "Combos de baja rotación", module: "dashboards.inventario_salud", action: "view" };
-const validacionClasificacionItem: NavItem = { title: "Validación · Clasificación", url: "/validacion-clasificacion", icon: Layers, description: "Desempeño & cobertura por producto", module: "dashboards.inventario_salud", action: "view" };
+const desempenoCategoriaItem: NavItem = { title: "Desempeño por categoría", url: "/desempeno-categoria", icon: Layers, description: "Medianas de ROS y cobertura por categoría", module: "dashboards.inventario_salud", action: "view" };
 
 const clasificacionProductoItem: NavItem = { title: "Clasificación de producto", url: "/clasificacion-producto", icon: Layers, description: "Velocidad de rotación & cobertura", module: "dashboards.salud_producto", action: "view" };
 
@@ -52,7 +52,7 @@ const saludPublicacionItem: NavItem = { title: "Salud de publicación", url: "/s
 const zoomProductoItems: NavItem[] = [
   clasificacionProductoItem,
   bajaRotacionItem,
-  validacionClasificacionItem,
+  desempenoCategoriaItem,
   saludPublicacionItem,
 ];
 
