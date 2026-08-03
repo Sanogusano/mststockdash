@@ -2300,6 +2300,8 @@ export type Database = {
           coleccion: string | null
           desempeno: string | null
           dias_en_venta: number | null
+          estado_online: string | null
+          estado_tallas: string | null
           estuvo_en_online: boolean | null
           estuvo_en_tienda: boolean | null
           fecha_inicio: string | null
@@ -2309,6 +2311,7 @@ export type Database = {
           indice_online: number | null
           indice_tienda: number | null
           indice_total: number | null
+          integridad_tallas: number | null
           mix_online_cat: number | null
           mix_online_pct: number | null
           pct_venta_full: number | null
@@ -2324,6 +2327,8 @@ export type Database = {
           semanas_objetivo: number | null
           stock_actual: number | null
           stock_online: number | null
+          tallas_con_stock: number | null
+          tallas_totales: number | null
           tiendas_con_stock: number | null
           tiendas_con_venta: number | null
           tipo: string | null
@@ -2343,11 +2348,14 @@ export type Database = {
           coleccion: string | null
           coleccion_confiable: boolean | null
           dias_en_venta: number | null
+          estado_online: string | null
+          estado_tallas: string | null
           estuvo_en_online: boolean | null
           estuvo_en_tienda: boolean | null
           fecha_inicio: string | null
           genero: string | null
           image_url: string | null
+          integridad_tallas: number | null
           pct_venta_full: number | null
           product_id: string | null
           profundidad_desc_pct: number | null
@@ -2357,6 +2365,8 @@ export type Database = {
           semanas_tienda: number | null
           stock_actual: number | null
           stock_online: number | null
+          tallas_con_stock: number | null
+          tallas_totales: number | null
           tiendas_con_stock: number | null
           tiendas_con_venta: number | null
           tipo: string | null
@@ -2377,6 +2387,8 @@ export type Database = {
           coleccion: string | null
           desempeno: string | null
           dias_en_venta: number | null
+          estado_online: string | null
+          estado_tallas: string | null
           estuvo_en_online: boolean | null
           estuvo_en_tienda: boolean | null
           fecha_inicio: string | null
@@ -2386,6 +2398,7 @@ export type Database = {
           indice_online: number | null
           indice_tienda: number | null
           indice_total: number | null
+          integridad_tallas: number | null
           mix_online_cat: number | null
           mix_online_pct: number | null
           pct_venta_full: number | null
@@ -2401,6 +2414,8 @@ export type Database = {
           semanas_objetivo: number | null
           stock_actual: number | null
           stock_online: number | null
+          tallas_con_stock: number | null
+          tallas_totales: number | null
           tiendas_con_stock: number | null
           tiendas_con_venta: number | null
           tipo: string | null
