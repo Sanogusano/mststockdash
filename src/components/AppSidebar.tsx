@@ -146,7 +146,8 @@ export function AppSidebar() {
     }
   };
 
-  const renderItem = (item: NavItem, indent = false) => {
+  const renderItem = (item: NavItem, indent: boolean | number = false) => {
+    const level = typeof indent === "number" ? indent : indent ? 1 : 0;
     const isActive = location.pathname === item.url;
     return (
       <SidebarMenuItem key={item.title}>
@@ -154,7 +155,7 @@ export function AppSidebar() {
           <Link
             to={item.url}
             className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-150 ${
-              indent ? "ml-3" : ""
+              level === 2 ? "ml-6" : level === 1 ? "ml-3" : ""
             } ${
               isActive
                 ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
