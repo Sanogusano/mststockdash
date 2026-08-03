@@ -45,13 +45,19 @@ const insumosItem: NavItem = { title: "Gestión de Insumos", url: "/insumos", ic
 const bundleConstructionItem: NavItem = { title: "Bundle Construction", url: "/bundle-construction", icon: Sparkles, description: "Combos de baja rotación", module: "dashboards.inventario_salud", action: "view" };
 const validacionClasificacionItem: NavItem = { title: "Validación · Clasificación", url: "/validacion-clasificacion", icon: Layers, description: "Desempeño & cobertura por producto", module: "dashboards.inventario_salud", action: "view" };
 
+const clasificacionProductoItem: NavItem = { title: "Clasificación de producto", url: "/clasificacion-producto", icon: Layers, description: "Velocidad de rotación & cobertura", module: "dashboards.salud_producto", action: "view" };
+
+const zoomProductoItems: NavItem[] = [
+  clasificacionProductoItem,
+  bajaRotacionItem,
+  validacionClasificacionItem,
+];
+
 const manejoStockItems: NavItem[] = [
   saludProductoItem,
   desempenoLineaItem,
   inventariosItem,
-  bajaRotacionItem,
   bundleConstructionItem,
-  validacionClasificacionItem,
   insumosItem,
 ];
 
@@ -60,8 +66,8 @@ const gestionComercialItems: NavItem[] = [
   { title: "Rendimiento Equipo", url: "/rendimiento-vendedores", icon: Users, description: "Desempeño por vendedor", module: "dashboards.rendimiento_vendedores", action: "view" },
   { title: "Liquidación Comisiones", url: "/comisiones", icon: Calculator, description: "Cálculo y aprobación", module: "comisiones", action: "view" },
   { title: "Equipo Comercial", url: "/vendedores", icon: UserCog, description: "Gestión de vendedores", module: "vendedores", action: "view" },
-  { title: "Clasificación de producto", url: "/clasificacion-producto", icon: Layers, description: "Velocidad de rotación & cobertura", module: "dashboards.salud_producto", action: "view" },
 ];
+
 
 const logisticaItems: NavItem[] = [
   { title: "Allocation & Movimientos", url: "/logistica", icon: ArrowLeftRight, description: "Allocation & movimientos", module: "dashboards.logistica_traslados", action: "view" },
