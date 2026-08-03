@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { BarChart3, TrendingUp, ArrowLeftRight, Package, Tag, Layers, Target, Zap, Trophy, Archive, Users, Calculator, UserCog, Briefcase, ChevronDown, Settings, MapPin, Upload, LogOut, Truck, Shield, Store, Banknote, LayoutDashboard, CreditCard, MessageCircle, AlertTriangle, RefreshCw, Sparkles } from "lucide-react";
+import { BarChart3, TrendingUp, ArrowLeftRight, Package, Tag, Layers, Target, Zap, Trophy, Archive, Users, Calculator, UserCog, Briefcase, ChevronDown, Settings, MapPin, Upload, LogOut, Truck, Shield, Store, Banknote, LayoutDashboard, CreditCard, MessageCircle, AlertTriangle, RefreshCw, Sparkles, Search } from "lucide-react";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useAuth } from "@/hooks/useAuth";
 import { useUserPermissions } from "@/hooks/useUserPermissions";
@@ -45,13 +45,19 @@ const insumosItem: NavItem = { title: "Gestión de Insumos", url: "/insumos", ic
 const bundleConstructionItem: NavItem = { title: "Bundle Construction", url: "/bundle-construction", icon: Sparkles, description: "Combos de baja rotación", module: "dashboards.inventario_salud", action: "view" };
 const validacionClasificacionItem: NavItem = { title: "Validación · Clasificación", url: "/validacion-clasificacion", icon: Layers, description: "Desempeño & cobertura por producto", module: "dashboards.inventario_salud", action: "view" };
 
+const clasificacionProductoItem: NavItem = { title: "Clasificación de producto", url: "/clasificacion-producto", icon: Layers, description: "Velocidad de rotación & cobertura", module: "dashboards.salud_producto", action: "view" };
+
+const zoomProductoItems: NavItem[] = [
+  clasificacionProductoItem,
+  bajaRotacionItem,
+  validacionClasificacionItem,
+];
+
 const manejoStockItems: NavItem[] = [
   saludProductoItem,
   desempenoLineaItem,
   inventariosItem,
-  bajaRotacionItem,
   bundleConstructionItem,
-  validacionClasificacionItem,
   insumosItem,
 ];
 
@@ -60,8 +66,8 @@ const gestionComercialItems: NavItem[] = [
   { title: "Rendimiento Equipo", url: "/rendimiento-vendedores", icon: Users, description: "Desempeño por vendedor", module: "dashboards.rendimiento_vendedores", action: "view" },
   { title: "Liquidación Comisiones", url: "/comisiones", icon: Calculator, description: "Cálculo y aprobación", module: "comisiones", action: "view" },
   { title: "Equipo Comercial", url: "/vendedores", icon: UserCog, description: "Gestión de vendedores", module: "vendedores", action: "view" },
-  { title: "Clasificación de producto", url: "/clasificacion-producto", icon: Layers, description: "Velocidad de rotación & cobertura", module: "dashboards.salud_producto", action: "view" },
 ];
+
 
 const logisticaItems: NavItem[] = [
   { title: "Allocation & Movimientos", url: "/logistica", icon: ArrowLeftRight, description: "Allocation & movimientos", module: "dashboards.logistica_traslados", action: "view" },
@@ -105,6 +111,7 @@ export function AppSidebar() {
   const visibleConfig = useMemo(() => configuracionItems.filter((i) => can(i.module, i.action)), [permissions, isAdmin]);
   const visibleFinanzas = useMemo(() => finanzasItems.filter((i) => can(i.module, i.action)), [permissions, isAdmin]);
   const visibleStock = useMemo(() => manejoStockItems.filter((i) => can(i.module, i.action)), [permissions, isAdmin]);
+  const visibleZoom = useMemo(() => zoomProductoItems.filter((i) => can(i.module, i.action)), [permissions, isAdmin]);
 
   const canPresupuesto = can(presupuestoItem.module, presupuestoItem.action);
   const canCentroAccion = can(centroAccionItem.module, centroAccionItem.action);
@@ -114,7 +121,8 @@ export function AppSidebar() {
   const isLogisticaActive = visibleLogistica.some((i) => location.pathname === i.url);
   const isFinanzasActive = visibleFinanzas.some((i) => location.pathname === i.url);
   const isPresupuestoActive = [presupuestoItem.url, centroAccionItem.url].includes(location.pathname);
-  const isStockActive = visibleStock.some((i) => location.pathname === i.url);
+  const isZoomActive = visibleZoom.some((i) => location.pathname === i.url);
+  const isStockActive = visibleStock.some((i) => location.pathname === i.url) || isZoomActive;
 
   const [gestionOpen, setGestionOpen] = useState(isGestionActive);
   const [configOpen, setConfigOpen] = useState(isConfigActive);
@@ -122,6 +130,7 @@ export function AppSidebar() {
   const [finanzasOpen, setFinanzasOpen] = useState(isFinanzasActive);
   const [presupuestoOpen, setPresupuestoOpen] = useState(isPresupuestoActive);
   const [stockOpen, setStockOpen] = useState(isStockActive);
+  const [zoomOpen, setZoomOpen] = useState(isZoomActive);
 
   const userEmail = session?.user?.email || "";
   const userInitial = userEmail.charAt(0).toUpperCase() || "U";
@@ -137,7 +146,8 @@ export function AppSidebar() {
     }
   };
 
-  const renderItem = (item: NavItem, indent = false) => {
+  const renderItem = (item: NavItem, indent: boolean | number = false) => {
+    const level = typeof indent === "number" ? indent : indent ? 1 : 0;
     const isActive = location.pathname === item.url;
     return (
       <SidebarMenuItem key={item.title}>
@@ -145,7 +155,7 @@ export function AppSidebar() {
           <Link
             to={item.url}
             className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-150 ${
-              indent ? "ml-3" : ""
+              level === 2 ? "ml-6" : level === 1 ? "ml-3" : ""
             } ${
               isActive
                 ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
@@ -240,8 +250,8 @@ export function AppSidebar() {
               {/* 5b - Proyección de Demanda */}
               {can(proyeccionDemandaItem.module, proyeccionDemandaItem.action) && renderItem(proyeccionDemandaItem)}
 
-              {/* 6 - Manejo de Stock */}
-              {visibleStock.length > 0 && (
+              {/* 6 - Productos y Stock */}
+              {(visibleStock.length > 0 || visibleZoom.length > 0) && (
                 <>
                   <SidebarMenuItem>
                     <SidebarMenuButton asChild>
@@ -254,16 +264,44 @@ export function AppSidebar() {
                         }`}
                       >
                         <Package className="h-[18px] w-[18px] shrink-0" />
-                        <span className="text-sm leading-tight flex-1 text-left truncate">Manejo de Stock</span>
+                        <span className="text-sm leading-tight flex-1 text-left truncate">Productos y Stock</span>
                         <ChevronDown
                           className={`h-3.5 w-3.5 shrink-0 transition-transform ${stockOpen ? "rotate-180" : ""}`}
                         />
                       </button>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
-                  {stockOpen && visibleStock.map((item) => renderItem(item, true))}
+                  {stockOpen && (
+                    <>
+                      {visibleStock.map((item) => renderItem(item, 1))}
+                      {visibleZoom.length > 0 && (
+                        <>
+                          <SidebarMenuItem>
+                            <SidebarMenuButton asChild>
+                              <button
+                                onClick={() => setZoomOpen((v) => !v)}
+                                className={`w-full ml-3 flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-150 ${
+                                  isZoomActive
+                                    ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
+                                    : "text-sidebar-foreground/70 hover:bg-sidebar-accent/40 hover:text-sidebar-foreground"
+                                }`}
+                              >
+                                <Search className="h-[18px] w-[18px] shrink-0" />
+                                <span className="text-sm leading-tight flex-1 text-left truncate">Zoom de Producto</span>
+                                <ChevronDown
+                                  className={`h-3.5 w-3.5 shrink-0 transition-transform ${zoomOpen ? "rotate-180" : ""}`}
+                                />
+                              </button>
+                            </SidebarMenuButton>
+                          </SidebarMenuItem>
+                          {zoomOpen && visibleZoom.map((item) => renderItem(item, 2))}
+                        </>
+                      )}
+                    </>
+                  )}
                 </>
               )}
+
 
               {/* 7 - Logística & Traslados */}
               {visibleLogistica.length > 0 && (
