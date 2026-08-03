@@ -147,23 +147,33 @@ function BarraRotacion({ indice, ros }: { indice: number | null; ros: number | n
   );
 }
 
-/** Cobertura: verde = lo que alcanza a venderse, rojo = sobrante al cierre. */
+/** Cobertura: verde = lo que alcanza a venderse, rojo = sobrante al cierre.
+ *  La barra se topa en 52 semanas: por encima de un año el número exacto no
+ *  aporta (todo es "no rota") y aplasta visualmente al resto de la tabla.
+ *  El valor sin topar sigue en el Excel. */
 function BarraCobertura({ wos, objetivo, estado }: {
   wos: number | null; objetivo: number; estado: string;
 }) {
   if (wos == null || estado === "SIN STOCK") {
     return <span className="text-xs text-muted-foreground">Agotado</span>;
   }
-  const total = Math.max(wos, objetivo);
-  const pctVendible = (Math.min(wos, objetivo) / total) * 100;
-  const pctStock = (wos / total) * 100;
+  const TOPE = 52;
+  const excede = wos > TOPE;
+  const wosVis = Math.min(wos, TOPE);
+  const total = Math.max(wosVis, objetivo);
+  const pctVendible = (Math.min(wosVis, objetivo) / total) * 100;
+  const pctStock = (wosVis / total) * 100;
   const pctCierre = (objetivo / total) * 100;
   return (
     <div className="w-[128px]">
       <div className="relative h-4">
         <div
-          className="absolute top-1 left-0 h-2 rounded-full"
-          style={{ width: `${pctStock}%`, background: "#d03b3b" }}
+          className="absolute top-1 left-0 h-2"
+          style={{
+            width: `${pctStock}%`,
+            background: "#d03b3b",
+            borderRadius: excede ? "9999px 2px 2px 9999px" : "9999px",
+          }}
         />
         <div
           className="absolute top-1 left-0 h-2 rounded-l-full"
@@ -175,8 +185,9 @@ function BarraCobertura({ wos, objetivo, estado }: {
         />
       </div>
       <div className="text-[10px] mt-1 whitespace-nowrap">
-        <span className={`font-medium ${COBERTURA_CLS[estado] ?? ""}`}>
-          {nf(wos, 0)} sem de stock
+        <span className={`font-medium ${COBERTURA_CLS[estado] ?? ""}`}
+              title={excede ? `${nf(wos, 0)} semanas` : undefined}>
+          {excede ? "+52" : nf(wos, 0)} sem de stock
         </span>
         <span className="text-muted-foreground"> · quedan {objetivo}</span>
       </div>
@@ -200,15 +211,35 @@ export default function ClasificacionProducto() {
     let activo = true;
     (async () => {
       setLoading(true);
-      const { data, error } = await supabase
-        .from("mv_producto_clasificacion")
-        .select("*")
-        .order("stock_actual", { ascending: false })
-        .limit(5000); // el default de PostgREST es 1000 y hay ~1.047 filas
-      if (!activo) return;
-      if (error) setError(error.message);
-      else setRows((data ?? []) as Row[]);
-      setLoading(false);
+      // PostgREST corta en 1.000 filas por defecto (db-max-rows manda sobre
+      // .limit del cliente). Se pagina con .range hasta traer todo, o los KPI
+      // se calculan sobre un subconjunto sin avisar.
+      const PAGINA = 1000;
+      const acumulado: Row[] = [];
+      let desde = 0;
+      try {
+        for (;;) {
+          const { data, error } = await supabase
+            .from("mv_producto_clasificacion")
+            .select("*")
+            .order("stock_actual", { ascending: false })
+            .order("product_id", { ascending: true })   // desempate estable entre páginas
+            .range(desde, desde + PAGINA - 1);
+          if (error) throw error;
+          const lote = (data ?? []) as Row[];
+          acumulado.push(...lote);
+          if (lote.length < PAGINA) break;
+          desde += PAGINA;
+          if (desde > 50000) break;                     // tope de seguridad
+        }
+        if (!activo) return;
+        setRows(acumulado);
+      } catch (e: any) {
+        if (!activo) return;
+        setError(e?.message ?? String(e));
+      } finally {
+        if (activo) setLoading(false);
+      }
     })();
     return () => { activo = false; };
   }, []);
@@ -295,8 +326,7 @@ export default function ClasificacionProducto() {
       Desempeño: r.desempeno,
       Cobertura: r.cobertura,
     }));
-    const ws = XLSX.utils.aoa_to_sheet([[], []]);
-    XLSX.utils.sheet_add_json(ws, datos, { origin: "A3" });
+    const ws = XLSX.utils.json_to_sheet(datos, { origin: "A3" });
     XLSX.utils.sheet_add_aoa(ws, [
       ["Clasificación de producto — índice base 100 = mediana de su cohorte (colección × categoría)"],
       [`Ventana comercial ${VENTANA} semanas · métricas desde la primera venta de cada producto · ${new Date().toLocaleDateString("es-CO")}`],
