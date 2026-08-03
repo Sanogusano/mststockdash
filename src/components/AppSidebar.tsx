@@ -121,7 +121,8 @@ export function AppSidebar() {
   const isLogisticaActive = visibleLogistica.some((i) => location.pathname === i.url);
   const isFinanzasActive = visibleFinanzas.some((i) => location.pathname === i.url);
   const isPresupuestoActive = [presupuestoItem.url, centroAccionItem.url].includes(location.pathname);
-  const isStockActive = visibleStock.some((i) => location.pathname === i.url);
+  const isZoomActive = visibleZoom.some((i) => location.pathname === i.url);
+  const isStockActive = visibleStock.some((i) => location.pathname === i.url) || isZoomActive;
 
   const [gestionOpen, setGestionOpen] = useState(isGestionActive);
   const [configOpen, setConfigOpen] = useState(isConfigActive);
@@ -129,6 +130,7 @@ export function AppSidebar() {
   const [finanzasOpen, setFinanzasOpen] = useState(isFinanzasActive);
   const [presupuestoOpen, setPresupuestoOpen] = useState(isPresupuestoActive);
   const [stockOpen, setStockOpen] = useState(isStockActive);
+  const [zoomOpen, setZoomOpen] = useState(isZoomActive);
 
   const userEmail = session?.user?.email || "";
   const userInitial = userEmail.charAt(0).toUpperCase() || "U";
