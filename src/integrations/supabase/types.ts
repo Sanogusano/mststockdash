@@ -3603,7 +3603,12 @@ export type Database = {
         }[]
       }
       reporte_proyeccion_insumos: {
-        Args: { p_crecimiento?: number; p_dias?: number; p_dias_base?: number }
+        Args: {
+          p_crecimiento?: number
+          p_desde?: string
+          p_dias?: number
+          p_hasta?: string
+        }
         Returns: {
           a_comprar: number
           consumo_dia: number
@@ -3615,6 +3620,7 @@ export type Database = {
           stock_actual: number
           tienda: string
           tipo_tienda: string
+          unidades_base: number
         }[]
       }
       reporte_ranking_tiendas: {
