@@ -326,7 +326,8 @@ export default function ClasificacionProducto() {
       Desempeño: r.desempeno,
       Cobertura: r.cobertura,
     }));
-    const ws = XLSX.utils.json_to_sheet(datos, { origin: "A3" });
+    const ws = XLSX.utils.aoa_to_sheet([[], []]);
+    XLSX.utils.sheet_add_json(ws, datos, { origin: "A3" });
     XLSX.utils.sheet_add_aoa(ws, [
       ["Clasificación de producto — índice base 100 = mediana de su cohorte (colección × categoría)"],
       [`Ventana comercial ${VENTANA} semanas · métricas desde la primera venta de cada producto · ${new Date().toLocaleDateString("es-CO")}`],
