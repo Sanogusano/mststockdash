@@ -50,8 +50,10 @@ const nf = (v: number | null | undefined, d = 0) =>
     minimumFractionDigits: d, maximumFractionDigits: d,
   });
 
-/** Panel explicativo del ROS. Se despliega bajo el encabezado. */
-function ExplicaROS({ onClose }: { onClose: () => void }) {
+/** Panel explicativo del RDV. Se despliega bajo el encabezado.
+ *  RDV = Ritmo de Venta. NO usar "ROS" en interfaz: colisiona con Return on
+ *  Sales (metrica financiera). En BD los campos siguen siendo ros_*. */
+function ExplicaRDV({ onClose }: { onClose: () => void }) {
   return (
     <div className="rounded-lg border bg-muted/30 p-4 text-sm space-y-3 relative">
       <button onClick={onClose}
@@ -60,7 +62,7 @@ function ExplicaROS({ onClose }: { onClose: () => void }) {
       </button>
 
       <div>
-        <h3 className="font-semibold text-sm">ROS — Rate of Sale (velocidad de venta)</h3>
+        <h3 className="font-semibold text-sm">RDV — Ritmo de Venta</h3>
         <p className="text-muted-foreground mt-1">
           Unidades que vende un producto <strong className="text-foreground">por tienda y por
           semana</strong>. Responde: ¿a qué ritmo sale este producto de un perchero?
@@ -68,7 +70,7 @@ function ExplicaROS({ onClose }: { onClose: () => void }) {
       </div>
 
       <div className="rounded border bg-background p-3 font-mono text-xs">
-        ROS = unidades vendidas ÷ semanas en venta ÷ tiendas donde está
+        RDV = unidades vendidas ÷ semanas en venta ÷ tiendas donde está
       </div>
 
       <div>
@@ -76,16 +78,16 @@ function ExplicaROS({ onClose }: { onClose: () => void }) {
         <p className="text-muted-foreground text-xs leading-relaxed">
           Un producto en 30 tiendas vende más unidades que uno en 5, aunque sea peor producto.
           Dividir entre tiendas quita el efecto de la distribución y deja solo el mérito del
-          producto. Por eso el ROS <strong className="text-foreground">no mide volumen</strong>:
-          un producto puede tener ROS excelente y haber vendido 12 unidades.
+          producto. Por eso el RDV <strong className="text-foreground">no mide volumen</strong>:
+          un producto puede tener RDV excelente y haber vendido 12 unidades.
         </p>
       </div>
 
       <div>
-        <p className="font-medium text-xs mb-1">Un ROS suelto no dice nada</p>
+        <p className="font-medium text-xs mb-1">Un RDV suelto no dice nada</p>
         <p className="text-muted-foreground text-xs leading-relaxed">
           0,25 es bueno para una camiseta y malo para una gorra: cada categoría tiene su ritmo
-          natural. Por eso no se lee el ROS crudo, se lee el{" "}
+          natural. Por eso no se lee el RDV crudo, se lee el{" "}
           <strong className="text-foreground">índice contra la mediana de su cohorte</strong>{" "}
           (colección × categoría), en base 100.
         </p>
@@ -111,7 +113,7 @@ function ExplicaROS({ onClose }: { onClose: () => void }) {
       <div className="border-t pt-3">
         <p className="font-medium text-xs mb-1">Cada canal se mide en su propia escala</p>
         <p className="text-muted-foreground text-xs leading-relaxed">
-          En tienda física el ROS se divide entre tiendas. En online no: es una sola ubicación,
+          En tienda física el RDV se divide entre tiendas. En online no: es una sola ubicación,
           así que se miden unidades por semana. Son escalas distintas y{" "}
           <strong className="text-foreground">nunca se promedian</strong>. Un producto puede tener
           índice 140 en online y 60 en tienda: funciona cuando lo buscan, no cuando compite en un
@@ -120,9 +122,9 @@ function ExplicaROS({ onClose }: { onClose: () => void }) {
       </div>
 
       <div className="border-t pt-3">
-        <p className="font-medium text-xs mb-1">ROS no es lo mismo que cobertura</p>
+        <p className="font-medium text-xs mb-1">El RDV no es lo mismo que cobertura</p>
         <p className="text-muted-foreground text-xs leading-relaxed">
-          El ROS dice si el producto gusta. La <strong className="text-foreground">cobertura</strong>{" "}
+          El RDV dice si el producto gusta. La <strong className="text-foreground">cobertura</strong>{" "}
           (semanas de stock ÷ semanas restantes de temporada) dice si compraste bien. Un producto
           puede gustar mucho y estar sobrecomprado: se redistribuye, no se liquida.
         </p>
@@ -218,9 +220,9 @@ export default function DesempenoCategoria() {
       Categoría: r.categoria,
       Productos: r.productos,
       Excelente: r.excelente, Bueno: r.bueno, Regular: r.regular, Bajo: r.bajo,
-      "ROS mediano": r.ros_mediano,
-      "ROS tienda": r.ros_tienda_mediano,
-      "ROS online": r.ros_online_mediano,
+      "RDV mediano (uds/tienda/sem)": r.ros_mediano,
+      "RDV tienda (uds/tienda/sem)": r.ros_tienda_mediano,
+      "RDV online (uds/sem)": r.ros_online_mediano,
       "WOS mediano": r.wos_mediano,
       "Sell-through mediano %": r.sell_through_mediano,
       "Venta full % prom": r.pct_full_prom,
@@ -236,10 +238,9 @@ export default function DesempenoCategoria() {
       Destallados: r.destallados,
       "Revisar online": r.revisar_online,
     }));
-    const ws = XLSX.utils.aoa_to_sheet([[], []]);
-    XLSX.utils.sheet_add_json(ws, datos, { origin: "A3" });
+    const ws = XLSX.utils.json_to_sheet(datos, { origin: "A3" });
     XLSX.utils.sheet_add_aoa(ws, [
-      ["Desempeño por categoría — ROS = unidades por tienda-semana; medianas sobre productos"],
+      ["Desempeño por categoría — RDV (Ritmo de Venta) = unidades por tienda-semana; medianas sobre productos"],
       [`Stock en riesgo = desempeño bajo + cobertura crítica · ${new Date().toLocaleDateString("es-CO")}`],
     ], { origin: "A1" });
     ws["!cols"] = [{ wch: 26 }, ...Array(22).fill({ wch: 13 })];
@@ -262,12 +263,12 @@ export default function DesempenoCategoria() {
               </p>
             </div>
             <Button variant="ghost" size="sm" onClick={() => setAyuda(v => !v)}>
-              <HelpCircle className="h-4 w-4 mr-1.5" />¿Qué es el ROS?
+              <HelpCircle className="h-4 w-4 mr-1.5" />¿Qué es el RDV?
             </Button>
           </header>
 
           <div className="p-4 space-y-4">
-            {ayuda && <ExplicaROS onClose={() => setAyuda(false)} />}
+            {ayuda && <ExplicaRDV onClose={() => setAyuda(false)} />}
 
             <div className="flex flex-wrap items-center gap-2">
               <div className="inline-flex rounded-md border p-0.5">
@@ -289,7 +290,7 @@ export default function DesempenoCategoria() {
                 <SelectTrigger className="w-[190px]"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="riesgo">Stock en riesgo</SelectItem>
-                  <SelectItem value="ros">ROS mediano</SelectItem>
+                  <SelectItem value="ros">RDV mediano</SelectItem>
                   <SelectItem value="wos">Semanas de cobertura</SelectItem>
                   <SelectItem value="st">Sell-through (menor primero)</SelectItem>
                   <SelectItem value="stock">Stock total</SelectItem>
@@ -346,7 +347,7 @@ export default function DesempenoCategoria() {
                         <th className="text-left p-2.5 font-medium">Categoría</th>
                         <th className="text-right p-2.5 font-medium">Prod.</th>
                         <th className="text-left p-2.5 font-medium">Mix de desempeño</th>
-                        <th className="text-right p-2.5 font-medium">ROS med.</th>
+                        <th className="text-right p-2.5 font-medium">RDV med.<div className="font-normal text-[10px] opacity-70">{canal === "online" ? "uds/sem" : "uds/tienda/sem"}</div></th>
                         <th className="text-right p-2.5 font-medium">Cobertura</th>
                         <th className="text-right p-2.5 font-medium">Sell-thr.</th>
                         <th className="text-right p-2.5 font-medium">% full</th>
