@@ -111,6 +111,7 @@ export function AppSidebar() {
   const visibleConfig = useMemo(() => configuracionItems.filter((i) => can(i.module, i.action)), [permissions, isAdmin]);
   const visibleFinanzas = useMemo(() => finanzasItems.filter((i) => can(i.module, i.action)), [permissions, isAdmin]);
   const visibleStock = useMemo(() => manejoStockItems.filter((i) => can(i.module, i.action)), [permissions, isAdmin]);
+  const visibleZoom = useMemo(() => zoomProductoItems.filter((i) => can(i.module, i.action)), [permissions, isAdmin]);
 
   const canPresupuesto = can(presupuestoItem.module, presupuestoItem.action);
   const canCentroAccion = can(centroAccionItem.module, centroAccionItem.action);
