@@ -2290,6 +2290,34 @@ export type Database = {
         }
         Relationships: []
       }
+      categoria_desempeno: {
+        Row: {
+          bajo: number | null
+          bueno: number | null
+          categoria: string | null
+          cobertura_ajustada: number | null
+          cobertura_critica: number | null
+          destallados: number | null
+          excelente: number | null
+          mix_online_pct: number | null
+          pct_full_prom: number | null
+          productos: number | null
+          regular: number | null
+          revisar_online: number | null
+          ros_mediano: number | null
+          ros_online_mediano: number | null
+          ros_tienda_mediano: number | null
+          sell_through_mediano: number | null
+          semanas_prom: number | null
+          stock_actual: number | null
+          stock_en_riesgo: number | null
+          uds_online: number | null
+          uds_tienda: number | null
+          uds_vendidas: number | null
+          wos_mediano: number | null
+        }
+        Relationships: []
+      }
       mv_producto_clasificacion: {
         Row: {
           anio: number | null
