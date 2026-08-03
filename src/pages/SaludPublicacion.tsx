@@ -162,7 +162,8 @@ export default function SaludPublicacion() {
       "Tiendas con stock": r.tiendas_con_stock,
       Estado: info.label,
     }));
-    const ws = XLSX.utils.json_to_sheet(datos, { origin: "A3" });
+    const ws = XLSX.utils.aoa_to_sheet([[], []]);
+    XLSX.utils.sheet_add_json(ws, datos, { origin: "A3" });
     XLSX.utils.sheet_add_aoa(ws, [
       [`Salud de publicación — ${info.label}`],
       [`${info.desc} · ${new Date().toLocaleDateString("es-CO")}`],
