@@ -10,6 +10,7 @@ import InventariosPage from "./pages/Inventarios";
 import BajaRotacionPage from "./pages/BajaRotacion";
 import BundleConstructionPage from "./pages/BundleConstruction";
 import ValidacionClasificacionPage from "./pages/ValidacionClasificacion";
+import ClasificacionProductoPage from "./pages/ClasificacionProducto";
 import LogisticaPage from "./pages/Logistica";
 import LogisticaTrasladosPage from "./pages/LogisticaTraslados";
 import InsumosPage from "./pages/Insumos";
@@ -87,6 +88,7 @@ const App = () => (
           <Route path="/producto" element={<Guard module="dashboards.salud_producto" action="view"><ComportamientoProductoPage /></Guard>} />
           <Route path="/lineas" element={<Guard module="dashboards.desempeno_linea" action="view"><LineasProductoPage /></Guard>} />
           <Route path="/desempeno-productos" element={<Guard module="dashboards.desempeno_productos" action="view"><DesempenoProductosPage /></Guard>} />
+          <Route path="/clasificacion-producto" element={<Guard module="dashboards.salud_producto" action="view"><ClasificacionProductoPage /></Guard>} />
           <Route path="/venta-m2" element={<Guard module="dashboards.venta_m2" action="view"><VentaM2Page /></Guard>} />
           <Route path="/insumos" element={<Guard module="dashboards.gestion_insumos" action="view"><InsumosPage /></Guard>} />
           <Route path="/presupuestos" element={<Guard module="dashboards.presupuestos" action="view"><PresupuestosPage /></Guard>} />

@@ -205,7 +205,8 @@ export default function ProyeccionInsumos() {
       "A comprar": Math.round(r.comprar),
       Tiendas: r.tiendas.length,
     }));
-    const ws1 = XLSX.utils.json_to_sheet(cons, { origin: "A3" });
+    const ws1 = XLSX.utils.aoa_to_sheet([[], []]);
+    XLSX.utils.sheet_add_json(ws1, cons, { origin: "A3" });
     XLSX.utils.sheet_add_aoa(ws1, [
       [`Proyección de insumos — cobertura ${dias} días — crecimiento ${crecimiento}%`],
       [`Base de cálculo: ${diasBaseReal} días de historia de inventario`],

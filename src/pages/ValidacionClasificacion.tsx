@@ -111,7 +111,7 @@ export default function ValidacionClasificacion() {
         .limit(5000); // el default de PostgREST es 1000 y hoy hay ~1.041 filas
       if (!activo) return;
       if (error) setError(error.message);
-      else setRows((data ?? []) as Row[]);
+      else setRows((data ?? []) as unknown as Row[]);
       setLoading(false);
     })();
     return () => { activo = false; };
