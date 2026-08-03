@@ -64,6 +64,11 @@ interface Row {
   ratio_cobertura: number | null;
   desempeno: string;
   cobertura: string;
+  tallas_totales: number | null;
+  tallas_con_stock: number | null;
+  integridad_tallas: number | null;
+  estado_tallas: string;
+  estado_online: string;
 }
 
 const VENTANA = 16; // semanas de ventana comercial
@@ -97,6 +102,34 @@ const COBERTURA_CLS: Record<string, string> = {
   CRITICA: "text-rose-700",
   "SIN STOCK": "text-muted-foreground",
 };
+
+/** Curva de tallas. Un producto puede rotar bien y ser invendible si solo
+ *  quedan las tallas extremas: la reposicion ahi es selectiva, no general. */
+function Tallas({ estado, con, total }: {
+  estado: string; con: number | null; total: number | null;
+}) {
+  if (estado === "no_aplica" || !total) {
+    return <span className="text-[11px] text-muted-foreground">—</span>;
+  }
+  const cls =
+    estado === "destallado_grave" ? "text-rose-700"
+    : estado === "destallado"     ? "text-amber-700"
+    : estado === "agotado"        ? "text-muted-foreground"
+    : "text-muted-foreground";
+  const alerta = estado === "destallado" || estado === "destallado_grave";
+  return (
+    <div className="text-[11px] whitespace-nowrap">
+      <span className={alerta ? `font-medium ${cls}` : cls}>
+        {con ?? 0}/{total}
+      </span>
+      {alerta && (
+        <div className="text-[10px] text-muted-foreground">
+          {estado === "destallado_grave" ? "curva rota" : "incompleta"}
+        </div>
+      )}
+    </div>
+  );
+}
 
 /** Barra de vida: semanas transcurridas dentro de la ventana comercial. */
 function BarraVida({ sem, dias, fuera }: { sem: number; dias: number; fuera: boolean }) {
@@ -323,11 +356,14 @@ export default function ClasificacionProducto() {
       "Semanas restantes": r.semanas_objetivo,
       "Sell-through %": r.sell_through_pct,
       "Venta full %": r.pct_venta_full,
+      "Tallas con stock": r.tallas_con_stock,
+      "Tallas totales": r.tallas_totales,
+      "Estado tallas": r.estado_tallas,
+      "Estado online": r.estado_online,
       Desempeño: r.desempeno,
       Cobertura: r.cobertura,
     }));
-    const ws = XLSX.utils.aoa_to_sheet([[], []]);
-    XLSX.utils.sheet_add_json(ws, datos, { origin: "A3" });
+    const ws = XLSX.utils.json_to_sheet(datos, { origin: "A3" });
     XLSX.utils.sheet_add_aoa(ws, [
       ["Clasificación de producto — índice base 100 = mediana de su cohorte (colección × categoría)"],
       [`Ventana comercial ${VENTANA} semanas · métricas desde la primera venta de cada producto · ${new Date().toLocaleDateString("es-CO")}`],
@@ -481,6 +517,7 @@ export default function ClasificacionProducto() {
                           <th className="text-left p-2.5 font-medium">Vida</th>
                           <th className="text-left p-2.5 font-medium">Velocidad de rotación</th>
                           <th className="text-left p-2.5 font-medium">Cobertura</th>
+                          <th className="text-left p-2.5 font-medium">Tallas</th>
                           <th className="text-right p-2.5 font-medium">Ventas</th>
                           <th className="text-right p-2.5 font-medium">Stock</th>
                         </tr>
@@ -522,6 +559,10 @@ export default function ClasificacionProducto() {
                               <td className="p-2.5">
                                 <BarraCobertura wos={r.wos} objetivo={r.semanas_objetivo}
                                                 estado={r.cobertura} />
+                              </td>
+                              <td className="p-2.5">
+                                <Tallas estado={r.estado_tallas}
+                                        con={r.tallas_con_stock} total={r.tallas_totales} />
                               </td>
                               <td className="p-2.5 text-right">
                                 <div className="font-medium tabular-nums">{nf(udsDe(r))}</div>
