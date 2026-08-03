@@ -250,8 +250,8 @@ export function AppSidebar() {
               {/* 5b - Proyección de Demanda */}
               {can(proyeccionDemandaItem.module, proyeccionDemandaItem.action) && renderItem(proyeccionDemandaItem)}
 
-              {/* 6 - Manejo de Stock */}
-              {visibleStock.length > 0 && (
+              {/* 6 - Productos y Stock */}
+              {(visibleStock.length > 0 || visibleZoom.length > 0) && (
                 <>
                   <SidebarMenuItem>
                     <SidebarMenuButton asChild>
@@ -264,16 +264,44 @@ export function AppSidebar() {
                         }`}
                       >
                         <Package className="h-[18px] w-[18px] shrink-0" />
-                        <span className="text-sm leading-tight flex-1 text-left truncate">Manejo de Stock</span>
+                        <span className="text-sm leading-tight flex-1 text-left truncate">Productos y Stock</span>
                         <ChevronDown
                           className={`h-3.5 w-3.5 shrink-0 transition-transform ${stockOpen ? "rotate-180" : ""}`}
                         />
                       </button>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
-                  {stockOpen && visibleStock.map((item) => renderItem(item, true))}
+                  {stockOpen && (
+                    <>
+                      {visibleStock.map((item) => renderItem(item, 1))}
+                      {visibleZoom.length > 0 && (
+                        <>
+                          <SidebarMenuItem>
+                            <SidebarMenuButton asChild>
+                              <button
+                                onClick={() => setZoomOpen((v) => !v)}
+                                className={`w-full ml-3 flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-150 ${
+                                  isZoomActive
+                                    ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
+                                    : "text-sidebar-foreground/70 hover:bg-sidebar-accent/40 hover:text-sidebar-foreground"
+                                }`}
+                              >
+                                <Search className="h-[18px] w-[18px] shrink-0" />
+                                <span className="text-sm leading-tight flex-1 text-left truncate">Zoom de Producto</span>
+                                <ChevronDown
+                                  className={`h-3.5 w-3.5 shrink-0 transition-transform ${zoomOpen ? "rotate-180" : ""}`}
+                                />
+                              </button>
+                            </SidebarMenuButton>
+                          </SidebarMenuItem>
+                          {zoomOpen && visibleZoom.map((item) => renderItem(item, 2))}
+                        </>
+                      )}
+                    </>
+                  )}
                 </>
               )}
+
 
               {/* 7 - Logística & Traslados */}
               {visibleLogistica.length > 0 && (
