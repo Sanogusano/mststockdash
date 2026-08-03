@@ -100,7 +100,7 @@ export default function ProyeccionInsumos() {
   const [error, setError] = useState<string | null>(null);
 
   const [busqueda, setBusqueda] = useState("");
-  const [tipo, setTipo] = useState("all");
+  const [tienda, setTienda] = useState("all");
   const [abierto, setAbierto] = useState<Set<string>>(new Set());
 
   useEffect(() => {
@@ -122,18 +122,30 @@ export default function ProyeccionInsumos() {
     return () => { activo = false; };
   }, [dias, crecimiento, rango]);
 
-  const tiposDisponibles = useMemo(
-    () => Array.from(new Set(filas.map(f => f.tipo_tienda).filter(Boolean) as string[])).sort(),
-    [filas]
-  );
+  // Tiendas presentes en el resultado, ordenadas por tipo y nombre
+  const tiendas = useMemo(() => {
+    const m = new Map<string, { id: string; nombre: string; tipo: string }>();
+    filas.forEach(f => {
+      if (!m.has(f.location_id)) {
+        m.set(f.location_id, {
+          id: f.location_id,
+          nombre: f.tienda,
+          tipo: f.tipo_tienda ?? "—",
+        });
+      }
+    });
+    return Array.from(m.values()).sort(
+      (a, b) => a.tipo.localeCompare(b.tipo) || a.nombre.localeCompare(b.nombre)
+    );
+  }, [filas]);
 
   const visibles = useMemo(() => {
     const q = busqueda.trim().toLowerCase();
     return filas.filter(f =>
-      (tipo === "all" || f.tipo_tienda === tipo) &&
+      (tienda === "all" || f.location_id === tienda) &&
       (!q || f.insumo?.toLowerCase().includes(q) || f.sku?.toLowerCase().includes(q))
     );
-  }, [filas, tipo, busqueda]);
+  }, [filas, tienda, busqueda]);
 
   // Consolidado por SKU
   const consolidado = useMemo(() => {
@@ -294,15 +306,23 @@ export default function ProyeccionInsumos() {
           </div>
         </div>
 
-        <Select value={tipo} onValueChange={setTipo}>
-          <SelectTrigger className="w-[150px]"><SelectValue /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todos los tipos</SelectItem>
-            {tiposDisponibles.map(t => (
-              <SelectItem key={t} value={t}>Tipo {t}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <div>
+          <label className="text-xs text-muted-foreground block mb-1">Tienda</label>
+          <Select value={tienda} onValueChange={setTienda}>
+            <SelectTrigger className="w-[230px]"><SelectValue /></SelectTrigger>
+            <SelectContent className="max-h-[320px]">
+              <SelectItem value="all">Todas las tiendas</SelectItem>
+              {tiendas.map(t => (
+                <SelectItem key={t.id} value={t.id}>
+                  {t.nombre}
+                  {t.tipo !== "—" && (
+                    <span className="text-muted-foreground ml-1.5">({t.tipo})</span>
+                  )}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
 
         <div className="relative">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
