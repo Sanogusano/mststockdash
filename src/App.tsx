@@ -10,6 +10,7 @@ import InventariosPage from "./pages/Inventarios";
 import BajaRotacionPage from "./pages/BajaRotacion";
 import BundleConstructionPage from "./pages/BundleConstruction";
 import ValidacionClasificacionPage from "./pages/ValidacionClasificacion";
+import ClasificacionProductoPage from "./pages/ClasificacionProducto";
 import LogisticaPage from "./pages/Logistica";
 import LogisticaTrasladosPage from "./pages/LogisticaTraslados";
 import InsumosPage from "./pages/Insumos";
