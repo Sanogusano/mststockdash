@@ -166,7 +166,7 @@ function Detalle({ r, modo, onClose }: { r: Row; modo: Modo; onClose: () => void
           <div>
             <h2 className="font-semibold">{r.title}</h2>
             <p className="text-xs text-muted-foreground mt-0.5">
-              {r.category} · {r.coleccion} · {r.genero_norm} · semana {r.semanas_en_venta}
+              {r.category} · {r.coleccion} · {r.genero_norm} · Semana {r.semanas_en_venta}
             </p>
           </div>
           <button onClick={onClose} className="text-muted-foreground hover:text-foreground">
@@ -620,7 +620,7 @@ export default function TopProductos() {
                               <div className="font-medium leading-tight line-clamp-1 hover:underline">{r.title}</div>
                             </button>
                             <div className="text-[11px] text-muted-foreground mt-0.5">
-                              {r.categoria_padre ?? r.category} · {r.coleccion} · sem {r.semanas_en_venta}
+                              {r.categoria_padre ?? r.category} · {r.coleccion} · Semana {r.semanas_en_venta}
                             </div>
                           </td>
                           <td className="p-2.5 text-right">
@@ -719,10 +719,41 @@ export default function TopProductos() {
                               </div>
                             )}
                           </td>
-                          <td className="p-2.5 text-right">
-                            <div className="tabular-nums font-medium">{nf(r.stock_actual)}</div>
-                            <div className="text-[10px] text-muted-foreground whitespace-nowrap">
-                              {nf(r.stock_tienda + r.stock_outlet)} t · {nf(r.stock_online)} onl
+                          <td className="p-2.5">
+                            <div className="w-[104px] ml-auto">
+                              <div className="flex items-baseline justify-between">
+                                <span className="text-[10px] text-muted-foreground">Stock</span>
+                                <span className="tabular-nums font-medium">{nf(r.stock_actual)}</span>
+                              </div>
+                              {r.stock_actual > 0 ? (
+                                <>
+                                  <div className="flex h-1.5 rounded-full overflow-hidden bg-muted mt-1">
+                                    {(r.stock_tienda + r.stock_outlet) > 0 && (
+                                      <div style={{ width: `${((r.stock_tienda + r.stock_outlet) / r.stock_actual) * 100}%`,
+                                                    background: "#7c5cd6" }}
+                                           title={`Tienda: ${nf(r.stock_tienda + r.stock_outlet)} uds`} />
+                                    )}
+                                    {r.stock_online > 0 && (
+                                      <div style={{ width: `${(r.stock_online / r.stock_actual) * 100}%`,
+                                                    background: "#2a9dd6" }}
+                                           title={`Online: ${nf(r.stock_online)} uds`} />
+                                    )}
+                                  </div>
+                                  <div className="flex items-center justify-between text-[10px] text-muted-foreground mt-1">
+                                    <span className="flex items-center gap-1">
+                                      <Store className="h-2.5 w-2.5" />{nf(r.stock_tienda + r.stock_outlet)}
+                                    </span>
+                                    <span className="flex items-center gap-1">
+                                      <ShoppingBag className="h-2.5 w-2.5" />{nf(r.stock_online)}
+                                    </span>
+                                  </div>
+                                  <div className="text-[10px] text-muted-foreground mt-0.5">
+                                    en {r.tiendas_con_stock} tienda{r.tiendas_con_stock === 1 ? "" : "s"}
+                                  </div>
+                                </>
+                              ) : (
+                                <div className="text-[10px] text-muted-foreground mt-1">Agotado</div>
+                              )}
                             </div>
                           </td>
                         </tr>
@@ -743,6 +774,9 @@ export default function TopProductos() {
               <span><i className="inline-block h-2 w-2 rounded-sm mr-1" style={{ background: "#0ca30c" }} />Full</span>
               <span><i className="inline-block h-2 w-2 rounded-sm mr-1" style={{ background: "#c98500" }} />Rebaja</span>
               <span><i className="inline-block h-2 w-2 rounded-sm mr-1" style={{ background: "#2a78d6" }} />Activación</span>
+              <span className="font-medium text-foreground ml-2">Stock:</span>
+              <span><i className="inline-block h-2 w-2 rounded-sm mr-1" style={{ background: "#7c5cd6" }} />Tienda</span>
+              <span><i className="inline-block h-2 w-2 rounded-sm mr-1" style={{ background: "#2a9dd6" }} />Online</span>
               <span className="ml-2">Clic en la foto o el nombre para ver el detalle completo</span>
             </div>
           </div>
