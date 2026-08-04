@@ -238,7 +238,8 @@ export default function DesempenoCategoria() {
       Destallados: r.destallados,
       "Revisar online": r.revisar_online,
     }));
-    const ws = XLSX.utils.json_to_sheet(datos, { origin: "A3" });
+    const ws = XLSX.utils.aoa_to_sheet([[]]);
+    XLSX.utils.sheet_add_json(ws, datos, { origin: "A3" });
     XLSX.utils.sheet_add_aoa(ws, [
       ["Desempeño por categoría — RDV (Ritmo de Venta) = unidades por tienda-semana; medianas sobre productos"],
       [`Stock en riesgo = desempeño bajo + cobertura crítica · ${new Date().toLocaleDateString("es-CO")}`],

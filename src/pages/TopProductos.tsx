@@ -240,7 +240,8 @@ export default function TopProductos() {
       Cobertura: r.cobertura,
       "Estado tallas": r.estado_tallas,
     }));
-    const ws = XLSX.utils.json_to_sheet(datos, { origin: "A3" });
+    const ws = XLSX.utils.aoa_to_sheet([[]]);
+    XLSX.utils.sheet_add_json(ws, datos, { origin: "A3" });
     const titulo = lado === "top" ? "Top ganadores" : "Bottom perdedores";
     const mm = modo === "full" ? "precio full" : modo === "rebajado" ? "rebajado" : "promedio";
     XLSX.utils.sheet_add_aoa(ws, [
