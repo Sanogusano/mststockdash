@@ -4,7 +4,10 @@ import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { LoadingState, EmptyState } from "@/components/dashboard/LoadingState";
 import { Button } from "@/components/ui/button";
-import { Download, Package, Trophy, TrendingDown, Tag, HelpCircle, X } from "lucide-react";
+import {
+  Download, Package, Trophy, TrendingDown, Tag, HelpCircle, X,
+  Store, ShoppingBag, Globe,
+} from "lucide-react";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
@@ -29,6 +32,8 @@ interface Row {
   product_id: string;
   title: string;
   category: string;
+  categoria_padre: string | null;
+  genero_norm: string | null;
   coleccion: string;
   image_url: string | null;
   semanas_en_venta: number;
@@ -59,6 +64,12 @@ interface Row {
   mix_online_pct: number | null;
   mix_online_cat: number | null;
   stock_actual: number;
+  stock_outlet: number;
+  st_tienda_pct: number | null;
+  st_online_pct: number | null;
+  tallas_con_stock: number | null;
+  tallas_totales: number | null;
+  base_cohorte: string;
   ros_total: number | null;
   ros_full: number | null;
   ros_rebajado: number | null;
@@ -108,6 +119,146 @@ const COBERTURA_CLS: Record<string, string> = {
   CRITICA: "bg-rose-100 text-rose-700 border-rose-200",
   "SIN STOCK": "bg-slate-100 text-slate-600 border-slate-200",
 };
+
+
+/** Barra apilada de calidad de venta: full / rebaja / activación. */
+function BarraCalidad({ full, rebaja, activacion, ancho = 96 }: {
+  full: number; rebaja: number; activacion: number; ancho?: number;
+}) {
+  const t = full + rebaja + activacion;
+  if (!t) return <span className="text-[10px] text-muted-foreground">—</span>;
+  const seg = [
+    { n: full,       c: "#0ca30c", l: "Precio full" },
+    { n: rebaja,     c: "#c98500", l: "Rebaja" },
+    { n: activacion, c: "#2a78d6", l: "Activación" },
+  ];
+  return (
+    <div style={{ width: ancho }}>
+      <div className="flex h-1.5 rounded-full overflow-hidden bg-muted">
+        {seg.map(s => s.n > 0 && (
+          <div key={s.l} style={{ width: `${(s.n / t) * 100}%`, background: s.c }}
+               title={`${s.l}: ${nf(s.n)} uds (${((s.n / t) * 100).toFixed(0)}%)`} />
+        ))}
+      </div>
+      <div className="text-[10px] text-muted-foreground mt-0.5 tabular-nums">
+        {((full / t) * 100).toFixed(0)}% full
+      </div>
+    </div>
+  );
+}
+
+/** Lightbox: foto grande y todos los datos de la fila. */
+function Detalle({ r, modo, onClose }: { r: Row; modo: Modo; onClose: () => void }) {
+  const idx = modo === "full" ? r.indice_full : modo === "rebajado" ? r.indice_rebajado : r.indice_total;
+  const col = colorIdx(idx);
+  const Dato = ({ l, v, sub }: { l: string; v: React.ReactNode; sub?: string }) => (
+    <div>
+      <div className="text-[11px] text-muted-foreground">{l}</div>
+      <div className="text-sm font-medium tabular-nums">{v}</div>
+      {sub && <div className="text-[10px] text-muted-foreground">{sub}</div>}
+    </div>
+  );
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={onClose}>
+      <div className="bg-background rounded-xl border max-w-3xl w-full max-h-[90vh] overflow-y-auto"
+           onClick={e => e.stopPropagation()}>
+        <div className="flex items-start justify-between p-4 border-b">
+          <div>
+            <h2 className="font-semibold">{r.title}</h2>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              {r.category} · {r.coleccion} · {r.genero_norm} · semana {r.semanas_en_venta}
+            </p>
+          </div>
+          <button onClick={onClose} className="text-muted-foreground hover:text-foreground">
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        <div className="p-4 grid md:grid-cols-[260px_1fr] gap-5">
+          <div>
+            {r.image_url ? (
+              <img src={r.image_url} alt={r.title} className="w-full rounded-lg object-cover bg-muted" />
+            ) : (
+              <div className="w-full aspect-square rounded-lg bg-muted flex items-center justify-center">
+                <Package className="h-10 w-10 text-muted-foreground/40" />
+              </div>
+            )}
+          </div>
+
+          <div className="space-y-4">
+            <div className="grid grid-cols-3 gap-3">
+              <Dato l="Unidades vendidas" v={nf(r.unidades_vendidas)} />
+              <Dato l={`RDV ${modo === "full" ? "full" : modo === "rebajado" ? "rebajado" : "prom."}`}
+                    v={<span style={{ color: col }}>{idx == null ? "—" : `${nf(idx / 100, 2)}×`}</span>}
+                    sub={`vs. ${r.n_cohorte} de su ${r.base_cohorte}`} />
+              <Dato l="Stock actual" v={nf(r.stock_actual)} />
+            </div>
+
+            <div>
+              <div className="text-[11px] text-muted-foreground mb-1.5">Calidad de la venta</div>
+              <BarraCalidad full={r.unidades_full} rebaja={r.unidades_rebaja}
+                            activacion={r.unidades_activacion} ancho={320} />
+              <div className="flex gap-4 mt-2 text-[11px]">
+                <span><i className="inline-block h-2 w-2 rounded-sm mr-1" style={{ background: "#0ca30c" }} />Full {nf(r.unidades_full)}</span>
+                <span><i className="inline-block h-2 w-2 rounded-sm mr-1" style={{ background: "#c98500" }} />Rebaja {nf(r.unidades_rebaja)}</span>
+                <span><i className="inline-block h-2 w-2 rounded-sm mr-1" style={{ background: "#2a78d6" }} />Activación {nf(r.unidades_activacion)}</span>
+              </div>
+            </div>
+
+            <div className="grid md:grid-cols-2 gap-4 pt-2 border-t">
+              <div>
+                <div className="flex items-center gap-1.5 text-xs font-medium mb-2">
+                  <Store className="h-3.5 w-3.5" />Tienda física
+                </div>
+                <div className="space-y-1.5 text-xs">
+                  <div className="flex justify-between"><span className="text-muted-foreground">Vendido</span>
+                    <span className="tabular-nums">{nf(r.uds_tienda + r.uds_outlet)}</span></div>
+                  <div className="flex justify-between"><span className="text-muted-foreground">Stock</span>
+                    <span className="tabular-nums">{nf(r.stock_tienda + r.stock_outlet)}</span></div>
+                  <div className="flex justify-between"><span className="text-muted-foreground">Sell-through</span>
+                    <span className="tabular-nums">{nf(r.st_tienda_pct, 1)}%</span></div>
+                </div>
+                <div className="mt-2">
+                  <BarraCalidad full={r.uds_tie_full} rebaja={r.uds_tie_rebaja}
+                                activacion={r.uds_tie_activacion} ancho={150} />
+                </div>
+              </div>
+
+              <div>
+                <div className="flex items-center gap-1.5 text-xs font-medium mb-2">
+                  <Globe className="h-3.5 w-3.5" />Online
+                </div>
+                <div className="space-y-1.5 text-xs">
+                  <div className="flex justify-between"><span className="text-muted-foreground">Vendido</span>
+                    <span className="tabular-nums">{nf(r.uds_online)}</span></div>
+                  <div className="flex justify-between"><span className="text-muted-foreground">Stock</span>
+                    <span className="tabular-nums">{nf(r.stock_online)}</span></div>
+                  <div className="flex justify-between"><span className="text-muted-foreground">Sell-through</span>
+                    <span className="tabular-nums">{nf(r.st_online_pct, 1)}%</span></div>
+                </div>
+                <div className="mt-2">
+                  <BarraCalidad full={r.uds_onl_full} rebaja={r.uds_onl_rebaja}
+                                activacion={r.uds_onl_activacion} ancho={150} />
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-3 gap-3 pt-3 border-t">
+              <Dato l="Sell-through total" v={`${nf(r.sell_through_pct, 1)}%`}
+                    sub={`típico ${nf(r.med_st_cohorte, 0)}%`} />
+              <Dato l="Cobertura" v={`${nf(Math.min(r.wos ?? 0, 99), 0)} sem`}
+                    sub={`quedan ${r.semanas_objetivo} · ${r.cobertura}`} />
+              <Dato l="Tallas con stock"
+                    v={r.estado_tallas === "no_aplica" ? "—" : `${r.tallas_con_stock ?? 0}/${r.tallas_totales ?? 0}`}
+                    sub={r.estado_tallas === "destallado_grave" ? "curva rota"
+                         : r.estado_tallas === "destallado" ? "incompleta" : undefined} />
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 function Ayuda({ onClose }: { onClose: () => void }) {
   return (
@@ -193,6 +344,7 @@ export default function TopProductos() {
   const [minUds, setMinUds] = useState("30");
   const [limite, setLimite] = useState("25");
   const [ayuda, setAyuda] = useState(false);
+  const [detalle, setDetalle] = useState<Row | null>(null);
 
   useEffect(() => {
     let activo = true;
@@ -228,7 +380,7 @@ export default function TopProductos() {
   const colecciones = useMemo(
     () => Array.from(new Set(rows.map(r => r.coleccion).filter(Boolean))).sort(), [rows]);
   const categorias = useMemo(
-    () => Array.from(new Set(rows.map(r => r.category).filter(Boolean))).sort(), [rows]);
+    () => Array.from(new Set(rows.map(r => r.categoria_padre ?? r.category).filter(Boolean))).sort(), [rows]);
 
   const idxDe = (r: Row) =>
     modo === "full" ? r.indice_full : modo === "rebajado" ? r.indice_rebajado : r.indice_total;
@@ -241,7 +393,7 @@ export default function TopProductos() {
     const min = Number(minUds);
     const base = rows.filter(r => {
       if (coleccion !== "all" && r.coleccion !== coleccion) return false;
-      if (categoria !== "all" && r.category !== categoria) return false;
+      if (categoria !== "all" && (r.categoria_padre ?? r.category) !== categoria) return false;
       if (idxDe(r) == null) return false;
       if (udsDe(r) < min) return false;
       // Exige historia suficiente del modo elegido: sin esto, un producto que
@@ -284,6 +436,16 @@ export default function TopProductos() {
       "Uds totales": r.unidades_vendidas,
       "Uds tienda": r.uds_tienda + r.uds_outlet,
       "Uds online": r.uds_online,
+      "Uds full": r.unidades_full,
+      "Uds rebaja": r.unidades_rebaja,
+      "Uds activación": r.unidades_activacion,
+      "% full tienda": r.pct_tie_full,
+      "% full online": r.pct_onl_full,
+      "ST tienda %": r.st_tienda_pct,
+      "ST online %": r.st_online_pct,
+      "Stock tienda": r.stock_tienda + r.stock_outlet,
+      "Stock online": r.stock_online,
+      Cohorte: `${r.n_cohorte} · ${r.base_cohorte}`,
       "Perfil de canal": r.perfil_canal,
       "RDV del modo": rdvDe(r),
       "Índice RDV (× el típico)": idxDe(r) == null ? null : Number((idxDe(r)! / 100).toFixed(2)),
@@ -418,13 +580,13 @@ export default function TopProductos() {
                     <tr className="border-b bg-muted/40 text-xs text-muted-foreground">
                       <th className="p-2.5 w-8"></th>
                       <th className="text-left p-2.5 font-medium" colSpan={2}>Producto</th>
-                      <th className="text-right p-2.5 font-medium">
-                        Uds {modo === "full" ? "full" : modo === "rebajado" ? "rebaj." : "total"}
-                      </th>
+                      <th className="text-right p-2.5 font-medium">Vendido</th>
+                      <th className="text-left p-2.5 font-medium">Por canal</th>
                       <th className="text-left p-2.5 font-medium">
                         RDV {modo === "full" ? "full" : modo === "rebajado" ? "rebajado" : "prom."}
                       </th>
-                      <th className="text-right p-2.5 font-medium">% full</th>
+                      <th className="text-left p-2.5 font-medium">Calidad de venta</th>
+                      <th className="text-left p-2.5 font-medium">Por canal</th>
                       <th className="text-right p-2.5 font-medium">Sell-thr.</th>
                       <th className="text-left p-2.5 font-medium">Canal</th>
                       <th className="text-left p-2.5 font-medium">Cobertura</th>
@@ -435,36 +597,51 @@ export default function TopProductos() {
                     {ranking.map((r, i) => {
                       const idx = idxDe(r);
                       const col = colorIdx(idx);
-                      const pctOk = (r.pct_venta_full ?? 0) >= (r.med_pctfull_cohorte ?? 0);
                       const stOk = (r.sell_through_pct ?? 0) >= (r.med_st_cohorte ?? 0);
                       return (
                         <tr key={r.product_id} className="border-b hover:bg-muted/20">
                           <td className="p-2.5 text-right text-xs text-muted-foreground tabular-nums">
                             {i + 1}
                           </td>
-                          <td className="p-2 w-[52px]">
-                            {r.image_url ? (
-                              <img src={r.image_url} alt=""
-                                   className="h-11 w-11 rounded object-cover bg-muted" loading="lazy" />
-                            ) : (
-                              <div className="h-11 w-11 rounded bg-muted flex items-center justify-center">
-                                <Package className="h-4 w-4 text-muted-foreground/50" />
-                              </div>
-                            )}
+                          <td className="p-2 w-[56px]">
+                            <button onClick={() => setDetalle(r)} title="Ver detalle"
+                                    className="block rounded overflow-hidden hover:ring-2 hover:ring-primary transition-shadow">
+                              {r.image_url ? (
+                                <img src={r.image_url} alt="" className="h-12 w-12 object-cover bg-muted" loading="lazy" />
+                              ) : (
+                                <div className="h-12 w-12 bg-muted flex items-center justify-center">
+                                  <Package className="h-4 w-4 text-muted-foreground/50" />
+                                </div>
+                              )}
+                            </button>
                           </td>
-                          <td className="p-2.5 min-w-[210px]">
-                            <div className="font-medium leading-tight line-clamp-1">{r.title}</div>
+                          <td className="p-2.5 min-w-[190px]">
+                            <button onClick={() => setDetalle(r)} className="text-left">
+                              <div className="font-medium leading-tight line-clamp-1 hover:underline">{r.title}</div>
+                            </button>
                             <div className="text-[11px] text-muted-foreground mt-0.5">
-                              {r.category} · {r.coleccion} · sem {r.semanas_en_venta}
+                              {r.categoria_padre ?? r.category} · {r.coleccion} · sem {r.semanas_en_venta}
                             </div>
                           </td>
                           <td className="p-2.5 text-right">
-                            <div className="font-medium tabular-nums">{nf(udsDe(r))}</div>
+                            <div className="font-medium tabular-nums">{nf(r.unidades_vendidas)}</div>
                             {modo !== "prom" && (
                               <div className="text-[10px] text-muted-foreground">
-                                de {nf(r.unidades_vendidas)}
+                                {nf(udsDe(r))} {modo === "full" ? "full" : "rebaj."}
                               </div>
                             )}
+                          </td>
+                          <td className="p-2.5">
+                            <div className="space-y-0.5 text-[11px] whitespace-nowrap">
+                              <div className="flex items-center gap-1.5">
+                                <Store className="h-3 w-3 text-muted-foreground" />
+                                <span className="tabular-nums">{nf(r.uds_tienda + r.uds_outlet)}</span>
+                              </div>
+                              <div className="flex items-center gap-1.5">
+                                <ShoppingBag className="h-3 w-3 text-muted-foreground" />
+                                <span className="tabular-nums">{nf(r.uds_online)}</span>
+                              </div>
+                            </div>
                           </td>
                           <td className="p-2.5">
                             <div className="w-[112px]">
@@ -487,13 +664,26 @@ export default function TopProductos() {
                               </div>
                             </div>
                           </td>
-                          <td className="p-2.5 text-right">
-                            <span className={`tabular-nums ${pctOk ? "text-emerald-700 font-medium" : ""}`}>
-                              {nf(r.pct_venta_full, 1)}%
-                            </span>
-                            <div className="text-[10px] text-muted-foreground"
-                                 title="Mediana de su cohorte: colección × categoría">
+                          <td className="p-2.5">
+                            <BarraCalidad full={r.unidades_full} rebaja={r.unidades_rebaja}
+                                          activacion={r.unidades_activacion} />
+                            <div className="text-[10px] text-muted-foreground mt-0.5"
+                                 title="Mediana de su cohorte">
                               típico {nf(r.med_pctfull_cohorte, 0)}%
+                            </div>
+                          </td>
+                          <td className="p-2.5">
+                            <div className="space-y-1">
+                              <div className="flex items-center gap-1.5">
+                                <Store className="h-3 w-3 text-muted-foreground shrink-0" />
+                                <BarraCalidad full={r.uds_tie_full} rebaja={r.uds_tie_rebaja}
+                                              activacion={r.uds_tie_activacion} ancho={72} />
+                              </div>
+                              <div className="flex items-center gap-1.5">
+                                <ShoppingBag className="h-3 w-3 text-muted-foreground shrink-0" />
+                                <BarraCalidad full={r.uds_onl_full} rebaja={r.uds_onl_rebaja}
+                                              activacion={r.uds_onl_activacion} ancho={72} />
+                              </div>
                             </div>
                           </td>
                           <td className="p-2.5 text-right">
@@ -529,7 +719,12 @@ export default function TopProductos() {
                               </div>
                             )}
                           </td>
-                          <td className="p-2.5 text-right tabular-nums">{nf(r.stock_actual)}</td>
+                          <td className="p-2.5 text-right">
+                            <div className="tabular-nums font-medium">{nf(r.stock_actual)}</div>
+                            <div className="text-[10px] text-muted-foreground whitespace-nowrap">
+                              {nf(r.stock_tienda + r.stock_outlet)} t · {nf(r.stock_online)} onl
+                            </div>
+                          </td>
                         </tr>
                       );
                     })}
@@ -544,12 +739,15 @@ export default function TopProductos() {
               <span><i className="inline-block h-2 w-2 rounded-sm mr-1" style={{ background: "#0ca30c" }} />1,00–1,29×</span>
               <span><i className="inline-block h-2 w-2 rounded-sm mr-1" style={{ background: "#c98500" }} />0,70–0,99×</span>
               <span><i className="inline-block h-2 w-2 rounded-sm mr-1" style={{ background: "#d03b3b" }} />&lt;0,70×</span>
-              <span className="ml-2">
-                "típico" = mediana de su cohorte (colección × categoría) · en verde cuando el
-                producto la supera · "Cobertura" mide cuánto dura el stock restante, no cuánto se pidió
-              </span>
+              <span className="font-medium text-foreground ml-2">Calidad de venta:</span>
+              <span><i className="inline-block h-2 w-2 rounded-sm mr-1" style={{ background: "#0ca30c" }} />Full</span>
+              <span><i className="inline-block h-2 w-2 rounded-sm mr-1" style={{ background: "#c98500" }} />Rebaja</span>
+              <span><i className="inline-block h-2 w-2 rounded-sm mr-1" style={{ background: "#2a78d6" }} />Activación</span>
+              <span className="ml-2">Clic en la foto o el nombre para ver el detalle completo</span>
             </div>
           </div>
+
+          {detalle && <Detalle r={detalle} modo={modo} onClose={() => setDetalle(null)} />}
         </main>
       </div>
     </SidebarProvider>
