@@ -2315,9 +2315,13 @@ export type Database = {
           st_tienda_mediano: number | null
           stock_actual: number | null
           stock_en_riesgo: number | null
+          stock_online: number | null
+          stock_tienda: number | null
+          uds_activacion: number | null
           uds_full: number | null
           uds_online: number | null
           uds_outlet: number | null
+          uds_rebaja: number | null
           uds_rebajada: number | null
           uds_tienda: number | null
           uds_vendidas: number | null
@@ -2353,6 +2357,11 @@ export type Database = {
           med_st_cohorte: number | null
           mix_online_cat: number | null
           mix_online_pct: number | null
+          n_cohorte: number | null
+          pct_activacion: number | null
+          pct_onl_full: number | null
+          pct_rebaja: number | null
+          pct_tie_full: number | null
           pct_venta_full: number | null
           perfil_canal: string | null
           product_id: string | null
@@ -2380,10 +2389,18 @@ export type Database = {
           tiendas_con_venta: number | null
           tipo: string | null
           title: string | null
+          uds_onl_activacion: number | null
+          uds_onl_full: number | null
+          uds_onl_rebaja: number | null
           uds_online: number | null
           uds_outlet: number | null
+          uds_tie_activacion: number | null
+          uds_tie_full: number | null
+          uds_tie_rebaja: number | null
           uds_tienda: number | null
+          unidades_activacion: number | null
           unidades_full: number | null
+          unidades_rebaja: number | null
           unidades_rebajada: number | null
           unidades_vendidas: number | null
           vendio_full: boolean | null
@@ -2408,6 +2425,10 @@ export type Database = {
           genero: string | null
           image_url: string | null
           integridad_tallas: number | null
+          pct_activacion: number | null
+          pct_onl_full: number | null
+          pct_rebaja: number | null
+          pct_tie_full: number | null
           pct_venta_full: number | null
           product_id: string | null
           profundidad_desc_pct: number | null
@@ -2429,10 +2450,18 @@ export type Database = {
           tiendas_con_venta: number | null
           tipo: string | null
           title: string | null
+          uds_onl_activacion: number | null
+          uds_onl_full: number | null
+          uds_onl_rebaja: number | null
           uds_online: number | null
           uds_outlet: number | null
+          uds_tie_activacion: number | null
+          uds_tie_full: number | null
+          uds_tie_rebaja: number | null
           uds_tienda: number | null
+          unidades_activacion: number | null
           unidades_full: number | null
+          unidades_rebaja: number | null
           unidades_rebajada: number | null
           unidades_vendidas: number | null
           vendio_full: boolean | null
@@ -2467,6 +2496,11 @@ export type Database = {
           med_st_cohorte: number | null
           mix_online_cat: number | null
           mix_online_pct: number | null
+          n_cohorte: number | null
+          pct_activacion: number | null
+          pct_onl_full: number | null
+          pct_rebaja: number | null
+          pct_tie_full: number | null
           pct_venta_full: number | null
           perfil_canal: string | null
           product_id: string | null
@@ -2494,10 +2528,18 @@ export type Database = {
           tiendas_con_venta: number | null
           tipo: string | null
           title: string | null
+          uds_onl_activacion: number | null
+          uds_onl_full: number | null
+          uds_onl_rebaja: number | null
           uds_online: number | null
           uds_outlet: number | null
+          uds_tie_activacion: number | null
+          uds_tie_full: number | null
+          uds_tie_rebaja: number | null
           uds_tienda: number | null
+          unidades_activacion: number | null
           unidades_full: number | null
+          unidades_rebaja: number | null
           unidades_rebajada: number | null
           unidades_vendidas: number | null
           vendio_full: boolean | null

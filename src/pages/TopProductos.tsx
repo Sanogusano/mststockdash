@@ -36,7 +36,22 @@ interface Row {
   semanas_rebajada: number;
   unidades_vendidas: number;
   unidades_full: number;
+  unidades_rebaja: number;
+  unidades_activacion: number;
   unidades_rebajada: number;
+  uds_tie_full: number;
+  uds_tie_rebaja: number;
+  uds_tie_activacion: number;
+  uds_onl_full: number;
+  uds_onl_rebaja: number;
+  uds_onl_activacion: number;
+  pct_rebaja: number | null;
+  pct_activacion: number | null;
+  pct_tie_full: number | null;
+  pct_onl_full: number | null;
+  stock_tienda: number;
+  stock_online: number;
+  n_cohorte: number;
   uds_tienda: number;
   uds_outlet: number;
   uds_online: number;
@@ -233,6 +248,12 @@ export default function TopProductos() {
       // concentró su venta en una semana distorsiona el ranking.
       if (modo === "full" && r.semanas_full < 4) return false;
       if (modo === "rebajado" && r.semanas_rebajada < 4) return false;
+      // En el top de precio full no basta con vender rapido las pocas unidades
+      // que salieron a precio lleno: el producto tiene que haberse vendido
+      // mayormente asi. (Caso real: PHASE vendio 1 unidad full de 422 y con
+      // solo el RDV encabezaba el ranking.)
+      if (lado === "top" && modo === "full" &&
+          (r.pct_venta_full ?? 0) < (r.med_pctfull_cohorte ?? 0)) return false;
       // En Perdedores se excluye lo que YA se vendió. Un producto con
       // sell-through alto o cobertura ajustada no es perdedor aunque su RDV
       // full sea bajo: eso solo refleja que se liquidó con precio, no que
