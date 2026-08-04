@@ -12,6 +12,7 @@ import BundleConstructionPage from "./pages/BundleConstruction";
 import DesempenoCategoriaPage from "./pages/DesempenoCategoria";
 import ClasificacionProductoPage from "./pages/ClasificacionProducto";
 import SaludPublicacionPage from "./pages/SaludPublicacion";
+import TopProductosPage from "./pages/TopProductos";
 import LogisticaPage from "./pages/Logistica";
 import LogisticaTrasladosPage from "./pages/LogisticaTraslados";
 import InsumosPage from "./pages/Insumos";
@@ -91,6 +92,7 @@ const App = () => (
           <Route path="/desempeno-productos" element={<Guard module="dashboards.desempeno_productos" action="view"><DesempenoProductosPage /></Guard>} />
           <Route path="/clasificacion-producto" element={<Guard module="dashboards.salud_producto" action="view"><ClasificacionProductoPage /></Guard>} />
           <Route path="/salud-publicacion" element={<Guard module="dashboards.salud_producto" action="view"><SaludPublicacionPage /></Guard>} />
+          <Route path="/top-productos" element={<Guard module="dashboards.inventario_salud" action="view"><TopProductosPage /></Guard>} />
           <Route path="/venta-m2" element={<Guard module="dashboards.venta_m2" action="view"><VentaM2Page /></Guard>} />
           <Route path="/insumos" element={<Guard module="dashboards.gestion_insumos" action="view"><InsumosPage /></Guard>} />
           <Route path="/presupuestos" element={<Guard module="dashboards.presupuestos" action="view"><PresupuestosPage /></Guard>} />

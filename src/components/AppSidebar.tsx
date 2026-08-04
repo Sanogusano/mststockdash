@@ -49,11 +49,14 @@ const clasificacionProductoItem: NavItem = { title: "Clasificación de producto"
 
 const saludPublicacionItem: NavItem = { title: "Salud de publicación", url: "/salud-publicacion", icon: Layers, description: "Diagnóstico del canal online", module: "dashboards.salud_producto", action: "view" };
 
+const topProductosItem: NavItem = { title: "Top de productos", url: "/top-productos", icon: Trophy, description: "Top ganadores y perdedores por índice", module: "dashboards.inventario_salud", action: "view" };
+
 const zoomProductoItems: NavItem[] = [
   clasificacionProductoItem,
   bajaRotacionItem,
   desempenoCategoriaItem,
   saludPublicacionItem,
+  topProductosItem,
 ];
 
 const manejoStockItems: NavItem[] = [
