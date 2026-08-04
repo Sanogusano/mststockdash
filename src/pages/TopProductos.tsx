@@ -40,6 +40,9 @@ interface Row {
   uds_tienda: number;
   uds_outlet: number;
   uds_online: number;
+  perfil_canal: string;
+  mix_online_pct: number | null;
+  mix_online_cat: number | null;
   stock_actual: number;
   ros_total: number | null;
   ros_full: number | null;
@@ -75,6 +78,14 @@ function colorIdx(i: number | null) {
   return "#d03b3b";
 }
 
+const PERFIL_CANAL: Record<string, { txt: string; cls: string }> = {
+  fuerte_online: { txt: "Gana en online", cls: "bg-sky-100 text-sky-700 border-sky-200" },
+  fuerte_tienda: { txt: "Gana en tienda", cls: "bg-violet-100 text-violet-700 border-violet-200" },
+  solo_online:   { txt: "Solo online",    cls: "bg-sky-100 text-sky-700 border-sky-200" },
+  solo_tienda:   { txt: "Solo tienda",    cls: "bg-violet-100 text-violet-700 border-violet-200" },
+  equilibrado:   { txt: "Parejo",         cls: "bg-slate-100 text-slate-600 border-slate-200" },
+};
+
 const COBERTURA_CLS: Record<string, string> = {
   AJUSTADA: "bg-sky-100 text-sky-700 border-sky-200",
   SANA: "bg-emerald-100 text-emerald-700 border-emerald-200",
@@ -93,9 +104,11 @@ function Ayuda({ onClose }: { onClose: () => void }) {
       <div>
         <h3 className="font-semibold text-sm">Cómo se arma este ranking</h3>
         <p className="text-muted-foreground mt-1 text-xs leading-relaxed">
-          Ordena por <strong className="text-foreground">RDV índice</strong>: qué tan rápido vendió
-          comparado con la mediana de su cohorte (colección × categoría). 100 = va al ritmo de sus
-          pares.
+          Ordena por <strong className="text-foreground">RDV</strong> expresado como multiplicador:
+          cuántas veces más rápido vendió que el producto típico de su cohorte (colección ×
+          categoría). <strong className="text-foreground">1,00× = va al ritmo de sus pares</strong>;
+          2,50× = vende dos veces y media más rápido. No son unidades: las unidades están en su
+          propia columna.
         </p>
       </div>
       <div className="grid md:grid-cols-3 gap-2 text-xs">
@@ -127,6 +140,9 @@ function Ayuda({ onClose }: { onClose: () => void }) {
           que vendió 400 de 1.000 es mejor referencia que uno que vendió 250 de 500 — vendió más
           unidades. El 40% de sell-through señala un error de compra, no de diseño. Por eso las dos
           columnas van separadas y no se combinan en una sola nota.
+          <br /><br />
+          <strong className="text-foreground">Cobertura</strong> mide cuánto tiempo dura el stock
+          que queda, no cuánto se pidió: las unidades compradas no están en el sistema todavía.
         </p>
       </div>
       <div className="border-t pt-3">
@@ -135,6 +151,15 @@ function Ayuda({ onClose }: { onClose: () => void }) {
           Se exige un mínimo de unidades vendidas y al menos 4 semanas de venta del tipo elegido.
           Sin eso, un producto con 3 unidades en una semana encabezaría el ranking sin significar
           nada.
+        </p>
+      </div>
+      <div className="border-t pt-3">
+        <p className="font-medium text-xs mb-1">Qué se excluye de Perdedores</p>
+        <p className="text-muted-foreground text-xs leading-relaxed">
+          Un producto que ya vendió su inventario no es perdedor, aunque su RDV a precio full sea
+          bajo: eso solo refleja que se liquidó con precio. Por eso quedan fuera del bottom los
+          productos con cobertura ajustada o sana, y los que superan el sell-through típico de su
+          cohorte.
         </p>
       </div>
     </div>
@@ -208,6 +233,15 @@ export default function TopProductos() {
       // concentró su venta en una semana distorsiona el ranking.
       if (modo === "full" && r.semanas_full < 4) return false;
       if (modo === "rebajado" && r.semanas_rebajada < 4) return false;
+      // En Perdedores se excluye lo que YA se vendió. Un producto con
+      // sell-through alto o cobertura ajustada no es perdedor aunque su RDV
+      // full sea bajo: eso solo refleja que se liquidó con precio, no que
+      // haya fracasado. (Caso real: STREIFF vendió 612 uds con 92,9% de
+      // sell-through y salía #18 del bottom.)
+      if (lado === "bottom") {
+        if (["AJUSTADA", "SANA", "SIN STOCK"].includes(r.cobertura)) return false;
+        if ((r.sell_through_pct ?? 0) >= (r.med_st_cohorte ?? 0)) return false;
+      }
       return true;
     });
     const ord = [...base].sort((a, b) =>
@@ -227,21 +261,23 @@ export default function TopProductos() {
       "Semanas en venta": r.semanas_en_venta,
       "Uds del modo": udsDe(r),
       "Uds totales": r.unidades_vendidas,
+      "Uds tienda": r.uds_tienda + r.uds_outlet,
+      "Uds online": r.uds_online,
+      "Perfil de canal": r.perfil_canal,
       "RDV del modo": rdvDe(r),
-      "Índice RDV": idxDe(r),
+      "Índice RDV (× el típico)": idxDe(r) == null ? null : Number((idxDe(r)! / 100).toFixed(2)),
       "% venta full": r.pct_venta_full,
-      "% full mediana cohorte": r.med_pctfull_cohorte,
+      "% full típico de la cohorte": r.med_pctfull_cohorte,
       "Profundidad desc %": r.profundidad_desc_pct,
       "Sell-through %": r.sell_through_pct,
-      "ST mediana cohorte": r.med_st_cohorte,
+      "Sell-through típico de la cohorte": r.med_st_cohorte,
       "Semanas de stock": r.wos,
       "Semanas restantes": r.semanas_objetivo,
       Stock: r.stock_actual,
       Cobertura: r.cobertura,
       "Estado tallas": r.estado_tallas,
     }));
-    const ws = XLSX.utils.aoa_to_sheet([[]]);
-    XLSX.utils.sheet_add_json(ws, datos, { origin: "A3" });
+    const ws = XLSX.utils.json_to_sheet(datos, { origin: "A3" });
     const titulo = lado === "top" ? "Top ganadores" : "Bottom perdedores";
     const mm = modo === "full" ? "precio full" : modo === "rebajado" ? "rebajado" : "promedio";
     XLSX.utils.sheet_add_aoa(ws, [
@@ -369,7 +405,8 @@ export default function TopProductos() {
                       </th>
                       <th className="text-right p-2.5 font-medium">% full</th>
                       <th className="text-right p-2.5 font-medium">Sell-thr.</th>
-                      <th className="text-left p-2.5 font-medium">Compra</th>
+                      <th className="text-left p-2.5 font-medium">Canal</th>
+                      <th className="text-left p-2.5 font-medium">Cobertura</th>
                       <th className="text-right p-2.5 font-medium">Stock</th>
                     </tr>
                   </thead>
@@ -419,8 +456,9 @@ export default function TopProductos() {
                                      style={{ left: "33.3%" }} />
                               </div>
                               <div className="flex items-baseline gap-1.5 mt-1">
-                                <span className="text-sm font-medium tabular-nums" style={{ color: col }}>
-                                  {idx ?? "—"}
+                                <span className="text-sm font-medium tabular-nums" style={{ color: col }}
+                                      title="Veces el ritmo del producto típico de su cohorte">
+                                  {idx == null ? "—" : `${nf(idx / 100, 2)}×`}
                                 </span>
                                 <span className="text-[10px] text-muted-foreground tabular-nums">
                                   {nf(rdvDe(r), 2)} uds/t/sem
@@ -432,16 +470,31 @@ export default function TopProductos() {
                             <span className={`tabular-nums ${pctOk ? "text-emerald-700 font-medium" : ""}`}>
                               {nf(r.pct_venta_full, 1)}%
                             </span>
-                            <div className="text-[10px] text-muted-foreground">
-                              cat {nf(r.med_pctfull_cohorte, 0)}%
+                            <div className="text-[10px] text-muted-foreground"
+                                 title="Mediana de su cohorte: colección × categoría">
+                              típico {nf(r.med_pctfull_cohorte, 0)}%
                             </div>
                           </td>
                           <td className="p-2.5 text-right">
                             <span className={`tabular-nums ${stOk ? "text-emerald-700 font-medium" : ""}`}>
                               {nf(r.sell_through_pct, 1)}%
                             </span>
-                            <div className="text-[10px] text-muted-foreground">
-                              cat {nf(r.med_st_cohorte, 0)}%
+                            <div className="text-[10px] text-muted-foreground"
+                                 title="Mediana de su cohorte: colección × categoría">
+                              típico {nf(r.med_st_cohorte, 0)}%
+                            </div>
+                          </td>
+                          <td className="p-2.5">
+                            {(() => {
+                              const pc = PERFIL_CANAL[r.perfil_canal];
+                              return pc ? (
+                                <span className={`inline-flex rounded-md border px-2 py-0.5 text-[11px] font-medium ${pc.cls}`}>
+                                  {pc.txt}
+                                </span>
+                              ) : null;
+                            })()}
+                            <div className="text-[10px] text-muted-foreground mt-0.5 whitespace-nowrap">
+                              {nf(r.uds_tienda + r.uds_outlet)} tienda · {nf(r.uds_online)} online
                             </div>
                           </td>
                           <td className="p-2.5">
@@ -465,14 +518,14 @@ export default function TopProductos() {
             )}
 
             <div className="flex flex-wrap gap-x-5 gap-y-2 text-[11px] text-muted-foreground">
-              <span className="font-medium text-foreground">Índice RDV:</span>
-              <span><i className="inline-block h-2 w-2 rounded-sm mr-1" style={{ background: "#2a78d6" }} />≥130</span>
-              <span><i className="inline-block h-2 w-2 rounded-sm mr-1" style={{ background: "#0ca30c" }} />100–129</span>
-              <span><i className="inline-block h-2 w-2 rounded-sm mr-1" style={{ background: "#c98500" }} />70–99</span>
-              <span><i className="inline-block h-2 w-2 rounded-sm mr-1" style={{ background: "#d03b3b" }} />&lt;70</span>
+              <span className="font-medium text-foreground">RDV vs. producto típico:</span>
+              <span><i className="inline-block h-2 w-2 rounded-sm mr-1" style={{ background: "#2a78d6" }} />≥1,30×</span>
+              <span><i className="inline-block h-2 w-2 rounded-sm mr-1" style={{ background: "#0ca30c" }} />1,00–1,29×</span>
+              <span><i className="inline-block h-2 w-2 rounded-sm mr-1" style={{ background: "#c98500" }} />0,70–0,99×</span>
+              <span><i className="inline-block h-2 w-2 rounded-sm mr-1" style={{ background: "#d03b3b" }} />&lt;0,70×</span>
               <span className="ml-2">
-                En verde, cuando el producto supera la mediana de su categoría · "Compra" evalúa
-                la cantidad pedida, no el producto
+                "típico" = mediana de su cohorte (colección × categoría) · en verde cuando el
+                producto la supera · "Cobertura" mide cuánto dura el stock restante, no cuánto se pidió
               </span>
             </div>
           </div>
