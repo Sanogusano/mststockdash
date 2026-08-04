@@ -456,6 +456,24 @@ export type Database = {
           },
         ]
       }
+      categoria_padre_map: {
+        Row: {
+          categoria_padre: string
+          category: string
+          nota: string | null
+        }
+        Insert: {
+          categoria_padre: string
+          category: string
+          nota?: string | null
+        }
+        Update: {
+          categoria_padre?: string
+          category?: string
+          nota?: string | null
+        }
+        Relationships: []
+      }
       category_mapping: {
         Row: {
           category_clean: string
@@ -1451,6 +1469,7 @@ export type Database = {
       }
       product_catalog: {
         Row: {
+          categoria_padre: string | null
           category: string | null
           collection_season: string | null
           color: string | null
@@ -1458,6 +1477,7 @@ export type Database = {
           fecha_cargue_inventario: string | null
           fecha_creacion: string | null
           fecha_publicacion: string | null
+          genero_norm: string | null
           image_url: string | null
           price: number | null
           product_id: string | null
@@ -1469,6 +1489,7 @@ export type Database = {
           variant_name: string | null
         }
         Insert: {
+          categoria_padre?: string | null
           category?: string | null
           collection_season?: string | null
           color?: string | null
@@ -1476,6 +1497,7 @@ export type Database = {
           fecha_cargue_inventario?: string | null
           fecha_creacion?: string | null
           fecha_publicacion?: string | null
+          genero_norm?: string | null
           image_url?: string | null
           price?: number | null
           product_id?: string | null
@@ -1487,6 +1509,7 @@ export type Database = {
           variant_name?: string | null
         }
         Update: {
+          categoria_padre?: string | null
           category?: string | null
           collection_season?: string | null
           color?: string | null
@@ -1494,6 +1517,7 @@ export type Database = {
           fecha_cargue_inventario?: string | null
           fecha_creacion?: string | null
           fecha_publicacion?: string | null
+          genero_norm?: string | null
           image_url?: string | null
           price?: number | null
           product_id?: string | null
@@ -2295,10 +2319,12 @@ export type Database = {
           bajo: number | null
           bueno: number | null
           categoria: string | null
+          categoria_padre: string | null
           cobertura_ajustada: number | null
           cobertura_critica: number | null
           destallados: number | null
           excelente: number | null
+          genero_norm: string | null
           mix_online_pct: number | null
           pct_full_prom: number | null
           productos: number | null
@@ -2334,6 +2360,7 @@ export type Database = {
           anio: number | null
           base_cohorte: string | null
           calculado_en: string | null
+          categoria_padre: string | null
           category: string | null
           cobertura: string | null
           coleccion: string | null
@@ -2346,6 +2373,7 @@ export type Database = {
           fecha_inicio: string | null
           fuera_de_ventana: boolean | null
           genero: string | null
+          genero_norm: string | null
           image_url: string | null
           indice_full: number | null
           indice_online: number | null
@@ -2413,6 +2441,7 @@ export type Database = {
         Row: {
           anio: number | null
           apto_curva: boolean | null
+          categoria_padre: string | null
           category: string | null
           coleccion: string | null
           coleccion_confiable: boolean | null
@@ -2423,6 +2452,7 @@ export type Database = {
           estuvo_en_tienda: boolean | null
           fecha_inicio: string | null
           genero: string | null
+          genero_norm: string | null
           image_url: string | null
           integridad_tallas: number | null
           pct_activacion: number | null
@@ -2473,6 +2503,7 @@ export type Database = {
         Row: {
           anio: number | null
           base_cohorte: string | null
+          categoria_padre: string | null
           category: string | null
           cobertura: string | null
           coleccion: string | null
@@ -2485,6 +2516,7 @@ export type Database = {
           fecha_inicio: string | null
           fuera_de_ventana: boolean | null
           genero: string | null
+          genero_norm: string | null
           image_url: string | null
           indice_full: number | null
           indice_online: number | null
