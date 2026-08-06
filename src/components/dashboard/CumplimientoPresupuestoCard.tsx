@@ -65,23 +65,19 @@ export function CumplimientoPresupuestoCard({ desde, hasta, zona, canal, locatio
 
   if (loading) {
     return (
-      <div className="rounded-lg border p-4">
-        <div className="h-3 w-32 bg-muted rounded animate-pulse" />
-        <div className="h-8 w-24 bg-muted rounded animate-pulse mt-3" />
-        <div className="h-3 w-40 bg-muted rounded animate-pulse mt-3" />
+      <div className="rounded-lg border px-4 py-3 flex items-center gap-4">
+        <div className="h-8 w-20 bg-muted rounded animate-pulse" />
+        <div className="h-3 w-48 bg-muted rounded animate-pulse" />
       </div>
     );
   }
 
   if (error || !data || !data.presupuesto) {
     return (
-      <div className="rounded-lg border p-4">
-        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-          <Target className="h-4 w-4" />CUMPLIMIENTO PRESUPUESTO
-        </div>
-        <div className="text-sm text-muted-foreground mt-3">
-          {error ? "No se pudo calcular" : "Sin presupuesto definido para este filtro"}
-        </div>
+      <div className="rounded-lg border px-4 py-3 flex items-center gap-2.5 text-sm text-muted-foreground">
+        <Target className="h-4 w-4 shrink-0" />
+        <span className="font-medium text-foreground">Cumplimiento presupuesto</span>
+        <span>· {error ? "no se pudo calcular" : "sin presupuesto para este filtro"}</span>
       </div>
     );
   }
@@ -94,35 +90,38 @@ export function CumplimientoPresupuestoCard({ desde, hasta, zona, canal, locatio
   const cruzaMeses = (data.meses_incluidos ?? "").includes(",");
 
   return (
-    <div className={`rounded-lg border p-4 ${cumplio ? "border-emerald-200 bg-emerald-50/40" : ""}`}>
-      <div className="flex items-center gap-2 text-xs text-muted-foreground">
-        <Target className="h-4 w-4" />CUMPLIMIENTO PRESUPUESTO
-      </div>
-
-      <div className="flex items-baseline gap-2 mt-2">
-        <span className={`text-3xl font-semibold tabular-nums ${color}`}>
-          {pct.toLocaleString("es-CO", { maximumFractionDigits: 1 })}%
+    <div
+      className={`rounded-lg border px-4 py-2.5 flex items-center gap-4 ${
+        cumplio ? "border-emerald-200 bg-emerald-50/40" : ""
+      }`}
+      title={`Meta proporcional a ${data.dias_periodo} día${data.dias_periodo === 1 ? "" : "s"}${
+        cruzaMeses ? ` · ${data.meses_incluidos}` : ""
+      } · venta neta sin IVA`}
+    >
+      <div className="flex items-center gap-2 shrink-0">
+        <Target className="h-4 w-4 text-muted-foreground" />
+        <span className="text-xs text-muted-foreground whitespace-nowrap">
+          Cumplimiento presupuesto
         </span>
-        {data.diferencia !== 0 && (
-          <span className={`text-xs tabular-nums ${cumplio ? "text-emerald-600" : "text-muted-foreground"}`}>
-            {data.diferencia > 0 ? "+" : ""}{money(data.diferencia)}
-          </span>
-        )}
       </div>
 
-      <div className="relative h-1.5 rounded-full bg-muted mt-3 overflow-hidden">
-        <div className={`absolute inset-y-0 left-0 rounded-full ${barra}`}
-             style={{ width: `${Math.min(100, pct)}%` }} />
+      <div className={`text-2xl font-semibold tabular-nums shrink-0 ${color}`}>
+        {pct.toLocaleString("es-CO", { maximumFractionDigits: 1 })}%
       </div>
 
-      <div className="text-sm mt-2.5 tabular-nums">
+      <div className="relative h-1.5 rounded-full bg-muted flex-1 min-w-[80px] overflow-hidden">
+        <div
+          className={`absolute inset-y-0 left-0 rounded-full ${barra}`}
+          style={{ width: `${Math.min(100, pct)}%` }}
+        />
+      </div>
+
+      <div className="text-xs tabular-nums whitespace-nowrap shrink-0">
         <span className="font-medium">{money(data.venta)}</span>
         <span className="text-muted-foreground"> de {money(data.presupuesto)}</span>
-      </div>
-
-      <div className="text-[11px] text-muted-foreground mt-1">
-        Meta proporcional a {data.dias_periodo} día{data.dias_periodo === 1 ? "" : "s"}
-        {cruzaMeses && ` · ${data.meses_incluidos}`}
+        <span className={`ml-2 ${cumplio ? "text-emerald-600" : "text-muted-foreground"}`}>
+          {data.diferencia > 0 ? "+" : ""}{money(data.diferencia)}
+        </span>
       </div>
     </div>
   );
