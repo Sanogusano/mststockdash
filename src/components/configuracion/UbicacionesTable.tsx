@@ -130,7 +130,7 @@ export function UbicacionesTable({ data, loading, onEditar, onAsignarCodigo }: P
   }
 
   return (
-    <div className="rounded-lg border border-border overflow-hidden">
+    <div className="rounded-lg border border-border overflow-x-auto">
       <Table>
         <TableHeader>
           <TableRow className="bg-muted/30 hover:bg-muted/30">
@@ -144,7 +144,9 @@ export function UbicacionesTable({ data, loading, onEditar, onAsignarCodigo }: P
             <TableHead className="font-semibold text-center">Orig/Dest</TableHead>
             <TableHead className="font-semibold">Estado</TableHead>
             <TableHead className="font-semibold text-center">Activa</TableHead>
-            <TableHead className="font-semibold text-right">Acciones</TableHead>
+            <TableHead className="font-semibold text-right sticky right-0 z-20 bg-muted shadow-[-8px_0_8px_-8px_rgba(0,0,0,0.15)]">
+              Acciones
+            </TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
