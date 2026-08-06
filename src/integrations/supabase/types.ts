@@ -2758,6 +2758,31 @@ export type Database = {
         Args: { p_incentivo_id: string }
         Returns: undefined
       }
+      actualizar_ubicacion: {
+        Args: {
+          p_allocation_activa?: boolean
+          p_capacidad_max?: number
+          p_codigo_oracle?: number
+          p_colchon_cedi?: number
+          p_dimension_m2?: number
+          p_es_cedi?: boolean
+          p_es_outlet?: boolean
+          p_is_active?: boolean
+          p_location_id: string
+          p_mapeo_notas?: string
+          p_mapeo_tipo?: string
+          p_mod_default?: number
+          p_netsuite_name?: string
+          p_nombre?: string
+          p_puede_destino?: boolean
+          p_puede_origen?: boolean
+          p_tier?: string
+          p_tipo_tienda?: string
+          p_wos_objetivo?: number
+          p_zona?: string
+        }
+        Returns: Json
+      }
       aplicar_conciliacion_netsuite: {
         Args: never
         Returns: {

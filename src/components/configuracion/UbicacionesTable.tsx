@@ -1,5 +1,6 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
 import {
   Table,
   TableBody,
@@ -10,6 +11,9 @@ import {
 } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ArrowDown, ArrowUp, Edit, KeyRound } from "lucide-react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 import { EstadoConfigBadge, type EstadoConfig } from "./EstadoConfigBadge";
 
 export interface UbicacionGestion {
@@ -63,6 +67,23 @@ interface Props {
 }
 
 export function UbicacionesTable({ data, loading, onEditar, onAsignarCodigo }: Props) {
+  const queryClient = useQueryClient();
+  const toggleActiva = useMutation({
+    mutationFn: async ({ id, activa }: { id: string; activa: boolean }) => {
+      const { error } = await supabase.rpc("actualizar_ubicacion", {
+        p_location_id: id,
+        p_is_active: activa,
+      } as any);
+      if (error) throw error;
+      return activa;
+    },
+    onSuccess: (activa) => {
+      toast.success(activa ? "Ubicación activada" : "Ubicación desactivada");
+      queryClient.invalidateQueries({ queryKey: ["ubicaciones-gestion"] });
+    },
+    onError: (err: any) => toast.error(err.message ?? "Error al actualizar"),
+  });
+
   if (loading) {
     return (
       <div className="rounded-lg border border-border">
@@ -78,13 +99,14 @@ export function UbicacionesTable({ data, loading, onEditar, onAsignarCodigo }: P
               <TableHead>Capacidad</TableHead>
               <TableHead>Orig/Dest</TableHead>
               <TableHead>Estado</TableHead>
+              <TableHead>Activa</TableHead>
               <TableHead className="text-right">Acciones</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {Array.from({ length: 8 }).map((_, i) => (
               <TableRow key={i}>
-                {Array.from({ length: 10 }).map((_, j) => (
+                {Array.from({ length: 11 }).map((_, j) => (
                   <TableCell key={j}>
                     <Skeleton className="h-4 w-full" />
                   </TableCell>
@@ -121,6 +143,7 @@ export function UbicacionesTable({ data, loading, onEditar, onAsignarCodigo }: P
             <TableHead className="font-semibold text-right">Capacidad</TableHead>
             <TableHead className="font-semibold text-center">Orig/Dest</TableHead>
             <TableHead className="font-semibold">Estado</TableHead>
+            <TableHead className="font-semibold text-center">Activa</TableHead>
             <TableHead className="font-semibold text-right">Acciones</TableHead>
           </TableRow>
         </TableHeader>
@@ -181,6 +204,16 @@ export function UbicacionesTable({ data, loading, onEditar, onAsignarCodigo }: P
                 </TableCell>
                 <TableCell>
                   <EstadoConfigBadge estado={u.estado_config} />
+                </TableCell>
+                <TableCell className="text-center">
+                  <Switch
+                    checked={!!u.location_activa}
+                    disabled={toggleActiva.isPending}
+                    onCheckedChange={(v) =>
+                      toggleActiva.mutate({ id: u.location_id, activa: v })
+                    }
+                    aria-label={`Activar ${u.nombre}`}
+                  />
                 </TableCell>
                 <TableCell>
                   <div className="flex items-center justify-end gap-1">
