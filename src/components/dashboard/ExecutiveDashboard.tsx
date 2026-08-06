@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { isValidDays } from "@/lib/validation";
 import { resolveDays, resolveComparisonRange, getDateRange, needsDateRange, toDateStr as _toDateStr, getFilterEndDate, buildRpcDateParams, CUSTOM_SENTINEL, PREV_MONTH_SENTINEL, THIS_MONTH_SENTINEL, type ComparisonPeriod } from "@/components/dashboard/TimeFilter";
+import { CumplimientoPresupuestoCard } from "@/components/dashboard/CumplimientoPresupuestoCard";
 import { exportToCSV } from "@/lib/csv-export";
 import { cn } from "@/lib/utils";
 import { exportToPDF } from "@/lib/pdf-export";
@@ -133,6 +134,13 @@ interface Props {
 /** Format a Date as "YYYY-MM-DD" for RPC date params */
 function toDateStr(d: Date): string {
   return _toDateStr(d);
+}
+
+/** Resolve the active filter period as YYYY-MM-DD strings */
+function getRangeStrings(days: number, customFrom?: Date, customTo?: Date) {
+  const hasCustom = !!(customFrom && customTo);
+  const { from, to } = getDateRange(hasCustom ? CUSTOM_SENTINEL : days, customFrom, customTo);
+  return { desde: toDateStr(from), hasta: toDateStr(to) };
 }
 
 /** Build the right KPI RPC call depending on whether we need date-range or dias_atras */
@@ -1295,7 +1303,7 @@ function ChannelPanel({ days, canal, showLocationFilter, locationFilter, compari
         return (
           <div className="space-y-4">
             {/* Row 1: Ventas Netas + Ticket + Precio Promedio */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               <KpiCard label="Ventas Netas" value={fmtCurrency(kpis?.ingresos_netos ?? 0)} mobileValue={fmtCurrencyCompact(kpis?.ingresos_netos ?? 0)} icon={DollarSign}
                 actual={kpis?.ingresos_netos ?? 0} anterior={prevKpis?.ingresos_netos ?? 0} />
               <KpiCard label="Ticket Promedio" value={fmtCurrency(kpis?.ticket_promedio ?? 0)} mobileValue={fmtCurrencyCompact(kpis?.ticket_promedio ?? 0)} icon={Receipt}
@@ -1305,6 +1313,13 @@ function ChannelPanel({ days, canal, showLocationFilter, locationFilter, compari
                 const prevPrecioProm = (prevKpis?.unidades_vendidas ?? 0) > 0 ? (prevKpis?.ingresos_netos ?? 0) / (prevKpis?.unidades_vendidas ?? 1) : 0;
                 return <KpiCard label="Precio Promedio" value={fmtCurrency(precioProm)} mobileValue={fmtCurrencyCompact(precioProm)} icon={Banknote}
                   actual={precioProm} anterior={prevPrecioProm} />;
+              })()}
+              {(() => {
+                const { desde, hasta } = getRangeStrings(days, customFrom, customTo);
+                return <CumplimientoPresupuestoCard desde={desde} hasta={hasta}
+                  zona={null}
+                  canal={canal === "digital" ? "online" : "tienda"}
+                  locationId={locParam} />;
               })()}
             </div>
             {/* Row 2: Unidades Vendidas + UPT + Venta/m² */}
@@ -1928,7 +1943,7 @@ function ZonePanel({ days, locationFilter, comparisonPeriod = "previous", custom
           <h3 className="text-sm font-semibold text-foreground">📊 DESEMPEÑO POR ZONA</h3>
         </div>
         {/* Row 1 */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <KpiCard label="Ventas Netas" value={fmtCurrency(kpis?.ingresos_netos ?? 0)} mobileValue={fmtCurrencyCompact(kpis?.ingresos_netos ?? 0)} icon={DollarSign}
             actual={kpis?.ingresos_netos ?? 0} anterior={prevKpis?.ingresos_netos ?? 0} />
           <KpiCard label="Ticket Promedio" value={fmtCurrency(kpis?.ticket_promedio ?? 0)} mobileValue={fmtCurrencyCompact(kpis?.ticket_promedio ?? 0)} icon={Receipt}
@@ -1938,6 +1953,13 @@ function ZonePanel({ days, locationFilter, comparisonPeriod = "previous", custom
             const prevPrecioPromZone = (prevKpis?.unidades_vendidas ?? 0) > 0 ? (prevKpis?.ingresos_netos ?? 0) / (prevKpis?.unidades_vendidas ?? 1) : 0;
             return <KpiCard label="Precio Promedio" value={fmtCurrency(precioPromZone)} mobileValue={fmtCurrencyCompact(precioPromZone)} icon={Banknote}
               actual={precioPromZone} anterior={prevPrecioPromZone} />;
+          })()}
+          {(() => {
+            const { desde, hasta } = getRangeStrings(days, customFrom, customTo);
+            return <CumplimientoPresupuestoCard desde={desde} hasta={hasta}
+              zona={selectedZone !== "all" ? selectedZone : null}
+              canal="tienda"
+              locationId={selectedLocation !== "all" ? selectedLocation : null} />;
           })()}
         </div>
         {/* Row 2 */}

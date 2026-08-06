@@ -3419,6 +3419,23 @@ export type Database = {
           venta_real: number
         }[]
       }
+      reporte_cumplimiento_ejecutivo: {
+        Args: {
+          p_canal?: string
+          p_desde?: string
+          p_hasta?: string
+          p_location_id?: string
+          p_zona?: string
+        }
+        Returns: {
+          dias_periodo: number
+          diferencia: number
+          meses_incluidos: string
+          pct_cumplimiento: number
+          presupuesto: number
+          venta: number
+        }[]
+      }
       reporte_cumplimiento_whatsapp: {
         Args: { p_fecha?: string }
         Returns: Json
