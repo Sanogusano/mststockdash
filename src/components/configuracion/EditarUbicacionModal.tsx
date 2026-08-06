@@ -12,6 +12,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -58,24 +65,64 @@ function entriesToObj(entries: CategoriaEntry[]): Record<string, number> | null 
   }, {});
 }
 
+const str = (v: unknown) => (v === null || v === undefined ? "" : String(v));
+const numOrNull = (v: string) => (v.trim() === "" ? null : Number(v));
+
 export function EditarUbicacionModal({ ubicacion, open, onOpenChange }: Props) {
   const queryClient = useQueryClient();
+
+  // locations
+  const [nombre, setNombre] = useState("");
+  const [tipoTienda, setTipoTienda] = useState("");
+  const [zona, setZona] = useState("");
+  const [dimensionM2, setDimensionM2] = useState("");
+  const [isActive, setIsActive] = useState(true);
+
+  // netsuite mapping
+  const [netsuiteName, setNetsuiteName] = useState("");
+  const [codigoOracle, setCodigoOracle] = useState("");
+  const [mapeoTipo, setMapeoTipo] = useState("");
+  const [mapeoNotas, setMapeoNotas] = useState("");
+
+  // allocation
+  const [tier, setTier] = useState("");
+  const [esCedi, setEsCedi] = useState(false);
+  const [esOutlet, setEsOutlet] = useState(false);
+  const [puedeOrigen, setPuedeOrigen] = useState(false);
+  const [puedeDestino, setPuedeDestino] = useState(false);
   const [modDefault, setModDefault] = useState("");
   const [wosObjetivo, setWosObjetivo] = useState("");
   const [colchonCedi, setColchonCedi] = useState("");
   const [capacidad, setCapacidad] = useState("");
   const [activa, setActiva] = useState(true);
+
+  // categorías (RPC aparte)
   const [modCats, setModCats] = useState<CategoriaEntry[]>([]);
   const [wosCats, setWosCats] = useState<CategoriaEntry[]>([]);
+
   const [confirmDeactivate, setConfirmDeactivate] = useState(false);
   const [advancedOpen, setAdvancedOpen] = useState(false);
 
   useEffect(() => {
     if (!ubicacion) return;
-    setModDefault(ubicacion.mod_default?.toString() ?? "");
-    setWosObjetivo(ubicacion.wos_objetivo_semanas?.toString() ?? "");
-    setColchonCedi(ubicacion.colchon_cedi_semanas?.toString() ?? "");
-    setCapacidad(ubicacion.capacidad_maxima_unidades?.toString() ?? "");
+    setNombre(ubicacion.nombre ?? "");
+    setTipoTienda(str(ubicacion.tipo_tienda));
+    setZona(str(ubicacion.zona));
+    setDimensionM2(str(ubicacion.dimension_m2));
+    setIsActive(ubicacion.location_activa ?? true);
+    setNetsuiteName(str(ubicacion.netsuite_location_name));
+    setCodigoOracle(str(ubicacion.codigo_oracle));
+    setMapeoTipo(str(ubicacion.mapeo_tipo));
+    setMapeoNotas(str(ubicacion.mapeo_notas));
+    setTier(str(ubicacion.tier));
+    setEsCedi(!!ubicacion.es_cedi);
+    setEsOutlet(!!ubicacion.es_outlet);
+    setPuedeOrigen(!!ubicacion.puede_ser_origen);
+    setPuedeDestino(!!ubicacion.puede_ser_destino);
+    setModDefault(str(ubicacion.mod_default));
+    setWosObjetivo(str(ubicacion.wos_objetivo_semanas));
+    setColchonCedi(str(ubicacion.colchon_cedi_semanas));
+    setCapacidad(str(ubicacion.capacidad_maxima_unidades));
     setActiva(ubicacion.allocation_activa ?? true);
     setModCats(objToEntries(ubicacion.mod_por_categoria));
     setWosCats(objToEntries(ubicacion.wos_objetivo_por_categoria));
@@ -84,20 +131,64 @@ export function EditarUbicacionModal({ ubicacion, open, onOpenChange }: Props) {
   const mutation = useMutation({
     mutationFn: async () => {
       if (!ubicacion) throw new Error("Sin ubicación");
-      const { error } = await supabase.rpc("actualizar_params_ubicacion", {
-        p_location_id: ubicacion.location_id,
-        p_mod_default: modDefault === "" ? null : Number(modDefault),
-        p_wos_objetivo: wosObjetivo === "" ? null : Number(wosObjetivo),
-        p_colchon_cedi: colchonCedi === "" ? null : Number(colchonCedi),
-        p_capacidad: capacidad === "" ? null : Number(capacidad),
-        p_activa: activa,
-        p_mod_por_categoria: entriesToObj(modCats) as any,
-        p_wos_por_categoria: entriesToObj(wosCats) as any,
-      });
-      if (error) throw error;
+      const u = ubicacion;
+      const payload: Record<string, unknown> = { p_location_id: u.location_id };
+      const put = (key: string, value: unknown, original: unknown) => {
+        const a = value === "" ? null : value;
+        const b = original === undefined ? null : original;
+        if (a !== b) payload[key] = a;
+      };
+
+      put("p_nombre", nombre, u.nombre);
+      put("p_tipo_tienda", tipoTienda, u.tipo_tienda);
+      put("p_zona", zona, u.zona);
+      put("p_dimension_m2", numOrNull(dimensionM2), u.dimension_m2);
+      put("p_is_active", isActive, u.location_activa ?? true);
+
+      put("p_netsuite_name", netsuiteName, u.netsuite_location_name);
+      put("p_codigo_oracle", numOrNull(codigoOracle), u.codigo_oracle);
+      put("p_mapeo_tipo", mapeoTipo, u.mapeo_tipo);
+      put("p_mapeo_notas", mapeoNotas, u.mapeo_notas);
+
+      put("p_tier", tier, u.tier);
+      put("p_es_cedi", esCedi, !!u.es_cedi);
+      put("p_es_outlet", esOutlet, !!u.es_outlet);
+      put("p_puede_origen", puedeOrigen, !!u.puede_ser_origen);
+      put("p_puede_destino", puedeDestino, !!u.puede_ser_destino);
+      put("p_mod_default", numOrNull(modDefault), u.mod_default);
+      put("p_wos_objetivo", numOrNull(wosObjetivo), u.wos_objetivo_semanas);
+      put("p_colchon_cedi", numOrNull(colchonCedi), u.colchon_cedi_semanas);
+      put("p_capacidad_max", numOrNull(capacidad), u.capacidad_maxima_unidades);
+      put("p_allocation_activa", activa, u.allocation_activa ?? true);
+
+      if (Object.keys(payload).length > 1) {
+        const { error } = await supabase.rpc("actualizar_ubicacion", payload as any);
+        if (error) throw error;
+      }
+
+      // Categorías: no existen en actualizar_ubicacion, se guardan con su RPC
+      const modObj = entriesToObj(modCats);
+      const wosObj = entriesToObj(wosCats);
+      const catsChanged =
+        JSON.stringify(modObj) !== JSON.stringify(u.mod_por_categoria ?? null) ||
+        JSON.stringify(wosObj) !== JSON.stringify(u.wos_objetivo_por_categoria ?? null);
+
+      if (catsChanged) {
+        const { error } = await supabase.rpc("actualizar_params_ubicacion", {
+          p_location_id: u.location_id,
+          p_mod_default: numOrNull(modDefault),
+          p_wos_objetivo: numOrNull(wosObjetivo),
+          p_colchon_cedi: numOrNull(colchonCedi),
+          p_capacidad: numOrNull(capacidad),
+          p_activa: activa,
+          p_mod_por_categoria: modObj as any,
+          p_wos_por_categoria: wosObj as any,
+        });
+        if (error) throw error;
+      }
     },
     onSuccess: () => {
-      toast.success("Parámetros actualizados");
+      toast.success("Ubicación actualizada");
       queryClient.invalidateQueries({ queryKey: ["ubicaciones-gestion"] });
       onOpenChange(false);
     },
@@ -105,7 +196,7 @@ export function EditarUbicacionModal({ ubicacion, open, onOpenChange }: Props) {
   });
 
   const handleSave = () => {
-    if (ubicacion?.allocation_activa && !activa) {
+    if ((ubicacion?.allocation_activa && !activa) || (ubicacion?.location_activa && !isActive)) {
       setConfirmDeactivate(true);
       return;
     }
@@ -119,58 +210,141 @@ export function EditarUbicacionModal({ ubicacion, open, onOpenChange }: Props) {
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Editar parámetros — {ubicacion.nombre}</DialogTitle>
+            <DialogTitle>Editar ubicación — {ubicacion.nombre}</DialogTitle>
             <DialogDescription>
-              Override manual de parámetros de allocation para esta ubicación.
+              Datos generales, mapeo NetSuite y parámetros de allocation. Solo se envían los campos
+              modificados.
             </DialogDescription>
           </DialogHeader>
 
-          {/* Info read-only */}
-          <div className="grid grid-cols-2 gap-3 p-3 rounded-md bg-muted/30 border border-border text-xs">
-            <div>
-              <span className="text-muted-foreground">Tier:</span>{" "}
-              <span className="font-medium">{ubicacion.tier ?? "—"}</span>
+          {/* Datos generales */}
+          <div className="space-y-3">
+            <p className="text-xs font-semibold uppercase text-muted-foreground">Datos generales</p>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="nombre">Nombre</Label>
+                <Input id="nombre" value={nombre} onChange={(e) => setNombre(e.target.value)} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="tipo">Tipo de tienda</Label>
+                <Input
+                  id="tipo"
+                  value={tipoTienda}
+                  onChange={(e) => setTipoTienda(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="zona">Zona</Label>
+                <Input id="zona" value={zona} onChange={(e) => setZona(e.target.value)} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="m2">Dimensión (m²)</Label>
+                <Input
+                  id="m2"
+                  type="number"
+                  step="0.01"
+                  min={0}
+                  value={dimensionM2}
+                  onChange={(e) => setDimensionM2(e.target.value)}
+                />
+              </div>
             </div>
-            <div>
-              <span className="text-muted-foreground">Tipo tienda:</span>{" "}
-              <span className="font-medium">{ubicacion.tipo_tienda ?? "—"}</span>
-            </div>
-            <div>
-              <span className="text-muted-foreground">Código Oracle:</span>{" "}
-              <span className="font-mono font-medium">
-                {ubicacion.codigo_oracle ?? "Pendiente"}
-              </span>
-            </div>
-            <div className="truncate">
-              <span className="text-muted-foreground">NetSuite:</span>{" "}
-              <span className="font-medium">{ubicacion.netsuite_location_name ?? "—"}</span>
+            <div className="flex items-center justify-between p-3 rounded-md border border-border">
+              <div>
+                <Label className="text-sm font-medium">Ubicación activa</Label>
+                <p className="text-xs text-muted-foreground">
+                  Desactivarla la excluye de los reportes y del sistema.
+                </p>
+              </div>
+              <Switch checked={isActive} onCheckedChange={setIsActive} />
             </div>
           </div>
 
-          {/* Campos principales */}
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="mod">MOD default</Label>
-              <Input
-                id="mod"
-                type="number"
-                min={0}
-                value={modDefault}
-                onChange={(e) => setModDefault(e.target.value)}
-              />
+          {/* NetSuite */}
+          <div className="space-y-3">
+            <p className="text-xs font-semibold uppercase text-muted-foreground">Mapeo NetSuite</p>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="nsname">Nombre bodega NetSuite</Label>
+                <Input
+                  id="nsname"
+                  value={netsuiteName}
+                  onChange={(e) => setNetsuiteName(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="oracle">Código Oracle</Label>
+                <Input
+                  id="oracle"
+                  type="number"
+                  value={codigoOracle}
+                  onChange={(e) => setCodigoOracle(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Tipo de mapeo</Label>
+                <Select value={mapeoTipo} onValueChange={setMapeoTipo}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Seleccionar" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="origen_destino">Origen y destino</SelectItem>
+                    <SelectItem value="solo_destino">Solo destino</SelectItem>
+                    <SelectItem value="ignorar">Ignorar</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="notas">Notas</Label>
+                <Input
+                  id="notas"
+                  value={mapeoNotas}
+                  onChange={(e) => setMapeoNotas(e.target.value)}
+                />
+              </div>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="wos">WOS objetivo (semanas)</Label>
-              <Input
-                id="wos"
-                type="number"
-                step="0.5"
-                min={0}
-                value={wosObjetivo}
-                onChange={(e) => setWosObjetivo(e.target.value)}
-              />
-            </div>
-            {ubicacion.es_cedi && (
+          </div>
+
+          {/* Allocation */}
+          <div className="space-y-3">
+            <p className="text-xs font-semibold uppercase text-muted-foreground">Allocation</p>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Tier</Label>
+                <Select value={tier} onValueChange={setTier}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Seleccionar" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="cedi">CEDI</SelectItem>
+                    <SelectItem value="flagship">Flagship</SelectItem>
+                    <SelectItem value="regular">Regular</SelectItem>
+                    <SelectItem value="pequena">Pequeña</SelectItem>
+                    <SelectItem value="outlet">Outlet</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="mod">MOD default</Label>
+                <Input
+                  id="mod"
+                  type="number"
+                  min={0}
+                  value={modDefault}
+                  onChange={(e) => setModDefault(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="wos">WOS objetivo (semanas)</Label>
+                <Input
+                  id="wos"
+                  type="number"
+                  step="0.5"
+                  min={0}
+                  value={wosObjetivo}
+                  onChange={(e) => setWosObjetivo(e.target.value)}
+                />
+              </div>
               <div className="space-y-2">
                 <Label htmlFor="colchon">Colchón CEDI (semanas)</Label>
                 <Input
@@ -181,28 +355,47 @@ export function EditarUbicacionModal({ ubicacion, open, onOpenChange }: Props) {
                   onChange={(e) => setColchonCedi(e.target.value)}
                 />
               </div>
-            )}
-            <div className="space-y-2">
-              <Label htmlFor="cap">Capacidad máxima</Label>
-              <Input
-                id="cap"
-                type="number"
-                min={0}
-                placeholder="Sin límite"
-                value={capacidad}
-                onChange={(e) => setCapacidad(e.target.value)}
-              />
+              <div className="space-y-2">
+                <Label htmlFor="cap">Capacidad máxima</Label>
+                <Input
+                  id="cap"
+                  type="number"
+                  min={0}
+                  placeholder="Sin límite"
+                  value={capacidad}
+                  onChange={(e) => setCapacidad(e.target.value)}
+                />
+              </div>
             </div>
-          </div>
 
-          <div className="flex items-center justify-between p-3 rounded-md border border-border">
-            <div>
-              <Label className="text-sm font-medium">Allocation activa</Label>
-              <p className="text-xs text-muted-foreground">
-                Si está desactivada, esta ubicación no participará en las curvas de allocation.
-              </p>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="flex items-center justify-between p-3 rounded-md border border-border">
+                <Label className="text-sm">Es CEDI</Label>
+                <Switch checked={esCedi} onCheckedChange={setEsCedi} />
+              </div>
+              <div className="flex items-center justify-between p-3 rounded-md border border-border">
+                <Label className="text-sm">Es Outlet</Label>
+                <Switch checked={esOutlet} onCheckedChange={setEsOutlet} />
+              </div>
+              <div className="flex items-center justify-between p-3 rounded-md border border-border">
+                <Label className="text-sm">Puede ser origen</Label>
+                <Switch checked={puedeOrigen} onCheckedChange={setPuedeOrigen} />
+              </div>
+              <div className="flex items-center justify-between p-3 rounded-md border border-border">
+                <Label className="text-sm">Puede ser destino</Label>
+                <Switch checked={puedeDestino} onCheckedChange={setPuedeDestino} />
+              </div>
             </div>
-            <Switch checked={activa} onCheckedChange={setActiva} />
+
+            <div className="flex items-center justify-between p-3 rounded-md border border-border">
+              <div>
+                <Label className="text-sm font-medium">Allocation activa</Label>
+                <p className="text-xs text-muted-foreground">
+                  Si está desactivada, esta ubicación no participará en las curvas de allocation.
+                </p>
+              </div>
+              <Switch checked={activa} onCheckedChange={setActiva} />
+            </div>
           </div>
 
           {/* Avanzado */}
@@ -244,10 +437,10 @@ export function EditarUbicacionModal({ ubicacion, open, onOpenChange }: Props) {
       <AlertDialog open={confirmDeactivate} onOpenChange={setConfirmDeactivate}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>¿Desactivar allocation?</AlertDialogTitle>
+            <AlertDialogTitle>¿Desactivar ubicación?</AlertDialogTitle>
             <AlertDialogDescription>
-              Estás por desactivar la ubicación <strong>{ubicacion.nombre}</strong>. No participará
-              en las curvas de allocation hasta que la reactives.
+              Estás por desactivar <strong>{ubicacion.nombre}</strong>. No participará en las curvas
+              de allocation ni en los reportes hasta que la reactives.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
