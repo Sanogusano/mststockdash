@@ -1302,8 +1302,15 @@ function ChannelPanel({ days, canal, showLocationFilter, locationFilter, compari
         const pctDesc = kpis?.pct_pedidos_con_descuento ?? 0;
         return (
           <div className="space-y-4">
+            {(() => {
+              const { desde, hasta } = getRangeStrings(days, customFrom, customTo);
+              return <CumplimientoPresupuestoCard desde={desde} hasta={hasta}
+                zona={null}
+                canal={canal === "digital" ? "online" : "tienda"}
+                locationId={locParam} />;
+            })()}
             {/* Row 1: Ventas Netas + Ticket + Precio Promedio */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               <KpiCard label="Ventas Netas" value={fmtCurrency(kpis?.ingresos_netos ?? 0)} mobileValue={fmtCurrencyCompact(kpis?.ingresos_netos ?? 0)} icon={DollarSign}
                 actual={kpis?.ingresos_netos ?? 0} anterior={prevKpis?.ingresos_netos ?? 0} />
               <KpiCard label="Ticket Promedio" value={fmtCurrency(kpis?.ticket_promedio ?? 0)} mobileValue={fmtCurrencyCompact(kpis?.ticket_promedio ?? 0)} icon={Receipt}
