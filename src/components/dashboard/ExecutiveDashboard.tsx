@@ -1314,13 +1314,6 @@ function ChannelPanel({ days, canal, showLocationFilter, locationFilter, compari
                 return <KpiCard label="Precio Promedio" value={fmtCurrency(precioProm)} mobileValue={fmtCurrencyCompact(precioProm)} icon={Banknote}
                   actual={precioProm} anterior={prevPrecioProm} />;
               })()}
-              {(() => {
-                const { desde, hasta } = getRangeStrings(days, customFrom, customTo);
-                return <CumplimientoPresupuestoCard desde={desde} hasta={hasta}
-                  zona={null}
-                  canal={canal === "digital" ? "online" : "tienda"}
-                  locationId={locParam} />;
-              })()}
             </div>
             {/* Row 2: Unidades Vendidas + UPT + Venta/m² */}
             <div className={cn("grid gap-4", showM2 ? "grid-cols-1 sm:grid-cols-3" : "grid-cols-2")}>
