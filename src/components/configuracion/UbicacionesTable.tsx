@@ -1,5 +1,6 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
 import {
   Table,
   TableBody,
@@ -10,6 +11,9 @@ import {
 } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ArrowDown, ArrowUp, Edit, KeyRound } from "lucide-react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 import { EstadoConfigBadge, type EstadoConfig } from "./EstadoConfigBadge";
 
 export interface UbicacionGestion {
