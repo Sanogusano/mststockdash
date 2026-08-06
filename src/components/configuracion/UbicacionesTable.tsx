@@ -217,7 +217,7 @@ export function UbicacionesTable({ data, loading, onEditar, onAsignarCodigo }: P
                     aria-label={`Activar ${u.nombre}`}
                   />
                 </TableCell>
-                <TableCell>
+                <TableCell className="sticky right-0 z-20 bg-background shadow-[-8px_0_8px_-8px_rgba(0,0,0,0.15)]">
                   <div className="flex items-center justify-end gap-1">
                     {u.estado_config === "falta_codigo_oracle" && (
                       <Button
