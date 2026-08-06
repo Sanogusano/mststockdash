@@ -1943,7 +1943,7 @@ function ZonePanel({ days, locationFilter, comparisonPeriod = "previous", custom
           <h3 className="text-sm font-semibold text-foreground">📊 DESEMPEÑO POR ZONA</h3>
         </div>
         {/* Row 1 */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           <KpiCard label="Ventas Netas" value={fmtCurrency(kpis?.ingresos_netos ?? 0)} mobileValue={fmtCurrencyCompact(kpis?.ingresos_netos ?? 0)} icon={DollarSign}
             actual={kpis?.ingresos_netos ?? 0} anterior={prevKpis?.ingresos_netos ?? 0} />
           <KpiCard label="Ticket Promedio" value={fmtCurrency(kpis?.ticket_promedio ?? 0)} mobileValue={fmtCurrencyCompact(kpis?.ticket_promedio ?? 0)} icon={Receipt}
