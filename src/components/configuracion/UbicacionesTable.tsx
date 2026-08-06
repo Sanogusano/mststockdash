@@ -99,13 +99,14 @@ export function UbicacionesTable({ data, loading, onEditar, onAsignarCodigo }: P
               <TableHead>Capacidad</TableHead>
               <TableHead>Orig/Dest</TableHead>
               <TableHead>Estado</TableHead>
+              <TableHead>Activa</TableHead>
               <TableHead className="text-right">Acciones</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {Array.from({ length: 8 }).map((_, i) => (
               <TableRow key={i}>
-                {Array.from({ length: 10 }).map((_, j) => (
+                {Array.from({ length: 11 }).map((_, j) => (
                   <TableCell key={j}>
                     <Skeleton className="h-4 w-full" />
                   </TableCell>
