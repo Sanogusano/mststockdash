@@ -1954,13 +1954,6 @@ function ZonePanel({ days, locationFilter, comparisonPeriod = "previous", custom
             return <KpiCard label="Precio Promedio" value={fmtCurrency(precioPromZone)} mobileValue={fmtCurrencyCompact(precioPromZone)} icon={Banknote}
               actual={precioPromZone} anterior={prevPrecioPromZone} />;
           })()}
-          {(() => {
-            const { desde, hasta } = getRangeStrings(days, customFrom, customTo);
-            return <CumplimientoPresupuestoCard desde={desde} hasta={hasta}
-              zona={selectedZone !== "all" ? selectedZone : null}
-              canal="tienda"
-              locationId={selectedLocation !== "all" ? selectedLocation : null} />;
-          })()}
         </div>
         {/* Row 2 */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-4">
