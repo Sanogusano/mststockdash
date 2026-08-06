@@ -67,6 +67,23 @@ interface Props {
 }
 
 export function UbicacionesTable({ data, loading, onEditar, onAsignarCodigo }: Props) {
+  const queryClient = useQueryClient();
+  const toggleActiva = useMutation({
+    mutationFn: async ({ id, activa }: { id: string; activa: boolean }) => {
+      const { error } = await supabase.rpc("actualizar_ubicacion", {
+        p_location_id: id,
+        p_is_active: activa,
+      } as any);
+      if (error) throw error;
+      return activa;
+    },
+    onSuccess: (activa) => {
+      toast.success(activa ? "Ubicación activada" : "Ubicación desactivada");
+      queryClient.invalidateQueries({ queryKey: ["ubicaciones-gestion"] });
+    },
+    onError: (err: any) => toast.error(err.message ?? "Error al actualizar"),
+  });
+
   if (loading) {
     return (
       <div className="rounded-lg border border-border">
