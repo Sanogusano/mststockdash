@@ -143,6 +143,7 @@ export function UbicacionesTable({ data, loading, onEditar, onAsignarCodigo }: P
             <TableHead className="font-semibold text-right">Capacidad</TableHead>
             <TableHead className="font-semibold text-center">Orig/Dest</TableHead>
             <TableHead className="font-semibold">Estado</TableHead>
+            <TableHead className="font-semibold text-center">Activa</TableHead>
             <TableHead className="font-semibold text-right">Acciones</TableHead>
           </TableRow>
         </TableHeader>
