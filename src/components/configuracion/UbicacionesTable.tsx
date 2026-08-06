@@ -203,7 +203,18 @@ export function UbicacionesTable({ data, loading, onEditar, onAsignarCodigo }: P
                   </div>
                 </TableCell>
                 <TableCell>
+                <TableCell>
                   <EstadoConfigBadge estado={u.estado_config} />
+                </TableCell>
+                <TableCell className="text-center">
+                  <Switch
+                    checked={!!u.location_activa}
+                    disabled={toggleActiva.isPending}
+                    onCheckedChange={(v) =>
+                      toggleActiva.mutate({ id: u.location_id, activa: v })
+                    }
+                    aria-label={`Activar ${u.nombre}`}
+                  />
                 </TableCell>
                 <TableCell>
                   <div className="flex items-center justify-end gap-1">
