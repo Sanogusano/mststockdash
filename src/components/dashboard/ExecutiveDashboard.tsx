@@ -135,6 +135,13 @@ function toDateStr(d: Date): string {
   return _toDateStr(d);
 }
 
+/** Resolve the active filter period as YYYY-MM-DD strings */
+function getRangeStrings(days: number, customFrom?: Date, customTo?: Date) {
+  const hasCustom = !!(customFrom && customTo);
+  const { from, to } = getDateRange(hasCustom ? CUSTOM_SENTINEL : days, customFrom, customTo);
+  return { desde: toDateStr(from), hasta: toDateStr(to) };
+}
+
 /** Build the right KPI RPC call depending on whether we need date-range or dias_atras */
 function buildKpiCall(
   days: number,
