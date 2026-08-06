@@ -1934,6 +1934,14 @@ function ZonePanel({ days, locationFilter, comparisonPeriod = "previous", custom
         )}
       </div>
 
+      {(() => {
+        const { desde, hasta } = getRangeStrings(days, customFrom, customTo);
+        return <CumplimientoPresupuestoCard desde={desde} hasta={hasta}
+          zona={selectedZone !== "all" ? selectedZone : null}
+          canal="tienda"
+          locationId={selectedLocation !== "all" ? selectedLocation : null} />;
+      })()}
+
       {/* KPI Cards */}
       <div className="glass-card p-5">
         <div className="flex items-center gap-3 mb-4">
