@@ -2772,6 +2772,7 @@ export type Database = {
           p_mapeo_notas?: string
           p_mapeo_tipo?: string
           p_mod_default?: number
+          p_mod_por_categoria?: Json
           p_netsuite_name?: string
           p_nombre?: string
           p_puede_destino?: boolean
@@ -2779,6 +2780,7 @@ export type Database = {
           p_tier?: string
           p_tipo_tienda?: string
           p_wos_objetivo?: number
+          p_wos_objetivo_por_categoria?: Json
           p_zona?: string
         }
         Returns: Json
