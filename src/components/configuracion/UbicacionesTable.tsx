@@ -203,7 +203,6 @@ export function UbicacionesTable({ data, loading, onEditar, onAsignarCodigo }: P
                   </div>
                 </TableCell>
                 <TableCell>
-                <TableCell>
                   <EstadoConfigBadge estado={u.estado_config} />
                 </TableCell>
                 <TableCell className="text-center">
