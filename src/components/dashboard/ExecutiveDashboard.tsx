@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { isValidDays } from "@/lib/validation";
 import { resolveDays, resolveComparisonRange, getDateRange, needsDateRange, toDateStr as _toDateStr, getFilterEndDate, buildRpcDateParams, CUSTOM_SENTINEL, PREV_MONTH_SENTINEL, THIS_MONTH_SENTINEL, type ComparisonPeriod } from "@/components/dashboard/TimeFilter";
+import { CumplimientoPresupuestoCard } from "@/components/dashboard/CumplimientoPresupuestoCard";
 import { exportToCSV } from "@/lib/csv-export";
 import { cn } from "@/lib/utils";
 import { exportToPDF } from "@/lib/pdf-export";
