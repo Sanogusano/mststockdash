@@ -1935,7 +1935,7 @@ function ZonePanel({ days, locationFilter, comparisonPeriod = "previous", custom
           <h3 className="text-sm font-semibold text-foreground">📊 DESEMPEÑO POR ZONA</h3>
         </div>
         {/* Row 1 */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <KpiCard label="Ventas Netas" value={fmtCurrency(kpis?.ingresos_netos ?? 0)} mobileValue={fmtCurrencyCompact(kpis?.ingresos_netos ?? 0)} icon={DollarSign}
             actual={kpis?.ingresos_netos ?? 0} anterior={prevKpis?.ingresos_netos ?? 0} />
           <KpiCard label="Ticket Promedio" value={fmtCurrency(kpis?.ticket_promedio ?? 0)} mobileValue={fmtCurrencyCompact(kpis?.ticket_promedio ?? 0)} icon={Receipt}
@@ -1945,6 +1945,13 @@ function ZonePanel({ days, locationFilter, comparisonPeriod = "previous", custom
             const prevPrecioPromZone = (prevKpis?.unidades_vendidas ?? 0) > 0 ? (prevKpis?.ingresos_netos ?? 0) / (prevKpis?.unidades_vendidas ?? 1) : 0;
             return <KpiCard label="Precio Promedio" value={fmtCurrency(precioPromZone)} mobileValue={fmtCurrencyCompact(precioPromZone)} icon={Banknote}
               actual={precioPromZone} anterior={prevPrecioPromZone} />;
+          })()}
+          {(() => {
+            const { desde, hasta } = getRangeStrings(days, customFrom, customTo);
+            return <CumplimientoPresupuestoCard desde={desde} hasta={hasta}
+              zona={selectedZone !== "all" ? selectedZone : null}
+              canal="tienda"
+              locationId={selectedLocation !== "all" ? selectedLocation : null} />;
           })()}
         </div>
         {/* Row 2 */}
