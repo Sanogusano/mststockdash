@@ -1302,8 +1302,15 @@ function ChannelPanel({ days, canal, showLocationFilter, locationFilter, compari
         const pctDesc = kpis?.pct_pedidos_con_descuento ?? 0;
         return (
           <div className="space-y-4">
+            {(() => {
+              const { desde, hasta } = getRangeStrings(days, customFrom, customTo);
+              return <CumplimientoPresupuestoCard desde={desde} hasta={hasta}
+                zona={null}
+                canal={canal === "digital" ? "online" : "tienda"}
+                locationId={locParam} />;
+            })()}
             {/* Row 1: Ventas Netas + Ticket + Precio Promedio */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               <KpiCard label="Ventas Netas" value={fmtCurrency(kpis?.ingresos_netos ?? 0)} mobileValue={fmtCurrencyCompact(kpis?.ingresos_netos ?? 0)} icon={DollarSign}
                 actual={kpis?.ingresos_netos ?? 0} anterior={prevKpis?.ingresos_netos ?? 0} />
               <KpiCard label="Ticket Promedio" value={fmtCurrency(kpis?.ticket_promedio ?? 0)} mobileValue={fmtCurrencyCompact(kpis?.ticket_promedio ?? 0)} icon={Receipt}
@@ -1313,13 +1320,6 @@ function ChannelPanel({ days, canal, showLocationFilter, locationFilter, compari
                 const prevPrecioProm = (prevKpis?.unidades_vendidas ?? 0) > 0 ? (prevKpis?.ingresos_netos ?? 0) / (prevKpis?.unidades_vendidas ?? 1) : 0;
                 return <KpiCard label="Precio Promedio" value={fmtCurrency(precioProm)} mobileValue={fmtCurrencyCompact(precioProm)} icon={Banknote}
                   actual={precioProm} anterior={prevPrecioProm} />;
-              })()}
-              {(() => {
-                const { desde, hasta } = getRangeStrings(days, customFrom, customTo);
-                return <CumplimientoPresupuestoCard desde={desde} hasta={hasta}
-                  zona={null}
-                  canal={canal === "digital" ? "online" : "tienda"}
-                  locationId={locParam} />;
               })()}
             </div>
             {/* Row 2: Unidades Vendidas + UPT + Venta/m² */}
@@ -1934,6 +1934,14 @@ function ZonePanel({ days, locationFilter, comparisonPeriod = "previous", custom
         )}
       </div>
 
+      {(() => {
+        const { desde, hasta } = getRangeStrings(days, customFrom, customTo);
+        return <CumplimientoPresupuestoCard desde={desde} hasta={hasta}
+          zona={selectedZone !== "all" ? selectedZone : null}
+          canal="tienda"
+          locationId={selectedLocation !== "all" ? selectedLocation : null} />;
+      })()}
+
       {/* KPI Cards */}
       <div className="glass-card p-5">
         <div className="flex items-center gap-3 mb-4">
@@ -1943,7 +1951,7 @@ function ZonePanel({ days, locationFilter, comparisonPeriod = "previous", custom
           <h3 className="text-sm font-semibold text-foreground">📊 DESEMPEÑO POR ZONA</h3>
         </div>
         {/* Row 1 */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           <KpiCard label="Ventas Netas" value={fmtCurrency(kpis?.ingresos_netos ?? 0)} mobileValue={fmtCurrencyCompact(kpis?.ingresos_netos ?? 0)} icon={DollarSign}
             actual={kpis?.ingresos_netos ?? 0} anterior={prevKpis?.ingresos_netos ?? 0} />
           <KpiCard label="Ticket Promedio" value={fmtCurrency(kpis?.ticket_promedio ?? 0)} mobileValue={fmtCurrencyCompact(kpis?.ticket_promedio ?? 0)} icon={Receipt}
@@ -1953,13 +1961,6 @@ function ZonePanel({ days, locationFilter, comparisonPeriod = "previous", custom
             const prevPrecioPromZone = (prevKpis?.unidades_vendidas ?? 0) > 0 ? (prevKpis?.ingresos_netos ?? 0) / (prevKpis?.unidades_vendidas ?? 1) : 0;
             return <KpiCard label="Precio Promedio" value={fmtCurrency(precioPromZone)} mobileValue={fmtCurrencyCompact(precioPromZone)} icon={Banknote}
               actual={precioPromZone} anterior={prevPrecioPromZone} />;
-          })()}
-          {(() => {
-            const { desde, hasta } = getRangeStrings(days, customFrom, customTo);
-            return <CumplimientoPresupuestoCard desde={desde} hasta={hasta}
-              zona={selectedZone !== "all" ? selectedZone : null}
-              canal="tienda"
-              locationId={selectedLocation !== "all" ? selectedLocation : null} />;
           })()}
         </div>
         {/* Row 2 */}
@@ -1986,6 +1987,17 @@ function ZonePanel({ days, locationFilter, comparisonPeriod = "previous", custom
             <CalendarDays className="h-5 w-5 text-primary" />
             <h3 className="text-sm font-semibold text-foreground">Desempeño Comercial {selectedZone !== "all" ? `— ${selectedZone}` : "— Todas las Zonas"}</h3>
           </div>
+          {(() => {
+            const { desde, hasta } = getRangeStrings(days, customFrom, customTo);
+            return (
+              <div className="mb-5">
+                <CumplimientoPresupuestoCard desde={desde} hasta={hasta}
+                  zona={selectedZone !== "all" ? selectedZone : null}
+                  canal="tienda"
+                  locationId={selectedLocation !== "all" ? selectedLocation : null} />
+              </div>
+            );
+          })()}
           <div className="space-y-5">
             {/* Row 1: Mejor/Peor Día + Weekday/Weekend */}
             <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
