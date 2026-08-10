@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { isValidDays } from "@/lib/validation";
-import { resolveDays, toDateStr } from "@/components/dashboard/TimeFilter";
+import { resolveDays, toDateStr, getDateRange, CUSTOM_SENTINEL } from "@/components/dashboard/TimeFilter";
+import { BarraCumplimiento } from "./BarraCumplimiento";
 import { LoadingState, EmptyState } from "./LoadingState";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Store, Globe, Tag } from "lucide-react";
