@@ -127,7 +127,7 @@ export default function CicloVenta() {
         for (;;) {
           const { data, error } = await supabase
             .from("mv_producto_clasificacion")
-            .select("product_id,title,category,categoria_padre,coleccion,image_url,unidades_vendidas,semanas_en_venta,indice_total,desempeno,cobertura,n_cohorte,base_cohorte")
+            .select("product_id,title,category,categoria_padre,genero_norm,coleccion,image_url,unidades_vendidas,semanas_en_venta,indice_total,desempeno,cobertura,n_cohorte,base_cohorte")
             .order("unidades_vendidas", { ascending: false })
             .order("product_id", { ascending: true })
             .range(desde, desde + PAGINA - 1);
