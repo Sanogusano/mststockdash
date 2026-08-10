@@ -30,18 +30,19 @@ function formatCompactMoney(value: number) {
   return value.toLocaleString("es-CO");
 }
 
-function KpiCard({ label, value, mobileValue, prefix = "" }: { label: string; value: string; mobileValue?: string; prefix?: string }) {
+function KpiCard({ label, value, mobileValue, prefix = "", footer }: { label: string; value: string; mobileValue?: string; prefix?: string; footer?: React.ReactNode }) {
   return (
     <div className="glass-card rounded-xl p-5 flex flex-col gap-1">
       <p className="text-xs text-muted-foreground uppercase tracking-widest">{label}</p>
       <p className="text-2xl font-display font-bold text-foreground whitespace-normal break-words tabular-nums">
         {mobileValue ? <><span className="sm:hidden">{prefix}{mobileValue}</span><span className="hidden sm:inline">{prefix}{value}</span></> : <>{prefix}{value}</>}
       </p>
+      {footer && <div className="mt-1">{footer}</div>}
     </div>
   );
 }
 
-function ChannelTab({ row }: { row: ChannelRow }) {
+function ChannelTab({ row, presupuesto }: { row: ChannelRow; presupuesto?: BudgetRow }) {
   const ventas = row.ventas_totales ?? 0;
   const pedidos = row.total_pedidos ?? 0;
   const ticket = pedidos > 0 ? ventas / pedidos : 0;
@@ -52,6 +53,16 @@ function ChannelTab({ row }: { row: ChannelRow }) {
         value={ventas.toLocaleString()}
         mobileValue={formatCompactMoney(ventas)}
         prefix="$"
+        footer={
+          presupuesto ? (
+            <BarraCumplimiento
+              pct={presupuesto.pct_cumplimiento}
+              venta={presupuesto.venta}
+              presupuesto={presupuesto.presupuesto}
+              mostrarMontos
+            />
+          ) : undefined
+        }
       />
       <KpiCard label="Total Pedidos" value={pedidos.toLocaleString()} />
       <KpiCard
