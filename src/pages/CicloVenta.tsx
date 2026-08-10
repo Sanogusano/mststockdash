@@ -173,15 +173,25 @@ export default function CicloVenta() {
     [productos]
   );
 
+  const catKey = (p: ProductoLista) =>
+    `${p.categoria_padre ?? p.category ?? "—"} · ${p.genero_norm ?? "—"}`;
+
+  const categorias = useMemo(
+    () => Array.from(new Set(productos.map(catKey)))
+      .sort((a, b) => a.localeCompare(b, "es")),
+    [productos]
+  );
+
   const listaFiltrada = useMemo(() => {
     const q = busqueda.trim().toLowerCase();
     return productos
       .filter(p =>
         (coleccion === "all" || p.coleccion === coleccion) &&
+        (categoria === "all" || catKey(p) === categoria) &&
         (!q || p.title?.toLowerCase().includes(q))
       )
       .slice(0, 150);
-  }, [productos, coleccion, busqueda]);
+  }, [productos, coleccion, categoria, busqueda]);
 
   // Hitos: pico, semanas al 50% y al 80% de la venta
   const hitos = useMemo(() => {
