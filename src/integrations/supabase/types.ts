@@ -3455,6 +3455,22 @@ export type Database = {
           r_vpm: number
         }[]
       }
+      reporte_curva_producto: {
+        Args: { p_modo?: string; p_product_id: string }
+        Returns: {
+          acumulado: number
+          eje: number
+          pct_acumulado: number
+          pct_cohorte: number
+          pct_semana: number
+          semana: string
+          uds: number
+          uds_full: number
+          uds_online: number
+          uds_rebajada: number
+          uds_tienda: number
+        }[]
+      }
       reporte_curva_traslados: {
         Args: {
           dias_atras?: number
