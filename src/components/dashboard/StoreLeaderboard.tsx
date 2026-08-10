@@ -127,20 +127,32 @@ function TableHeader({ sortDir, onToggleSort }: { sortDir: SortDir; onToggleSort
 export function StoreLeaderboard({ days, canal, customFrom, customTo }: { days: number; canal?: string; customFrom?: Date; customTo?: Date }) {
   const [data, setData] = useState<RankingRow[]>([]);
   const [prevData, setPrevData] = useState<PrevRow[]>([]);
+  const [budget, setBudget] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState(false);
+  const [sortDir, setSortDir] = useState<SortDir>(null);
 
   useEffect(() => {
     async function load() {
       if (!isValidDays(days)) return;
       setLoading(true);
       const { dias_atras: effectiveDays, p_hasta: hastaParam } = buildRpcDateParams(days, customFrom, customTo);
-      const [curRes, prevRes] = await Promise.all([
+      const hasCustom = !!(customFrom && customTo);
+      const { from, to } = getDateRange(hasCustom ? CUSTOM_SENTINEL : days, customFrom, customTo);
+      const [curRes, prevRes, presRes] = await Promise.all([
         supabase.rpc("reporte_ranking_tiendas", { dias_atras: effectiveDays, p_canal: canal || null, p_hasta: hastaParam }),
         supabase.rpc("reporte_ranking_tiendas_anterior" as any, { dias_atras: effectiveDays, p_canal: canal || null, p_hasta: hastaParam }),
+        supabase.rpc("reporte_presupuesto_por_tienda" as any, { p_desde: toDateStr(from), p_hasta: toDateStr(to) }),
       ]);
       if (curRes.data) setData(curRes.data as unknown as RankingRow[]);
       if (prevRes.data) setPrevData(prevRes.data as unknown as PrevRow[]);
+      if (presRes.data) {
+        const map: Record<string, number> = {};
+        (presRes.data as unknown as { tienda: string; presupuesto: number }[]).forEach(r => {
+          map[(r.tienda ?? "").trim().toLowerCase()] = Number(r.presupuesto ?? 0);
+        });
+        setBudget(map);
+      }
       setLoading(false);
     }
     load();
@@ -150,16 +162,36 @@ export function StoreLeaderboard({ days, canal, customFrom, customTo }: { days: 
   if (!data.length) return <EmptyState message="Sin datos de ranking para este período." />;
 
   const prevMap = new Map(prevData.map(r => [r.tienda, r]));
+  const presupuestoDe = (tienda: string) => budget[(tienda ?? "").trim().toLowerCase()];
+  const pctDe = (r: RankingRow) => {
+    const p = presupuestoDe(r.tienda);
+    return p && p > 0 ? (r.ventas_totales / p) * 100 : null;
+  };
+
+  const sortRows = (rows: RankingRow[]) => {
+    if (!sortDir) return rows;
+    return [...rows].sort((a, b) => {
+      const pa = pctDe(a);
+      const pb = pctDe(b);
+      if (pa == null && pb == null) return 0;
+      if (pa == null) return 1;
+      if (pb == null) return -1;
+      return sortDir === "asc" ? pa - pb : pb - pa;
+    });
+  };
+
+  const sortedData = sortRows(data);
+  const toggleSort = () => setSortDir(d => (d === null ? "desc" : d === "desc" ? "asc" : null));
 
   // Group by zone
   const zoneGroups = new Map<string, RankingRow[]>();
-  data.forEach(row => {
+  sortedData.forEach(row => {
     const z = row.zona || "Sin Zona";
     if (!zoneGroups.has(z)) zoneGroups.set(z, []);
     zoneGroups.get(z)!.push(row);
   });
 
-  const exportDataRows = data.map((r, i) => ({
+  const exportDataRows = sortedData.map((r, i) => ({
     "#": i + 1,
     Tienda: r.tienda,
     Zona: r.zona,
@@ -168,6 +200,8 @@ export function StoreLeaderboard({ days, canal, customFrom, customTo }: { days: 
     "Ticket Promedio": r.ticket_promedio,
     UPT: r.upt,
     "% Full Price": r.pct_venta_full_price,
+    "Presupuesto": presupuestoDe(r.tienda) ?? 0,
+    "% Cumplimiento": pctDe(r) ?? 0,
   }));
 
   return (
