@@ -59,13 +59,17 @@ const zoomProductoItems: NavItem[] = [
   topProductosItem,
 ];
 
-const manejoStockItems: NavItem[] = [
+const productoItems: NavItem[] = [
   saludProductoItem,
   desempenoLineaItem,
-  inventariosItem,
-  bundleConstructionItem,
-  insumosItem,
 ];
+
+const productoBottomItems: NavItem[] = [cierreColeccionItem];
+
+const inventarioItems: NavItem[] = [inventariosItem, proyeccionDemandaItem];
+
+const herramientasItems: NavItem[] = [bundleConstructionItem, insumosItem];
+
 
 const gestionComercialItems: NavItem[] = [
   { title: "Gestión de Incentivos", url: "/incentivos", icon: Trophy, description: "Campañas & liquidaciones", module: "incentivos", action: "view" },
@@ -116,7 +120,10 @@ export function AppSidebar() {
   const visibleLogistica = useMemo(() => logisticaItems.filter((i) => can(i.module, i.action)), [permissions, isAdmin]);
   const visibleConfig = useMemo(() => configuracionItems.filter((i) => can(i.module, i.action)), [permissions, isAdmin]);
   const visibleFinanzas = useMemo(() => finanzasItems.filter((i) => can(i.module, i.action)), [permissions, isAdmin]);
-  const visibleStock = useMemo(() => manejoStockItems.filter((i) => can(i.module, i.action)), [permissions, isAdmin]);
+  const visibleProducto = useMemo(() => productoItems.filter((i) => can(i.module, i.action)), [permissions, isAdmin]);
+  const visibleProductoBottom = useMemo(() => productoBottomItems.filter((i) => can(i.module, i.action)), [permissions, isAdmin]);
+  const visibleInventario = useMemo(() => inventarioItems.filter((i) => can(i.module, i.action)), [permissions, isAdmin]);
+  const visibleHerramientas = useMemo(() => herramientasItems.filter((i) => can(i.module, i.action)), [permissions, isAdmin]);
   const visibleZoom = useMemo(() => zoomProductoItems.filter((i) => can(i.module, i.action)), [permissions, isAdmin]);
 
   const canPresupuesto = can(presupuestoItem.module, presupuestoItem.action);
@@ -128,14 +135,20 @@ export function AppSidebar() {
   const isFinanzasActive = visibleFinanzas.some((i) => location.pathname === i.url);
   const isPresupuestoActive = [presupuestoItem.url, centroAccionItem.url].includes(location.pathname);
   const isZoomActive = visibleZoom.some((i) => location.pathname === i.url);
-  const isStockActive = visibleStock.some((i) => location.pathname === i.url) || isZoomActive;
+  const isProductoActive =
+    [...visibleProducto, ...visibleProductoBottom].some((i) => location.pathname === i.url) || isZoomActive;
+  const isInventarioActive = visibleInventario.some((i) => location.pathname === i.url);
+  const isHerramientasActive =
+    visibleHerramientas.some((i) => location.pathname === i.url) || isLogisticaActive;
 
   const [gestionOpen, setGestionOpen] = useState(isGestionActive);
   const [configOpen, setConfigOpen] = useState(isConfigActive);
   const [logisticaOpen, setLogisticaOpen] = useState(isLogisticaActive);
   const [finanzasOpen, setFinanzasOpen] = useState(isFinanzasActive);
   const [presupuestoOpen, setPresupuestoOpen] = useState(isPresupuestoActive);
-  const [stockOpen, setStockOpen] = useState(isStockActive);
+  const [productoOpen, setProductoOpen] = useState(isProductoActive);
+  const [inventarioOpen, setInventarioOpen] = useState(isInventarioActive);
+  const [herramientasOpen, setHerramientasOpen] = useState(isHerramientasActive);
   const [zoomOpen, setZoomOpen] = useState(isZoomActive);
 
   const userEmail = session?.user?.email || "";
@@ -250,36 +263,30 @@ export function AppSidebar() {
               {/* 4 - Rendimiento Tiendas */}
               {can(rendimientoTiendasItem.module, rendimientoTiendasItem.action) && renderItem(rendimientoTiendasItem)}
 
-              {/* 5 - Cierre de Colecciones */}
-              {can(cierreColeccionItem.module, cierreColeccionItem.action) && renderItem(cierreColeccionItem)}
-
-              {/* 5b - Proyección de Demanda */}
-              {can(proyeccionDemandaItem.module, proyeccionDemandaItem.action) && renderItem(proyeccionDemandaItem)}
-
-              {/* 6 - Productos y Stock */}
-              {(visibleStock.length > 0 || visibleZoom.length > 0) && (
+              {/* 5 - PRODUCTO */}
+              {(visibleProducto.length > 0 || visibleZoom.length > 0 || visibleProductoBottom.length > 0) && (
                 <>
                   <SidebarMenuItem>
                     <SidebarMenuButton asChild>
                       <button
-                        onClick={() => setStockOpen((v) => !v)}
+                        onClick={() => setProductoOpen((v) => !v)}
                         className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-150 ${
-                          isStockActive
+                          isProductoActive
                             ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
                             : "text-sidebar-foreground/70 hover:bg-sidebar-accent/40 hover:text-sidebar-foreground"
                         }`}
                       >
-                        <Package className="h-[18px] w-[18px] shrink-0" />
-                        <span className="text-sm leading-tight flex-1 text-left truncate">Productos y Stock</span>
+                        <Tag className="h-[18px] w-[18px] shrink-0" />
+                        <span className="text-sm leading-tight flex-1 text-left truncate">Producto</span>
                         <ChevronDown
-                          className={`h-3.5 w-3.5 shrink-0 transition-transform ${stockOpen ? "rotate-180" : ""}`}
+                          className={`h-3.5 w-3.5 shrink-0 transition-transform ${productoOpen ? "rotate-180" : ""}`}
                         />
                       </button>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
-                  {stockOpen && (
+                  {productoOpen && (
                     <>
-                      {visibleStock.map((item) => renderItem(item, 1))}
+                      {visibleProducto.map((item) => renderItem(item, 1))}
                       {visibleZoom.length > 0 && (
                         <>
                           <SidebarMenuItem>
@@ -303,34 +310,91 @@ export function AppSidebar() {
                           {zoomOpen && visibleZoom.map((item) => renderItem(item, 2))}
                         </>
                       )}
+                      {visibleProductoBottom.map((item) => renderItem(item, 1))}
                     </>
                   )}
                 </>
               )}
 
-
-              {/* 7 - Logística & Traslados */}
-              {visibleLogistica.length > 0 && (
+              {/* 6 - INVENTARIO */}
+              {visibleInventario.length > 0 && (
                 <>
                   <SidebarMenuItem>
                     <SidebarMenuButton asChild>
                       <button
-                        onClick={() => setLogisticaOpen((v) => !v)}
+                        onClick={() => setInventarioOpen((v) => !v)}
                         className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-150 ${
-                          isLogisticaActive
+                          isInventarioActive
                             ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
                             : "text-sidebar-foreground/70 hover:bg-sidebar-accent/40 hover:text-sidebar-foreground"
                         }`}
                       >
-                        <Truck className="h-[18px] w-[18px] shrink-0" />
-                        <span className="text-sm leading-tight flex-1 text-left truncate">Logística & Traslados</span>
+                        <Archive className="h-[18px] w-[18px] shrink-0" />
+                        <span className="text-sm leading-tight flex-1 text-left truncate">Inventario</span>
                         <ChevronDown
-                          className={`h-3.5 w-3.5 shrink-0 transition-transform ${logisticaOpen ? "rotate-180" : ""}`}
+                          className={`h-3.5 w-3.5 shrink-0 transition-transform ${inventarioOpen ? "rotate-180" : ""}`}
                         />
                       </button>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
-                  {logisticaOpen && visibleLogistica.map((item) => renderItem(item, true))}
+                  {inventarioOpen && visibleInventario.map((item) => renderItem(item, 1))}
+                </>
+              )}
+
+              {/* 7 - HERRAMIENTAS */}
+              {(visibleHerramientas.length > 0 || visibleLogistica.length > 0) && (
+                <>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton asChild>
+                      <button
+                        onClick={() => setHerramientasOpen((v) => !v)}
+                        className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-150 ${
+                          isHerramientasActive
+                            ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
+                            : "text-sidebar-foreground/70 hover:bg-sidebar-accent/40 hover:text-sidebar-foreground"
+                        }`}
+                      >
+                        <Package className="h-[18px] w-[18px] shrink-0" />
+                        <span className="text-sm leading-tight flex-1 text-left truncate">Herramientas</span>
+                        <ChevronDown
+                          className={`h-3.5 w-3.5 shrink-0 transition-transform ${herramientasOpen ? "rotate-180" : ""}`}
+                        />
+                      </button>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                  {herramientasOpen && (
+                    <>
+                      {visibleHerramientas
+                        .filter((i) => i.url === bundleConstructionItem.url)
+                        .map((item) => renderItem(item, 1))}
+                      {visibleLogistica.length > 0 && (
+                        <>
+                          <SidebarMenuItem>
+                            <SidebarMenuButton asChild>
+                              <button
+                                onClick={() => setLogisticaOpen((v) => !v)}
+                                className={`w-full ml-3 flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-150 ${
+                                  isLogisticaActive
+                                    ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
+                                    : "text-sidebar-foreground/70 hover:bg-sidebar-accent/40 hover:text-sidebar-foreground"
+                                }`}
+                              >
+                                <Truck className="h-[18px] w-[18px] shrink-0" />
+                                <span className="text-sm leading-tight flex-1 text-left truncate">Logística & Traslados</span>
+                                <ChevronDown
+                                  className={`h-3.5 w-3.5 shrink-0 transition-transform ${logisticaOpen ? "rotate-180" : ""}`}
+                                />
+                              </button>
+                            </SidebarMenuButton>
+                          </SidebarMenuItem>
+                          {logisticaOpen && visibleLogistica.map((item) => renderItem(item, 2))}
+                        </>
+                      )}
+                      {visibleHerramientas
+                        .filter((i) => i.url !== bundleConstructionItem.url)
+                        .map((item) => renderItem(item, 1))}
+                    </>
+                  )}
                 </>
               )}
 
