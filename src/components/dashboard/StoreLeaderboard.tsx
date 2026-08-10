@@ -242,11 +242,11 @@ export function StoreLeaderboard({ days, canal, customFrom, customTo }: { days: 
         {/* ── País Tab ── */}
         <TabsContent value="pais" className="mt-0">
           <div className="overflow-x-auto">
-            <table className="w-full text-sm min-w-[700px]">
-              <thead>{TABLE_HEADER}</thead>
+            <table className="w-full text-sm min-w-[820px]">
+              <thead><TableHeader sortDir={sortDir} onToggleSort={toggleSort} /></thead>
               <tbody>
-                {(expanded ? data : data.slice(0, 10)).map((row, i) => (
-                  <StoreRow key={row.tienda} row={row} rank={i} prev={prevMap.get(row.tienda)} />
+                {(expanded ? sortedData : sortedData.slice(0, 10)).map((row, i) => (
+                  <StoreRow key={row.tienda} row={row} rank={i} prev={prevMap.get(row.tienda)} presupuesto={presupuestoDe(row.tienda)} />
                 ))}
               </tbody>
             </table>
