@@ -50,6 +50,7 @@ interface ProductoLista {
   title: string;
   category: string;
   categoria_padre: string | null;
+  genero_norm: string | null;
   coleccion: string;
   image_url: string | null;
   unidades_vendidas: number;
