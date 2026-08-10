@@ -176,9 +176,9 @@ export function ChannelPerformance({ days, customFrom, customTo }: Props) {
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="tiendas"><ChannelTab row={tiendas} /></TabsContent>
-        <TabsContent value="outlets"><ChannelTab row={outlets} /></TabsContent>
-        <TabsContent value="digital"><ChannelTab row={digital} /></TabsContent>
+        <TabsContent value="tiendas"><ChannelTab row={tiendas} presupuesto={budgetByKey["tiendas"]} /></TabsContent>
+        <TabsContent value="outlets"><ChannelTab row={outlets} presupuesto={budgetByKey["outlets"]} /></TabsContent>
+        <TabsContent value="digital"><ChannelTab row={digital} presupuesto={budgetByKey["digital"]} /></TabsContent>
       </Tabs>
     </div>
   );
