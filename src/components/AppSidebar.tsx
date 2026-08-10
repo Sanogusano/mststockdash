@@ -120,7 +120,10 @@ export function AppSidebar() {
   const visibleLogistica = useMemo(() => logisticaItems.filter((i) => can(i.module, i.action)), [permissions, isAdmin]);
   const visibleConfig = useMemo(() => configuracionItems.filter((i) => can(i.module, i.action)), [permissions, isAdmin]);
   const visibleFinanzas = useMemo(() => finanzasItems.filter((i) => can(i.module, i.action)), [permissions, isAdmin]);
-  const visibleStock = useMemo(() => manejoStockItems.filter((i) => can(i.module, i.action)), [permissions, isAdmin]);
+  const visibleProducto = useMemo(() => productoItems.filter((i) => can(i.module, i.action)), [permissions, isAdmin]);
+  const visibleProductoBottom = useMemo(() => productoBottomItems.filter((i) => can(i.module, i.action)), [permissions, isAdmin]);
+  const visibleInventario = useMemo(() => inventarioItems.filter((i) => can(i.module, i.action)), [permissions, isAdmin]);
+  const visibleHerramientas = useMemo(() => herramientasItems.filter((i) => can(i.module, i.action)), [permissions, isAdmin]);
   const visibleZoom = useMemo(() => zoomProductoItems.filter((i) => can(i.module, i.action)), [permissions, isAdmin]);
 
   const canPresupuesto = can(presupuestoItem.module, presupuestoItem.action);
@@ -132,14 +135,20 @@ export function AppSidebar() {
   const isFinanzasActive = visibleFinanzas.some((i) => location.pathname === i.url);
   const isPresupuestoActive = [presupuestoItem.url, centroAccionItem.url].includes(location.pathname);
   const isZoomActive = visibleZoom.some((i) => location.pathname === i.url);
-  const isStockActive = visibleStock.some((i) => location.pathname === i.url) || isZoomActive;
+  const isProductoActive =
+    [...visibleProducto, ...visibleProductoBottom].some((i) => location.pathname === i.url) || isZoomActive;
+  const isInventarioActive = visibleInventario.some((i) => location.pathname === i.url);
+  const isHerramientasActive =
+    visibleHerramientas.some((i) => location.pathname === i.url) || isLogisticaActive;
 
   const [gestionOpen, setGestionOpen] = useState(isGestionActive);
   const [configOpen, setConfigOpen] = useState(isConfigActive);
   const [logisticaOpen, setLogisticaOpen] = useState(isLogisticaActive);
   const [finanzasOpen, setFinanzasOpen] = useState(isFinanzasActive);
   const [presupuestoOpen, setPresupuestoOpen] = useState(isPresupuestoActive);
-  const [stockOpen, setStockOpen] = useState(isStockActive);
+  const [productoOpen, setProductoOpen] = useState(isProductoActive);
+  const [inventarioOpen, setInventarioOpen] = useState(isInventarioActive);
+  const [herramientasOpen, setHerramientasOpen] = useState(isHerramientasActive);
   const [zoomOpen, setZoomOpen] = useState(isZoomActive);
 
   const userEmail = session?.user?.email || "";
