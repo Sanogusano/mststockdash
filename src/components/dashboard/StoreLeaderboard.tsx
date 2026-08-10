@@ -270,8 +270,8 @@ export function StoreLeaderboard({ days, canal, customFrom, customTo }: { days: 
         {/* ── Zona Tab ── */}
         <TabsContent value="zona" className="mt-0">
           <div className="overflow-x-auto">
-            <table className="w-full text-sm min-w-[700px]">
-              <thead>{TABLE_HEADER}</thead>
+            <table className="w-full text-sm min-w-[820px]">
+              <thead><TableHeader sortDir={sortDir} onToggleSort={toggleSort} /></thead>
               <tbody>
                 {[...zoneGroups.entries()]
                   .sort(([, a], [, b]) => b.reduce((s, r) => s + r.ventas_totales, 0) - a.reduce((s, r) => s + r.ventas_totales, 0))
@@ -280,7 +280,7 @@ export function StoreLeaderboard({ days, canal, customFrom, customTo }: { days: 
                     return (
                       <tr key={`zone-${zone}`} className="contents">
                         {/* Zone header row */}
-                        <td colSpan={7} className="px-3 py-2 bg-primary/5 border-b border-border">
+                        <td colSpan={8} className="px-3 py-2 bg-primary/5 border-b border-border">
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-2">
                               <MapPin className="h-3.5 w-3.5 text-primary" />
@@ -291,7 +291,7 @@ export function StoreLeaderboard({ days, canal, customFrom, customTo }: { days: 
                           </div>
                         </td>
                         {stores.map((row, i) => (
-                          <StoreRow key={row.tienda} row={row} rank={i} prev={prevMap.get(row.tienda)} />
+                          <StoreRow key={row.tienda} row={row} rank={i} prev={prevMap.get(row.tienda)} presupuesto={presupuestoDe(row.tienda)} />
                         ))}
                       </tr>
                     );
