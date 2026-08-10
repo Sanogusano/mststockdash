@@ -197,9 +197,17 @@ export default function DesempenoCategoria() {
     : canal === "online" ? r.uds_online
     : r.uds_vendidas;
 
+  const catKey = (r: Row) =>
+    `${r.categoria_padre ?? "—"} · ${r.genero_norm ?? "—"}`;
+
+  const opcionesCat = useMemo(
+    () => Array.from(new Set(rows.map(catKey)))
+      .sort((a, b) => a.localeCompare(b, "es")), [rows]);
+
   const visibles = useMemo(() => {
     const min = Number(minProd);
-    const f = rows.filter(r => r.productos >= min);
+    const f = rows.filter(r =>
+      r.productos >= min && (catFiltro === "all" || catKey(r) === catFiltro));
     const cmp: Record<string, (a: Row, b: Row) => number> = {
       riesgo: (a, b) => (b.stock_en_riesgo ?? 0) - (a.stock_en_riesgo ?? 0),
       ros:    (a, b) => (rosDe(b) ?? 0) - (rosDe(a) ?? 0),
@@ -208,7 +216,7 @@ export default function DesempenoCategoria() {
       stock:  (a, b) => b.stock_actual - a.stock_actual,
     };
     return [...f].sort(cmp[orden]);
-  }, [rows, minProd, orden, canal]);
+  }, [rows, minProd, orden, canal, catFiltro]);
 
   const tot = useMemo(() => ({
     categorias: visibles.length,
