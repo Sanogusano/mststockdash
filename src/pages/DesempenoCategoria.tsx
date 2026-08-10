@@ -21,6 +21,8 @@ import * as XLSX from "xlsx";
 
 interface Row {
   categoria: string;
+  categoria_padre: string | null;
+  genero_norm: string | null;
   productos: number;
   excelente: number;
   bueno: number;
