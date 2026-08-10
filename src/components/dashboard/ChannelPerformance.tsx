@@ -16,6 +16,13 @@ interface ChannelRow {
   total_pedidos: number | null;
 }
 
+interface BudgetRow {
+  canal: string | null;
+  presupuesto: number | null;
+  venta: number | null;
+  pct_cumplimiento: number | null;
+}
+
 interface Props {
   days: number;
   /** When provided (custom range mode), sends p_desde/p_hasta and omits dias_atras. */
