@@ -111,6 +111,7 @@ export default function CicloVenta() {
 
   const [busqueda, setBusqueda] = useState("");
   const [coleccion, setColeccion] = useState("all");
+  const [categoria, setCategoria] = useState("all");
   const [ayuda, setAyuda] = useState(false);
   const [vista, setVista] = useState<"unidades" | "acumulado">("unidades");
 
