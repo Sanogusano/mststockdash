@@ -380,8 +380,11 @@ export default function TopProductos() {
 
   const colecciones = useMemo(
     () => Array.from(new Set(rows.map(r => r.coleccion).filter(Boolean))).sort(), [rows]);
+  const catKey = (r: Row) =>
+    `${r.categoria_padre ?? r.category ?? "—"} · ${r.genero_norm ?? "—"}`;
   const categorias = useMemo(
-    () => Array.from(new Set(rows.map(r => r.categoria_padre ?? r.category).filter(Boolean))).sort(), [rows]);
+    () => Array.from(new Set(rows.map(catKey).filter(Boolean)))
+      .sort((a, b) => a.localeCompare(b, "es")), [rows]);
 
   const idxDe = (r: Row) =>
     modo === "full" ? r.indice_full : modo === "rebajado" ? r.indice_rebajado : r.indice_total;
@@ -394,7 +397,7 @@ export default function TopProductos() {
     const min = Number(minUds);
     const base = rows.filter(r => {
       if (coleccion !== "all" && r.coleccion !== coleccion) return false;
-      if (categoria !== "all" && (r.categoria_padre ?? r.category) !== categoria) return false;
+      if (categoria !== "all" && catKey(r) !== categoria) return false;
       if (idxDe(r) == null) return false;
       if (udsDe(r) < min) return false;
       // Exige historia suficiente del modo elegido: sin esto, un producto que
@@ -534,7 +537,7 @@ export default function TopProductos() {
               </Select>
 
               <Select value={categoria} onValueChange={setCategoria}>
-                <SelectTrigger className="w-[180px]"><SelectValue /></SelectTrigger>
+                <SelectTrigger className="w-[230px]"><SelectValue /></SelectTrigger>
                 <SelectContent className="max-h-[320px]">
                   <SelectItem value="all">Todas las categorías</SelectItem>
                   {categorias.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}

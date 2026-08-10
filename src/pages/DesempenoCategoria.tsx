@@ -21,6 +21,8 @@ import * as XLSX from "xlsx";
 
 interface Row {
   categoria: string;
+  categoria_padre: string | null;
+  genero_norm: string | null;
   productos: number;
   excelente: number;
   bueno: number;
@@ -165,6 +167,7 @@ export default function DesempenoCategoria() {
 
   const [canal, setCanal] = useState<"total" | "tienda" | "online">("total");
   const [minProd, setMinProd] = useState("10");
+  const [catFiltro, setCatFiltro] = useState("all");
   const [orden, setOrden] = useState<"riesgo" | "ros" | "wos" | "st" | "stock">("riesgo");
   const [ayuda, setAyuda] = useState(false);
 
@@ -194,9 +197,17 @@ export default function DesempenoCategoria() {
     : canal === "online" ? r.uds_online
     : r.uds_vendidas;
 
+  const catKey = (r: Row) =>
+    `${r.categoria_padre ?? "—"} · ${r.genero_norm ?? "—"}`;
+
+  const opcionesCat = useMemo(
+    () => Array.from(new Set(rows.map(catKey)))
+      .sort((a, b) => a.localeCompare(b, "es")), [rows]);
+
   const visibles = useMemo(() => {
     const min = Number(minProd);
-    const f = rows.filter(r => r.productos >= min);
+    const f = rows.filter(r =>
+      r.productos >= min && (catFiltro === "all" || catKey(r) === catFiltro));
     const cmp: Record<string, (a: Row, b: Row) => number> = {
       riesgo: (a, b) => (b.stock_en_riesgo ?? 0) - (a.stock_en_riesgo ?? 0),
       ros:    (a, b) => (rosDe(b) ?? 0) - (rosDe(a) ?? 0),
@@ -205,7 +216,7 @@ export default function DesempenoCategoria() {
       stock:  (a, b) => b.stock_actual - a.stock_actual,
     };
     return [...f].sort(cmp[orden]);
-  }, [rows, minProd, orden, canal]);
+  }, [rows, minProd, orden, canal, catFiltro]);
 
   const tot = useMemo(() => ({
     categorias: visibles.length,
@@ -305,6 +316,14 @@ export default function DesempenoCategoria() {
                   <SelectItem value="5">Mínimo 5 productos</SelectItem>
                   <SelectItem value="10">Mínimo 10 productos</SelectItem>
                   <SelectItem value="20">Mínimo 20 productos</SelectItem>
+                </SelectContent>
+              </Select>
+
+              <Select value={catFiltro} onValueChange={setCatFiltro}>
+                <SelectTrigger className="w-[230px]"><SelectValue /></SelectTrigger>
+                <SelectContent className="max-h-[320px]">
+                  <SelectItem value="all">Todas las categorías</SelectItem>
+                  {opcionesCat.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
                 </SelectContent>
               </Select>
 

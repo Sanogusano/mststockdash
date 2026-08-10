@@ -50,6 +50,7 @@ interface ProductoLista {
   title: string;
   category: string;
   categoria_padre: string | null;
+  genero_norm: string | null;
   coleccion: string;
   image_url: string | null;
   unidades_vendidas: number;
@@ -110,6 +111,7 @@ export default function CicloVenta() {
 
   const [busqueda, setBusqueda] = useState("");
   const [coleccion, setColeccion] = useState("all");
+  const [categoria, setCategoria] = useState("all");
   const [ayuda, setAyuda] = useState(false);
   const [vista, setVista] = useState<"unidades" | "acumulado">("unidades");
 
@@ -125,7 +127,7 @@ export default function CicloVenta() {
         for (;;) {
           const { data, error } = await supabase
             .from("mv_producto_clasificacion")
-            .select("product_id,title,category,categoria_padre,coleccion,image_url,unidades_vendidas,semanas_en_venta,indice_total,desempeno,cobertura,n_cohorte,base_cohorte")
+            .select("product_id,title,category,categoria_padre,genero_norm,coleccion,image_url,unidades_vendidas,semanas_en_venta,indice_total,desempeno,cobertura,n_cohorte,base_cohorte")
             .order("unidades_vendidas", { ascending: false })
             .order("product_id", { ascending: true })
             .range(desde, desde + PAGINA - 1);
@@ -171,15 +173,25 @@ export default function CicloVenta() {
     [productos]
   );
 
+  const catKey = (p: ProductoLista) =>
+    `${p.categoria_padre ?? p.category ?? "—"} · ${p.genero_norm ?? "—"}`;
+
+  const categorias = useMemo(
+    () => Array.from(new Set(productos.map(catKey)))
+      .sort((a, b) => a.localeCompare(b, "es")),
+    [productos]
+  );
+
   const listaFiltrada = useMemo(() => {
     const q = busqueda.trim().toLowerCase();
     return productos
       .filter(p =>
         (coleccion === "all" || p.coleccion === coleccion) &&
+        (categoria === "all" || catKey(p) === categoria) &&
         (!q || p.title?.toLowerCase().includes(q))
       )
       .slice(0, 150);
-  }, [productos, coleccion, busqueda]);
+  }, [productos, coleccion, categoria, busqueda]);
 
   // Hitos: pico, semanas al 50% y al 80% de la venta
   const hitos = useMemo(() => {
@@ -264,6 +276,13 @@ export default function CicloVenta() {
                   <SelectContent>
                     <SelectItem value="all">Todas las colecciones</SelectItem>
                     {colecciones.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+                <Select value={categoria} onValueChange={setCategoria}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent className="max-h-[320px]">
+                    <SelectItem value="all">Todas las categorías</SelectItem>
+                    {categorias.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
                   </SelectContent>
                 </Select>
 

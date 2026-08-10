@@ -3440,6 +3440,23 @@ export type Database = {
         Args: { p_fecha?: string }
         Returns: Json
       }
+      reporte_curva_linea: {
+        Args: {
+          p_coleccion?: string
+          p_genero?: string
+          p_min_prod?: number
+          p_semanas?: number
+        }
+        Returns: {
+          genero: string
+          linea: string
+          pct_acumulado: number
+          pct_semana: number
+          productos: number
+          sem_vida: number
+          uds_prom: number
+        }[]
+      }
       reporte_curva_maduracion: {
         Args: never
         Returns: {
