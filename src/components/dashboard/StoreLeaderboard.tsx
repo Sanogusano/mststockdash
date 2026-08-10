@@ -62,7 +62,8 @@ function UptBadge({ upt }: { upt: number }) {
 }
 
 /* ── Store Row ── */
-function StoreRow({ row, rank, prev }: { row: RankingRow; rank: number; prev?: PrevRow }) {
+function StoreRow({ row, rank, prev, presupuesto }: { row: RankingRow; rank: number; prev?: PrevRow; presupuesto?: number }) {
+  const pct = presupuesto && presupuesto > 0 ? (row.ventas_totales / presupuesto) * 100 : null;
   return (
     <tr className="border-b border-border/50 hover:bg-muted/20 transition-colors">
       <td className="px-3 py-2.5 text-center text-base">
@@ -91,21 +92,37 @@ function StoreRow({ row, rank, prev }: { row: RankingRow; rank: number; prev?: P
           {prev && <CompArrow cur={row.pct_venta_full_price} prev={prev.pct_venta_full_price} />}
         </div>
       </td>
+      <td className="px-3 py-2.5 text-right">
+        <BarraCumplimiento pct={pct} venta={row.ventas_totales} presupuesto={presupuesto ?? null} />
+      </td>
     </tr>
   );
 }
 
-const TABLE_HEADER = (
-  <tr className="border-b border-border bg-muted/30">
-    <th className="px-3 py-2.5 text-left text-xs font-medium text-muted-foreground w-10">#</th>
-    <th className="px-3 py-2.5 text-left text-xs font-medium text-muted-foreground">Tienda</th>
-    <th className="px-3 py-2.5 text-right text-xs font-medium text-muted-foreground">Ventas Netas</th>
-    <th className="px-3 py-2.5 text-right text-xs font-medium text-muted-foreground">Uds</th>
-    <th className="px-3 py-2.5 text-right text-xs font-medium text-muted-foreground">Ticket Prom</th>
-    <th className="px-3 py-2.5 text-center text-xs font-medium text-muted-foreground">UPT</th>
-    <th className="px-3 py-2.5 text-right text-xs font-medium text-muted-foreground">% Full Price</th>
-  </tr>
-);
+type SortDir = "asc" | "desc" | null;
+
+function TableHeader({ sortDir, onToggleSort }: { sortDir: SortDir; onToggleSort: () => void }) {
+  return (
+    <tr className="border-b border-border bg-muted/30">
+      <th className="px-3 py-2.5 text-left text-xs font-medium text-muted-foreground w-10">#</th>
+      <th className="px-3 py-2.5 text-left text-xs font-medium text-muted-foreground">Tienda</th>
+      <th className="px-3 py-2.5 text-right text-xs font-medium text-muted-foreground">Ventas Netas</th>
+      <th className="px-3 py-2.5 text-right text-xs font-medium text-muted-foreground">Uds</th>
+      <th className="px-3 py-2.5 text-right text-xs font-medium text-muted-foreground">Ticket Prom</th>
+      <th className="px-3 py-2.5 text-center text-xs font-medium text-muted-foreground">UPT</th>
+      <th className="px-3 py-2.5 text-right text-xs font-medium text-muted-foreground">% Full Price</th>
+      <th className="px-3 py-2.5 text-right text-xs font-medium text-muted-foreground">
+        <button
+          onClick={onToggleSort}
+          className="inline-flex items-center gap-1 hover:text-foreground transition-colors"
+        >
+          Cumplimiento
+          {sortDir === "asc" ? <ChevronUp className="h-3 w-3" /> : sortDir === "desc" ? <ChevronDown className="h-3 w-3" /> : <ArrowUpDown className="h-3 w-3 opacity-50" />}
+        </button>
+      </th>
+    </tr>
+  );
+}
 
 export function StoreLeaderboard({ days, canal, customFrom, customTo }: { days: number; canal?: string; customFrom?: Date; customTo?: Date }) {
   const [data, setData] = useState<RankingRow[]>([]);
