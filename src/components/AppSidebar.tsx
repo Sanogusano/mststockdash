@@ -364,7 +364,9 @@ export function AppSidebar() {
                   </SidebarMenuItem>
                   {herramientasOpen && (
                     <>
-                      {renderItem(herramientasItems[0], 1)}
+                      {visibleHerramientas
+                        .filter((i) => i.url === bundleConstructionItem.url)
+                        .map((item) => renderItem(item, 1))}
                       {visibleLogistica.length > 0 && (
                         <>
                           <SidebarMenuItem>
@@ -389,7 +391,7 @@ export function AppSidebar() {
                         </>
                       )}
                       {visibleHerramientas
-                        .filter((i) => i.url !== herramientasItems[0].url)
+                        .filter((i) => i.url !== bundleConstructionItem.url)
                         .map((item) => renderItem(item, 1))}
                     </>
                   )}
