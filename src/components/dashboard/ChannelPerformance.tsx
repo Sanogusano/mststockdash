@@ -86,6 +86,7 @@ const EMPTY_ROW: ChannelRow = { canal: null, canal_key: null, ventas_totales: 0,
 
 export function ChannelPerformance({ days, customFrom, customTo }: Props) {
   const [data, setData] = useState<ChannelRow[]>([]);
+  const [budget, setBudget] = useState<BudgetRow[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -98,11 +99,16 @@ export function ChannelPerformance({ days, customFrom, customTo }: Props) {
       const params = isCustomRange
         ? { p_desde: toDateStr(customFrom!), p_hasta: toDateStr(customTo!) }
         : { dias_atras: resolveDays(days) };
-      const { data: rows, error } = await supabase.rpc(
-        "reporte_desempeño_por_canal",
-        params as any
-      );
+      const { from, to } = getDateRange(isCustomRange ? CUSTOM_SENTINEL : days, customFrom, customTo);
+      const [{ data: rows, error }, presRes] = await Promise.all([
+        supabase.rpc("reporte_desempeño_por_canal", params as any),
+        supabase.rpc("reporte_presupuesto_por_canal", {
+          p_desde: toDateStr(from),
+          p_hasta: toDateStr(to),
+        } as any),
+      ]);
       if (!error && rows) setData(rows as unknown as ChannelRow[]);
+      if (!presRes.error && presRes.data) setBudget(presRes.data as unknown as BudgetRow[]);
       setLoading(false);
     }
     fetchData();
@@ -115,6 +121,10 @@ export function ChannelPerformance({ days, customFrom, customTo }: Props) {
   const porCanal = Object.fromEntries(
     data.map((r) => [r.canal_key, r])
   ) as Record<string, ChannelRow | undefined>;
+
+  const budgetByKey = Object.fromEntries(
+    budget.map((b) => [(b.canal ?? "").trim().toLowerCase(), b])
+  ) as Record<string, BudgetRow | undefined>;
 
   const digital = porCanal.digital ?? EMPTY_ROW;
   const tiendas = porCanal.tiendas ?? EMPTY_ROW;
