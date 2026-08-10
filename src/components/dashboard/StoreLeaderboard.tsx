@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { isValidDays } from "@/lib/validation";
-import { buildRpcDateParams } from "@/components/dashboard/TimeFilter";
+import { buildRpcDateParams, getDateRange, toDateStr, CUSTOM_SENTINEL } from "@/components/dashboard/TimeFilter";
+import { BarraCumplimiento } from "./BarraCumplimiento";
 import { exportToCSV } from "@/lib/csv-export";
 import { exportToPDF } from "@/lib/pdf-export";
 import { LoadingState, EmptyState } from "./LoadingState";
-import { Download, FileText, Trophy, ChevronDown, ChevronUp, TrendingUp, TrendingDown, Globe, MapPin } from "lucide-react";
+import { Download, FileText, Trophy, ChevronDown, ChevronUp, TrendingUp, TrendingDown, Globe, MapPin, ArrowUpDown } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 
 interface RankingRow {
