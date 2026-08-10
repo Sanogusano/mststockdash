@@ -1726,7 +1726,19 @@ function BrandOverviewPanel({ days, comparisonPeriod = "previous", customFrom, c
             onChange={(labels) => setSelectedChannels(labels.map(l => Object.entries(CHANNEL_LABELS).find(([, v]) => v === l)?.[0] ?? "").filter(Boolean))}
           />
         </div>
+        {(() => {
+          const { desde, hasta } = getRangeStrings(days, customFrom, customTo);
+          return (
+            <div className="mb-4">
+              <CumplimientoPresupuestoCard desde={desde} hasta={hasta}
+                zona={null}
+                canal={singleCanal === "digital" ? "online" : singleCanal ? "tienda" : null}
+                locationId={null} />
+            </div>
+          );
+        })()}
         {/* Row 1: Ventas Netas + Ticket + Precio Promedio */}
+
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <KpiCard label="Ventas Netas" value={fmtCurrency(kpis.ingresos_netos)} mobileValue={fmtCurrencyCompact(kpis.ingresos_netos)} icon={DollarSign}
             actual={kpis.ingresos_netos} anterior={prevKpis.ingresos_netos} />
@@ -1987,17 +1999,6 @@ function ZonePanel({ days, locationFilter, comparisonPeriod = "previous", custom
             <CalendarDays className="h-5 w-5 text-primary" />
             <h3 className="text-sm font-semibold text-foreground">Desempeño Comercial {selectedZone !== "all" ? `— ${selectedZone}` : "— Todas las Zonas"}</h3>
           </div>
-          {(() => {
-            const { desde, hasta } = getRangeStrings(days, customFrom, customTo);
-            return (
-              <div className="mb-5">
-                <CumplimientoPresupuestoCard desde={desde} hasta={hasta}
-                  zona={selectedZone !== "all" ? selectedZone : null}
-                  canal="tienda"
-                  locationId={selectedLocation !== "all" ? selectedLocation : null} />
-              </div>
-            );
-          })()}
           <div className="space-y-5">
             {/* Row 1: Mejor/Peor Día + Weekday/Weekend */}
             <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
