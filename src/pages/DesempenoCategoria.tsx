@@ -319,6 +319,14 @@ export default function DesempenoCategoria() {
                 </SelectContent>
               </Select>
 
+              <Select value={catFiltro} onValueChange={setCatFiltro}>
+                <SelectTrigger className="w-[230px]"><SelectValue /></SelectTrigger>
+                <SelectContent className="max-h-[320px]">
+                  <SelectItem value="all">Todas las categorías</SelectItem>
+                  {opcionesCat.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                </SelectContent>
+              </Select>
+
               <Button variant="outline" size="sm" className="ml-auto"
                       onClick={exportar} disabled={!visibles.length}>
                 <Download className="h-4 w-4 mr-1.5" />Excel
