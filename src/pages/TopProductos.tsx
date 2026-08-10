@@ -380,8 +380,11 @@ export default function TopProductos() {
 
   const colecciones = useMemo(
     () => Array.from(new Set(rows.map(r => r.coleccion).filter(Boolean))).sort(), [rows]);
+  const catKey = (r: Row) =>
+    `${r.categoria_padre ?? r.category ?? "—"} · ${r.genero_norm ?? "—"}`;
   const categorias = useMemo(
-    () => Array.from(new Set(rows.map(r => r.categoria_padre ?? r.category).filter(Boolean))).sort(), [rows]);
+    () => Array.from(new Set(rows.map(catKey).filter(Boolean)))
+      .sort((a, b) => a.localeCompare(b, "es")), [rows]);
 
   const idxDe = (r: Row) =>
     modo === "full" ? r.indice_full : modo === "rebajado" ? r.indice_rebajado : r.indice_total;
