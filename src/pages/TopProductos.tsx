@@ -397,7 +397,7 @@ export default function TopProductos() {
     const min = Number(minUds);
     const base = rows.filter(r => {
       if (coleccion !== "all" && r.coleccion !== coleccion) return false;
-      if (categoria !== "all" && (r.categoria_padre ?? r.category) !== categoria) return false;
+      if (categoria !== "all" && catKey(r) !== categoria) return false;
       if (idxDe(r) == null) return false;
       if (udsDe(r) < min) return false;
       // Exige historia suficiente del modo elegido: sin esto, un producto que
