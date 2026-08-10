@@ -537,7 +537,7 @@ export default function TopProductos() {
               </Select>
 
               <Select value={categoria} onValueChange={setCategoria}>
-                <SelectTrigger className="w-[180px]"><SelectValue /></SelectTrigger>
+                <SelectTrigger className="w-[230px]"><SelectValue /></SelectTrigger>
                 <SelectContent className="max-h-[320px]">
                   <SelectItem value="all">Todas las categorías</SelectItem>
                   {categorias.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
