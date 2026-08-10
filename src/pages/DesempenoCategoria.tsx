@@ -167,6 +167,7 @@ export default function DesempenoCategoria() {
 
   const [canal, setCanal] = useState<"total" | "tienda" | "online">("total");
   const [minProd, setMinProd] = useState("10");
+  const [catFiltro, setCatFiltro] = useState("all");
   const [orden, setOrden] = useState<"riesgo" | "ros" | "wos" | "st" | "stock">("riesgo");
   const [ayuda, setAyuda] = useState(false);
 
