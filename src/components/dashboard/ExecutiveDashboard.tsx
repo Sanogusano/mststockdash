@@ -1726,7 +1726,19 @@ function BrandOverviewPanel({ days, comparisonPeriod = "previous", customFrom, c
             onChange={(labels) => setSelectedChannels(labels.map(l => Object.entries(CHANNEL_LABELS).find(([, v]) => v === l)?.[0] ?? "").filter(Boolean))}
           />
         </div>
+        {(() => {
+          const { desde, hasta } = getRangeStrings(days, customFrom, customTo);
+          return (
+            <div className="mb-4">
+              <CumplimientoPresupuestoCard desde={desde} hasta={hasta}
+                zona={null}
+                canal={singleCanal === "digital" ? "online" : singleCanal ? "tienda" : null}
+                locationId={null} />
+            </div>
+          );
+        })()}
         {/* Row 1: Ventas Netas + Ticket + Precio Promedio */}
+
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <KpiCard label="Ventas Netas" value={fmtCurrency(kpis.ingresos_netos)} mobileValue={fmtCurrencyCompact(kpis.ingresos_netos)} icon={DollarSign}
             actual={kpis.ingresos_netos} anterior={prevKpis.ingresos_netos} />
