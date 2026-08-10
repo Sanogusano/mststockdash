@@ -3814,6 +3814,22 @@ export type Database = {
           tipo_venta: string
         }[]
       }
+      reporte_presupuesto_por_canal: {
+        Args: { p_desde?: string; p_hasta?: string }
+        Returns: {
+          canal: string
+          pct_cumplimiento: number
+          presupuesto: number
+          venta: number
+        }[]
+      }
+      reporte_presupuesto_por_tienda: {
+        Args: { p_desde?: string; p_hasta?: string }
+        Returns: {
+          presupuesto: number
+          tienda: string
+        }[]
+      }
       reporte_productos_por_categoria: {
         Args: {
           dias_atras: number

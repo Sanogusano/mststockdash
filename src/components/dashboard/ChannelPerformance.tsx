@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { isValidDays } from "@/lib/validation";
-import { resolveDays, toDateStr } from "@/components/dashboard/TimeFilter";
+import { resolveDays, toDateStr, getDateRange, CUSTOM_SENTINEL } from "@/components/dashboard/TimeFilter";
+import { BarraCumplimiento } from "./BarraCumplimiento";
 import { LoadingState, EmptyState } from "./LoadingState";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Store, Globe, Tag } from "lucide-react";
@@ -13,6 +14,13 @@ interface ChannelRow {
   canal_key: CanalKey | string | null;
   ventas_totales: number | null;
   total_pedidos: number | null;
+}
+
+interface BudgetRow {
+  canal: string | null;
+  presupuesto: number | null;
+  venta: number | null;
+  pct_cumplimiento: number | null;
 }
 
 interface Props {
@@ -29,18 +37,19 @@ function formatCompactMoney(value: number) {
   return value.toLocaleString("es-CO");
 }
 
-function KpiCard({ label, value, mobileValue, prefix = "" }: { label: string; value: string; mobileValue?: string; prefix?: string }) {
+function KpiCard({ label, value, mobileValue, prefix = "", footer }: { label: string; value: string; mobileValue?: string; prefix?: string; footer?: React.ReactNode }) {
   return (
     <div className="glass-card rounded-xl p-5 flex flex-col gap-1">
       <p className="text-xs text-muted-foreground uppercase tracking-widest">{label}</p>
       <p className="text-2xl font-display font-bold text-foreground whitespace-normal break-words tabular-nums">
         {mobileValue ? <><span className="sm:hidden">{prefix}{mobileValue}</span><span className="hidden sm:inline">{prefix}{value}</span></> : <>{prefix}{value}</>}
       </p>
+      {footer && <div className="mt-1">{footer}</div>}
     </div>
   );
 }
 
-function ChannelTab({ row }: { row: ChannelRow }) {
+function ChannelTab({ row, presupuesto }: { row: ChannelRow; presupuesto?: BudgetRow }) {
   const ventas = row.ventas_totales ?? 0;
   const pedidos = row.total_pedidos ?? 0;
   const ticket = pedidos > 0 ? ventas / pedidos : 0;
@@ -51,6 +60,16 @@ function ChannelTab({ row }: { row: ChannelRow }) {
         value={ventas.toLocaleString()}
         mobileValue={formatCompactMoney(ventas)}
         prefix="$"
+        footer={
+          presupuesto ? (
+            <BarraCumplimiento
+              pct={presupuesto.pct_cumplimiento}
+              venta={presupuesto.venta}
+              presupuesto={presupuesto.presupuesto}
+              mostrarMontos
+            />
+          ) : undefined
+        }
       />
       <KpiCard label="Total Pedidos" value={pedidos.toLocaleString()} />
       <KpiCard
@@ -67,6 +86,7 @@ const EMPTY_ROW: ChannelRow = { canal: null, canal_key: null, ventas_totales: 0,
 
 export function ChannelPerformance({ days, customFrom, customTo }: Props) {
   const [data, setData] = useState<ChannelRow[]>([]);
+  const [budget, setBudget] = useState<BudgetRow[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -79,11 +99,16 @@ export function ChannelPerformance({ days, customFrom, customTo }: Props) {
       const params = isCustomRange
         ? { p_desde: toDateStr(customFrom!), p_hasta: toDateStr(customTo!) }
         : { dias_atras: resolveDays(days) };
-      const { data: rows, error } = await supabase.rpc(
-        "reporte_desempeño_por_canal",
-        params as any
-      );
+      const { from, to } = getDateRange(isCustomRange ? CUSTOM_SENTINEL : days, customFrom, customTo);
+      const [{ data: rows, error }, presRes] = await Promise.all([
+        supabase.rpc("reporte_desempeño_por_canal", params as any),
+        supabase.rpc("reporte_presupuesto_por_canal", {
+          p_desde: toDateStr(from),
+          p_hasta: toDateStr(to),
+        } as any),
+      ]);
       if (!error && rows) setData(rows as unknown as ChannelRow[]);
+      if (!presRes.error && presRes.data) setBudget(presRes.data as unknown as BudgetRow[]);
       setLoading(false);
     }
     fetchData();
@@ -96,6 +121,10 @@ export function ChannelPerformance({ days, customFrom, customTo }: Props) {
   const porCanal = Object.fromEntries(
     data.map((r) => [r.canal_key, r])
   ) as Record<string, ChannelRow | undefined>;
+
+  const budgetByKey = Object.fromEntries(
+    budget.map((b) => [(b.canal ?? "").trim().toLowerCase(), b])
+  ) as Record<string, BudgetRow | undefined>;
 
   const digital = porCanal.digital ?? EMPTY_ROW;
   const tiendas = porCanal.tiendas ?? EMPTY_ROW;
@@ -147,9 +176,9 @@ export function ChannelPerformance({ days, customFrom, customTo }: Props) {
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="tiendas"><ChannelTab row={tiendas} /></TabsContent>
-        <TabsContent value="outlets"><ChannelTab row={outlets} /></TabsContent>
-        <TabsContent value="digital"><ChannelTab row={digital} /></TabsContent>
+        <TabsContent value="tiendas"><ChannelTab row={tiendas} presupuesto={budgetByKey["tiendas"]} /></TabsContent>
+        <TabsContent value="outlets"><ChannelTab row={outlets} presupuesto={budgetByKey["outlets"]} /></TabsContent>
+        <TabsContent value="digital"><ChannelTab row={digital} presupuesto={budgetByKey["digital"]} /></TabsContent>
       </Tabs>
     </div>
   );

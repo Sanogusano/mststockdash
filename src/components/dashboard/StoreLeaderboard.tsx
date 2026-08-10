@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { isValidDays } from "@/lib/validation";
-import { buildRpcDateParams } from "@/components/dashboard/TimeFilter";
+import { buildRpcDateParams, getDateRange, toDateStr, CUSTOM_SENTINEL } from "@/components/dashboard/TimeFilter";
+import { BarraCumplimiento } from "./BarraCumplimiento";
 import { exportToCSV } from "@/lib/csv-export";
 import { exportToPDF } from "@/lib/pdf-export";
 import { LoadingState, EmptyState } from "./LoadingState";
-import { Download, FileText, Trophy, ChevronDown, ChevronUp, TrendingUp, TrendingDown, Globe, MapPin } from "lucide-react";
+import { Download, FileText, Trophy, ChevronDown, ChevronUp, TrendingUp, TrendingDown, Globe, MapPin, ArrowUpDown } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 
 interface RankingRow {
@@ -61,7 +62,8 @@ function UptBadge({ upt }: { upt: number }) {
 }
 
 /* ── Store Row ── */
-function StoreRow({ row, rank, prev }: { row: RankingRow; rank: number; prev?: PrevRow }) {
+function StoreRow({ row, rank, prev, presupuesto }: { row: RankingRow; rank: number; prev?: PrevRow; presupuesto?: number }) {
+  const pct = presupuesto && presupuesto > 0 ? (row.ventas_totales / presupuesto) * 100 : null;
   return (
     <tr className="border-b border-border/50 hover:bg-muted/20 transition-colors">
       <td className="px-3 py-2.5 text-center text-base">
@@ -90,39 +92,67 @@ function StoreRow({ row, rank, prev }: { row: RankingRow; rank: number; prev?: P
           {prev && <CompArrow cur={row.pct_venta_full_price} prev={prev.pct_venta_full_price} />}
         </div>
       </td>
+      <td className="px-3 py-2.5 text-right">
+        <BarraCumplimiento pct={pct} venta={row.ventas_totales} presupuesto={presupuesto ?? null} />
+      </td>
     </tr>
   );
 }
 
-const TABLE_HEADER = (
-  <tr className="border-b border-border bg-muted/30">
-    <th className="px-3 py-2.5 text-left text-xs font-medium text-muted-foreground w-10">#</th>
-    <th className="px-3 py-2.5 text-left text-xs font-medium text-muted-foreground">Tienda</th>
-    <th className="px-3 py-2.5 text-right text-xs font-medium text-muted-foreground">Ventas Netas</th>
-    <th className="px-3 py-2.5 text-right text-xs font-medium text-muted-foreground">Uds</th>
-    <th className="px-3 py-2.5 text-right text-xs font-medium text-muted-foreground">Ticket Prom</th>
-    <th className="px-3 py-2.5 text-center text-xs font-medium text-muted-foreground">UPT</th>
-    <th className="px-3 py-2.5 text-right text-xs font-medium text-muted-foreground">% Full Price</th>
-  </tr>
-);
+type SortDir = "asc" | "desc" | null;
+
+function TableHeader({ sortDir, onToggleSort }: { sortDir: SortDir; onToggleSort: () => void }) {
+  return (
+    <tr className="border-b border-border bg-muted/30">
+      <th className="px-3 py-2.5 text-left text-xs font-medium text-muted-foreground w-10">#</th>
+      <th className="px-3 py-2.5 text-left text-xs font-medium text-muted-foreground">Tienda</th>
+      <th className="px-3 py-2.5 text-right text-xs font-medium text-muted-foreground">Ventas Netas</th>
+      <th className="px-3 py-2.5 text-right text-xs font-medium text-muted-foreground">Uds</th>
+      <th className="px-3 py-2.5 text-right text-xs font-medium text-muted-foreground">Ticket Prom</th>
+      <th className="px-3 py-2.5 text-center text-xs font-medium text-muted-foreground">UPT</th>
+      <th className="px-3 py-2.5 text-right text-xs font-medium text-muted-foreground">% Full Price</th>
+      <th className="px-3 py-2.5 text-right text-xs font-medium text-muted-foreground">
+        <button
+          onClick={onToggleSort}
+          className="inline-flex items-center gap-1 hover:text-foreground transition-colors"
+        >
+          Cumplimiento
+          {sortDir === "asc" ? <ChevronUp className="h-3 w-3" /> : sortDir === "desc" ? <ChevronDown className="h-3 w-3" /> : <ArrowUpDown className="h-3 w-3 opacity-50" />}
+        </button>
+      </th>
+    </tr>
+  );
+}
 
 export function StoreLeaderboard({ days, canal, customFrom, customTo }: { days: number; canal?: string; customFrom?: Date; customTo?: Date }) {
   const [data, setData] = useState<RankingRow[]>([]);
   const [prevData, setPrevData] = useState<PrevRow[]>([]);
+  const [budget, setBudget] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState(false);
+  const [sortDir, setSortDir] = useState<SortDir>(null);
 
   useEffect(() => {
     async function load() {
       if (!isValidDays(days)) return;
       setLoading(true);
       const { dias_atras: effectiveDays, p_hasta: hastaParam } = buildRpcDateParams(days, customFrom, customTo);
-      const [curRes, prevRes] = await Promise.all([
+      const hasCustom = !!(customFrom && customTo);
+      const { from, to } = getDateRange(hasCustom ? CUSTOM_SENTINEL : days, customFrom, customTo);
+      const [curRes, prevRes, presRes] = await Promise.all([
         supabase.rpc("reporte_ranking_tiendas", { dias_atras: effectiveDays, p_canal: canal || null, p_hasta: hastaParam }),
         supabase.rpc("reporte_ranking_tiendas_anterior" as any, { dias_atras: effectiveDays, p_canal: canal || null, p_hasta: hastaParam }),
+        supabase.rpc("reporte_presupuesto_por_tienda" as any, { p_desde: toDateStr(from), p_hasta: toDateStr(to) }),
       ]);
       if (curRes.data) setData(curRes.data as unknown as RankingRow[]);
       if (prevRes.data) setPrevData(prevRes.data as unknown as PrevRow[]);
+      if (presRes.data) {
+        const map: Record<string, number> = {};
+        (presRes.data as unknown as { tienda: string; presupuesto: number }[]).forEach(r => {
+          map[(r.tienda ?? "").trim().toLowerCase()] = Number(r.presupuesto ?? 0);
+        });
+        setBudget(map);
+      }
       setLoading(false);
     }
     load();
@@ -132,16 +162,36 @@ export function StoreLeaderboard({ days, canal, customFrom, customTo }: { days: 
   if (!data.length) return <EmptyState message="Sin datos de ranking para este período." />;
 
   const prevMap = new Map(prevData.map(r => [r.tienda, r]));
+  const presupuestoDe = (tienda: string) => budget[(tienda ?? "").trim().toLowerCase()];
+  const pctDe = (r: RankingRow) => {
+    const p = presupuestoDe(r.tienda);
+    return p && p > 0 ? (r.ventas_totales / p) * 100 : null;
+  };
+
+  const sortRows = (rows: RankingRow[]) => {
+    if (!sortDir) return rows;
+    return [...rows].sort((a, b) => {
+      const pa = pctDe(a);
+      const pb = pctDe(b);
+      if (pa == null && pb == null) return 0;
+      if (pa == null) return 1;
+      if (pb == null) return -1;
+      return sortDir === "asc" ? pa - pb : pb - pa;
+    });
+  };
+
+  const sortedData = sortRows(data);
+  const toggleSort = () => setSortDir(d => (d === null ? "desc" : d === "desc" ? "asc" : null));
 
   // Group by zone
   const zoneGroups = new Map<string, RankingRow[]>();
-  data.forEach(row => {
+  sortedData.forEach(row => {
     const z = row.zona || "Sin Zona";
     if (!zoneGroups.has(z)) zoneGroups.set(z, []);
     zoneGroups.get(z)!.push(row);
   });
 
-  const exportDataRows = data.map((r, i) => ({
+  const exportDataRows = sortedData.map((r, i) => ({
     "#": i + 1,
     Tienda: r.tienda,
     Zona: r.zona,
@@ -150,6 +200,8 @@ export function StoreLeaderboard({ days, canal, customFrom, customTo }: { days: 
     "Ticket Promedio": r.ticket_promedio,
     UPT: r.upt,
     "% Full Price": r.pct_venta_full_price,
+    "Presupuesto": presupuestoDe(r.tienda) ?? 0,
+    "% Cumplimiento": pctDe(r) ?? 0,
   }));
 
   return (
@@ -190,11 +242,11 @@ export function StoreLeaderboard({ days, canal, customFrom, customTo }: { days: 
         {/* ── País Tab ── */}
         <TabsContent value="pais" className="mt-0">
           <div className="overflow-x-auto">
-            <table className="w-full text-sm min-w-[700px]">
-              <thead>{TABLE_HEADER}</thead>
+            <table className="w-full text-sm min-w-[820px]">
+              <thead><TableHeader sortDir={sortDir} onToggleSort={toggleSort} /></thead>
               <tbody>
-                {(expanded ? data : data.slice(0, 10)).map((row, i) => (
-                  <StoreRow key={row.tienda} row={row} rank={i} prev={prevMap.get(row.tienda)} />
+                {(expanded ? sortedData : sortedData.slice(0, 10)).map((row, i) => (
+                  <StoreRow key={row.tienda} row={row} rank={i} prev={prevMap.get(row.tienda)} presupuesto={presupuestoDe(row.tienda)} />
                 ))}
               </tbody>
             </table>
@@ -218,8 +270,8 @@ export function StoreLeaderboard({ days, canal, customFrom, customTo }: { days: 
         {/* ── Zona Tab ── */}
         <TabsContent value="zona" className="mt-0">
           <div className="overflow-x-auto">
-            <table className="w-full text-sm min-w-[700px]">
-              <thead>{TABLE_HEADER}</thead>
+            <table className="w-full text-sm min-w-[820px]">
+              <thead><TableHeader sortDir={sortDir} onToggleSort={toggleSort} /></thead>
               <tbody>
                 {[...zoneGroups.entries()]
                   .sort(([, a], [, b]) => b.reduce((s, r) => s + r.ventas_totales, 0) - a.reduce((s, r) => s + r.ventas_totales, 0))
@@ -228,7 +280,7 @@ export function StoreLeaderboard({ days, canal, customFrom, customTo }: { days: 
                     return (
                       <tr key={`zone-${zone}`} className="contents">
                         {/* Zone header row */}
-                        <td colSpan={7} className="px-3 py-2 bg-primary/5 border-b border-border">
+                        <td colSpan={8} className="px-3 py-2 bg-primary/5 border-b border-border">
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-2">
                               <MapPin className="h-3.5 w-3.5 text-primary" />
@@ -239,7 +291,7 @@ export function StoreLeaderboard({ days, canal, customFrom, customTo }: { days: 
                           </div>
                         </td>
                         {stores.map((row, i) => (
-                          <StoreRow key={row.tienda} row={row} rank={i} prev={prevMap.get(row.tienda)} />
+                          <StoreRow key={row.tienda} row={row} rank={i} prev={prevMap.get(row.tienda)} presupuesto={presupuestoDe(row.tienda)} />
                         ))}
                       </tr>
                     );
