@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { BarChart3, TrendingUp, ArrowLeftRight, Package, Tag, Layers, Target, Zap, Trophy, Archive, Users, Calculator, UserCog, Briefcase, ChevronDown, Settings, MapPin, Upload, LogOut, Truck, Shield, Store, Banknote, LayoutDashboard, CreditCard, MessageCircle, AlertTriangle, RefreshCw, Sparkles, Search } from "lucide-react";
+import { BarChart3, TrendingUp, ArrowLeftRight, Package, Tag, Layers, Target, Zap, Trophy, Archive, Users, Calculator, UserCog, Briefcase, ChevronDown, Settings, MapPin, Upload, LogOut, Truck, Shield, Store, Banknote, LayoutDashboard, CreditCard, MessageCircle, AlertTriangle, RefreshCw, Sparkles, Search, LayoutGrid, TrendingDown, Globe } from "lucide-react";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useAuth } from "@/hooks/useAuth";
 import { useUserPermissions } from "@/hooks/useUserPermissions";
@@ -40,23 +40,23 @@ const proyeccionDemandaItem: NavItem = { title: "Proyección de Demanda", url: "
 
 // Items adicionales (no listados explícitamente, se mantienen visibles al final del bloque de análisis)
 const inventariosItem: NavItem = { title: "Inventarios & Salud", url: "/inventarios", icon: BarChart3, description: "WOS por tienda", module: "dashboards.inventario_salud", action: "view" };
-const bajaRotacionItem: NavItem = { title: "Baja Rotación", url: "/baja-rotacion", icon: AlertTriangle, description: "Sell-through bajo & antigüedad", module: "dashboards.inventario_salud", action: "view" };
+const bajaRotacionItem: NavItem = { title: "Baja Rotación", url: "/baja-rotacion", icon: TrendingDown, description: "Sell-through bajo & antigüedad", module: "dashboards.inventario_salud", action: "view" };
 const insumosItem: NavItem = { title: "Gestión de Insumos", url: "/insumos", icon: Package, description: "CEDI & reorden", module: "dashboards.gestion_insumos", action: "view" };
 const bundleConstructionItem: NavItem = { title: "Bundle Construction", url: "/bundle-construction", icon: Sparkles, description: "Combos de baja rotación", module: "dashboards.inventario_salud", action: "view" };
-const desempenoCategoriaItem: NavItem = { title: "Desempeño por categoría", url: "/desempeno-categoria", icon: Layers, description: "Medianas de ROS y cobertura por categoría", module: "dashboards.inventario_salud", action: "view" };
+const desempenoCategoriaItem: NavItem = { title: "Desempeño por categoría", url: "/desempeno-categoria", icon: BarChart3, description: "Medianas de ROS y cobertura por categoría", module: "dashboards.inventario_salud", action: "view" };
 
-const clasificacionProductoItem: NavItem = { title: "Clasificación de producto", url: "/clasificacion-producto", icon: Layers, description: "Velocidad de rotación & cobertura", module: "dashboards.salud_producto", action: "view" };
+const clasificacionProductoItem: NavItem = { title: "Clasificación de producto", url: "/clasificacion-producto", icon: LayoutGrid, description: "Velocidad de rotación & cobertura", module: "dashboards.salud_producto", action: "view" };
 
-const saludPublicacionItem: NavItem = { title: "Salud de publicación", url: "/salud-publicacion", icon: Layers, description: "Diagnóstico del canal online", module: "dashboards.salud_producto", action: "view" };
+const saludPublicacionItem: NavItem = { title: "Salud de publicación", url: "/salud-publicacion", icon: Globe, description: "Diagnóstico del canal online", module: "dashboards.salud_producto", action: "view" };
 
 const topProductosItem: NavItem = { title: "Top de productos", url: "/top-productos", icon: Trophy, description: "Top ganadores y perdedores por índice", module: "dashboards.inventario_salud", action: "view" };
 
 const zoomProductoItems: NavItem[] = [
-  clasificacionProductoItem,
-  bajaRotacionItem,
-  desempenoCategoriaItem,
-  saludPublicacionItem,
   topProductosItem,
+  clasificacionProductoItem,
+  desempenoCategoriaItem,
+  bajaRotacionItem,
+  saludPublicacionItem,
 ];
 
 const productoItems: NavItem[] = [
