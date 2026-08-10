@@ -278,6 +278,13 @@ export default function CicloVenta() {
                     {colecciones.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
                   </SelectContent>
                 </Select>
+                <Select value={categoria} onValueChange={setCategoria}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent className="max-h-[320px]">
+                    <SelectItem value="all">Todas las categorías</SelectItem>
+                    {categorias.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                  </SelectContent>
+                </Select>
 
                 {cargandoLista ? (
                   <LoadingState rows={8} />
