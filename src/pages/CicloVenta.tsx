@@ -213,7 +213,7 @@ export default function CicloVenta() {
       "% de su venta esa semana": p.pct_semana,
       "% típico de la cohorte": p.pct_cohorte,
     }));
-    const ws = XLSX.utils.json_to_sheet(datos, { origin: "A3" });
+    const ws = XLSX.utils.json_to_sheet(datos, { origin: "A3" } as any);
     XLSX.utils.sheet_add_aoa(ws, [
       [`Ciclo de venta — ${seleccionado.title}`],
       [`${seleccionado.categoria_padre ?? seleccionado.category} · ${seleccionado.coleccion} · cohorte de ${seleccionado.n_cohorte} productos (${seleccionado.base_cohorte})`],
