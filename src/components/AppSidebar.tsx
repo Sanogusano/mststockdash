@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { BarChart3, TrendingUp, ArrowLeftRight, Package, Tag, Layers, Target, Zap, Trophy, Archive, Users, Calculator, UserCog, Briefcase, ChevronDown, Settings, MapPin, Upload, LogOut, Truck, Shield, Store, Banknote, LayoutDashboard, CreditCard, MessageCircle, AlertTriangle, RefreshCw, Sparkles, Search, LayoutGrid, TrendingDown, Globe } from "lucide-react";
+import { LineChart, BarChart3, TrendingUp, ArrowLeftRight, Package, Tag, Layers, Target, Zap, Trophy, Archive, Users, Calculator, UserCog, Briefcase, ChevronDown, Settings, MapPin, Upload, LogOut, Truck, Shield, Store, Banknote, LayoutDashboard, CreditCard, MessageCircle, AlertTriangle, RefreshCw, Sparkles, Search, LayoutGrid, TrendingDown, Globe } from "lucide-react";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useAuth } from "@/hooks/useAuth";
 import { useUserPermissions } from "@/hooks/useUserPermissions";
@@ -44,6 +44,7 @@ const bajaRotacionItem: NavItem = { title: "Baja Rotación", url: "/baja-rotacio
 const insumosItem: NavItem = { title: "Gestión de Insumos", url: "/insumos", icon: Package, description: "CEDI & reorden", module: "dashboards.gestion_insumos", action: "view" };
 const bundleConstructionItem: NavItem = { title: "Bundle Construction", url: "/bundle-construction", icon: Sparkles, description: "Combos de baja rotación", module: "dashboards.inventario_salud", action: "view" };
 const desempenoCategoriaItem: NavItem = { title: "Desempeño por categoría", url: "/desempeno-categoria", icon: BarChart3, description: "Medianas de ROS y cobertura por categoría", module: "dashboards.inventario_salud", action: "view" };
+const cicloVentaItem: NavItem = { title: "Ciclo de venta", url: "/ciclo-venta", icon: LineChart, description: "Curva de venta por semanas desde el lanzamiento", module: "dashboards.salud_producto", action: "view" };
 
 const clasificacionProductoItem: NavItem = { title: "Clasificación de producto", url: "/clasificacion-producto", icon: LayoutGrid, description: "Velocidad de rotación & cobertura", module: "dashboards.salud_producto", action: "view" };
 
@@ -55,6 +56,7 @@ const zoomProductoItems: NavItem[] = [
   topProductosItem,
   clasificacionProductoItem,
   desempenoCategoriaItem,
+  cicloVentaItem,
   bajaRotacionItem,
   saludPublicacionItem,
 ];
