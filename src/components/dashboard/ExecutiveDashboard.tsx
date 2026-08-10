@@ -1999,17 +1999,6 @@ function ZonePanel({ days, locationFilter, comparisonPeriod = "previous", custom
             <CalendarDays className="h-5 w-5 text-primary" />
             <h3 className="text-sm font-semibold text-foreground">Desempeño Comercial {selectedZone !== "all" ? `— ${selectedZone}` : "— Todas las Zonas"}</h3>
           </div>
-          {(() => {
-            const { desde, hasta } = getRangeStrings(days, customFrom, customTo);
-            return (
-              <div className="mb-5">
-                <CumplimientoPresupuestoCard desde={desde} hasta={hasta}
-                  zona={selectedZone !== "all" ? selectedZone : null}
-                  canal="tienda"
-                  locationId={selectedLocation !== "all" ? selectedLocation : null} />
-              </div>
-            );
-          })()}
           <div className="space-y-5">
             {/* Row 1: Mejor/Peor Día + Weekday/Weekend */}
             <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
