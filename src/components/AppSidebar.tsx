@@ -59,13 +59,17 @@ const zoomProductoItems: NavItem[] = [
   topProductosItem,
 ];
 
-const manejoStockItems: NavItem[] = [
+const productoItems: NavItem[] = [
   saludProductoItem,
   desempenoLineaItem,
-  inventariosItem,
-  bundleConstructionItem,
-  insumosItem,
 ];
+
+const productoBottomItems: NavItem[] = [cierreColeccionItem];
+
+const inventarioItems: NavItem[] = [inventariosItem, proyeccionDemandaItem];
+
+const herramientasItems: NavItem[] = [bundleConstructionItem, insumosItem];
+
 
 const gestionComercialItems: NavItem[] = [
   { title: "Gestión de Incentivos", url: "/incentivos", icon: Trophy, description: "Campañas & liquidaciones", module: "incentivos", action: "view" },
