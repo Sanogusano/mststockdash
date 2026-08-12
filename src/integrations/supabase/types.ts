@@ -2437,6 +2437,95 @@ export type Database = {
         }
         Relationships: []
       }
+      producto_360: {
+        Row: {
+          anio: number | null
+          base_cohorte: string | null
+          calculado_en: string | null
+          categoria_padre: string | null
+          category: string | null
+          cobertura: string | null
+          coleccion: string | null
+          desempeno: string | null
+          dias_en_venta: number | null
+          dias_medidos: number | null
+          estado_online: string | null
+          estado_tallas: string | null
+          fecha_inicio: string | null
+          fuera_de_ventana: boolean | null
+          genero_norm: string | null
+          image_url: string | null
+          indice_full: number | null
+          indice_meta: number | null
+          indice_online: number | null
+          indice_rebajado: number | null
+          indice_tienda: number | null
+          indice_total: number | null
+          integridad_tallas: number | null
+          med_pctfull_cohorte: number | null
+          med_st_cohorte: number | null
+          mix_online_cat: number | null
+          mix_online_pct: number | null
+          n_cohorte: number | null
+          objetivo_dia: number | null
+          objetivo_dia_online: number | null
+          objetivo_dia_tienda: number | null
+          pct_activacion: number | null
+          pct_evacuado_120d: number | null
+          pct_rebaja: number | null
+          pct_venta_full: number | null
+          percentil_catalogo: number | null
+          perfil_canal: string | null
+          producido: number | null
+          product_id: string | null
+          profundidad_desc_pct: number | null
+          ratio_cobertura: number | null
+          ritmo_dia: number | null
+          ritmo_dia_online: number | null
+          ritmo_dia_tienda: number | null
+          ros_full: number | null
+          ros_online: number | null
+          ros_rebajado: number | null
+          ros_tienda: number | null
+          ros_total: number | null
+          sell_through_pct: number | null
+          semanas_en_venta: number | null
+          semanas_objetivo: number | null
+          sin_evacuar: number | null
+          st_online_pct: number | null
+          st_tienda_pct: number | null
+          stock_actual: number | null
+          stock_bodegas: number | null
+          stock_online: number | null
+          stock_outlet: number | null
+          stock_segundas: number | null
+          stock_tienda: number | null
+          stock_tiendas: number | null
+          tallas_con_stock: number | null
+          tallas_totales: number | null
+          tiendas_con_stock: number | null
+          tiendas_con_venta: number | null
+          title: string | null
+          uds_120d: number | null
+          uds_onl_activacion: number | null
+          uds_onl_full: number | null
+          uds_onl_rebaja: number | null
+          uds_online: number | null
+          uds_outlet: number | null
+          uds_tie_activacion: number | null
+          uds_tie_full: number | null
+          uds_tie_rebaja: number | null
+          uds_tienda: number | null
+          unidades_activacion: number | null
+          unidades_full: number | null
+          unidades_rebaja: number | null
+          unidades_vendidas: number | null
+          velocidad_meta: string | null
+          ventana_completa: boolean | null
+          wos: number | null
+        }
+        Relationships: []
+      }
       producto_base: {
         Row: {
           anio: number | null
