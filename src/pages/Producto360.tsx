@@ -6,7 +6,7 @@ import { LoadingState, EmptyState } from "@/components/dashboard/LoadingState";
 import { ProductoDetallePanel } from "@/components/dashboard/ProductoDetallePanel";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, Download, Package, Store, ShoppingBag, HelpCircle, X, RotateCcw } from "lucide-react";
+import { Search, Download, Package, Store, ShoppingBag, HelpCircle, X, RotateCcw, CircleCheck, PauseCircle } from "lucide-react";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
