@@ -67,38 +67,38 @@ function BarraCalidad({ full, rebaja, activacion, ancho = 200 }: {
   );
 }
 
-/** Salud de un indicador cuyo objetivo es 1,00. El emoji comunica antes que
- *  el número; el color de fondo hace que la card se lea de un vistazo. */
+/** Salud de un indicador cuyo objetivo es 1,00. El color hace el trabajo del
+ *  semáforo; el icono identifica la métrica, no su estado. Mezclar emojis con
+ *  iconos de trazo rompe la consistencia visual. */
 function salud(v: number | null) {
-  if (v == null) return { emoji: "—", txt: "text-muted-foreground", bg: "" };
-  if (v >= 1.50) return { emoji: "🏅", txt: "text-blue-700",    bg: "bg-blue-50 border-blue-200" };
-  if (v >= 1.00) return { emoji: "✅", txt: "text-emerald-700", bg: "bg-emerald-50 border-emerald-200" };
-  if (v >= 0.80) return { emoji: "🟡", txt: "text-amber-700",   bg: "bg-amber-50 border-amber-200" };
-  if (v >= 0.60) return { emoji: "🟠", txt: "text-orange-700",  bg: "bg-orange-50 border-orange-200" };
-  return { emoji: "🐢", txt: "text-rose-700", bg: "bg-rose-50 border-rose-200" };
+  if (v == null)  return { txt: "text-muted-foreground", bg: "", punto: "bg-muted" };
+  if (v >= 1.50)  return { txt: "text-blue-700",    bg: "bg-blue-50/60 border-blue-200",       punto: "bg-blue-500" };
+  if (v >= 1.00)  return { txt: "text-emerald-700", bg: "bg-emerald-50/60 border-emerald-200", punto: "bg-emerald-500" };
+  if (v >= 0.80)  return { txt: "text-amber-700",   bg: "bg-amber-50/60 border-amber-200",     punto: "bg-amber-500" };
+  if (v >= 0.60)  return { txt: "text-orange-700",  bg: "bg-orange-50/60 border-orange-200",   punto: "bg-orange-500" };
+  return { txt: "text-rose-700", bg: "bg-rose-50/60 border-rose-200", punto: "bg-rose-500" };
 }
 
-function CardSalud({ icon: Icon, label, value, sub, v }: {
+function CardSalud({ icon: Icon, label, value, sub, v, conSemaforo = false }: {
   icon: React.ElementType;
   label: string;
   value: React.ReactNode;
   sub: string;
   v: number | null;
+  conSemaforo?: boolean;
 }) {
   const s = salud(v);
+  const bgClass = conSemaforo ? s.bg : "";
+  const txtClass = conSemaforo ? s.txt : "";
   return (
-    <div className={`rounded-lg border p-3 ${s.bg}`}>
-      <div className="flex items-start gap-3">
-        <span className="text-2xl leading-none">{s.emoji}</span>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
-            <Icon className="h-4 w-4" />
-            {label}
-          </div>
-          <div className={`text-sm font-medium tabular-nums ${s.txt}`}>{value}</div>
-          {sub && <div className="text-[10px] text-muted-foreground">{sub}</div>}
-        </div>
+    <div className={`rounded-lg border p-3 ${bgClass}`}>
+      <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+        <Icon className="h-3.5 w-3.5" />
+        <span>{label}</span>
+        {conSemaforo && <span className={`h-1.5 w-1.5 rounded-full ml-auto ${s.punto}`} />}
       </div>
+      <div className={`text-xl font-semibold tabular-nums mt-1 ${txtClass}`}>{value}</div>
+      {sub && <div className="text-[10px] text-muted-foreground">{sub}</div>}
     </div>
   );
 }
@@ -179,32 +179,27 @@ export function ProductoDetallePanel({ producto, onClose }: {
         <div className="p-4 space-y-5">
           {/* Cifras gruesas */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            <div className="rounded-lg border p-3">
-              <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
-                <Shirt className="h-4 w-4" />
-                Producido
-              </div>
-              <div className="text-sm font-medium tabular-nums">{nf(producto.producido)}</div>
-              <div className="text-[10px] text-muted-foreground">
-                {nf(producto.stock_bodegas)} bodega · {nf(producto.stock_tiendas)} tienda
-              </div>
-            </div>
-            <div className="rounded-lg border p-3">
-              <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
-                <Flag className="h-4 w-4" />
-                Vendido en 120 días
-              </div>
-              <div className="text-sm font-medium tabular-nums">{nf(producto.uds_120d)}</div>
-              <div className="text-[10px] text-muted-foreground">
-                {nf(producto.pct_evacuado_120d, 0)}% de lo producido
-              </div>
-            </div>
+            <CardSalud
+              icon={Shirt}
+              label="Producido"
+              value={nf(producto.producido)}
+              sub={`${nf(producto.stock_bodegas)} bodega · ${nf(producto.stock_tiendas)} tienda`}
+              v={null}
+            />
+            <CardSalud
+              icon={Flag}
+              label="Vendido en 120 días"
+              value={nf(producto.uds_120d)}
+              sub={`${nf(producto.pct_evacuado_120d, 0)}% de lo producido`}
+              v={null}
+            />
             <CardSalud
               icon={Gauge}
               label="Ritmo vs. presupuesto"
               value={nf(producto.indice_meta, 2)}
               sub={`${nf(producto.ritmo_dia, 2)} de ${nf(producto.objetivo_dia, 2)} uds/día`}
               v={producto.indice_meta}
+              conSemaforo
             />
             <CardSalud
               icon={Zap}
@@ -212,6 +207,7 @@ export function ProductoDetallePanel({ producto, onClose }: {
               value={producto.indice_total == null ? "—" : `${nf(producto.indice_total / 100, 2)}×`}
               sub={`vs. ${producto.n_cohorte} de su ${producto.base_cohorte}`}
               v={producto.indice_total == null ? null : producto.indice_total / 100}
+              conSemaforo
             />
           </div>
 
