@@ -44,24 +44,21 @@ const bajaRotacionItem: NavItem = { title: "Baja Rotación", url: "/baja-rotacio
 const insumosItem: NavItem = { title: "Gestión de Insumos", url: "/insumos", icon: Package, description: "CEDI & reorden", module: "dashboards.gestion_insumos", action: "view" };
 const bundleConstructionItem: NavItem = { title: "Bundle Construction", url: "/bundle-construction", icon: Sparkles, description: "Combos de baja rotación", module: "dashboards.inventario_salud", action: "view" };
 const desempenoCategoriaItem: NavItem = { title: "Desempeño por categoría", url: "/desempeno-categoria", icon: BarChart3, description: "Medianas de ROS y cobertura por categoría", module: "dashboards.inventario_salud", action: "view" };
-const cicloVentaItem: NavItem = { title: "Ciclo de venta", url: "/ciclo-venta", icon: LineChart, description: "Curva de venta por semanas desde el lanzamiento", module: "dashboards.salud_producto", action: "view" };
-const presupuestoRotacionItem: NavItem = { title: "Presupuesto de rotación", url: "/presupuesto-rotacion", icon: Gauge, description: "Ritmo diario necesario para evacuar lo producido en 120 días", module: "dashboards.salud_producto", action: "view" };
 
-const clasificacionProductoItem: NavItem = { title: "Clasificación de producto", url: "/clasificacion-producto", icon: LayoutGrid, description: "Velocidad de rotación & cobertura", module: "dashboards.salud_producto", action: "view" };
+const producto360Item: NavItem = { title: "Análisis de producto", url: "/analisis-producto", icon: LayoutGrid, description: "Vista consolidada: meta, pares, calidad de venta y cobertura", module: "dashboards.salud_producto", action: "view" };
 
 const saludPublicacionItem: NavItem = { title: "Salud de publicación", url: "/salud-publicacion", icon: Globe, description: "Diagnóstico del canal online", module: "dashboards.salud_producto", action: "view" };
 
 const topProductosItem: NavItem = { title: "Top de productos", url: "/top-productos", icon: Trophy, description: "Top ganadores y perdedores por índice", module: "dashboards.inventario_salud", action: "view" };
 
 const zoomProductoItems: NavItem[] = [
+  producto360Item,
   topProductosItem,
-  clasificacionProductoItem,
   desempenoCategoriaItem,
-  cicloVentaItem,
-  presupuestoRotacionItem,
   bajaRotacionItem,
   saludPublicacionItem,
 ];
+
 
 const productoItems: NavItem[] = [
   saludProductoItem,

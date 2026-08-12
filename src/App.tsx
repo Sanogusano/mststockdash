@@ -10,8 +10,7 @@ import InventariosPage from "./pages/Inventarios";
 import BajaRotacionPage from "./pages/BajaRotacion";
 import BundleConstructionPage from "./pages/BundleConstruction";
 import DesempenoCategoriaPage from "./pages/DesempenoCategoria";
-import CicloVentaPage from "./pages/CicloVenta";
-import ClasificacionProductoPage from "./pages/ClasificacionProducto";
+import Producto360Page from "./pages/Producto360";
 import SaludPublicacionPage from "./pages/SaludPublicacion";
 import TopProductosPage from "./pages/TopProductos";
 import LogisticaPage from "./pages/Logistica";
@@ -30,7 +29,6 @@ import PresupuestosPage from "./pages/Presupuestos";
 import CentroAccionPage from "./pages/CentroAccion";
 import IncentivosPage from "./pages/Incentivos";
 import CierreColeccionPage from "./pages/CierreColeccion";
-import PresupuestoRotacionPage from "./pages/PresupuestoRotacion";
 import ProyeccionDemandaPage from "./pages/ProyeccionDemanda";
 import RendimientoVendedoresPage from "./pages/RendimientoVendedores";
 import ComisionesPage from "./pages/Comisiones";
@@ -86,16 +84,14 @@ const App = () => (
           <Route path="/baja-rotacion" element={<Guard module="dashboards.inventario_salud" action="view"><BajaRotacionPage /></Guard>} />
           <Route path="/bundle-construction" element={<Guard module="dashboards.inventario_salud" action="view"><BundleConstructionPage /></Guard>} />
           <Route path="/desempeno-categoria" element={<Guard module="dashboards.inventario_salud" action="view"><DesempenoCategoriaPage /></Guard>} />
-          <Route path="/ciclo-venta" element={<Guard module="dashboards.salud_producto" action="view"><CicloVentaPage /></Guard>} />
-          <Route path="/presupuesto-rotacion" element={<Guard module="dashboards.salud_producto" action="view"><PresupuestoRotacionPage /></Guard>} />
           <Route path="/tienda/:id" element={<Guard module="dashboards.resumen_ejecutivo" action="view" requireScope><TiendaDetailPage /></Guard>} />
           <Route path="/logistica" element={<Guard module="dashboards.logistica_traslados" action="view"><LogisticaPage /></Guard>} />
           <Route path="/logistica-traslados" element={<Guard module="dashboards.logistica_traslados" action="view"><LogisticaTrasladosPage /></Guard>} />
           <Route path="/producto" element={<Guard module="dashboards.salud_producto" action="view"><ComportamientoProductoPage /></Guard>} />
           <Route path="/lineas" element={<Guard module="dashboards.desempeno_linea" action="view"><LineasProductoPage /></Guard>} />
           <Route path="/desempeno-productos" element={<Guard module="dashboards.desempeno_productos" action="view"><DesempenoProductosPage /></Guard>} />
-          <Route path="/clasificacion-producto" element={<Guard module="dashboards.salud_producto" action="view"><ClasificacionProductoPage /></Guard>} />
           <Route path="/salud-publicacion" element={<Guard module="dashboards.salud_producto" action="view"><SaludPublicacionPage /></Guard>} />
+          <Route path="/analisis-producto" element={<Guard module="dashboards.salud_producto" action="view"><Producto360Page /></Guard>} />
           <Route path="/top-productos" element={<Guard module="dashboards.inventario_salud" action="view"><TopProductosPage /></Guard>} />
           <Route path="/venta-m2" element={<Guard module="dashboards.venta_m2" action="view"><VentaM2Page /></Guard>} />
           <Route path="/insumos" element={<Guard module="dashboards.gestion_insumos" action="view"><InsumosPage /></Guard>} />
