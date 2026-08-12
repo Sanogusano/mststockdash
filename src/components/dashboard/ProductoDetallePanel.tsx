@@ -179,32 +179,27 @@ export function ProductoDetallePanel({ producto, onClose }: {
         <div className="p-4 space-y-5">
           {/* Cifras gruesas */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            <div className="rounded-lg border p-3">
-              <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
-                <Shirt className="h-4 w-4" />
-                Producido
-              </div>
-              <div className="text-sm font-medium tabular-nums">{nf(producto.producido)}</div>
-              <div className="text-[10px] text-muted-foreground">
-                {nf(producto.stock_bodegas)} bodega · {nf(producto.stock_tiendas)} tienda
-              </div>
-            </div>
-            <div className="rounded-lg border p-3">
-              <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
-                <Flag className="h-4 w-4" />
-                Vendido en 120 días
-              </div>
-              <div className="text-sm font-medium tabular-nums">{nf(producto.uds_120d)}</div>
-              <div className="text-[10px] text-muted-foreground">
-                {nf(producto.pct_evacuado_120d, 0)}% de lo producido
-              </div>
-            </div>
+            <CardSalud
+              icon={Shirt}
+              label="Producido"
+              value={nf(producto.producido)}
+              sub={`${nf(producto.stock_bodegas)} bodega · ${nf(producto.stock_tiendas)} tienda`}
+              v={null}
+            />
+            <CardSalud
+              icon={Flag}
+              label="Vendido en 120 días"
+              value={nf(producto.uds_120d)}
+              sub={`${nf(producto.pct_evacuado_120d, 0)}% de lo producido`}
+              v={null}
+            />
             <CardSalud
               icon={Gauge}
               label="Ritmo vs. presupuesto"
               value={nf(producto.indice_meta, 2)}
               sub={`${nf(producto.ritmo_dia, 2)} de ${nf(producto.objetivo_dia, 2)} uds/día`}
               v={producto.indice_meta}
+              conSemaforo
             />
             <CardSalud
               icon={Zap}
@@ -212,6 +207,7 @@ export function ProductoDetallePanel({ producto, onClose }: {
               value={producto.indice_total == null ? "—" : `${nf(producto.indice_total / 100, 2)}×`}
               sub={`vs. ${producto.n_cohorte} de su ${producto.base_cohorte}`}
               v={producto.indice_total == null ? null : producto.indice_total / 100}
+              conSemaforo
             />
           </div>
 
