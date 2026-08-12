@@ -72,6 +72,8 @@ export function ProductoDetallePanel({ producto, onClose }: {
 }) {
   const [curva, setCurva] = useState<PuntoCurva[]>([]);
   const [cargando, setCargando] = useState(true);
+  const [zoom, setZoom] = useState(false);
+
 
   useEffect(() => {
     if (!producto) return;
