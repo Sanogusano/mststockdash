@@ -531,6 +531,12 @@ export default function Producto360() {
                                       n={r.n_cohorte}
                                     </span>
                                   </div>
+                                  <div className="text-[10px] text-muted-foreground">
+                                    {r.indice_rasero == null ? "—" : `${nf(r.indice_rasero, 2)}× vs. objetivo de línea`}
+                                  </div>
+                                  <div className="text-[10px] text-muted-foreground tabular-nums">
+                                    {r.ros_total == null ? "—" : `${nf(r.ros_total, 2)} uds/t/sem`}
+                                  </div>
                                 </div>
                               </td>
                               <td className="p-2.5 text-right whitespace-nowrap">
