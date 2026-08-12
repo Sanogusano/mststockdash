@@ -286,7 +286,7 @@ export default function Producto360() {
       "Perfil canal": r.perfil_canal, "Estado tallas": r.estado_tallas,
       "Estado online": r.estado_online,
     }));
-    const ws = XLSX.utils.json_to_sheet(datos, { origin: "A3" });
+    const ws = XLSX.utils.json_to_sheet(datos, { origin: "A3" } as XLSX.JSON2SheetOpts);
     XLSX.utils.sheet_add_aoa(ws, [
       ["Análisis de producto — índice vs. meta (producido ÷ 120 días) y RDV vs. cohorte"],
       [`Índice 1,00 = evacúa a tiempo · RDV 1,00× = al ritmo de sus pares · ${new Date().toLocaleDateString("es-CO")}`],
