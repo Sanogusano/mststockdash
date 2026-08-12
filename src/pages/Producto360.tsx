@@ -98,6 +98,13 @@ interface Row {
   bod_tiendas: number | null;
   bod_exportaciones: number | null;
   fecha_snapshot_bodega: string | null;
+  indice_rasero: number | null;
+  indice_rasero_tienda: number | null;
+  indice_rasero_online: number | null;
+  rasero_tienda: number | null;
+  rasero_online: number | null;
+  estado_rasero: string;
+  ros_total: number | null;
   [k: string]: any;
 }
 
