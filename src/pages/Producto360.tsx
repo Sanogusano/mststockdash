@@ -551,16 +551,37 @@ export default function Producto360() {
                                 )}
                               </td>
                               <td className="p-2.5 text-right whitespace-nowrap">
-                                <div className="tabular-nums font-medium">{nf(r.stock_disponibilizado)}</div>
-                                <div className="text-[10px] text-muted-foreground">disponible</div>
-                                <div className="tabular-nums text-amber-700 mt-0.5">{nf(r.stock_detenido)}</div>
-                                <div className="text-[10px] text-muted-foreground">detenido</div>
-                                <div className="text-[10px] text-muted-foreground tabular-nums mt-0.5">
-                                  {nf(r.st_disponibilizado, 0)}% / {nf(r.st_total, 0)}%
+                                <div className="inline-flex items-center gap-1 text-[10px] text-muted-foreground">
+                                  <CircleCheck className="h-3 w-3" />Disponible
                                 </div>
-                                <div className="text-[10px] text-muted-foreground">ST disp/total</div>
+                                <div className="tabular-nums font-medium">{nf(r.stock_disponibilizado)}</div>
+                                <div className="inline-flex items-center gap-1 mt-0.5 text-[10px] text-amber-700">
+                                  <PauseCircle className="h-3 w-3" />Detenido
+                                </div>
+                                <div className="tabular-nums text-amber-700">{nf(r.stock_detenido)}</div>
                               </td>
-
+                              <td className="p-2.5">
+                                <div className="w-[96px] space-y-1.5">
+                                  <div>
+                                    <div className="relative h-1.5 rounded-full bg-muted overflow-hidden">
+                                      <div className="absolute inset-y-0 left-0 rounded-full bg-emerald-500"
+                                           style={{ width: `${Math.min(100, r.st_disponibilizado ?? 0)}%` }} />
+                                    </div>
+                                    <div className="text-[10px] text-muted-foreground mt-0.5 tabular-nums">
+                                      {nf(r.st_disponibilizado,0)}% disponible
+                                    </div>
+                                  </div>
+                                  <div>
+                                    <div className="relative h-1.5 rounded-full bg-muted overflow-hidden">
+                                      <div className="absolute inset-y-0 left-0 rounded-full bg-slate-400"
+                                           style={{ width: `${Math.min(100, r.st_total ?? 0)}%` }} />
+                                    </div>
+                                    <div className="text-[10px] text-muted-foreground mt-0.5 tabular-nums">
+                                      {nf(r.st_total,0)}% total
+                                    </div>
+                                  </div>
+                                </div>
+                              </td>
                               <td className="p-2.5 text-right">
                                 <span className={`tabular-nums font-medium ${
                                   (r.sin_evacuar ?? 0) > 0 ? "text-rose-700" : "text-muted-foreground"}`}>
