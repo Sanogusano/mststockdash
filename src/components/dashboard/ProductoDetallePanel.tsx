@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { X, Package, Store, ShoppingBag } from "lucide-react";
+import { X, Package, Store, ShoppingBag, Warehouse } from "lucide-react";
 import {
   ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid,
   Tooltip, Legend, ResponsiveContainer, ReferenceLine,
