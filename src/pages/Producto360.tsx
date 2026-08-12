@@ -86,6 +86,17 @@ interface Row {
   tallas_con_stock: number | null;
   tallas_totales: number | null;
   estado_online: string;
+  stock_disponibilizado: number | null;
+  stock_detenido: number | null;
+  stock_total: number | null;
+  st_disponibilizado: number | null;
+  st_total: number | null;
+  bod_principal: number | null;
+  bod_guayabal: number | null;
+  bod_reserva: number | null;
+  bod_tiendas: number | null;
+  bod_exportaciones: number | null;
+  fecha_snapshot_bodega: string | null;
   [k: string]: any;
 }
 
@@ -429,6 +440,7 @@ export default function Producto360() {
                           <th className="text-right p-2.5 font-medium">% full</th>
                           <th className="text-left p-2.5 font-medium">Cobertura</th>
                           <th className="text-left p-2.5 font-medium">Canal</th>
+                          <th className="text-right p-2.5 font-medium">Stock</th>
                           <th className="text-right p-2.5 font-medium">Sin evacuar</th>
                         </tr>
                       </thead>
@@ -506,6 +518,10 @@ export default function Producto360() {
                                 <div className="text-[10px] text-muted-foreground">
                                   típico {nf(r.med_pctfull_cohorte, 0)}%
                                 </div>
+                                <div className="text-[10px] text-muted-foreground tabular-nums whitespace-nowrap">
+                                  {nf(r.st_disponibilizado, 0)}% / {nf(r.st_total, 0)}%
+                                </div>
+                                <div className="text-[10px] text-muted-foreground">ST disp/total</div>
                               </td>
                               <td className="p-2.5">
                                 <span className={`inline-flex rounded-md border px-2 py-0.5 text-[11px] font-medium ${
@@ -530,6 +546,12 @@ export default function Producto360() {
                                     <ShoppingBag className="h-2.5 w-2.5" />{nf(r.uds_online)}
                                   </span>
                                 </div>
+                              </td>
+                              <td className="p-2.5 text-right whitespace-nowrap">
+                                <div className="tabular-nums font-medium">{nf(r.stock_disponibilizado)}</div>
+                                <div className="text-[10px] text-muted-foreground">disponible</div>
+                                <div className="tabular-nums text-amber-700 mt-0.5">{nf(r.stock_detenido)}</div>
+                                <div className="text-[10px] text-muted-foreground">detenido</div>
                               </td>
                               <td className="p-2.5 text-right">
                                 <span className={`tabular-nums font-medium ${

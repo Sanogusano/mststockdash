@@ -97,6 +97,14 @@ export function ProductoDetallePanel({ producto, onClose }: {
     </div>
   );
 
+  const bodegas = ([
+    { l: "Principal", v: producto.bod_principal },
+    { l: "Guayabal", v: producto.bod_guayabal },
+    { l: "Reserva", v: producto.bod_reserva },
+    { l: "Tiendas", v: producto.bod_tiendas },
+    { l: "Exportaciones", v: producto.bod_exportaciones },
+  ] as { l: string; v: number | null }[]).filter(b => (b.v ?? 0) > 0);
+
   const pico = curva.length ? curva.reduce((a, b) => (b.uds > a.uds ? b : a), curva[0]) : null;
   const al80 = curva.find(p => (p.pct_acumulado ?? 0) >= 80);
 
@@ -131,8 +139,28 @@ export function ProductoDetallePanel({ producto, onClose }: {
         <div className="p-4 space-y-5">
           {/* Cifras gruesas */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            <Dato l="Producido" v={nf(producto.producido)}
-                  sub={`${nf(producto.stock_bodegas)} bodega · ${nf(producto.stock_tiendas)} tienda`} />
+            <div>
+              <div className="text-[11px] text-muted-foreground">Producido</div>
+              <div className="text-sm font-medium tabular-nums">{nf(producto.producido)}</div>
+              <div className="text-[10px] text-muted-foreground">
+                {nf(producto.stock_bodegas)} bodega · {nf(producto.stock_tiendas)} tienda
+              </div>
+              {bodegas.length > 0 && (
+                <div className="mt-1 space-y-0.5">
+                  {bodegas.map(b => (
+                    <div key={b.l} className="flex justify-between gap-2 text-[10px] text-muted-foreground">
+                      <span>{b.l}</span>
+                      <span className="tabular-nums">{nf(b.v)}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {producto.fecha_snapshot_bodega && (
+                <div className="text-[10px] text-muted-foreground mt-1">
+                  Snapshot {new Date(producto.fecha_snapshot_bodega).toLocaleDateString("es-CO")}
+                </div>
+              )}
+            </div>
             <Dato l="Vendido en 120 días" v={nf(producto.uds_120d)}
                   sub={`${nf(producto.pct_evacuado_120d, 0)}% de lo producido`} />
             <Dato l="Índice vs. meta" v={nf(producto.indice_meta, 2)}
