@@ -117,7 +117,9 @@ export function ProductoDetallePanel({ producto, onClose }: {
           <div className="flex items-center gap-3">
             {producto.image_url ? (
               <img src={producto.image_url} alt=""
-                   className="h-14 w-14 rounded object-cover bg-muted" />
+                   onClick={e => { e.stopPropagation(); setZoom(true); }}
+                   className="h-14 w-14 rounded object-cover bg-muted cursor-zoom-in" />
+
             ) : (
               <div className="h-14 w-14 rounded bg-muted flex items-center justify-center">
                 <Package className="h-5 w-5 text-muted-foreground/50" />
