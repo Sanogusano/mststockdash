@@ -33,6 +33,7 @@ import CierreColeccionPage from "./pages/CierreColeccion";
 import PresupuestoRotacionPage from "./pages/PresupuestoRotacion";
 import ProyeccionDemandaPage from "./pages/ProyeccionDemanda";
 import RendimientoVendedoresPage from "./pages/RendimientoVendedores";
+import ComisionesPage from "./pages/Comisiones";
 import VendedoresPage from "./pages/Vendedores";
 import ConfiguracionUbicacionesPage from "./pages/ConfiguracionUbicaciones";
 import NetsuiteUploadPage from "./pages/NetsuiteUpload";

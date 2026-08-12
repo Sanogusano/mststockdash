@@ -274,11 +274,11 @@ export default function PresupuestoRotacion() {
       "% evacuado total": r.pct_evacuado_total,
       Velocidad: r.velocidad_meta,
     }));
-    const ws = XLSX.utils.json_to_sheet(datos, { origin: "A3" });
+    const ws = XLSX.utils.json_to_sheet(datos, { origin: "A3" } as any);
     XLSX.utils.sheet_add_aoa(ws, [
       ["Presupuesto de rotación — objetivo = producido ÷ 120 días (ventana de 16 semanas)"],
       [`Índice 1,00 = evacúa a tiempo · SEGUNDAS excluidas del denominador · ${new Date().toLocaleDateString("es-CO")}`],
-    ], { origin: "A1" });
+    ], { origin: "A1" } as any);
     ws["!cols"] = [{ wch: 42 }, { wch: 18 }, { wch: 10 }, { wch: 12 }, ...Array(20).fill({ wch: 14 })];
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Presupuesto rotación");
