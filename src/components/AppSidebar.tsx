@@ -45,6 +45,7 @@ const insumosItem: NavItem = { title: "Gestión de Insumos", url: "/insumos", ic
 const bundleConstructionItem: NavItem = { title: "Bundle Construction", url: "/bundle-construction", icon: Sparkles, description: "Combos de baja rotación", module: "dashboards.inventario_salud", action: "view" };
 const desempenoCategoriaItem: NavItem = { title: "Desempeño por categoría", url: "/desempeno-categoria", icon: BarChart3, description: "Medianas de ROS y cobertura por categoría", module: "dashboards.inventario_salud", action: "view" };
 const cicloVentaItem: NavItem = { title: "Ciclo de venta", url: "/ciclo-venta", icon: LineChart, description: "Curva de venta por semanas desde el lanzamiento", module: "dashboards.salud_producto", action: "view" };
+const presupuestoRotacionItem: NavItem = { title: "Presupuesto de rotación", url: "/presupuesto-rotacion", icon: Gauge, description: "Ritmo diario necesario para evacuar lo producido en 120 días", module: "dashboards.salud_producto", action: "view" };
 
 const clasificacionProductoItem: NavItem = { title: "Clasificación de producto", url: "/clasificacion-producto", icon: LayoutGrid, description: "Velocidad de rotación & cobertura", module: "dashboards.salud_producto", action: "view" };
 
@@ -57,6 +58,7 @@ const zoomProductoItems: NavItem[] = [
   clasificacionProductoItem,
   desempenoCategoriaItem,
   cicloVentaItem,
+  presupuestoRotacionItem,
   bajaRotacionItem,
   saludPublicacionItem,
 ];
