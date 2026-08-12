@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { X, Package, Store, ShoppingBag, Warehouse, PauseCircle, Shirt, Flag, Gauge, Zap } from "lucide-react";
+import { X, Package, Store, ShoppingBag, Warehouse, PauseCircle, Shirt, Flag, Gauge, Zap, Clock, TrendingUp, Ruler, Split } from "lucide-react";
 import {
   ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid,
   Tooltip, Legend, ResponsiveContainer, ReferenceLine,
@@ -210,6 +210,50 @@ export function ProductoDetallePanel({ producto, onClose }: {
               conSemaforo
             />
           </div>
+
+          {/* Indicadores secundarios */}
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+            <CardSalud
+              icon={Clock}
+              label="Cobertura"
+              value={`${nf(Math.min(producto.wos ?? 0, 99), 0)} sem`}
+              sub={producto.semanas_restantes > 0
+                ? `quedan ${producto.semanas_restantes} · ${producto.cobertura}`
+                : `+${Math.abs(producto.semanas_restantes)} sem · ${producto.cobertura}`}
+              v={null}
+            />
+            <CardSalud
+              icon={TrendingUp}
+              label="Sell-through"
+              value={`${nf(producto.st_disponibilizado ?? producto.sell_through_pct, 1)}%`}
+              sub={`típico ${nf(producto.med_st_cohorte, 0)}%`}
+              v={null}
+            />
+            <CardSalud
+              icon={Ruler}
+              label="Tallas con stock"
+              value={producto.estado_tallas === "no_aplica" ? "—"
+                : `${producto.tallas_con_stock ?? 0}/${producto.tallas_totales ?? 0}`}
+              sub={producto.estado_tallas === "destallado_grave" ? "curva rota"
+                : producto.estado_tallas === "destallado" ? "incompleta" : ""}
+              v={null}
+            />
+            <CardSalud
+              icon={Store}
+              label="Distribución"
+              value={`${producto.tiendas_con_stock} tiendas`}
+              sub={`${nf((producto.stock_tienda ?? 0) + (producto.stock_outlet ?? 0))} uds · ${nf(producto.stock_online ?? 0)} online`}
+              v={null}
+            />
+            <CardSalud
+              icon={Split}
+              label="Mix de canal"
+              value={`${nf(producto.mix_online_pct, 0)}% online`}
+              sub={`su categoría ${nf(producto.mix_online_cat, 0)}% · ${nf(100 - (producto.mix_online_pct ?? 0), 0)}% tienda`}
+              v={null}
+            />
+          </div>
+
 
           {bodegas.length > 0 && (
             <div className="rounded-lg border bg-amber-50/40 p-3">
