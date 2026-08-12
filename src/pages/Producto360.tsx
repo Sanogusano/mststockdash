@@ -6,7 +6,7 @@ import { LoadingState, EmptyState } from "@/components/dashboard/LoadingState";
 import { ProductoDetallePanel } from "@/components/dashboard/ProductoDetallePanel";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, Download, Package, Store, ShoppingBag, HelpCircle, X, RotateCcw } from "lucide-react";
+import { Search, Download, Package, Store, ShoppingBag, HelpCircle, X, RotateCcw, CircleCheck, PauseCircle } from "lucide-react";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
@@ -442,8 +442,8 @@ export default function Producto360() {
                           <th className="text-right p-2.5 font-medium">Calidad de venta</th>
                           <th className="text-left p-2.5 font-medium">Cobertura</th>
                           <th className="text-right p-2.5 font-medium">Stock</th>
+                          <th className="text-right p-2.5 font-medium">Sell-through</th>
                           <th className="text-right p-2.5 font-medium">Sin evacuar</th>
-
                         </tr>
                       </thead>
                       <tbody>
@@ -551,16 +551,37 @@ export default function Producto360() {
                                 )}
                               </td>
                               <td className="p-2.5 text-right whitespace-nowrap">
-                                <div className="tabular-nums font-medium">{nf(r.stock_disponibilizado)}</div>
-                                <div className="text-[10px] text-muted-foreground">disponible</div>
-                                <div className="tabular-nums text-amber-700 mt-0.5">{nf(r.stock_detenido)}</div>
-                                <div className="text-[10px] text-muted-foreground">detenido</div>
-                                <div className="text-[10px] text-muted-foreground tabular-nums mt-0.5">
-                                  {nf(r.st_disponibilizado, 0)}% / {nf(r.st_total, 0)}%
+                                <div className="inline-flex items-center gap-1 text-[10px] text-muted-foreground">
+                                  <CircleCheck className="h-3 w-3" />Disponible
                                 </div>
-                                <div className="text-[10px] text-muted-foreground">ST disp/total</div>
+                                <div className="tabular-nums font-medium">{nf(r.stock_disponibilizado)}</div>
+                                <div className="inline-flex items-center gap-1 mt-0.5 text-[10px] text-amber-700">
+                                  <PauseCircle className="h-3 w-3" />Detenido
+                                </div>
+                                <div className="tabular-nums text-amber-700">{nf(r.stock_detenido)}</div>
                               </td>
-
+                              <td className="p-2.5">
+                                <div className="w-[96px] space-y-1.5">
+                                  <div>
+                                    <div className="relative h-1.5 rounded-full bg-muted overflow-hidden">
+                                      <div className="absolute inset-y-0 left-0 rounded-full bg-emerald-500"
+                                           style={{ width: `${Math.min(100, r.st_disponibilizado ?? 0)}%` }} />
+                                    </div>
+                                    <div className="text-[10px] text-muted-foreground mt-0.5 tabular-nums">
+                                      {nf(r.st_disponibilizado,0)}% disponible
+                                    </div>
+                                  </div>
+                                  <div>
+                                    <div className="relative h-1.5 rounded-full bg-muted overflow-hidden">
+                                      <div className="absolute inset-y-0 left-0 rounded-full bg-slate-400"
+                                           style={{ width: `${Math.min(100, r.st_total ?? 0)}%` }} />
+                                    </div>
+                                    <div className="text-[10px] text-muted-foreground mt-0.5 tabular-nums">
+                                      {nf(r.st_total,0)}% total
+                                    </div>
+                                  </div>
+                                </div>
+                              </td>
                               <td className="p-2.5 text-right">
                                 <span className={`tabular-nums font-medium ${
                                   (r.sin_evacuar ?? 0) > 0 ? "text-rose-700" : "text-muted-foreground"}`}>
@@ -586,6 +607,8 @@ export default function Producto360() {
                   <span className="font-medium text-foreground ml-2">RDV:</span>
                   <span>1,00× = al ritmo del producto típico de su cohorte</span>
                   <span className="ml-2">La marca en cada barra es el objetivo</span>
+                  <span className="font-medium text-foreground ml-2">Sell-through:</span>
+                  <span>verde sobre lo disponibilizado, gris sobre el total (incluye bodega). La diferencia es el inventario detenido.</span>
                 </div>
               </>
             )}
