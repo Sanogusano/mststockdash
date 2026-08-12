@@ -30,9 +30,9 @@ import PresupuestosPage from "./pages/Presupuestos";
 import CentroAccionPage from "./pages/CentroAccion";
 import IncentivosPage from "./pages/Incentivos";
 import CierreColeccionPage from "./pages/CierreColeccion";
+import PresupuestoRotacionPage from "./pages/PresupuestoRotacion";
 import ProyeccionDemandaPage from "./pages/ProyeccionDemanda";
 import RendimientoVendedoresPage from "./pages/RendimientoVendedores";
-import ComisionesPage from "./pages/Comisiones";
 import VendedoresPage from "./pages/Vendedores";
 import ConfiguracionUbicacionesPage from "./pages/ConfiguracionUbicaciones";
 import NetsuiteUploadPage from "./pages/NetsuiteUpload";
@@ -86,6 +86,7 @@ const App = () => (
           <Route path="/bundle-construction" element={<Guard module="dashboards.inventario_salud" action="view"><BundleConstructionPage /></Guard>} />
           <Route path="/desempeno-categoria" element={<Guard module="dashboards.inventario_salud" action="view"><DesempenoCategoriaPage /></Guard>} />
           <Route path="/ciclo-venta" element={<Guard module="dashboards.salud_producto" action="view"><CicloVentaPage /></Guard>} />
+          <Route path="/presupuesto-rotacion" element={<Guard module="dashboards.salud_producto" action="view"><PresupuestoRotacionPage /></Guard>} />
           <Route path="/tienda/:id" element={<Guard module="dashboards.resumen_ejecutivo" action="view" requireScope><TiendaDetailPage /></Guard>} />
           <Route path="/logistica" element={<Guard module="dashboards.logistica_traslados" action="view"><LogisticaPage /></Guard>} />
           <Route path="/logistica-traslados" element={<Guard module="dashboards.logistica_traslados" action="view"><LogisticaTrasladosPage /></Guard>} />
