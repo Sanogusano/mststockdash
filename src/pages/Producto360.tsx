@@ -518,6 +518,10 @@ export default function Producto360() {
                                 <div className="text-[10px] text-muted-foreground">
                                   típico {nf(r.med_pctfull_cohorte, 0)}%
                                 </div>
+                                <div className="text-[10px] text-muted-foreground tabular-nums whitespace-nowrap">
+                                  {nf(r.st_disponibilizado, 0)}% / {nf(r.st_total, 0)}%
+                                </div>
+                                <div className="text-[10px] text-muted-foreground">ST disp/total</div>
                               </td>
                               <td className="p-2.5">
                                 <span className={`inline-flex rounded-md border px-2 py-0.5 text-[11px] font-medium ${
