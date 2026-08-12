@@ -2441,6 +2441,11 @@ export type Database = {
         Row: {
           anio: number | null
           base_cohorte: string | null
+          bod_exportaciones: number | null
+          bod_guayabal: number | null
+          bod_principal: number | null
+          bod_reserva: number | null
+          bod_tiendas: number | null
           calculado_en: string | null
           categoria_padre: string | null
           category: string | null
@@ -2452,6 +2457,7 @@ export type Database = {
           estado_online: string | null
           estado_tallas: string | null
           fecha_inicio: string | null
+          fecha_snapshot_bodega: string | null
           fuera_de_ventana: boolean | null
           genero_norm: string | null
           image_url: string | null
@@ -2472,6 +2478,7 @@ export type Database = {
           objetivo_dia_tienda: number | null
           pct_activacion: number | null
           pct_evacuado_120d: number | null
+          pct_proyectado_120d: number | null
           pct_rebaja: number | null
           pct_venta_full: number | null
           percentil_catalogo: number | null
@@ -2492,15 +2499,20 @@ export type Database = {
           semanas_en_venta: number | null
           semanas_objetivo: number | null
           sin_evacuar: number | null
+          st_disponibilizado: number | null
           st_online_pct: number | null
           st_tienda_pct: number | null
+          st_total: number | null
           stock_actual: number | null
           stock_bodegas: number | null
+          stock_detenido: number | null
+          stock_disponibilizado: number | null
           stock_online: number | null
           stock_outlet: number | null
           stock_segundas: number | null
           stock_tienda: number | null
           stock_tiendas: number | null
+          stock_total: number | null
           tallas_con_stock: number | null
           tallas_totales: number | null
           tiendas_con_stock: number | null
@@ -2705,6 +2717,7 @@ export type Database = {
           objetivo_dia_tienda: number | null
           pct_evacuado_120d: number | null
           pct_evacuado_total: number | null
+          pct_proyectado_120d: number | null
           percentil_catalogo: number | null
           peso_online: number | null
           producido: number | null
@@ -2715,6 +2728,7 @@ export type Database = {
           semanas_en_venta: number | null
           stock_actual: number | null
           stock_bodegas: number | null
+          stock_online: number | null
           stock_segundas: number | null
           stock_tiendas: number | null
           title: string | null
@@ -2758,6 +2772,19 @@ export type Database = {
           sku: string | null
           total_sold_30d: number | null
           variant_id: string | null
+        }
+        Relationships: []
+      }
+      stock_bodega_por_producto: {
+        Row: {
+          bod_exportaciones: number | null
+          bod_guayabal: number | null
+          bod_principal: number | null
+          bod_reserva: number | null
+          bod_tiendas: number | null
+          fecha_snapshot: string | null
+          product_id: string | null
+          stock_detenido: number | null
         }
         Relationships: []
       }
