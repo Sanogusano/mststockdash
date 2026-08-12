@@ -202,11 +202,21 @@ export function ProductoDetallePanel({ producto, onClose }: {
             <CardSalud
               icon={Zap}
               label="RDV vs. sus pares"
-              value={producto.indice_total == null ? "—" : `${nf(producto.indice_total / 100, 2)}×`}
-              sub={`vs. ${producto.n_cohorte} de su ${producto.base_cohorte}`}
               v={producto.indice_total == null ? null : producto.indice_total / 100}
               conSemaforo
-            />
+            >
+              <div className="text-xl font-semibold tabular-nums">
+                {producto.indice_total == null ? "—" : `${nf(producto.indice_total / 100, 2)}×`}
+              </div>
+              <div className="text-[10px] text-muted-foreground">
+                vs. {producto.n_cohorte} de su {producto.base_cohorte}
+              </div>
+              <div className="text-[10px] text-muted-foreground">
+                Objetivo de línea: {nf(producto.indice_rasero, 2)}×
+                {producto.indice_rasero_tienda != null && ` · tienda ${nf(producto.indice_rasero_tienda, 2)}×`}
+                {producto.indice_rasero_online != null && ` · online ${nf(producto.indice_rasero_online, 2)}×`}
+              </div>
+            </CardSalud>
           </div>
 
           {/* Indicadores secundarios */}

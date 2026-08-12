@@ -98,6 +98,13 @@ interface Row {
   bod_tiendas: number | null;
   bod_exportaciones: number | null;
   fecha_snapshot_bodega: string | null;
+  indice_rasero: number | null;
+  indice_rasero_tienda: number | null;
+  indice_rasero_online: number | null;
+  rasero_tienda: number | null;
+  rasero_online: number | null;
+  estado_rasero: string;
+  ros_total: number | null;
   [k: string]: any;
 }
 
@@ -438,7 +445,7 @@ export default function Producto360() {
                           <th className="text-right p-2.5 font-medium">Unidades</th>
                           <th className="text-left p-2.5 font-medium">Ventas por canal</th>
                           <th className="text-left p-2.5 font-medium">Ritmo vs Presupuesto</th>
-                          <th className="text-left p-2.5 font-medium">RDV vs. pares</th>
+                          <th className="text-left p-2.5 font-medium">RDV</th>
                           <th className="text-right p-2.5 font-medium">Calidad de venta</th>
                           <th className="text-left p-2.5 font-medium">Cobertura</th>
                           <th className="text-right p-2.5 font-medium">Stock</th>
@@ -523,6 +530,12 @@ export default function Producto360() {
                                     <span className="text-[10px] text-muted-foreground">
                                       n={r.n_cohorte}
                                     </span>
+                                  </div>
+                                  <div className="text-[10px] text-muted-foreground">
+                                    {r.indice_rasero == null ? "—" : `${nf(r.indice_rasero, 2)}× vs. objetivo de línea`}
+                                  </div>
+                                  <div className="text-[10px] text-muted-foreground tabular-nums">
+                                    {r.ros_total == null ? "—" : `${nf(r.ros_total, 2)} uds/t/sem`}
                                   </div>
                                 </div>
                               </td>
