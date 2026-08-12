@@ -97,6 +97,14 @@ export function ProductoDetallePanel({ producto, onClose }: {
     </div>
   );
 
+  const bodegas = ([
+    { l: "Principal", v: producto.bod_principal },
+    { l: "Guayabal", v: producto.bod_guayabal },
+    { l: "Reserva", v: producto.bod_reserva },
+    { l: "Tiendas", v: producto.bod_tiendas },
+    { l: "Exportaciones", v: producto.bod_exportaciones },
+  ] as { l: string; v: number | null }[]).filter(b => (b.v ?? 0) > 0);
+
   const pico = curva.length ? curva.reduce((a, b) => (b.uds > a.uds ? b : a), curva[0]) : null;
   const al80 = curva.find(p => (p.pct_acumulado ?? 0) >= 80);
 
