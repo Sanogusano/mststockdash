@@ -311,7 +311,21 @@ export function ProductoDetallePanel({ producto, onClose }: {
           </div>
         </div>
       </div>
+
+      {zoom && producto.image_url && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 p-6"
+             onClick={e => { e.stopPropagation(); setZoom(false); }}>
+          <button className="absolute top-4 right-4 rounded-full p-2 text-white/80 hover:text-white"
+                  onClick={e => { e.stopPropagation(); setZoom(false); }} aria-label="Cerrar">
+            <X className="h-6 w-6" />
+          </button>
+          <img src={producto.image_url} alt={producto.title ?? ""}
+               className="max-h-full max-w-full object-contain"
+               onClick={e => e.stopPropagation()} />
+        </div>
+      )}
     </div>
+
   );
 }
 
