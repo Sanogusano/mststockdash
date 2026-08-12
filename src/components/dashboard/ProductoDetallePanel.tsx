@@ -214,13 +214,19 @@ export function ProductoDetallePanel({ producto, onClose }: {
             <CardSalud
               icon={Clock}
               label="Cobertura"
-              value={`${nf(Math.min(producto.wos ?? 0, 99), 0)} sem`}
-              sub={producto.semanas_restantes > 0
-                ? `quedan ${producto.semanas_restantes} · ${producto.cobertura}`
-                : `+${Math.abs(producto.semanas_restantes)} sem · ${producto.cobertura}`}
               v={producto.ratio_cobertura == null ? null : 1 / Math.max(producto.ratio_cobertura, 0.1)}
               conSemaforo
-            />
+            >
+              <div className="text-xl font-semibold tabular-nums">
+                {nf(Math.min(producto.wos ?? 0, 99), 0)} sem
+              </div>
+              <div className="text-[10px] text-muted-foreground">de inventario al ritmo actual</div>
+              <div className="text-[10px] text-muted-foreground mt-0.5">
+                {producto.semanas_restantes > 0
+                  ? `Ventana: quedan ${producto.semanas_restantes} sem`
+                  : `Ventana: +${Math.abs(producto.semanas_restantes)} sem de más`} · {producto.cobertura}
+              </div>
+            </CardSalud>
             <CardSalud
               icon={TrendingUp}
               label="Sell-through"

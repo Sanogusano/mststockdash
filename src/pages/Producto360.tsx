@@ -540,12 +540,13 @@ export default function Producto360() {
                                 {r.wos != null && r.cobertura !== "SIN STOCK" && (
                                   <>
                                     <div className="text-[11px] text-foreground mt-0.5 whitespace-nowrap tabular-nums">
-                                      {nf(Math.min(r.wos, 99), 0)} sem de stock
+                                      {nf(Math.min(r.wos, 99), 0)} sem de inventario al ritmo actual
                                     </div>
                                     <div className="text-[10px] whitespace-nowrap">
                                       {r.semanas_restantes > 0
-                                        ? <span className="text-muted-foreground">quedan {r.semanas_restantes}</span>
-                                        : <span className="text-amber-700">+{Math.abs(r.semanas_restantes)} sem de más</span>}
+                                        ? <span className="text-muted-foreground">Ventana: quedan {r.semanas_restantes} sem</span>
+                                        : <span className="text-amber-700">Ventana: +{Math.abs(r.semanas_restantes)} sem de más</span>}
+                                      <span className="text-muted-foreground"> · {r.cobertura}</span>
                                     </div>
                                   </>
                                 )}
