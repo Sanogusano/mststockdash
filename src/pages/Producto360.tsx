@@ -607,6 +607,8 @@ export default function Producto360() {
                   <span className="font-medium text-foreground ml-2">RDV:</span>
                   <span>1,00× = al ritmo del producto típico de su cohorte</span>
                   <span className="ml-2">La marca en cada barra es el objetivo</span>
+                  <span className="font-medium text-foreground ml-2">Sell-through:</span>
+                  <span>verde sobre lo disponibilizado, gris sobre el total (incluye bodega). La diferencia es el inventario detenido.</span>
                 </div>
               </>
             )}
