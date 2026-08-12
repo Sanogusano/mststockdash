@@ -281,7 +281,9 @@ export function ProductoDetallePanel({ producto, onClose }: {
           {/* Cobertura y tallas */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 pt-1">
             <Dato l="Cobertura" v={`${nf(Math.min(producto.wos ?? 0, 99), 0)} sem`}
-                  sub={`quedan ${producto.semanas_objetivo} · ${producto.cobertura}`} />
+                  sub={producto.semanas_restantes > 0
+                    ? `quedan ${producto.semanas_restantes} · ${producto.cobertura}`
+                    : `+${Math.abs(producto.semanas_restantes)} sem · ${producto.cobertura}`} />
             <Dato l="Sell-through total" v={`${nf(producto.sell_through_pct, 1)}%`}
                   sub={`típico ${nf(producto.med_st_cohorte, 0)}%`} />
             <Dato l="Tallas con stock"
