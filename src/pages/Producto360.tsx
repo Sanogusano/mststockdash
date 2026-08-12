@@ -445,7 +445,7 @@ export default function Producto360() {
                           <th className="text-right p-2.5 font-medium">Unidades</th>
                           <th className="text-left p-2.5 font-medium">Ventas por canal</th>
                           <th className="text-left p-2.5 font-medium">Ritmo vs Presupuesto</th>
-                          <th className="text-left p-2.5 font-medium">RDV vs. pares</th>
+                          <th className="text-left p-2.5 font-medium">RDV</th>
                           <th className="text-right p-2.5 font-medium">Calidad de venta</th>
                           <th className="text-left p-2.5 font-medium">Cobertura</th>
                           <th className="text-right p-2.5 font-medium">Stock</th>
