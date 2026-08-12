@@ -435,14 +435,15 @@ export default function Producto360() {
                       <thead>
                         <tr className="border-b bg-muted/40 text-xs text-muted-foreground">
                           <th className="text-left p-2.5 font-medium" colSpan={2}>Producto</th>
-                          <th className="text-right p-2.5 font-medium">Producido</th>
-                          <th className="text-left p-2.5 font-medium">Índice vs. meta</th>
+                          <th className="text-right p-2.5 font-medium">Unidades</th>
+                          <th className="text-left p-2.5 font-medium">Ventas por canal</th>
+                          <th className="text-left p-2.5 font-medium">Ritmo vs Presupuesto</th>
                           <th className="text-left p-2.5 font-medium">RDV vs. pares</th>
-                          <th className="text-right p-2.5 font-medium">% full</th>
+                          <th className="text-right p-2.5 font-medium">Calidad de venta</th>
                           <th className="text-left p-2.5 font-medium">Cobertura</th>
-                          <th className="text-left p-2.5 font-medium">Canal</th>
                           <th className="text-right p-2.5 font-medium">Stock</th>
                           <th className="text-right p-2.5 font-medium">Sin evacuar</th>
+
                         </tr>
                       </thead>
                       <tbody>
@@ -475,6 +476,19 @@ export default function Producto360() {
                                 <div className="tabular-nums font-medium">{nf(r.producido)}</div>
                                 <div className="text-[10px] text-muted-foreground whitespace-nowrap">
                                   {nf(r.uds_120d)} vendidas
+                                </div>
+                              </td>
+                              <td className="p-2.5">
+                                <div className="text-[11px] whitespace-nowrap">
+                                  {PERFIL[r.perfil_canal] ?? ""}
+                                </div>
+                                <div className="flex items-center gap-2 text-[10px] text-muted-foreground mt-0.5">
+                                  <span className="flex items-center gap-0.5">
+                                    <Store className="h-2.5 w-2.5" />{nf((r.uds_tienda ?? 0) + (r.uds_outlet ?? 0))}
+                                  </span>
+                                  <span className="flex items-center gap-0.5">
+                                    <ShoppingBag className="h-2.5 w-2.5" />{nf(r.uds_online)}
+                                  </span>
                                 </div>
                               </td>
                               <td className="p-2.5">
@@ -512,17 +526,11 @@ export default function Producto360() {
                                   </div>
                                 </div>
                               </td>
-                              <td className="p-2.5 text-right">
-                                <span className={`tabular-nums ${fullOk ? "text-emerald-700 font-medium" : ""}`}>
-                                  {nf(r.pct_venta_full, 0)}%
-                                </span>
-                                <div className="text-[10px] text-muted-foreground">
-                                  típico {nf(r.med_pctfull_cohorte, 0)}%
+                              <td className="p-2.5 text-right whitespace-nowrap">
+                                <div className={`tabular-nums ${fullOk ? "text-emerald-700 font-medium" : ""}`}>
+                                  {nf(r.pct_venta_full, 0)}% <span className="text-[10px] text-muted-foreground">a precio full</span>
                                 </div>
-                                <div className="text-[10px] text-muted-foreground tabular-nums whitespace-nowrap">
-                                  {nf(r.st_disponibilizado, 0)}% / {nf(r.st_total, 0)}%
-                                </div>
-                                <div className="text-[10px] text-muted-foreground">ST disp/total</div>
+                                <div className="text-[10px] text-muted-foreground">típico {nf(r.med_pctfull_cohorte, 0)}%</div>
                               </td>
                               <td className="p-2.5">
                                 <span className={`inline-flex rounded-md border px-2 py-0.5 text-[11px] font-medium ${
@@ -530,32 +538,29 @@ export default function Producto360() {
                                   {r.cobertura}
                                 </span>
                                 {r.wos != null && r.cobertura !== "SIN STOCK" && (
-                                  <div className="text-[10px] text-muted-foreground mt-0.5 whitespace-nowrap">
-                                {r.semanas_restantes > 0
-                                  ? `${nf(Math.min(r.wos, 99), 0)} sem · quedan ${r.semanas_restantes}`
-                                  : <span className="text-amber-700">{nf(Math.min(r.wos, 99), 0)} sem · +{Math.abs(r.semanas_restantes)} sem</span>}
-                                  </div>
+                                  <>
+                                    <div className="text-[11px] text-foreground mt-0.5 whitespace-nowrap tabular-nums">
+                                      {nf(Math.min(r.wos, 99), 0)} sem de stock
+                                    </div>
+                                    <div className="text-[10px] whitespace-nowrap">
+                                      {r.semanas_restantes > 0
+                                        ? <span className="text-muted-foreground">quedan {r.semanas_restantes}</span>
+                                        : <span className="text-amber-700">+{Math.abs(r.semanas_restantes)} sem de más</span>}
+                                    </div>
+                                  </>
                                 )}
-                              </td>
-                              <td className="p-2.5">
-                                <div className="text-[11px] whitespace-nowrap">
-                                  {PERFIL[r.perfil_canal] ?? ""}
-                                </div>
-                                <div className="flex items-center gap-2 text-[10px] text-muted-foreground mt-0.5">
-                                  <span className="flex items-center gap-0.5">
-                                    <Store className="h-2.5 w-2.5" />{nf((r.uds_tienda ?? 0) + (r.uds_outlet ?? 0))}
-                                  </span>
-                                  <span className="flex items-center gap-0.5">
-                                    <ShoppingBag className="h-2.5 w-2.5" />{nf(r.uds_online)}
-                                  </span>
-                                </div>
                               </td>
                               <td className="p-2.5 text-right whitespace-nowrap">
                                 <div className="tabular-nums font-medium">{nf(r.stock_disponibilizado)}</div>
                                 <div className="text-[10px] text-muted-foreground">disponible</div>
                                 <div className="tabular-nums text-amber-700 mt-0.5">{nf(r.stock_detenido)}</div>
                                 <div className="text-[10px] text-muted-foreground">detenido</div>
+                                <div className="text-[10px] text-muted-foreground tabular-nums mt-0.5">
+                                  {nf(r.st_disponibilizado, 0)}% / {nf(r.st_total, 0)}%
+                                </div>
+                                <div className="text-[10px] text-muted-foreground">ST disp/total</div>
                               </td>
+
                               <td className="p-2.5 text-right">
                                 <span className={`tabular-nums font-medium ${
                                   (r.sin_evacuar ?? 0) > 0 ? "text-rose-700" : "text-muted-foreground"}`}>

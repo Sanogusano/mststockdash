@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { X, Package, Store, ShoppingBag } from "lucide-react";
+import { X, Package, Store, ShoppingBag, Warehouse } from "lucide-react";
 import {
   ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid,
   Tooltip, Legend, ResponsiveContainer, ReferenceLine,
@@ -72,6 +72,8 @@ export function ProductoDetallePanel({ producto, onClose }: {
 }) {
   const [curva, setCurva] = useState<PuntoCurva[]>([]);
   const [cargando, setCargando] = useState(true);
+  const [zoom, setZoom] = useState(false);
+
 
   useEffect(() => {
     if (!producto) return;
@@ -117,7 +119,9 @@ export function ProductoDetallePanel({ producto, onClose }: {
           <div className="flex items-center gap-3">
             {producto.image_url ? (
               <img src={producto.image_url} alt=""
-                   className="h-14 w-14 rounded object-cover bg-muted" />
+                   onClick={e => { e.stopPropagation(); setZoom(true); }}
+                   className="h-14 w-14 rounded object-cover bg-muted cursor-zoom-in" />
+
             ) : (
               <div className="h-14 w-14 rounded bg-muted flex items-center justify-center">
                 <Package className="h-5 w-5 text-muted-foreground/50" />
@@ -145,21 +149,6 @@ export function ProductoDetallePanel({ producto, onClose }: {
               <div className="text-[10px] text-muted-foreground">
                 {nf(producto.stock_bodegas)} bodega · {nf(producto.stock_tiendas)} tienda
               </div>
-              {bodegas.length > 0 && (
-                <div className="mt-1 space-y-0.5">
-                  {bodegas.map(b => (
-                    <div key={b.l} className="flex justify-between gap-2 text-[10px] text-muted-foreground">
-                      <span>{b.l}</span>
-                      <span className="tabular-nums">{nf(b.v)}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
-              {producto.fecha_snapshot_bodega && (
-                <div className="text-[10px] text-muted-foreground mt-1">
-                  Snapshot {new Date(producto.fecha_snapshot_bodega).toLocaleDateString("es-CO")}
-                </div>
-              )}
             </div>
             <Dato l="Vendido en 120 días" v={nf(producto.uds_120d)}
                   sub={`${nf(producto.pct_evacuado_120d, 0)}% de lo producido`} />
@@ -169,6 +158,32 @@ export function ProductoDetallePanel({ producto, onClose }: {
                   v={producto.indice_total == null ? "—" : `${nf(producto.indice_total / 100, 2)}×`}
                   sub={`vs. ${producto.n_cohorte} de su ${producto.base_cohorte}`} />
           </div>
+
+          {bodegas.length > 0 && (
+            <div className="rounded-lg border bg-amber-50/40 p-3">
+              <div className="flex items-center gap-1.5 text-sm font-medium">
+                <Warehouse className="h-4 w-4 text-amber-700" />
+                Inventario detenido
+              </div>
+              <div className="mt-1 text-2xl font-semibold tabular-nums text-amber-800">
+                {nf(bodegas.reduce((a, b) => a + (b.v ?? 0), 0))}
+              </div>
+              <div className="mt-2 space-y-1">
+                {bodegas.map(b => (
+                  <div key={b.l} className="flex justify-between gap-2 text-xs">
+                    <span className="text-muted-foreground">{b.l}</span>
+                    <span className="tabular-nums font-medium">{nf(b.v)}</span>
+                  </div>
+                ))}
+              </div>
+              {producto.fecha_snapshot_bodega && (
+                <div className="mt-2 text-[10px] text-muted-foreground">
+                  Snapshot {new Date(producto.fecha_snapshot_bodega).toLocaleDateString("es-CO")}
+                </div>
+              )}
+            </div>
+          )}
+
 
           {/* Curva */}
           <div className="rounded-lg border p-3">
@@ -296,7 +311,21 @@ export function ProductoDetallePanel({ producto, onClose }: {
           </div>
         </div>
       </div>
+
+      {zoom && producto.image_url && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 p-6"
+             onClick={e => { e.stopPropagation(); setZoom(false); }}>
+          <button className="absolute top-4 right-4 rounded-full p-2 text-white/80 hover:text-white"
+                  onClick={e => { e.stopPropagation(); setZoom(false); }} aria-label="Cerrar">
+            <X className="h-6 w-6" />
+          </button>
+          <img src={producto.image_url} alt={producto.title ?? ""}
+               className="max-h-full max-w-full object-contain"
+               onClick={e => e.stopPropagation()} />
+        </div>
+      )}
     </div>
+
   );
 }
 
