@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { X, Package, Store, ShoppingBag, Warehouse, PauseCircle } from "lucide-react";
+import { X, Package, Store, ShoppingBag, Warehouse, PauseCircle, Shirt, Flag, Gauge, Zap } from "lucide-react";
 import {
   ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid,
   Tooltip, Legend, ResponsiveContainer, ReferenceLine,
@@ -62,6 +62,42 @@ function BarraCalidad({ full, rebaja, activacion, ancho = 200 }: {
         <span>{nf(full)} full</span>
         <span>{nf(rebaja)} rebaja</span>
         <span>{nf(activacion)} activación</span>
+      </div>
+    </div>
+  );
+}
+
+/** Salud de un indicador cuyo objetivo es 1,00. El emoji comunica antes que
+ *  el número; el color de fondo hace que la card se lea de un vistazo. */
+function salud(v: number | null) {
+  if (v == null) return { emoji: "—", txt: "text-muted-foreground", bg: "" };
+  if (v >= 1.50) return { emoji: "🏅", txt: "text-blue-700",    bg: "bg-blue-50 border-blue-200" };
+  if (v >= 1.00) return { emoji: "✅", txt: "text-emerald-700", bg: "bg-emerald-50 border-emerald-200" };
+  if (v >= 0.80) return { emoji: "🟡", txt: "text-amber-700",   bg: "bg-amber-50 border-amber-200" };
+  if (v >= 0.60) return { emoji: "🟠", txt: "text-orange-700",  bg: "bg-orange-50 border-orange-200" };
+  return { emoji: "🐢", txt: "text-rose-700", bg: "bg-rose-50 border-rose-200" };
+}
+
+function CardSalud({ icon: Icon, label, value, sub, v }: {
+  icon: React.ElementType;
+  label: string;
+  value: React.ReactNode;
+  sub: string;
+  v: number | null;
+}) {
+  const s = salud(v);
+  return (
+    <div className={`rounded-lg border p-3 ${s.bg}`}>
+      <div className="flex items-start gap-3">
+        <span className="text-2xl leading-none">{s.emoji}</span>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+            <Icon className="h-4 w-4" />
+            {label}
+          </div>
+          <div className={`text-sm font-medium tabular-nums ${s.txt}`}>{value}</div>
+          {sub && <div className="text-[10px] text-muted-foreground">{sub}</div>}
+        </div>
       </div>
     </div>
   );
@@ -143,20 +179,40 @@ export function ProductoDetallePanel({ producto, onClose }: {
         <div className="p-4 space-y-5">
           {/* Cifras gruesas */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            <div>
-              <div className="text-[11px] text-muted-foreground">Producido</div>
+            <div className="rounded-lg border p-3">
+              <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                <Shirt className="h-4 w-4" />
+                Producido
+              </div>
               <div className="text-sm font-medium tabular-nums">{nf(producto.producido)}</div>
               <div className="text-[10px] text-muted-foreground">
                 {nf(producto.stock_bodegas)} bodega · {nf(producto.stock_tiendas)} tienda
               </div>
             </div>
-            <Dato l="Vendido en 120 días" v={nf(producto.uds_120d)}
-                  sub={`${nf(producto.pct_evacuado_120d, 0)}% de lo producido`} />
-            <Dato l="Índice vs. meta" v={nf(producto.indice_meta, 2)}
-                  sub={`${nf(producto.ritmo_dia, 2)} de ${nf(producto.objetivo_dia, 2)} uds/día`} />
-            <Dato l="RDV vs. sus pares"
-                  v={producto.indice_total == null ? "—" : `${nf(producto.indice_total / 100, 2)}×`}
-                  sub={`vs. ${producto.n_cohorte} de su ${producto.base_cohorte}`} />
+            <div className="rounded-lg border p-3">
+              <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                <Flag className="h-4 w-4" />
+                Vendido en 120 días
+              </div>
+              <div className="text-sm font-medium tabular-nums">{nf(producto.uds_120d)}</div>
+              <div className="text-[10px] text-muted-foreground">
+                {nf(producto.pct_evacuado_120d, 0)}% de lo producido
+              </div>
+            </div>
+            <CardSalud
+              icon={Gauge}
+              label="Ritmo vs. presupuesto"
+              value={nf(producto.indice_meta, 2)}
+              sub={`${nf(producto.ritmo_dia, 2)} de ${nf(producto.objetivo_dia, 2)} uds/día`}
+              v={producto.indice_meta}
+            />
+            <CardSalud
+              icon={Zap}
+              label="RDV vs. sus pares"
+              value={producto.indice_total == null ? "—" : `${nf(producto.indice_total / 100, 2)}×`}
+              sub={`vs. ${producto.n_cohorte} de su ${producto.base_cohorte}`}
+              v={producto.indice_total == null ? null : producto.indice_total / 100}
+            />
           </div>
 
           {bodegas.length > 0 && (
