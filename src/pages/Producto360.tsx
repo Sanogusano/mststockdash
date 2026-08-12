@@ -440,6 +440,7 @@ export default function Producto360() {
                           <th className="text-right p-2.5 font-medium">% full</th>
                           <th className="text-left p-2.5 font-medium">Cobertura</th>
                           <th className="text-left p-2.5 font-medium">Canal</th>
+                          <th className="text-right p-2.5 font-medium">Stock</th>
                           <th className="text-right p-2.5 font-medium">Sin evacuar</th>
                         </tr>
                       </thead>
