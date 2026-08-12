@@ -218,14 +218,16 @@ export function ProductoDetallePanel({ producto, onClose }: {
               sub={producto.semanas_restantes > 0
                 ? `quedan ${producto.semanas_restantes} · ${producto.cobertura}`
                 : `+${Math.abs(producto.semanas_restantes)} sem · ${producto.cobertura}`}
-              v={null}
+              v={producto.ratio_cobertura == null ? null : 1 / Math.max(producto.ratio_cobertura, 0.1)}
+              conSemaforo
             />
             <CardSalud
               icon={TrendingUp}
               label="Sell-through"
               value={`${nf(producto.st_disponibilizado ?? producto.sell_through_pct, 1)}%`}
               sub={`típico ${nf(producto.med_st_cohorte, 0)}%`}
-              v={null}
+              v={producto.med_st_cohorte ? (producto.st_disponibilizado ?? producto.sell_through_pct) / producto.med_st_cohorte : null}
+              conSemaforo
             />
             <CardSalud
               icon={Ruler}
@@ -239,17 +241,24 @@ export function ProductoDetallePanel({ producto, onClose }: {
             <CardSalud
               icon={Store}
               label="Distribución"
-              value={`${producto.tiendas_con_stock} tiendas`}
-              sub={`${nf((producto.stock_tienda ?? 0) + (producto.stock_outlet ?? 0))} uds · ${nf(producto.stock_online ?? 0)} online`}
               v={null}
-            />
+            >
+              <div className="text-sm">
+                <span className="font-semibold tabular-nums">{nf((producto.stock_tienda ?? 0) + (producto.stock_outlet ?? 0))}</span> uds en {producto.tiendas_con_stock} tiendas
+              </div>
+              <div className="text-sm">
+                <span className="font-semibold tabular-nums">{nf(producto.stock_online ?? 0)}</span> uds online
+              </div>
+            </CardSalud>
             <CardSalud
               icon={Split}
               label="Mix de canal"
-              value={`${nf(producto.mix_online_pct, 0)}% online`}
-              sub={`su categoría ${nf(producto.mix_online_cat, 0)}% · ${nf(100 - (producto.mix_online_pct ?? 0), 0)}% tienda`}
               v={null}
-            />
+            >
+              <div className="text-xl font-semibold tabular-nums">{nf(producto.mix_online_pct, 0)}% Online</div>
+              <div className="text-sm font-medium tabular-nums">{nf(100 - (producto.mix_online_pct ?? 0), 0)}% Tiendas</div>
+              <div className="text-[10px] text-muted-foreground">su categoría vende {nf(producto.mix_online_cat, 0)}% online</div>
+            </CardSalud>
           </div>
 
 
