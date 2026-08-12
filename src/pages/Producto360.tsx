@@ -45,6 +45,7 @@ interface Row {
   image_url: string | null;
   semanas_en_venta: number;
   semanas_objetivo: number;
+  semanas_restantes: number;
   fuera_de_ventana: boolean;
   producido: number;
   uds_120d: number;
@@ -530,7 +531,9 @@ export default function Producto360() {
                                 </span>
                                 {r.wos != null && r.cobertura !== "SIN STOCK" && (
                                   <div className="text-[10px] text-muted-foreground mt-0.5 whitespace-nowrap">
-                                    {nf(Math.min(r.wos, 99), 0)} sem · quedan {r.semanas_objetivo}
+                                {r.semanas_restantes > 0
+                                  ? `${nf(Math.min(r.wos, 99), 0)} sem · quedan ${r.semanas_restantes}`
+                                  : <span className="text-amber-700">{nf(Math.min(r.wos, 99), 0)} sem · +{Math.abs(r.semanas_restantes)} sem</span>}
                                   </div>
                                 )}
                               </td>

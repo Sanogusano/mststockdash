@@ -2498,6 +2498,7 @@ export type Database = {
           sell_through_pct: number | null
           semanas_en_venta: number | null
           semanas_objetivo: number | null
+          semanas_restantes: number | null
           sin_evacuar: number | null
           st_disponibilizado: number | null
           st_online_pct: number | null
@@ -2509,7 +2510,6 @@ export type Database = {
           stock_disponibilizado: number | null
           stock_online: number | null
           stock_outlet: number | null
-          stock_segundas: number | null
           stock_tienda: number | null
           stock_tiendas: number | null
           stock_total: number | null
@@ -2729,7 +2729,6 @@ export type Database = {
           stock_actual: number | null
           stock_bodegas: number | null
           stock_online: number | null
-          stock_segundas: number | null
           stock_tiendas: number | null
           title: string | null
           uds_120d: number | null

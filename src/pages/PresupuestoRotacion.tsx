@@ -44,7 +44,7 @@ interface Row {
   unidades_vendidas: number;
   stock_bodegas: number;
   stock_tiendas: number;
-  stock_segundas: number;
+  stock_segundas?: number;
   producido: number;
   uds_120d: number;
   uds_120d_tienda: number;
