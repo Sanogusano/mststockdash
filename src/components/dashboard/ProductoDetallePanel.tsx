@@ -145,21 +145,6 @@ export function ProductoDetallePanel({ producto, onClose }: {
               <div className="text-[10px] text-muted-foreground">
                 {nf(producto.stock_bodegas)} bodega · {nf(producto.stock_tiendas)} tienda
               </div>
-              {bodegas.length > 0 && (
-                <div className="mt-1 space-y-0.5">
-                  {bodegas.map(b => (
-                    <div key={b.l} className="flex justify-between gap-2 text-[10px] text-muted-foreground">
-                      <span>{b.l}</span>
-                      <span className="tabular-nums">{nf(b.v)}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
-              {producto.fecha_snapshot_bodega && (
-                <div className="text-[10px] text-muted-foreground mt-1">
-                  Snapshot {new Date(producto.fecha_snapshot_bodega).toLocaleDateString("es-CO")}
-                </div>
-              )}
             </div>
             <Dato l="Vendido en 120 días" v={nf(producto.uds_120d)}
                   sub={`${nf(producto.pct_evacuado_120d, 0)}% de lo producido`} />
@@ -169,6 +154,32 @@ export function ProductoDetallePanel({ producto, onClose }: {
                   v={producto.indice_total == null ? "—" : `${nf(producto.indice_total / 100, 2)}×`}
                   sub={`vs. ${producto.n_cohorte} de su ${producto.base_cohorte}`} />
           </div>
+
+          {bodegas.length > 0 && (
+            <div className="rounded-lg border bg-amber-50/40 p-3">
+              <div className="flex items-center gap-1.5 text-sm font-medium">
+                <Warehouse className="h-4 w-4 text-amber-700" />
+                Inventario detenido
+              </div>
+              <div className="mt-1 text-2xl font-semibold tabular-nums text-amber-800">
+                {nf(bodegas.reduce((a, b) => a + (b.v ?? 0), 0))}
+              </div>
+              <div className="mt-2 space-y-1">
+                {bodegas.map(b => (
+                  <div key={b.l} className="flex justify-between gap-2 text-xs">
+                    <span className="text-muted-foreground">{b.l}</span>
+                    <span className="tabular-nums font-medium">{nf(b.v)}</span>
+                  </div>
+                ))}
+              </div>
+              {producto.fecha_snapshot_bodega && (
+                <div className="mt-2 text-[10px] text-muted-foreground">
+                  Snapshot {new Date(producto.fecha_snapshot_bodega).toLocaleDateString("es-CO")}
+                </div>
+              )}
+            </div>
+          )}
+
 
           {/* Curva */}
           <div className="rounded-lg border p-3">
