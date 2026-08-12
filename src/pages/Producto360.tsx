@@ -547,6 +547,12 @@ export default function Producto360() {
                                   </span>
                                 </div>
                               </td>
+                              <td className="p-2.5 text-right whitespace-nowrap">
+                                <div className="tabular-nums font-medium">{nf(r.stock_disponibilizado)}</div>
+                                <div className="text-[10px] text-muted-foreground">disponible</div>
+                                <div className="tabular-nums text-amber-700 mt-0.5">{nf(r.stock_detenido)}</div>
+                                <div className="text-[10px] text-muted-foreground">detenido</div>
+                              </td>
                               <td className="p-2.5 text-right">
                                 <span className={`tabular-nums font-medium ${
                                   (r.sin_evacuar ?? 0) > 0 ? "text-rose-700" : "text-muted-foreground"}`}>
