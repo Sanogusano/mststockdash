@@ -79,13 +79,14 @@ function salud(v: number | null) {
   return { txt: "text-rose-700", bg: "bg-rose-50/60 border-rose-200", punto: "bg-rose-500" };
 }
 
-function CardSalud({ icon: Icon, label, value, sub, v, conSemaforo = false }: {
+function CardSalud({ icon: Icon, label, value, sub, v, conSemaforo = false, children }: {
   icon: React.ElementType;
   label: string;
-  value: React.ReactNode;
-  sub: string;
+  value?: React.ReactNode;
+  sub?: string;
   v: number | null;
   conSemaforo?: boolean;
+  children?: React.ReactNode;
 }) {
   const s = salud(v);
   const bgClass = conSemaforo ? s.bg : "";
@@ -97,7 +98,11 @@ function CardSalud({ icon: Icon, label, value, sub, v, conSemaforo = false }: {
         <span>{label}</span>
         {conSemaforo && <span className={`h-1.5 w-1.5 rounded-full ml-auto ${s.punto}`} />}
       </div>
-      <div className={`text-xl font-semibold tabular-nums mt-1 ${txtClass}`}>{value}</div>
+      {children ? (
+        <div className={`mt-1 ${txtClass}`}>{children}</div>
+      ) : (
+        <div className={`text-xl font-semibold tabular-nums mt-1 ${txtClass}`}>{value}</div>
+      )}
       {sub && <div className="text-[10px] text-muted-foreground">{sub}</div>}
     </div>
   );
