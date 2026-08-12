@@ -1716,6 +1716,39 @@ export type Database = {
         }
         Relationships: []
       }
+      rasero_linea: {
+        Row: {
+          actualizado_por: string | null
+          categoria_padre: string
+          genero_norm: string
+          id: string
+          nota: string | null
+          uds_online_semana: number | null
+          uds_tienda_semana: number
+          updated_at: string | null
+        }
+        Insert: {
+          actualizado_por?: string | null
+          categoria_padre: string
+          genero_norm: string
+          id?: string
+          nota?: string | null
+          uds_online_semana?: number | null
+          uds_tienda_semana: number
+          updated_at?: string | null
+        }
+        Update: {
+          actualizado_por?: string | null
+          categoria_padre?: string
+          genero_norm?: string
+          id?: string
+          nota?: string | null
+          uds_online_semana?: number | null
+          uds_tienda_semana?: number
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       role_permissions: {
         Row: {
           action_key: string
@@ -2440,6 +2473,8 @@ export type Database = {
       producto_360: {
         Row: {
           anio: number | null
+          asignado_online: number | null
+          asignado_tienda: number | null
           base_cohorte: string | null
           bod_exportaciones: number | null
           bod_guayabal: number | null
@@ -2455,6 +2490,7 @@ export type Database = {
           dias_en_venta: number | null
           dias_medidos: number | null
           estado_online: string | null
+          estado_rasero: string | null
           estado_tallas: string | null
           fecha_inicio: string | null
           fecha_snapshot_bodega: string | null
@@ -2464,6 +2500,9 @@ export type Database = {
           indice_full: number | null
           indice_meta: number | null
           indice_online: number | null
+          indice_rasero: number | null
+          indice_rasero_online: number | null
+          indice_rasero_tienda: number | null
           indice_rebajado: number | null
           indice_tienda: number | null
           indice_total: number | null
@@ -2476,6 +2515,8 @@ export type Database = {
           objetivo_dia: number | null
           objetivo_dia_online: number | null
           objetivo_dia_tienda: number | null
+          objetivo_online_semana: number | null
+          objetivo_tienda_semana: number | null
           pct_activacion: number | null
           pct_evacuado_120d: number | null
           pct_proyectado_120d: number | null
@@ -2483,9 +2524,12 @@ export type Database = {
           pct_venta_full: number | null
           percentil_catalogo: number | null
           perfil_canal: string | null
+          peso_online: number | null
           producido: number | null
           product_id: string | null
           profundidad_desc_pct: number | null
+          rasero_online: number | null
+          rasero_tienda: number | null
           ratio_cobertura: number | null
           ritmo_dia: number | null
           ritmo_dia_online: number | null
@@ -2524,6 +2568,7 @@ export type Database = {
           uds_onl_rebaja: number | null
           uds_online: number | null
           uds_outlet: number | null
+          uds_semana_total: number | null
           uds_tie_activacion: number | null
           uds_tie_full: number | null
           uds_tie_rebaja: number | null
@@ -2701,6 +2746,8 @@ export type Database = {
       }
       producto_rotacion: {
         Row: {
+          asignado_online: number | null
+          asignado_tienda: number | null
           categoria_padre: string | null
           category: string | null
           cobertura: string | null
@@ -2712,9 +2759,12 @@ export type Database = {
           image_url: string | null
           indice_meta: number | null
           indice_total: number | null
+          n_tiendas: number | null
           objetivo_dia: number | null
           objetivo_dia_online: number | null
           objetivo_dia_tienda: number | null
+          objetivo_online_semana: number | null
+          objetivo_tienda_semana: number | null
           pct_evacuado_120d: number | null
           pct_evacuado_total: number | null
           pct_proyectado_120d: number | null
