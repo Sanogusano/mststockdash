@@ -2598,6 +2598,49 @@ export type Database = {
         }
         Relationships: []
       }
+      producto_rotacion: {
+        Row: {
+          categoria_padre: string | null
+          category: string | null
+          cobertura: string | null
+          coleccion: string | null
+          desempeno: string | null
+          dias_medidos: number | null
+          fecha_inicio: string | null
+          genero_norm: string | null
+          image_url: string | null
+          indice_meta: number | null
+          indice_total: number | null
+          objetivo_dia: number | null
+          objetivo_dia_online: number | null
+          objetivo_dia_tienda: number | null
+          pct_evacuado_120d: number | null
+          pct_evacuado_total: number | null
+          percentil_catalogo: number | null
+          peso_online: number | null
+          producido: number | null
+          product_id: string | null
+          ritmo_dia: number | null
+          ritmo_dia_online: number | null
+          ritmo_dia_tienda: number | null
+          semanas_en_venta: number | null
+          stock_actual: number | null
+          stock_bodegas: number | null
+          stock_segundas: number | null
+          stock_tiendas: number | null
+          title: string | null
+          uds_120d: number | null
+          uds_120d_online: number | null
+          uds_120d_tienda: number | null
+          uds_online: number | null
+          uds_outlet: number | null
+          uds_tienda: number | null
+          unidades_vendidas: number | null
+          velocidad_meta: string | null
+          ventana_completa: boolean | null
+        }
+        Relationships: []
+      }
       reporte_cumplimiento_presupuesto: {
         Row: {
           diferencia_faltante: number | null
