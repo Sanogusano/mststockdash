@@ -663,20 +663,21 @@ export default function TopProductos() {
                               <div className="relative h-3">
                                 <div className="absolute top-0.5 inset-x-0 h-2 rounded-full bg-muted" />
                                 <div className="absolute top-0.5 left-0 h-2 rounded-full"
-                                     style={{ width: `${Math.min(100, ((idx ?? 0) / 300) * 100)}%`,
+                                     style={{ width: `${Math.min(100, ((idx ?? 0) / 3) * 100)}%`,
                                               background: col }} />
                                 <div className="absolute top-0 h-3 w-0.5 bg-foreground"
                                      style={{ left: "33.3%" }} />
                               </div>
-                              <div className="flex items-baseline gap-1.5 mt-1">
+                              <div className="mt-1">
                                 <span className="text-sm font-medium tabular-nums" style={{ color: col }}
-                                      title="Veces el ritmo del producto típico de su cohorte">
-                                  {idx == null ? "—" : `${nf(idx / 100, 2)}×`}
+                                      title="Índice vs. objetivo de línea">
+                                  {r.indice_rasero == null ? "—" : `${nf(r.indice_rasero, 2)}×`}
                                 </span>
-                                <span className="text-[10px] text-muted-foreground tabular-nums">
-                                  {nf(rdvDe(r), 2)} uds/t/sem
-                                </span>
+                                <div className="text-[10px] text-muted-foreground tabular-nums">
+                                  {nf((r.indice_total ?? 0) / 100, 2)}× vs. sus pares
+                                </div>
                               </div>
+
                             </div>
                           </td>
                           <td className="p-2.5">
