@@ -2355,6 +2355,28 @@ export type Database = {
         }
         Relationships: []
       }
+      linea_curva_tallas: {
+        Row: {
+          cargadas: number | null
+          categoria_padre: string | null
+          desvio_pts: number | null
+          genero_norm: string | null
+          n_productos: number | null
+          pct_cargado: number | null
+          pct_demanda: number | null
+          pct_online: number | null
+          productos: number | null
+          rank_mas_quedada: number | null
+          rank_mas_rapida: number | null
+          sell_through: number | null
+          stock: number | null
+          talla: string | null
+          uds_vendidas_linea: number | null
+          variantes_agotadas: number | null
+          vendidas: number | null
+        }
+        Relationships: []
+      }
       mv_producto_clasificacion: {
         Row: {
           anio: number | null
@@ -2693,6 +2715,35 @@ export type Database = {
           vendio_full: boolean | null
           vendio_rebajada: boolean | null
           wos: number | null
+        }
+        Relationships: []
+      }
+      producto_curva_tallas: {
+        Row: {
+          agotada: boolean | null
+          cargadas: number | null
+          categoria_padre: string | null
+          coleccion: string | null
+          desvio_pts: number | null
+          genero_norm: string | null
+          n_prod_linea: number | null
+          pct_cargado: number | null
+          pct_demanda_linea: number | null
+          pct_vendido: number | null
+          product_id: string | null
+          sell_through_talla: number | null
+          stock_bodega: number | null
+          stock_disp: number | null
+          stock_online: number | null
+          stock_tienda: number | null
+          talla: string | null
+          title: string | null
+          total_producto: number | null
+          uds_linea: number | null
+          uds_sobrantes: number | null
+          vend_online: number | null
+          vend_tienda: number | null
+          vendidas: number | null
         }
         Relationships: []
       }
