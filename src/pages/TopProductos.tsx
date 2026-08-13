@@ -92,8 +92,12 @@ interface Row {
   stock_detenido: number;
   diagnostico: string;
   pct_venta_sana: number | null;
+  pct_activacion: number | null;
   pct_activacion_tienda: number | null;
   pct_activacion_online: number | null;
+  desc_activacion_pct: number | null;
+  desc_activacion_tienda_pct: number | null;
+  desc_activacion_online_pct: number | null;
   objetivo_unidades: number;
   meta_st: number;
   st_total: number | null;
