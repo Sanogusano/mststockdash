@@ -92,7 +92,6 @@ interface Row {
   indice_rasero_tienda: number | null;
   indice_rasero_online: number | null;
   estado_rasero: string;
-  cumple_calidad: boolean;
   stock_detenido: number;
   st_total: number | null;
   semanas_restantes: number;

@@ -99,7 +99,6 @@ interface Row {
   bod_tiendas: number | null;
   bod_exportaciones: number | null;
   fecha_snapshot_bodega: string | null;
-  cumple_calidad: boolean;
   ros_total: number | null;
   diagnostico: string;
   pct_venta_sana: number | null;
