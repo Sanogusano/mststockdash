@@ -200,9 +200,10 @@ function Detalle({ r, onClose }: { r: Row; onClose: () => void }) {
           <div className="space-y-4">
             <div className="grid grid-cols-3 gap-3">
               <Dato l="Unidades vendidas" v={nf(r.unidades_vendidas)} />
-              <Dato l={`RDV ${modo === "full" ? "full" : modo === "rebajado" ? "rebajado" : "prom."}`}
-                    v={<span style={{ color: col }}>{idx == null ? "—" : `${nf(idx / 100, 2)}×`}</span>}
-                    sub={`vs. ${r.n_cohorte} de su ${r.base_cohorte}`} />
+              <Dato l="RDV vs. objetivo de línea"
+                    v={<span style={{ color: col }}>{idx == null ? "—" : `${nf(idx, 2)}×`}</span>}
+                    sub={`vs. ${r.n_cohorte} de su ${r.base_cohorte} · ${r.estado_rasero}`} />
+
               <Dato l="Stock actual" v={nf(r.stock_actual)} />
             </div>
 
@@ -368,12 +369,13 @@ export default function TopProductos() {
       try {
         for (;;) {
           const { data, error } = await supabase
-            .from("mv_producto_clasificacion")
+            .from("producto_360")
             .select("*")
             .order("product_id", { ascending: true })
             .range(desde, desde + PAGINA - 1);
           if (error) throw error;
-          const lote = (data ?? []) as Row[];
+          const lote = (data ?? []) as unknown as Row[];
+
           acc.push(...lote);
           if (lote.length < PAGINA) break;
           desde += PAGINA;
@@ -797,7 +799,7 @@ export default function TopProductos() {
             </div>
           </div>
 
-          {detalle && <Detalle r={detalle} modo={modo} onClose={() => setDetalle(null)} />}
+          {detalle && <Detalle r={detalle} onClose={() => setDetalle(null)} />}
         </main>
       </div>
     </SidebarProvider>
