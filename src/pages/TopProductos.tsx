@@ -88,11 +88,14 @@ interface Row {
   estado_tallas: string;
   med_pctfull_cohorte: number | null;
   med_st_cohorte: number | null;
-  indice_rasero: number | null;
-  indice_rasero_tienda: number | null;
-  indice_rasero_online: number | null;
-  estado_rasero: string;
   stock_detenido: number;
+  diagnostico: string;
+  pct_venta_sana: number | null;
+  pct_activacion: number | null;
+  pct_activacion_tienda: number | null;
+  pct_activacion_online: number | null;
+  objetivo_unidades: number;
+  meta_st: number;
   st_total: number | null;
   semanas_restantes: number;
 }
@@ -160,7 +163,7 @@ function BarraCalidad({ full, rebaja, activacion, ancho = 96 }: {
 
 /** Lightbox: foto grande y todos los datos de la fila. */
 function Detalle({ r, onClose }: { r: Row; onClose: () => void }) {
-  const idx = r.indice_rasero;
+  const idx = r.indice_total == null ? null : r.indice_total / 100;
   const col = colorIdx(idx);
 
   const Dato = ({ l, v, sub }: { l: string; v: React.ReactNode; sub?: string }) => (
@@ -200,9 +203,9 @@ function Detalle({ r, onClose }: { r: Row; onClose: () => void }) {
           <div className="space-y-4">
             <div className="grid grid-cols-3 gap-3">
               <Dato l="Unidades vendidas" v={nf(r.unidades_vendidas)} />
-              <Dato l="RDV vs. objetivo de línea"
+              <Dato l="RDV vs. sus pares"
                     v={<span style={{ color: col }}>{idx == null ? "—" : `${nf(idx, 2)}×`}</span>}
-                    sub={`vs. ${r.n_cohorte} de su ${r.base_cohorte} · ${r.estado_rasero}`} />
+                    sub={`vs. ${r.n_cohorte} de su ${r.base_cohorte} · ${r.diagnostico}`} />
 
               <Dato l="Stock actual" v={nf(r.stock_actual)} />
             </div>
@@ -399,7 +402,8 @@ export default function TopProductos() {
     () => Array.from(new Set(rows.map(catKey).filter(Boolean)))
       .sort((a, b) => a.localeCompare(b, "es")), [rows]);
 
-  const idxDe = (r: Row) => r.indice_rasero;
+  const idxDe = (r: Row) =>
+    modo === "full" ? r.indice_full : modo === "rebajado" ? r.indice_rebajado : r.indice_total;
   const rdvDe = (r: Row) =>
     modo === "full" ? r.ros_full : modo === "rebajado" ? r.ros_rebajado : r.ros_total;
   const udsDe = (r: Row) =>
@@ -417,8 +421,6 @@ export default function TopProductos() {
       // concentró su venta en una semana distorsiona el ranking.
       if (modo === "full" && r.semanas_full < 4) return false;
       if (modo === "rebajado" && r.semanas_rebajada < 4) return false;
-      // Ganadores: solo productos que superan o cumplen el objetivo de línea.
-      if (lado === "top" && !["SUPERA", "CUMPLE"].includes(r.estado_rasero)) return false;
 
       // En Perdedores se excluye lo que YA se vendió. Un producto con
       // sell-through alto o cobertura ajustada no es perdedor aunque su RDV
@@ -462,9 +464,11 @@ export default function TopProductos() {
       Cohorte: `${r.n_cohorte} · ${r.base_cohorte}`,
       "Perfil de canal": r.perfil_canal,
       "RDV del modo": rdvDe(r),
-      "Índice rasero (× objetivo línea)": r.indice_rasero,
+      "Índice del modo (× el típico)": idxDe(r) == null ? null : Number(((idxDe(r) as number) / 100).toFixed(2)),
       "Índice cohorte (× el típico)": r.indice_total == null ? null : Number((r.indice_total / 100).toFixed(2)),
-      "Estado rasero": r.estado_rasero,
+      Diagnóstico: r.diagnostico,
+      "% venta sana": r.pct_venta_sana,
+      "% activación": r.pct_activacion,
 
       "% venta full": r.pct_venta_full,
       "% full típico de la cohorte": r.med_pctfull_cohorte,
