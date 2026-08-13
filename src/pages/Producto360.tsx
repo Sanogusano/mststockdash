@@ -99,16 +99,15 @@ interface Row {
   bod_tiendas: number | null;
   bod_exportaciones: number | null;
   fecha_snapshot_bodega: string | null;
-  indice_rasero: number | null;
-  indice_rasero_tienda: number | null;
-  indice_rasero_online: number | null;
-  rasero_tienda: number | null;
-  rasero_online: number | null;
-  estado_rasero: string;
   cumple_calidad: boolean;
-  rdv_tienda_sano: number | null;
-  rdv_online_sano: number | null;
   ros_total: number | null;
+  diagnostico: string;
+  pct_venta_sana: number | null;
+  pct_activacion: number | null;
+  pct_activacion_tienda: number | null;
+  pct_activacion_online: number | null;
+  objetivo_unidades: number;
+  meta_st: number;
   [k: string]: any;
 }
 
