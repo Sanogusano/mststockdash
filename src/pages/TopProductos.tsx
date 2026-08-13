@@ -356,6 +356,7 @@ export default function TopProductos() {
   const [lado, setLado] = useState<Lado>("top");
   const [modo, setModo] = useState<Modo>("full");
   const [coleccion, setColeccion] = useState("all");
+  const [diagnostico, setDiagnostico] = useState("all");
   const [categoria, setCategoria] = useState("all");
   const [minUds, setMinUds] = useState("30");
   const [limite, setLimite] = useState("25");
@@ -417,6 +418,7 @@ export default function TopProductos() {
     const base = rows.filter(r => {
       if (coleccion !== "all" && r.coleccion !== coleccion) return false;
       if (categoria !== "all" && catKey(r) !== categoria) return false;
+      if (diagnostico !== "all" && r.diagnostico !== diagnostico) return false;
       if (idxDe(r) == null) return false;
       if (udsDe(r) < min) return false;
       // Exige historia suficiente del modo elegido: sin esto, un producto que
@@ -440,7 +442,7 @@ export default function TopProductos() {
         ? (idxDe(b) ?? 0) - (idxDe(a) ?? 0)
         : (idxDe(a) ?? 0) - (idxDe(b) ?? 0));
     return ord.slice(0, Number(limite));
-  }, [rows, lado, modo, coleccion, categoria, minUds, limite]);
+  }, [rows, lado, modo, coleccion, categoria, diagnostico, minUds, limite]);
 
   const exportar = () => {
     if (!ranking.length) return;
@@ -552,6 +554,14 @@ export default function TopProductos() {
                 <SelectContent>
                   <SelectItem value="all">Todas las colecciones</SelectItem>
                   {colecciones.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                </SelectContent>
+              </Select>
+
+              <Select value={diagnostico} onValueChange={setDiagnostico}>
+                <SelectTrigger className="w-[195px]"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos los diagnósticos</SelectItem>
+                  {DIAGNOSTICOS.map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}
                 </SelectContent>
               </Select>
 
