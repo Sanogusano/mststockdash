@@ -601,8 +601,9 @@ export default function TopProductos() {
                       <th className="text-right p-2.5 font-medium">Vendido</th>
                       <th className="text-left p-2.5 font-medium">Por canal</th>
                       <th className="text-left p-2.5 font-medium">
-                        RDV {modo === "full" ? "full" : modo === "rebajado" ? "rebajado" : "prom."}
+                        Rasero
                       </th>
+
                       <th className="text-left p-2.5 font-medium">Calidad de venta</th>
                       <th className="text-left p-2.5 font-medium">Por canal</th>
                       <th className="text-right p-2.5 font-medium">Sell-thr.</th>
