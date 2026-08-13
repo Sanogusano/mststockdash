@@ -402,8 +402,10 @@ export default function TopProductos() {
     () => Array.from(new Set(rows.map(catKey).filter(Boolean)))
       .sort((a, b) => a.localeCompare(b, "es")), [rows]);
 
-  const idxDe = (r: Row) =>
-    modo === "full" ? r.indice_full : modo === "rebajado" ? r.indice_rebajado : r.indice_total;
+  const idxDe = (r: Row) => {
+    const v = modo === "full" ? r.indice_full : modo === "rebajado" ? r.indice_rebajado : r.indice_total;
+    return v == null ? null : v / 100;
+  };
   const rdvDe = (r: Row) =>
     modo === "full" ? r.ros_full : modo === "rebajado" ? r.ros_rebajado : r.ros_total;
   const udsDe = (r: Row) =>
@@ -464,7 +466,7 @@ export default function TopProductos() {
       Cohorte: `${r.n_cohorte} · ${r.base_cohorte}`,
       "Perfil de canal": r.perfil_canal,
       "RDV del modo": rdvDe(r),
-      "Índice del modo (× el típico)": idxDe(r) == null ? null : Number(((idxDe(r) as number) / 100).toFixed(2)),
+      "Índice del modo (× el típico)": idxDe(r) == null ? null : Number((idxDe(r) as number).toFixed(2)),
       "Índice cohorte (× el típico)": r.indice_total == null ? null : Number((r.indice_total / 100).toFixed(2)),
       Diagnóstico: r.diagnostico,
       "% venta sana": r.pct_venta_sana,
@@ -609,10 +611,13 @@ export default function TopProductos() {
                           <HeaderTooltip label="Por canal" tip="Unidades por tienda y por online" />
                         </th>
                         <th className="text-left p-2.5 font-medium">
-                          <HeaderTooltip label="Rasero" tip="¿Vende más rápido que productos parecidos? 1,00× = igual" />
+                          <HeaderTooltip label="RDV" tip="¿Vende más rápido que productos parecidos? 1,00× = igual" />
                         </th>
                         <th className="text-left p-2.5 font-medium">
-                          <HeaderTooltip label="Calidad de venta" tip="Qué parte se vendió a precio lleno" />
+                          <HeaderTooltip label="Calidad de venta" tip="Qué parte se vendió sin liquidar (precio full o activación)" />
+                        </th>
+                        <th className="text-left p-2.5 font-medium">
+                          <HeaderTooltip label="Diagnóstico" tip="Cierre del producto: si funcionó, si evacuó liquidando, si sobró producción o si aún está en curso" />
                         </th>
                         <th className="text-left p-2.5 font-medium">
                           <HeaderTooltip label="Por canal" tip="Calidad de venta por tienda y online" />
@@ -693,8 +698,8 @@ export default function TopProductos() {
                               </div>
                               <div className="mt-1">
                                 <span className="text-sm font-medium tabular-nums" style={{ color: col }}
-                                      title="Índice vs. objetivo de línea">
-                                  {r.indice_rasero == null ? "—" : `${nf(r.indice_rasero, 2)}×`}
+                                      title="Índice vs. sus pares">
+                                  {idx == null ? "—" : `${nf(idx, 2)}×`}
                                 </span>
                                 <div className="text-[10px] text-muted-foreground tabular-nums">
                                   {nf((r.indice_total ?? 0) / 100, 2)}× vs. sus pares
@@ -704,12 +709,17 @@ export default function TopProductos() {
                             </div>
                           </td>
                           <td className="p-2.5">
+                            <div className="text-sm font-medium tabular-nums">
+                              {nf(r.pct_venta_sana, 0)}% <span className="text-[10px] font-normal text-muted-foreground">sin liquidar</span>
+                            </div>
+                            <div className="text-[10px] text-muted-foreground tabular-nums">
+                              {nf(r.pct_venta_full, 0)}% full · {nf(r.pct_activacion, 0)}% activación
+                            </div>
                             <BarraCalidad full={r.unidades_full} rebaja={r.unidades_rebaja}
                                           activacion={r.unidades_activacion} />
-                            <div className="text-[10px] text-muted-foreground mt-0.5"
-                                 title="Mediana de su cohorte">
-                              típico {nf(r.med_pctfull_cohorte, 0)}%
-                            </div>
+                          </td>
+                          <td className="p-2.5">
+                            <DiagnosticoBadge valor={r.diagnostico} />
                           </td>
                           <td className="p-2.5">
                             <div className="space-y-1">
