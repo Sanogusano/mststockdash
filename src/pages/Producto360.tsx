@@ -104,6 +104,9 @@ interface Row {
   rasero_tienda: number | null;
   rasero_online: number | null;
   estado_rasero: string;
+  cumple_calidad: boolean;
+  rdv_tienda_sano: number | null;
+  rdv_online_sano: number | null;
   ros_total: number | null;
   [k: string]: any;
 }
@@ -257,6 +260,8 @@ export default function Producto360() {
         return r.cobertura === "AJUSTADA" && (r.indice_total ?? 0) >= 100;
       if (foco === "liquidar")
         return r.cobertura === "CRITICA" && (r.indice_total ?? 999) < 70;
+      if (foco === "solo_con_descuento")
+        return r.estado_rasero === "SOLO CON DESCUENTO";
       return true;
     });
     const cmp: Record<string, (a: Row, b: Row) => number> = {
@@ -369,6 +374,7 @@ export default function Producto360() {
                   <SelectItem value="ganadores">Ganadores</SelectItem>
                   <SelectItem value="reponer">Reponer</SelectItem>
                   <SelectItem value="liquidar">Liquidar</SelectItem>
+                  <SelectItem value="solo_con_descuento">Solo con descuento</SelectItem>
                 </SelectContent>
               </Select>
 
