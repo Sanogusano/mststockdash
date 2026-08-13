@@ -4,16 +4,19 @@ import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { LoadingState, EmptyState } from "@/components/dashboard/LoadingState";
 import { HeaderTooltip } from "@/components/HeaderTooltip";
+import { ProductoDetallePanel } from "@/components/dashboard/ProductoDetallePanel";
 
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   Download, Package, Trophy, TrendingDown, Tag, HelpCircle, X,
-  Store, ShoppingBag, Globe,
+  Store, ShoppingBag,
 } from "lucide-react";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import * as XLSX from "xlsx";
+
 
 /**
  * Top ganadores y perdedores.
