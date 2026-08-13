@@ -397,10 +397,15 @@ export function ProductoDetallePanel({ producto, onClose }: {
                 const rango = sts.length ? Math.max(...sts) - Math.min(...sts) : 0;
                 const curvaPropia = maxDesvio >= 5 && rango <= 20;
 
-                const stColor = (st: number) => {
-                  if (st >= 70) return "bg-emerald-500";
-                  if (st >= 50) return "bg-amber-500";
-                  return "bg-rose-500";
+                const stMin = sts.length ? Math.min(...sts) : 0;
+                const stMax = sts.length ? Math.max(...sts) : 0;
+                const bg = (st: number | null) => {
+                  if (st == null || rango < 5) return "bg-slate-100 text-slate-600";
+                  const pos = (st - stMin) / rango;
+                  if (pos >= 0.75) return "bg-emerald-200 text-emerald-900";
+                  if (pos >= 0.50) return "bg-emerald-100 text-emerald-800";
+                  if (pos >= 0.25) return "bg-amber-100 text-amber-800";
+                  return "bg-rose-100 text-rose-800";
                 };
 
                 return (
