@@ -4,7 +4,7 @@ import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { LoadingState, EmptyState } from "@/components/dashboard/LoadingState";
 import { HeaderTooltip } from "@/components/HeaderTooltip";
-import { DiagnosticoBadge, DIAGNOSTICOS } from "@/components/dashboard/DiagnosticoBadge";
+
 import { Button } from "@/components/ui/button";
 import {
   Download, Package, Trophy, TrendingDown, Tag, HelpCircle, X,
@@ -94,6 +94,9 @@ interface Row {
   pct_venta_sana: number | null;
   pct_activacion_tienda: number | null;
   pct_activacion_online: number | null;
+  desc_activacion_pct: number | null;
+  desc_activacion_tienda_pct: number | null;
+  desc_activacion_online_pct: number | null;
   objetivo_unidades: number;
   meta_st: number;
   st_total: number | null;
@@ -132,6 +135,15 @@ const COBERTURA_CLS: Record<string, string> = {
   ALTA: "bg-amber-100 text-amber-700 border-amber-200",
   CRITICA: "bg-rose-100 text-rose-700 border-rose-200",
   "SIN STOCK": "bg-slate-100 text-slate-600 border-slate-200",
+};
+
+/** Mapeo de las etiquetas de acción del filtro al valor real de `diagnostico`. */
+const FILTRO_DIAGNOSTICO: Record<string, string> = {
+  "Repetir": "GANADOR",
+  "Revisar cantidad": "SE PRODUJO DE MAS",
+  "Revisar precio": "EVACUO LIQUIDANDO",
+  "Revisar concepto": "MAL PRODUCTO",
+  "En curso": "EN CURSO",
 };
 
 
@@ -418,7 +430,7 @@ export default function TopProductos() {
     const base = rows.filter(r => {
       if (coleccion !== "all" && r.coleccion !== coleccion) return false;
       if (categoria !== "all" && catKey(r) !== categoria) return false;
-      if (diagnostico !== "all" && r.diagnostico !== diagnostico) return false;
+      if (diagnostico !== "all" && r.diagnostico !== FILTRO_DIAGNOSTICO[diagnostico]) return false;
       if (idxDe(r) == null) return false;
       if (udsDe(r) < min) return false;
       // Exige historia suficiente del modo elegido: sin esto, un producto que
@@ -561,7 +573,7 @@ export default function TopProductos() {
                 <SelectTrigger className="w-[195px]"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Todos los diagnósticos</SelectItem>
-                  {DIAGNOSTICOS.map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}
+                  {Object.keys(FILTRO_DIAGNOSTICO).map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}
                 </SelectContent>
               </Select>
 
@@ -625,9 +637,6 @@ export default function TopProductos() {
                         </th>
                         <th className="text-left p-2.5 font-medium">
                           <HeaderTooltip label="Calidad de venta" tip="Qué parte se vendió sin liquidar (precio full o activación)" />
-                        </th>
-                        <th className="text-left p-2.5 font-medium">
-                          <HeaderTooltip label="Diagnóstico" tip="Cierre del producto: si funcionó, si evacuó liquidando, si sobró producción o si aún está en curso" />
                         </th>
                         <th className="text-left p-2.5 font-medium">
                           <HeaderTooltip label="Por canal" tip="Calidad de venta por tienda y online" />
@@ -724,12 +733,10 @@ export default function TopProductos() {
                             </div>
                             <div className="text-[10px] text-muted-foreground tabular-nums">
                               {nf(r.pct_venta_full, 0)}% full · {nf(r.pct_activacion, 0)}% activación
+                              {r.desc_activacion_pct != null && ` · −${nf(r.desc_activacion_pct, 0)}%`}
                             </div>
                             <BarraCalidad full={r.unidades_full} rebaja={r.unidades_rebaja}
                                           activacion={r.unidades_activacion} />
-                          </td>
-                          <td className="p-2.5">
-                            <DiagnosticoBadge valor={r.diagnostico} />
                           </td>
                           <td className="p-2.5">
                             <div className="space-y-1">

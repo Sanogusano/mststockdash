@@ -4,7 +4,6 @@ import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { LoadingState, EmptyState } from "@/components/dashboard/LoadingState";
 import { HeaderTooltip } from "@/components/HeaderTooltip";
-import { DiagnosticoBadge, DIAGNOSTICOS } from "@/components/dashboard/DiagnosticoBadge";
 import { ProductoDetallePanel } from "@/components/dashboard/ProductoDetallePanel";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -151,6 +150,15 @@ const PERFIL: Record<string, string> = {
   equilibrado: "Parejo",
 };
 
+/** Mapeo de las etiquetas de acción del filtro al valor real de `diagnostico`. */
+const FILTRO_DIAGNOSTICO: Record<string, string> = {
+  "Repetir": "GANADOR",
+  "Revisar cantidad": "SE PRODUJO DE MAS",
+  "Revisar precio": "EVACUO LIQUIDANDO",
+  "Revisar concepto": "MAL PRODUCTO",
+  "En curso": "EN CURSO",
+};
+
 function Ayuda({ onClose }: { onClose: () => void }) {
   return (
     <div className="rounded-lg border bg-muted/30 p-4 text-sm space-y-3 relative">
@@ -252,8 +260,8 @@ export default function Producto360() {
       if (coleccion !== "all" && r.coleccion !== coleccion) return false;
       if (categoria !== "all" && `${r.categoria_padre} · ${r.genero_norm}` !== categoria) return false;
       if (q && !r.title?.toLowerCase().includes(q)) return false;
-      // Focos: el diagnóstico ya resume la decisión de cada producto
-      if (foco !== "all" && r.diagnostico !== foco) return false;
+      // Filtro de acción: la etiqueta amigable se mapea al valor real de diagnostico
+      if (foco !== "all" && r.diagnostico !== FILTRO_DIAGNOSTICO[foco]) return false;
       return true;
     });
     const cmp: Record<string, (a: Row, b: Row) => number> = {
@@ -363,7 +371,7 @@ export default function Producto360() {
                 <SelectTrigger className="w-[195px]"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Todos los diagnósticos</SelectItem>
-                  {DIAGNOSTICOS.map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}
+                  {Object.keys(FILTRO_DIAGNOSTICO).map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}
                 </SelectContent>
               </Select>
 
@@ -409,19 +417,19 @@ export default function Producto360() {
                       {nf(kpis.producido ? (kpis.sinEvacuar / kpis.producido) * 100 : 0, 0)}% de lo producido
                     </div>
                   </div>
-                  <button onClick={() => setFoco(foco === "SE PRODUJO DE MAS" ? "all" : "SE PRODUJO DE MAS")}
+                  <button onClick={() => setFoco(foco === "Revisar cantidad" ? "all" : "Revisar cantidad")}
                     className={`rounded-lg border p-3 text-left transition-colors ${
-                      foco === "SE PRODUJO DE MAS" ? "border-orange-300 bg-orange-50" : "hover:bg-muted/40"}`}>
-                    <div className="text-xs text-muted-foreground">Se produjo de más</div>
+                      foco === "Revisar cantidad" ? "border-orange-300 bg-orange-50" : "hover:bg-muted/40"}`}>
+                    <div className="text-xs text-muted-foreground">Revisar cantidad</div>
                     <div className="text-xl font-semibold tabular-nums mt-0.5">{nf(kpis.sobrecompra.n)}</div>
                     <div className="text-[11px] text-muted-foreground">
                       buen RDV, no evacúa · {nf(kpis.sobrecompra.uds)} uds
                     </div>
                   </button>
-                  <button onClick={() => setFoco(foco === "MAL PRODUCTO" ? "all" : "MAL PRODUCTO")}
+                  <button onClick={() => setFoco(foco === "Revisar concepto" ? "all" : "Revisar concepto")}
                     className={`rounded-lg border p-3 text-left transition-colors ${
-                      foco === "MAL PRODUCTO" ? "border-rose-300 bg-rose-50" : "hover:bg-muted/40"}`}>
-                    <div className="text-xs text-muted-foreground">Mal producto</div>
+                      foco === "Revisar concepto" ? "border-rose-300 bg-rose-50" : "hover:bg-muted/40"}`}>
+                    <div className="text-xs text-muted-foreground">Revisar concepto</div>
                     <div className="text-xl font-semibold tabular-nums mt-0.5">{nf(kpis.malProducto.n)}</div>
                     <div className="text-[11px] text-muted-foreground">
                       lento vs. meta y vs. pares · {nf(kpis.malProducto.uds)} uds
@@ -451,9 +459,6 @@ export default function Producto360() {
                           </th>
                           <th className="text-right p-2.5 font-medium">
                             <HeaderTooltip label="Calidad de venta" tip="Qué parte se vendió sin liquidar (precio full o activación)" />
-                          </th>
-                          <th className="text-left p-2.5 font-medium">
-                            <HeaderTooltip label="Diagnóstico" tip="Cierre del producto: si funcionó, si evacuó liquidando, si sobró producción o si aún está en curso" />
                           </th>
                           <th className="text-left p-2.5 font-medium">
                             <HeaderTooltip label="Cobertura" tip="Semanas que dura el stock, y cuántas quedan de temporada" />
@@ -558,15 +563,8 @@ export default function Producto360() {
                                 </div>
                                 <div className="text-[10px] text-muted-foreground tabular-nums">
                                   {nf(r.pct_venta_full, 0)}% full · {nf(r.pct_activacion, 0)}% activación
+                                  {r.desc_activacion_pct != null && ` · −${nf(r.desc_activacion_pct, 0)}%`}
                                 </div>
-                                {r.desc_activacion_pct != null && (
-                                  <div className="text-[10px] text-muted-foreground">
-                                    −{nf(r.desc_activacion_pct, 0)}% en activaciones
-                                  </div>
-                                )}
-                              </td>
-                              <td className="p-2.5">
-                                <DiagnosticoBadge valor={r.diagnostico} />
                               </td>
                               <td className="p-2.5">
                                 <span className={`inline-flex rounded-md border px-2 py-0.5 text-[11px] font-medium ${
