@@ -766,7 +766,7 @@ export default function TopProductos() {
             </div>
           </div>
 
-          {detalle && <Detalle r={detalle} onClose={() => setDetalle(null)} />}
+          {detalle && <ProductoDetallePanel producto={detalle as any} onClose={() => setDetalle(null)} />}
         </main>
       </div>
     </SidebarProvider>
