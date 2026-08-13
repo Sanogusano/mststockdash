@@ -378,13 +378,8 @@ export default function Producto360() {
               <Select value={foco} onValueChange={setFoco}>
                 <SelectTrigger className="w-[195px]"><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">Todos los productos</SelectItem>
-                  <SelectItem value="sobrecompra">Error de compra</SelectItem>
-                  <SelectItem value="mal_producto">Mal producto</SelectItem>
-                  <SelectItem value="ganadores">Ganadores</SelectItem>
-                  <SelectItem value="reponer">Reponer</SelectItem>
-                  <SelectItem value="liquidar">Liquidar</SelectItem>
-                  <SelectItem value="solo_con_descuento">Solo con descuento</SelectItem>
+                  <SelectItem value="all">Todos los diagnósticos</SelectItem>
+                  {DIAGNOSTICOS.map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}
                 </SelectContent>
               </Select>
 
