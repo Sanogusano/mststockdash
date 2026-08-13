@@ -425,18 +425,18 @@ export default function Producto360() {
                       {nf(kpis.producido ? (kpis.sinEvacuar / kpis.producido) * 100 : 0, 0)}% de lo producido
                     </div>
                   </div>
-                  <button onClick={() => setFoco(foco === "sobrecompra" ? "all" : "sobrecompra")}
+                  <button onClick={() => setFoco(foco === "SE PRODUJO DE MAS" ? "all" : "SE PRODUJO DE MAS")}
                     className={`rounded-lg border p-3 text-left transition-colors ${
-                      foco === "sobrecompra" ? "border-amber-300 bg-amber-50" : "hover:bg-muted/40"}`}>
-                    <div className="text-xs text-muted-foreground">Error de compra</div>
+                      foco === "SE PRODUJO DE MAS" ? "border-orange-300 bg-orange-50" : "hover:bg-muted/40"}`}>
+                    <div className="text-xs text-muted-foreground">Se produjo de más</div>
                     <div className="text-xl font-semibold tabular-nums mt-0.5">{nf(kpis.sobrecompra.n)}</div>
                     <div className="text-[11px] text-muted-foreground">
                       buen RDV, no evacúa · {nf(kpis.sobrecompra.uds)} uds
                     </div>
                   </button>
-                  <button onClick={() => setFoco(foco === "mal_producto" ? "all" : "mal_producto")}
+                  <button onClick={() => setFoco(foco === "MAL PRODUCTO" ? "all" : "MAL PRODUCTO")}
                     className={`rounded-lg border p-3 text-left transition-colors ${
-                      foco === "mal_producto" ? "border-rose-300 bg-rose-50" : "hover:bg-muted/40"}`}>
+                      foco === "MAL PRODUCTO" ? "border-rose-300 bg-rose-50" : "hover:bg-muted/40"}`}>
                     <div className="text-xs text-muted-foreground">Mal producto</div>
                     <div className="text-xl font-semibold tabular-nums mt-0.5">{nf(kpis.malProducto.n)}</div>
                     <div className="text-[11px] text-muted-foreground">
