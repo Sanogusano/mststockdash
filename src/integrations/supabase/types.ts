@@ -2444,7 +2444,6 @@ export type Database = {
           asignado_tienda: number | null
           base_cohorte: string | null
           bod_exportaciones: number | null
-          bod_guayabal: number | null
           bod_principal: number | null
           bod_reserva: number | null
           bod_tiendas: number | null
@@ -2809,7 +2808,6 @@ export type Database = {
       stock_bodega_por_producto: {
         Row: {
           bod_exportaciones: number | null
-          bod_guayabal: number | null
           bod_principal: number | null
           bod_reserva: number | null
           bod_tiendas: number | null
