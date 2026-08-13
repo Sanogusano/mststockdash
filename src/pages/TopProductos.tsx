@@ -4,16 +4,19 @@ import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { LoadingState, EmptyState } from "@/components/dashboard/LoadingState";
 import { HeaderTooltip } from "@/components/HeaderTooltip";
+import { ProductoDetallePanel } from "@/components/dashboard/ProductoDetallePanel";
 
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   Download, Package, Trophy, TrendingDown, Tag, HelpCircle, X,
-  Store, ShoppingBag, Globe,
+  Store, ShoppingBag,
 } from "lucide-react";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import * as XLSX from "xlsx";
+
 
 /**
  * Top ganadores y perdedores.
@@ -173,120 +176,6 @@ function BarraCalidad({ full, rebaja, activacion, ancho = 96 }: {
   );
 }
 
-/** Lightbox: foto grande y todos los datos de la fila. */
-function Detalle({ r, onClose }: { r: Row; onClose: () => void }) {
-  const idx = r.indice_total == null ? null : r.indice_total / 100;
-  const col = colorIdx(idx);
-
-  const Dato = ({ l, v, sub }: { l: string; v: React.ReactNode; sub?: string }) => (
-    <div>
-      <div className="text-[11px] text-muted-foreground">{l}</div>
-      <div className="text-sm font-medium tabular-nums">{v}</div>
-      {sub && <div className="text-[10px] text-muted-foreground">{sub}</div>}
-    </div>
-  );
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={onClose}>
-      <div className="bg-background rounded-xl border max-w-3xl w-full max-h-[90vh] overflow-y-auto"
-           onClick={e => e.stopPropagation()}>
-        <div className="flex items-start justify-between p-4 border-b">
-          <div>
-            <h2 className="font-semibold">{r.title}</h2>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              {r.category} · {r.coleccion} · {r.genero_norm} · Semana {r.semanas_en_venta}
-            </p>
-          </div>
-          <button onClick={onClose} className="text-muted-foreground hover:text-foreground">
-            <X className="h-5 w-5" />
-          </button>
-        </div>
-
-        <div className="p-4 grid md:grid-cols-[260px_1fr] gap-5">
-          <div>
-            {r.image_url ? (
-              <img src={r.image_url} alt={r.title} className="w-full rounded-lg object-cover bg-muted" />
-            ) : (
-              <div className="w-full aspect-square rounded-lg bg-muted flex items-center justify-center">
-                <Package className="h-10 w-10 text-muted-foreground/40" />
-              </div>
-            )}
-          </div>
-
-          <div className="space-y-4">
-            <div className="grid grid-cols-3 gap-3">
-              <Dato l="Unidades vendidas" v={nf(r.unidades_vendidas)} />
-              <Dato l="RDV vs. sus pares"
-                    v={<span style={{ color: col }}>{idx == null ? "—" : `${nf(idx, 2)}×`}</span>}
-                    sub={`vs. ${r.n_cohorte} de su ${r.base_cohorte} · ${r.diagnostico}`} />
-
-              <Dato l="Stock actual" v={nf(r.stock_actual)} />
-            </div>
-
-            <div>
-              <div className="text-[11px] text-muted-foreground mb-1.5">Calidad de la venta</div>
-              <BarraCalidad full={r.unidades_full} rebaja={r.unidades_rebaja}
-                            activacion={r.unidades_activacion} ancho={320} />
-              <div className="flex gap-4 mt-2 text-[11px]">
-                <span><i className="inline-block h-2 w-2 rounded-sm mr-1" style={{ background: "#0ca30c" }} />Full {nf(r.unidades_full)}</span>
-                <span><i className="inline-block h-2 w-2 rounded-sm mr-1" style={{ background: "#c98500" }} />Rebaja {nf(r.unidades_rebaja)}</span>
-                <span><i className="inline-block h-2 w-2 rounded-sm mr-1" style={{ background: "#2a78d6" }} />Activación {nf(r.unidades_activacion)}</span>
-              </div>
-            </div>
-
-            <div className="grid md:grid-cols-2 gap-4 pt-2 border-t">
-              <div>
-                <div className="flex items-center gap-1.5 text-xs font-medium mb-2">
-                  <Store className="h-3.5 w-3.5" />Tienda física
-                </div>
-                <div className="space-y-1.5 text-xs">
-                  <div className="flex justify-between"><span className="text-muted-foreground">Vendido</span>
-                    <span className="tabular-nums">{nf(r.uds_tienda + r.uds_outlet)}</span></div>
-                  <div className="flex justify-between"><span className="text-muted-foreground">Stock</span>
-                    <span className="tabular-nums">{nf(r.stock_tienda + r.stock_outlet)}</span></div>
-                  <div className="flex justify-between"><span className="text-muted-foreground">Sell-through</span>
-                    <span className="tabular-nums">{nf(r.st_tienda_pct, 1)}%</span></div>
-                </div>
-                <div className="mt-2">
-                  <BarraCalidad full={r.uds_tie_full} rebaja={r.uds_tie_rebaja}
-                                activacion={r.uds_tie_activacion} ancho={150} />
-                </div>
-              </div>
-
-              <div>
-                <div className="flex items-center gap-1.5 text-xs font-medium mb-2">
-                  <Globe className="h-3.5 w-3.5" />Online
-                </div>
-                <div className="space-y-1.5 text-xs">
-                  <div className="flex justify-between"><span className="text-muted-foreground">Vendido</span>
-                    <span className="tabular-nums">{nf(r.uds_online)}</span></div>
-                  <div className="flex justify-between"><span className="text-muted-foreground">Stock</span>
-                    <span className="tabular-nums">{nf(r.stock_online)}</span></div>
-                  <div className="flex justify-between"><span className="text-muted-foreground">Sell-through</span>
-                    <span className="tabular-nums">{nf(r.st_online_pct, 1)}%</span></div>
-                </div>
-                <div className="mt-2">
-                  <BarraCalidad full={r.uds_onl_full} rebaja={r.uds_onl_rebaja}
-                                activacion={r.uds_onl_activacion} ancho={150} />
-                </div>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-3 gap-3 pt-3 border-t">
-              <Dato l="Sell-through total" v={`${nf(r.sell_through_pct, 1)}%`}
-                    sub={`típico ${nf(r.med_st_cohorte, 0)}%`} />
-              <Dato l="Cobertura" v={`${nf(Math.min(r.wos ?? 0, 99), 0)} sem`}
-                    sub={`quedan ${r.semanas_objetivo} · ${r.cobertura}`} />
-              <Dato l="Tallas con stock"
-                    v={r.estado_tallas === "no_aplica" ? "—" : `${r.tallas_con_stock ?? 0}/${r.tallas_totales ?? 0}`}
-                    sub={r.estado_tallas === "destallado_grave" ? "curva rota"
-                         : r.estado_tallas === "destallado" ? "incompleta" : undefined} />
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
 
 function Ayuda({ onClose }: { onClose: () => void }) {
   return (
@@ -367,13 +256,16 @@ export default function TopProductos() {
 
   const [lado, setLado] = useState<Lado>("top");
   const [modo, setModo] = useState<Modo>("full");
+  const [buscar, setBuscar] = useState("");
   const [coleccion, setColeccion] = useState("all");
   const [diagnostico, setDiagnostico] = useState("all");
   const [categoria, setCategoria] = useState("all");
+  const [canal, setCanal] = useState("all");
   const [minUds, setMinUds] = useState("30");
   const [limite, setLimite] = useState("25");
   const [ayuda, setAyuda] = useState(false);
   const [detalle, setDetalle] = useState<Row | null>(null);
+
 
   useEffect(() => {
     let activo = true;
@@ -428,9 +320,14 @@ export default function TopProductos() {
   const ranking = useMemo(() => {
     const min = Number(minUds);
     const base = rows.filter(r => {
+      if (buscar && !r.title.toLowerCase().includes(buscar.toLowerCase())) return false;
       if (coleccion !== "all" && r.coleccion !== coleccion) return false;
       if (categoria !== "all" && catKey(r) !== categoria) return false;
       if (diagnostico !== "all" && r.diagnostico !== FILTRO_DIAGNOSTICO[diagnostico]) return false;
+      if (canal !== "all") {
+        if (canal === "tienda" && (r.uds_tienda + r.uds_outlet) <= 0) return false;
+        if (canal === "online" && r.uds_online <= 0) return false;
+      }
       if (idxDe(r) == null) return false;
       if (udsDe(r) < min) return false;
       // Exige historia suficiente del modo elegido: sin esto, un producto que
@@ -454,7 +351,8 @@ export default function TopProductos() {
         ? (idxDe(b) ?? 0) - (idxDe(a) ?? 0)
         : (idxDe(a) ?? 0) - (idxDe(b) ?? 0));
     return ord.slice(0, Number(limite));
-  }, [rows, lado, modo, coleccion, categoria, diagnostico, minUds, limite]);
+  }, [rows, lado, modo, coleccion, categoria, diagnostico, minUds, limite, buscar, canal]);
+
 
   const exportar = () => {
     if (!ranking.length) return;
@@ -533,83 +431,104 @@ export default function TopProductos() {
           <div className="p-4 space-y-4">
             {ayuda && <Ayuda onClose={() => setAyuda(false)} />}
 
-            <div className="flex flex-wrap items-center gap-2">
-              <div className="inline-flex rounded-md border p-0.5">
-                <button onClick={() => setLado("top")}
-                  className={`px-3 py-1.5 text-xs rounded flex items-center gap-1.5 ${
-                    lado === "top" ? "bg-primary text-primary-foreground" : "hover:bg-muted"}`}>
-                  <Trophy className="h-3.5 w-3.5" />Ganadores
-                </button>
-                <button onClick={() => setLado("bottom")}
-                  className={`px-3 py-1.5 text-xs rounded flex items-center gap-1.5 ${
-                    lado === "bottom" ? "bg-primary text-primary-foreground" : "hover:bg-muted"}`}>
-                  <TrendingDown className="h-3.5 w-3.5" />Perdedores
-                </button>
+            <div className="space-y-2">
+              <div className="flex flex-wrap items-center gap-2">
+                <Input
+                  placeholder="Buscar producto…"
+                  value={buscar}
+                  onChange={e => setBuscar(e.target.value)}
+                  className="h-9 w-[200px]"
+                />
+
+                <Select value={coleccion} onValueChange={setColeccion}>
+                  <SelectTrigger className="h-9 w-[170px]"><SelectValue placeholder="Colección" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todas las colecciones</SelectItem>
+                    {colecciones.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+
+                <Select value={categoria} onValueChange={setCategoria}>
+                  <SelectTrigger className="h-9 w-[230px]"><SelectValue placeholder="Categoría" /></SelectTrigger>
+                  <SelectContent className="max-h-[320px]">
+                    <SelectItem value="all">Todas las categorías</SelectItem>
+                    {categorias.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+
+                <Select value={canal} onValueChange={setCanal}>
+                  <SelectTrigger className="h-9 w-[150px]"><SelectValue placeholder="Canal" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos los canales</SelectItem>
+                    <SelectItem value="tienda">Tienda física</SelectItem>
+                    <SelectItem value="online">Online</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                <Select value={minUds} onValueChange={setMinUds}>
+                  <SelectTrigger className="h-9 w-[150px]"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="10">Mínimo 10 uds</SelectItem>
+                    <SelectItem value="30">Mínimo 30 uds</SelectItem>
+                    <SelectItem value="50">Mínimo 50 uds</SelectItem>
+                    <SelectItem value="100">Mínimo 100 uds</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                <Select value={limite} onValueChange={setLimite}>
+                  <SelectTrigger className="h-9 w-[110px]"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="10">Top 10</SelectItem>
+                    <SelectItem value="25">Top 25</SelectItem>
+                    <SelectItem value="50">Top 50</SelectItem>
+                    <SelectItem value="100">Top 100</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
 
-              <div className="inline-flex rounded-md border p-0.5">
-                {([
-                  { v: "full", l: "Precio full", i: Trophy },
-                  { v: "rebajado", l: "Rebajado", i: Tag },
-                  { v: "prom", l: "Promedio", i: Package },
-                ] as const).map(m => (
-                  <button key={m.v} onClick={() => setModo(m.v)}
-                    className={`px-3 py-1.5 text-xs rounded flex items-center gap-1.5 ${
-                      modo === m.v ? "bg-primary text-primary-foreground" : "hover:bg-muted"}`}>
-                    <m.i className="h-3.5 w-3.5" />{m.l}
+              <div className="flex flex-wrap items-center gap-2">
+                <div className="inline-flex rounded-md border p-0.5">
+                  <button onClick={() => setLado("top")}
+                    className={`h-9 px-3 text-xs rounded flex items-center gap-1.5 ${
+                      lado === "top" ? "bg-primary text-primary-foreground" : "hover:bg-muted"}`}>
+                    <Trophy className="h-3.5 w-3.5" />Ganadores
                   </button>
-                ))}
+                  <button onClick={() => setLado("bottom")}
+                    className={`h-9 px-3 text-xs rounded flex items-center gap-1.5 ${
+                      lado === "bottom" ? "bg-primary text-primary-foreground" : "hover:bg-muted"}`}>
+                    <TrendingDown className="h-3.5 w-3.5" />Perdedores
+                  </button>
+                </div>
+
+                <div className="inline-flex rounded-md border p-0.5">
+                  {([
+                    { v: "full", l: "Precio full", i: Trophy },
+                    { v: "rebajado", l: "Rebajado", i: Tag },
+                    { v: "prom", l: "Promedio", i: Package },
+                  ] as const).map(m => (
+                    <button key={m.v} onClick={() => setModo(m.v)}
+                      className={`h-9 px-3 text-xs rounded flex items-center gap-1.5 ${
+                        modo === m.v ? "bg-primary text-primary-foreground" : "hover:bg-muted"}`}>
+                      <m.i className="h-3.5 w-3.5" />{m.l}
+                    </button>
+                  ))}
+                </div>
+
+                <Select value={diagnostico} onValueChange={setDiagnostico}>
+                  <SelectTrigger className="h-9 w-[195px]"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos los diagnósticos</SelectItem>
+                    {Object.keys(FILTRO_DIAGNOSTICO).map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+
+                <Button variant="outline" size="sm" className="ml-auto h-9"
+                        onClick={exportar} disabled={!ranking.length}>
+                  <Download className="h-4 w-4 mr-1.5" />Excel
+                </Button>
               </div>
-
-              <Select value={coleccion} onValueChange={setColeccion}>
-                <SelectTrigger className="w-[165px]"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todas las colecciones</SelectItem>
-                  {colecciones.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
-                </SelectContent>
-              </Select>
-
-              <Select value={diagnostico} onValueChange={setDiagnostico}>
-                <SelectTrigger className="w-[195px]"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todos los diagnósticos</SelectItem>
-                  {Object.keys(FILTRO_DIAGNOSTICO).map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}
-                </SelectContent>
-              </Select>
-
-              <Select value={categoria} onValueChange={setCategoria}>
-                <SelectTrigger className="w-[230px]"><SelectValue /></SelectTrigger>
-                <SelectContent className="max-h-[320px]">
-                  <SelectItem value="all">Todas las categorías</SelectItem>
-                  {categorias.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
-                </SelectContent>
-              </Select>
-
-              <Select value={minUds} onValueChange={setMinUds}>
-                <SelectTrigger className="w-[150px]"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="10">Mínimo 10 uds</SelectItem>
-                  <SelectItem value="30">Mínimo 30 uds</SelectItem>
-                  <SelectItem value="50">Mínimo 50 uds</SelectItem>
-                  <SelectItem value="100">Mínimo 100 uds</SelectItem>
-                </SelectContent>
-              </Select>
-
-              <Select value={limite} onValueChange={setLimite}>
-                <SelectTrigger className="w-[110px]"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="10">Top 10</SelectItem>
-                  <SelectItem value="25">Top 25</SelectItem>
-                  <SelectItem value="50">Top 50</SelectItem>
-                  <SelectItem value="100">Top 100</SelectItem>
-                </SelectContent>
-              </Select>
-
-              <Button variant="outline" size="sm" className="ml-auto"
-                      onClick={exportar} disabled={!ranking.length}>
-                <Download className="h-4 w-4 mr-1.5" />Excel
-              </Button>
             </div>
+
 
             {loading ? (
               <div className="p-6"><LoadingState rows={10} /></div>
@@ -847,7 +766,7 @@ export default function TopProductos() {
             </div>
           </div>
 
-          {detalle && <Detalle r={detalle} onClose={() => setDetalle(null)} />}
+          {detalle && <ProductoDetallePanel producto={detalle as any} onClose={() => setDetalle(null)} />}
         </main>
       </div>
     </SidebarProvider>
