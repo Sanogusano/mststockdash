@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { LoadingState, EmptyState } from "@/components/dashboard/LoadingState";
+import { HeaderTooltip } from "@/components/HeaderTooltip";
 import { ProductoDetallePanel } from "@/components/dashboard/ProductoDetallePanel";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
