@@ -2357,11 +2357,13 @@ export type Database = {
       }
       linea_curva_tallas: {
         Row: {
+          aplica_curva: boolean | null
           cargadas: number | null
           categoria_padre: string | null
           desvio_pts: number | null
           genero_norm: string | null
           n_productos: number | null
+          n_tallas: number | null
           pct_cargado: number | null
           pct_demanda: number | null
           pct_online: number | null
@@ -2721,12 +2723,15 @@ export type Database = {
       producto_curva_tallas: {
         Row: {
           agotada: boolean | null
+          aplica_curva: boolean | null
           cargadas: number | null
           categoria_padre: string | null
           coleccion: string | null
           desvio_pts: number | null
           genero_norm: string | null
           n_prod_linea: number | null
+          n_tallas_linea: number | null
+          n_tallas_producto: number | null
           pct_cargado: number | null
           pct_demanda_linea: number | null
           pct_vendido: number | null
