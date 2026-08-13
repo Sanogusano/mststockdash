@@ -256,13 +256,16 @@ export default function TopProductos() {
 
   const [lado, setLado] = useState<Lado>("top");
   const [modo, setModo] = useState<Modo>("full");
+  const [buscar, setBuscar] = useState("");
   const [coleccion, setColeccion] = useState("all");
   const [diagnostico, setDiagnostico] = useState("all");
   const [categoria, setCategoria] = useState("all");
+  const [canal, setCanal] = useState("all");
   const [minUds, setMinUds] = useState("30");
   const [limite, setLimite] = useState("25");
   const [ayuda, setAyuda] = useState(false);
   const [detalle, setDetalle] = useState<Row | null>(null);
+
 
   useEffect(() => {
     let activo = true;
