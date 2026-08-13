@@ -134,6 +134,15 @@ const COBERTURA_CLS: Record<string, string> = {
   "SIN STOCK": "bg-slate-100 text-slate-600 border-slate-200",
 };
 
+/** Mapeo de las etiquetas de acción del filtro al valor real de `diagnostico`. */
+const FILTRO_DIAGNOSTICO: Record<string, string> = {
+  "Repetir": "GANADOR",
+  "Revisar cantidad": "SE PRODUJO DE MAS",
+  "Revisar precio": "EVACUO LIQUIDANDO",
+  "Revisar concepto": "MAL PRODUCTO",
+  "En curso": "EN CURSO",
+};
+
 
 /** Barra apilada de calidad de venta: full / rebaja / activación. */
 function BarraCalidad({ full, rebaja, activacion, ancho = 96 }: {
