@@ -212,9 +212,7 @@ export function ProductoDetallePanel({ producto, onClose }: {
                 vs. {producto.n_cohorte} de su {producto.base_cohorte}
               </div>
               <div className="text-[10px] text-muted-foreground">
-                Objetivo de línea: {nf(producto.indice_rasero, 2)}×
-                {producto.indice_rasero_tienda != null && ` · tienda ${nf(producto.indice_rasero_tienda, 2)}×`}
-                {producto.indice_rasero_online != null && ` · online ${nf(producto.indice_rasero_online, 2)}×`}
+                {producto.pct_venta_sana != null && `${nf(producto.pct_venta_sana, 0)}% de su venta sin liquidar`}
               </div>
             </CardSalud>
           </div>
