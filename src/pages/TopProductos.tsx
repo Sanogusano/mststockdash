@@ -431,83 +431,104 @@ export default function TopProductos() {
           <div className="p-4 space-y-4">
             {ayuda && <Ayuda onClose={() => setAyuda(false)} />}
 
-            <div className="flex flex-wrap items-center gap-2">
-              <div className="inline-flex rounded-md border p-0.5">
-                <button onClick={() => setLado("top")}
-                  className={`px-3 py-1.5 text-xs rounded flex items-center gap-1.5 ${
-                    lado === "top" ? "bg-primary text-primary-foreground" : "hover:bg-muted"}`}>
-                  <Trophy className="h-3.5 w-3.5" />Ganadores
-                </button>
-                <button onClick={() => setLado("bottom")}
-                  className={`px-3 py-1.5 text-xs rounded flex items-center gap-1.5 ${
-                    lado === "bottom" ? "bg-primary text-primary-foreground" : "hover:bg-muted"}`}>
-                  <TrendingDown className="h-3.5 w-3.5" />Perdedores
-                </button>
+            <div className="space-y-2">
+              <div className="flex flex-wrap items-center gap-2">
+                <Input
+                  placeholder="Buscar producto…"
+                  value={buscar}
+                  onChange={e => setBuscar(e.target.value)}
+                  className="h-9 w-[200px]"
+                />
+
+                <Select value={coleccion} onValueChange={setColeccion}>
+                  <SelectTrigger className="h-9 w-[170px]"><SelectValue placeholder="Colección" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todas las colecciones</SelectItem>
+                    {colecciones.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+
+                <Select value={categoria} onValueChange={setCategoria}>
+                  <SelectTrigger className="h-9 w-[230px]"><SelectValue placeholder="Categoría" /></SelectTrigger>
+                  <SelectContent className="max-h-[320px]">
+                    <SelectItem value="all">Todas las categorías</SelectItem>
+                    {categorias.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+
+                <Select value={canal} onValueChange={setCanal}>
+                  <SelectTrigger className="h-9 w-[150px]"><SelectValue placeholder="Canal" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos los canales</SelectItem>
+                    <SelectItem value="tienda">Tienda física</SelectItem>
+                    <SelectItem value="online">Online</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                <Select value={minUds} onValueChange={setMinUds}>
+                  <SelectTrigger className="h-9 w-[150px]"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="10">Mínimo 10 uds</SelectItem>
+                    <SelectItem value="30">Mínimo 30 uds</SelectItem>
+                    <SelectItem value="50">Mínimo 50 uds</SelectItem>
+                    <SelectItem value="100">Mínimo 100 uds</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                <Select value={limite} onValueChange={setLimite}>
+                  <SelectTrigger className="h-9 w-[110px]"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="10">Top 10</SelectItem>
+                    <SelectItem value="25">Top 25</SelectItem>
+                    <SelectItem value="50">Top 50</SelectItem>
+                    <SelectItem value="100">Top 100</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
 
-              <div className="inline-flex rounded-md border p-0.5">
-                {([
-                  { v: "full", l: "Precio full", i: Trophy },
-                  { v: "rebajado", l: "Rebajado", i: Tag },
-                  { v: "prom", l: "Promedio", i: Package },
-                ] as const).map(m => (
-                  <button key={m.v} onClick={() => setModo(m.v)}
-                    className={`px-3 py-1.5 text-xs rounded flex items-center gap-1.5 ${
-                      modo === m.v ? "bg-primary text-primary-foreground" : "hover:bg-muted"}`}>
-                    <m.i className="h-3.5 w-3.5" />{m.l}
+              <div className="flex flex-wrap items-center gap-2">
+                <div className="inline-flex rounded-md border p-0.5">
+                  <button onClick={() => setLado("top")}
+                    className={`h-9 px-3 text-xs rounded flex items-center gap-1.5 ${
+                      lado === "top" ? "bg-primary text-primary-foreground" : "hover:bg-muted"}`}>
+                    <Trophy className="h-3.5 w-3.5" />Ganadores
                   </button>
-                ))}
+                  <button onClick={() => setLado("bottom")}
+                    className={`h-9 px-3 text-xs rounded flex items-center gap-1.5 ${
+                      lado === "bottom" ? "bg-primary text-primary-foreground" : "hover:bg-muted"}`}>
+                    <TrendingDown className="h-3.5 w-3.5" />Perdedores
+                  </button>
+                </div>
+
+                <div className="inline-flex rounded-md border p-0.5">
+                  {([
+                    { v: "full", l: "Precio full", i: Trophy },
+                    { v: "rebajado", l: "Rebajado", i: Tag },
+                    { v: "prom", l: "Promedio", i: Package },
+                  ] as const).map(m => (
+                    <button key={m.v} onClick={() => setModo(m.v)}
+                      className={`h-9 px-3 text-xs rounded flex items-center gap-1.5 ${
+                        modo === m.v ? "bg-primary text-primary-foreground" : "hover:bg-muted"}`}>
+                      <m.i className="h-3.5 w-3.5" />{m.l}
+                    </button>
+                  ))}
+                </div>
+
+                <Select value={diagnostico} onValueChange={setDiagnostico}>
+                  <SelectTrigger className="h-9 w-[195px]"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos los diagnósticos</SelectItem>
+                    {Object.keys(FILTRO_DIAGNOSTICO).map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+
+                <Button variant="outline" size="sm" className="ml-auto h-9"
+                        onClick={exportar} disabled={!ranking.length}>
+                  <Download className="h-4 w-4 mr-1.5" />Excel
+                </Button>
               </div>
-
-              <Select value={coleccion} onValueChange={setColeccion}>
-                <SelectTrigger className="w-[165px]"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todas las colecciones</SelectItem>
-                  {colecciones.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
-                </SelectContent>
-              </Select>
-
-              <Select value={diagnostico} onValueChange={setDiagnostico}>
-                <SelectTrigger className="w-[195px]"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todos los diagnósticos</SelectItem>
-                  {Object.keys(FILTRO_DIAGNOSTICO).map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}
-                </SelectContent>
-              </Select>
-
-              <Select value={categoria} onValueChange={setCategoria}>
-                <SelectTrigger className="w-[230px]"><SelectValue /></SelectTrigger>
-                <SelectContent className="max-h-[320px]">
-                  <SelectItem value="all">Todas las categorías</SelectItem>
-                  {categorias.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
-                </SelectContent>
-              </Select>
-
-              <Select value={minUds} onValueChange={setMinUds}>
-                <SelectTrigger className="w-[150px]"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="10">Mínimo 10 uds</SelectItem>
-                  <SelectItem value="30">Mínimo 30 uds</SelectItem>
-                  <SelectItem value="50">Mínimo 50 uds</SelectItem>
-                  <SelectItem value="100">Mínimo 100 uds</SelectItem>
-                </SelectContent>
-              </Select>
-
-              <Select value={limite} onValueChange={setLimite}>
-                <SelectTrigger className="w-[110px]"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="10">Top 10</SelectItem>
-                  <SelectItem value="25">Top 25</SelectItem>
-                  <SelectItem value="50">Top 50</SelectItem>
-                  <SelectItem value="100">Top 100</SelectItem>
-                </SelectContent>
-              </Select>
-
-              <Button variant="outline" size="sm" className="ml-auto"
-                      onClick={exportar} disabled={!ranking.length}>
-                <Download className="h-4 w-4 mr-1.5" />Excel
-              </Button>
             </div>
+
 
             {loading ? (
               <div className="p-6"><LoadingState rows={10} /></div>
