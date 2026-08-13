@@ -87,7 +87,16 @@ interface Row {
   estado_tallas: string;
   med_pctfull_cohorte: number | null;
   med_st_cohorte: number | null;
+  indice_rasero: number | null;
+  indice_rasero_tienda: number | null;
+  indice_rasero_online: number | null;
+  estado_rasero: string;
+  cumple_calidad: boolean;
+  stock_detenido: number;
+  st_total: number | null;
+  semanas_restantes: number;
 }
+
 
 type Modo = "full" | "rebajado" | "prom";
 type Lado = "top" | "bottom";
@@ -99,11 +108,12 @@ const nf = (v: number | null | undefined, d = 0) =>
 
 function colorIdx(i: number | null) {
   if (i == null) return "#898781";
-  if (i >= 130) return "#2a78d6";
-  if (i >= 100) return "#0ca30c";
-  if (i >= 70)  return "#c98500";
+  if (i >= 1.30) return "#2a78d6";
+  if (i >= 1.00) return "#0ca30c";
+  if (i >= 0.70)  return "#c98500";
   return "#d03b3b";
 }
+
 
 const PERFIL_CANAL: Record<string, { txt: string; cls: string }> = {
   fuerte_online: { txt: "Gana en online", cls: "bg-sky-100 text-sky-700 border-sky-200" },
@@ -149,9 +159,10 @@ function BarraCalidad({ full, rebaja, activacion, ancho = 96 }: {
 }
 
 /** Lightbox: foto grande y todos los datos de la fila. */
-function Detalle({ r, modo, onClose }: { r: Row; modo: Modo; onClose: () => void }) {
-  const idx = modo === "full" ? r.indice_full : modo === "rebajado" ? r.indice_rebajado : r.indice_total;
+function Detalle({ r, onClose }: { r: Row; onClose: () => void }) {
+  const idx = r.indice_rasero;
   const col = colorIdx(idx);
+
   const Dato = ({ l, v, sub }: { l: string; v: React.ReactNode; sub?: string }) => (
     <div>
       <div className="text-[11px] text-muted-foreground">{l}</div>
@@ -189,9 +200,10 @@ function Detalle({ r, modo, onClose }: { r: Row; modo: Modo; onClose: () => void
           <div className="space-y-4">
             <div className="grid grid-cols-3 gap-3">
               <Dato l="Unidades vendidas" v={nf(r.unidades_vendidas)} />
-              <Dato l={`RDV ${modo === "full" ? "full" : modo === "rebajado" ? "rebajado" : "prom."}`}
-                    v={<span style={{ color: col }}>{idx == null ? "—" : `${nf(idx / 100, 2)}×`}</span>}
-                    sub={`vs. ${r.n_cohorte} de su ${r.base_cohorte}`} />
+              <Dato l="RDV vs. objetivo de línea"
+                    v={<span style={{ color: col }}>{idx == null ? "—" : `${nf(idx, 2)}×`}</span>}
+                    sub={`vs. ${r.n_cohorte} de su ${r.base_cohorte} · ${r.estado_rasero}`} />
+
               <Dato l="Stock actual" v={nf(r.stock_actual)} />
             </div>
 
@@ -357,12 +369,13 @@ export default function TopProductos() {
       try {
         for (;;) {
           const { data, error } = await supabase
-            .from("mv_producto_clasificacion")
+            .from("producto_360")
             .select("*")
             .order("product_id", { ascending: true })
             .range(desde, desde + PAGINA - 1);
           if (error) throw error;
-          const lote = (data ?? []) as Row[];
+          const lote = (data ?? []) as unknown as Row[];
+
           acc.push(...lote);
           if (lote.length < PAGINA) break;
           desde += PAGINA;
@@ -386,12 +399,12 @@ export default function TopProductos() {
     () => Array.from(new Set(rows.map(catKey).filter(Boolean)))
       .sort((a, b) => a.localeCompare(b, "es")), [rows]);
 
-  const idxDe = (r: Row) =>
-    modo === "full" ? r.indice_full : modo === "rebajado" ? r.indice_rebajado : r.indice_total;
+  const idxDe = (r: Row) => r.indice_rasero;
   const rdvDe = (r: Row) =>
     modo === "full" ? r.ros_full : modo === "rebajado" ? r.ros_rebajado : r.ros_total;
   const udsDe = (r: Row) =>
     modo === "full" ? r.unidades_full : modo === "rebajado" ? r.unidades_rebajada : r.unidades_vendidas;
+
 
   const ranking = useMemo(() => {
     const min = Number(minUds);
@@ -404,12 +417,9 @@ export default function TopProductos() {
       // concentró su venta en una semana distorsiona el ranking.
       if (modo === "full" && r.semanas_full < 4) return false;
       if (modo === "rebajado" && r.semanas_rebajada < 4) return false;
-      // En el top de precio full no basta con vender rapido las pocas unidades
-      // que salieron a precio lleno: el producto tiene que haberse vendido
-      // mayormente asi. (Caso real: PHASE vendio 1 unidad full de 422 y con
-      // solo el RDV encabezaba el ranking.)
-      if (lado === "top" && modo === "full" &&
-          (r.pct_venta_full ?? 0) < (r.med_pctfull_cohorte ?? 0)) return false;
+      // Ganadores: solo productos que superan o cumplen el objetivo de línea.
+      if (lado === "top" && !["SUPERA", "CUMPLE"].includes(r.estado_rasero)) return false;
+
       // En Perdedores se excluye lo que YA se vendió. Un producto con
       // sell-through alto o cobertura ajustada no es perdedor aunque su RDV
       // full sea bajo: eso solo refleja que se liquidó con precio, no que
@@ -452,7 +462,10 @@ export default function TopProductos() {
       Cohorte: `${r.n_cohorte} · ${r.base_cohorte}`,
       "Perfil de canal": r.perfil_canal,
       "RDV del modo": rdvDe(r),
-      "Índice RDV (× el típico)": idxDe(r) == null ? null : Number((idxDe(r)! / 100).toFixed(2)),
+      "Índice rasero (× objetivo línea)": r.indice_rasero,
+      "Índice cohorte (× el típico)": r.indice_total == null ? null : Number((r.indice_total / 100).toFixed(2)),
+      "Estado rasero": r.estado_rasero,
+
       "% venta full": r.pct_venta_full,
       "% full típico de la cohorte": r.med_pctfull_cohorte,
       "Profundidad desc %": r.profundidad_desc_pct,
@@ -588,8 +601,9 @@ export default function TopProductos() {
                       <th className="text-right p-2.5 font-medium">Vendido</th>
                       <th className="text-left p-2.5 font-medium">Por canal</th>
                       <th className="text-left p-2.5 font-medium">
-                        RDV {modo === "full" ? "full" : modo === "rebajado" ? "rebajado" : "prom."}
+                        Rasero
                       </th>
+
                       <th className="text-left p-2.5 font-medium">Calidad de venta</th>
                       <th className="text-left p-2.5 font-medium">Por canal</th>
                       <th className="text-right p-2.5 font-medium">Sell-thr.</th>
@@ -653,20 +667,21 @@ export default function TopProductos() {
                               <div className="relative h-3">
                                 <div className="absolute top-0.5 inset-x-0 h-2 rounded-full bg-muted" />
                                 <div className="absolute top-0.5 left-0 h-2 rounded-full"
-                                     style={{ width: `${Math.min(100, ((idx ?? 0) / 300) * 100)}%`,
+                                     style={{ width: `${Math.min(100, ((idx ?? 0) / 3) * 100)}%`,
                                               background: col }} />
                                 <div className="absolute top-0 h-3 w-0.5 bg-foreground"
                                      style={{ left: "33.3%" }} />
                               </div>
-                              <div className="flex items-baseline gap-1.5 mt-1">
+                              <div className="mt-1">
                                 <span className="text-sm font-medium tabular-nums" style={{ color: col }}
-                                      title="Veces el ritmo del producto típico de su cohorte">
-                                  {idx == null ? "—" : `${nf(idx / 100, 2)}×`}
+                                      title="Índice vs. objetivo de línea">
+                                  {r.indice_rasero == null ? "—" : `${nf(r.indice_rasero, 2)}×`}
                                 </span>
-                                <span className="text-[10px] text-muted-foreground tabular-nums">
-                                  {nf(rdvDe(r), 2)} uds/t/sem
-                                </span>
+                                <div className="text-[10px] text-muted-foreground tabular-nums">
+                                  {nf((r.indice_total ?? 0) / 100, 2)}× vs. sus pares
+                                </div>
                               </div>
+
                             </div>
                           </td>
                           <td className="p-2.5">
@@ -786,7 +801,7 @@ export default function TopProductos() {
             </div>
           </div>
 
-          {detalle && <Detalle r={detalle} modo={modo} onClose={() => setDetalle(null)} />}
+          {detalle && <Detalle r={detalle} onClose={() => setDetalle(null)} />}
         </main>
       </div>
     </SidebarProvider>
