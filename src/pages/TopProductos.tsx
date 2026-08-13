@@ -639,9 +639,6 @@ export default function TopProductos() {
                           <HeaderTooltip label="Calidad de venta" tip="Qué parte se vendió sin liquidar (precio full o activación)" />
                         </th>
                         <th className="text-left p-2.5 font-medium">
-                          <HeaderTooltip label="Diagnóstico" tip="Cierre del producto: si funcionó, si evacuó liquidando, si sobró producción o si aún está en curso" />
-                        </th>
-                        <th className="text-left p-2.5 font-medium">
                           <HeaderTooltip label="Por canal" tip="Calidad de venta por tienda y online" />
                         </th>
                         <th className="text-right p-2.5 font-medium">
@@ -736,12 +733,10 @@ export default function TopProductos() {
                             </div>
                             <div className="text-[10px] text-muted-foreground tabular-nums">
                               {nf(r.pct_venta_full, 0)}% full · {nf(r.pct_activacion, 0)}% activación
+                              {r.desc_activacion_pct != null && ` · −${nf(r.desc_activacion_pct, 0)}%`}
                             </div>
                             <BarraCalidad full={r.unidades_full} rebaja={r.unidades_rebaja}
                                           activacion={r.unidades_activacion} />
-                          </td>
-                          <td className="p-2.5">
-                            <DiagnosticoBadge valor={r.diagnostico} />
                           </td>
                           <td className="p-2.5">
                             <div className="space-y-1">
