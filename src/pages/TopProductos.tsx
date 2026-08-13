@@ -462,7 +462,10 @@ export default function TopProductos() {
       Cohorte: `${r.n_cohorte} · ${r.base_cohorte}`,
       "Perfil de canal": r.perfil_canal,
       "RDV del modo": rdvDe(r),
-      "Índice RDV (× el típico)": idxDe(r) == null ? null : Number((idxDe(r)! / 100).toFixed(2)),
+      "Índice rasero (× objetivo línea)": r.indice_rasero,
+      "Índice cohorte (× el típico)": r.indice_total == null ? null : Number((r.indice_total / 100).toFixed(2)),
+      "Estado rasero": r.estado_rasero,
+
       "% venta full": r.pct_venta_full,
       "% full típico de la cohorte": r.med_pctfull_cohorte,
       "Profundidad desc %": r.profundidad_desc_pct,
