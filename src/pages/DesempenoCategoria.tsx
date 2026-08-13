@@ -170,6 +170,25 @@ export default function DesempenoCategoria() {
   const [catFiltro, setCatFiltro] = useState("all");
   const [orden, setOrden] = useState<"riesgo" | "ros" | "wos" | "st" | "stock">("riesgo");
   const [ayuda, setAyuda] = useState(false);
+  const [tab, setTab] = useState<"desempeno" | "tallas">("desempeno");
+  const [tallas, setTallas] = useState<any[]>([]);
+  const [cargandoTallas, setCargandoTallas] = useState(false);
+
+  useEffect(() => {
+    if (tab !== "tallas" || catFiltro === "all") { setTallas([]); return; }
+    const [padre, genero] = catFiltro.split(" · ");
+    let activo = true;
+    (async () => {
+      setCargandoTallas(true);
+      const { data } = await supabase
+        .from("linea_curva_tallas")
+        .select("*")
+        .eq("categoria_padre", padre)
+        .eq("genero_norm", genero);
+      if (activo) { setTallas((data ?? []) as any[]); setCargandoTallas(false); }
+    })();
+    return () => { activo = false; };
+  }, [tab, catFiltro]);
 
   useEffect(() => {
     let activo = true;
@@ -282,6 +301,19 @@ export default function DesempenoCategoria() {
           <div className="p-4 space-y-4">
             {ayuda && <ExplicaRDV onClose={() => setAyuda(false)} />}
 
+            <div className="inline-flex rounded-md border p-0.5">
+              {([
+                { v: "desempeno", l: "Desempeño" },
+                { v: "tallas",    l: "Curva de tallas" },
+              ] as const).map(t => (
+                <button key={t.v} onClick={() => setTab(t.v)}
+                  className={`px-3 py-1.5 text-xs rounded ${
+                    tab === t.v ? "bg-primary text-primary-foreground" : "hover:bg-muted"
+                  }`}>{t.l}</button>
+              ))}
+            </div>
+
+
             <div className="flex flex-wrap items-center gap-2">
               <div className="inline-flex rounded-md border p-0.5">
                 {([
@@ -333,7 +365,111 @@ export default function DesempenoCategoria() {
               </Button>
             </div>
 
-            {loading ? (
+            {tab === "tallas" ? (
+              catFiltro === "all" ? (
+                <EmptyState message="Selecciona una categoría para ver su curva de tallas." />
+              ) : cargandoTallas ? (
+                <div className="p-6"><LoadingState rows={6} /></div>
+              ) : (() => {
+                const base = tallas.filter(t => Number(t.cargadas ?? 0) >= 50);
+                const ref = tallas[0];
+                if (!ref || Number(ref.n_productos ?? 0) < 5 || Number(ref.uds_vendidas_linea ?? 0) < 200 || !base.length)
+                  return (
+                    <div className="rounded-lg border p-4 text-sm text-muted-foreground">
+                      No hay suficiente historial en esta línea para comparar la curva de tallas.
+                    </div>
+                  );
+                const rapida = [...base].sort((a, b) => Number(b.sell_through ?? 0) - Number(a.sell_through ?? 0))[0];
+                const quedada = [...base].sort((a, b) => Number(a.sell_through ?? 0) - Number(b.sell_through ?? 0))[0];
+                const desvio = [...base].sort((a, b) => Number(b.desvio_pts ?? 0) - Number(a.desvio_pts ?? 0))[0];
+                return (
+                  <>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                      {[
+                        { l: "Talla más rápida", t: rapida.talla, s: `${nf(rapida.sell_through, 1)}% sell-through` },
+                        { l: "Talla más quedada", t: quedada.talla, s: `${nf(quedada.sell_through, 1)}% sell-through` },
+                        { l: "Mayor desvío", t: desvio.talla, s: `${nf(desvio.desvio_pts, 1)} pts sobre la demanda` },
+                      ].map(k => (
+                        <div key={k.l} className="rounded-lg border p-3">
+                          <div className="text-xs text-muted-foreground">{k.l}</div>
+                          <div className="text-xl font-semibold mt-0.5">{k.t}</div>
+                          <div className="text-[11px] text-muted-foreground">{k.s}</div>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="rounded-lg border overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="border-b bg-muted/40 text-xs text-muted-foreground">
+                            <th className="text-left p-2.5 font-medium">Talla</th>
+                            <th className="text-right p-2.5 font-medium">% cargado</th>
+                            <th className="text-right p-2.5 font-medium">% demanda</th>
+                            <th className="text-left p-2.5 font-medium w-[200px]">Comparación</th>
+                            <th className="text-right p-2.5 font-medium">Desvío</th>
+                            <th className="text-right p-2.5 font-medium">Sell-through</th>
+                            <th className="text-right p-2.5 font-medium">% online</th>
+                            <th className="text-right p-2.5 font-medium">Cargadas</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {base.map(t => {
+                            const sobra = Number(t.desvio_pts ?? 0) > 3;
+                            const quiebre = Number(t.sell_through ?? 0) >= 90;
+                            return (
+                              <tr key={t.talla} className={`border-b ${
+                                sobra ? "bg-amber-50" : quiebre ? "bg-sky-50" : ""}`}>
+                                <td className="p-2.5 font-medium">{t.talla}</td>
+                                <td className="p-2.5 text-right tabular-nums">{nf(t.pct_cargado, 1)}%</td>
+                                <td className="p-2.5 text-right tabular-nums">{nf(t.pct_demanda, 1)}%</td>
+                                <td className="p-2.5">
+                                  <div className="space-y-0.5">
+                                    <div className="h-2 rounded-sm bg-muted overflow-hidden">
+                                      <div className="h-full" style={{
+                                        width: `${Math.min(Number(t.pct_cargado ?? 0), 100)}%`,
+                                        background: sobra ? "#c98500" : "#7c5cd6" }} />
+                                    </div>
+                                    <div className="h-2 rounded-sm bg-muted overflow-hidden">
+                                      <div className="h-full" style={{
+                                        width: `${Math.min(Number(t.pct_demanda ?? 0), 100)}%`,
+                                        background: "#898781" }} />
+                                    </div>
+                                  </div>
+                                </td>
+                                <td className="p-2.5 text-right tabular-nums">
+                                  <span className={sobra ? "text-amber-700 font-medium" : ""}>
+                                    {nf(t.desvio_pts, 1)}
+                                  </span>
+                                </td>
+                                <td className="p-2.5 text-right tabular-nums">
+                                  <span className={quiebre ? "text-sky-700 font-medium" : ""}>
+                                    {nf(t.sell_through, 1)}%
+                                  </span>
+                                </td>
+                                <td className="p-2.5 text-right tabular-nums text-muted-foreground">
+                                  {nf(t.pct_online, 1)}%
+                                </td>
+                                <td className="p-2.5 text-right tabular-nums text-muted-foreground">
+                                  {nf(t.cargadas)}
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+
+                    <div className="flex flex-wrap gap-x-5 gap-y-2 text-[11px] text-muted-foreground">
+                      <span><i className="inline-block h-2 w-2 rounded-sm mr-1" style={{ background: "#7c5cd6" }} />% cargado</span>
+                      <span><i className="inline-block h-2 w-2 rounded-sm mr-1" style={{ background: "#898781" }} />% demanda</span>
+                      <span className="text-amber-700">Ámbar: se cargó de más</span>
+                      <span className="text-sky-700">Azul: se agotó, posible quiebre</span>
+                      <span>Se ocultan tallas con menos de 50 unidades cargadas</span>
+                    </div>
+                  </>
+                );
+              })()
+            ) : loading ? (
               <div className="p-6"><LoadingState rows={8} /></div>
             ) : error ? (
               <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-4 text-sm">

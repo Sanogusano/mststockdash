@@ -114,6 +114,8 @@ export function ProductoDetallePanel({ producto, onClose }: {
   const [curva, setCurva] = useState<PuntoCurva[]>([]);
   const [cargando, setCargando] = useState(true);
   const [zoom, setZoom] = useState(false);
+  const [tallas, setTallas] = useState<any[]>([]);
+  const [cargandoTallas, setCargandoTallas] = useState(true);
 
 
   useEffect(() => {
@@ -126,6 +128,20 @@ export function ProductoDetallePanel({ producto, onClose }: {
         p_modo: "vida",
       });
       if (activo) { setCurva((data ?? []) as PuntoCurva[]); setCargando(false); }
+    })();
+    return () => { activo = false; };
+  }, [producto]);
+
+  useEffect(() => {
+    if (!producto) return;
+    let activo = true;
+    (async () => {
+      setCargandoTallas(true);
+      const { data } = await supabase
+        .from("producto_curva_tallas")
+        .select("*")
+        .eq("product_id", producto.product_id);
+      if (activo) { setTallas((data ?? []) as any[]); setCargandoTallas(false); }
     })();
     return () => { activo = false; };
   }, [producto]);
@@ -351,6 +367,82 @@ export function ProductoDetallePanel({ producto, onClose }: {
                         name="% típico de su cohorte" />
                 </ComposedChart>
               </ResponsiveContainer>
+            )}
+          </div>
+
+          {/* Curva de tallas */}
+          <div className="rounded-lg border p-3">
+            <h3 className="text-sm font-medium mb-2">Curva de tallas</h3>
+            {cargandoTallas ? (
+              <div className="text-sm text-muted-foreground">Cargando curva de tallas…</div>
+            ) : !tallas.length
+                 || Number(tallas[0].total_producto ?? 0) < 30
+                 || Number(tallas[0].n_prod_linea ?? 0) < 5
+                 || Number(tallas[0].uds_linea ?? 0) < 200 ? (
+              <div className="text-sm text-muted-foreground">
+                No hay suficiente historial en esta línea para comparar la curva de tallas.
+              </div>
+            ) : (
+              <>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-xs">
+                    <thead>
+                      <tr className="border-b text-muted-foreground">
+                        <th className="text-left p-1.5 font-medium">Talla</th>
+                        <th className="text-right p-1.5 font-medium">% cargado</th>
+                        <th className="text-right p-1.5 font-medium">% demanda línea</th>
+                        <th className="text-left p-1.5 font-medium w-[160px]">Comparación</th>
+                        <th className="text-right p-1.5 font-medium">Sell-through</th>
+                        <th className="text-right p-1.5 font-medium">Sobrantes</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {tallas.map((t: any) => {
+                        const sobra = Number(t.desvio_pts ?? 0) > 3;
+                        const quiebre = Number(t.sell_through_talla ?? 0) >= 90;
+                        return (
+                          <tr key={t.talla} className={`border-b ${
+                            sobra ? "bg-amber-50" : quiebre ? "bg-sky-50" : ""}`}>
+                            <td className="p-1.5 font-medium">{t.talla}</td>
+                            <td className="p-1.5 text-right tabular-nums">{nf(t.pct_cargado, 1)}%</td>
+                            <td className="p-1.5 text-right tabular-nums">{nf(t.pct_demanda_linea, 1)}%</td>
+                            <td className="p-1.5">
+                              <div className="space-y-0.5">
+                                <div className="h-1.5 rounded-sm bg-muted overflow-hidden">
+                                  <div className="h-full" style={{
+                                    width: `${Math.min(Number(t.pct_cargado ?? 0), 100)}%`,
+                                    background: sobra ? "#c98500" : "#7c5cd6" }} />
+                                </div>
+                                <div className="h-1.5 rounded-sm bg-muted overflow-hidden">
+                                  <div className="h-full" style={{
+                                    width: `${Math.min(Number(t.pct_demanda_linea ?? 0), 100)}%`,
+                                    background: "#898781" }} />
+                                </div>
+                              </div>
+                            </td>
+                            <td className="p-1.5 text-right tabular-nums">
+                              <span className={quiebre ? "text-sky-700 font-medium" : ""}>
+                                {nf(t.sell_through_talla, 0)}%
+                              </span>
+                            </td>
+                            <td className="p-1.5 text-right tabular-nums">
+                              {Number(t.uds_sobrantes ?? 0) > 0
+                                ? <span className="text-amber-700 font-medium">{nf(t.uds_sobrantes, 0)}</span>
+                                : <span className="text-muted-foreground">—</span>}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+                <div className="flex flex-wrap gap-x-4 gap-y-1 text-[10px] text-muted-foreground mt-2">
+                  <span><i className="inline-block h-2 w-2 rounded-sm mr-1" style={{ background: "#7c5cd6" }} />% cargado</span>
+                  <span><i className="inline-block h-2 w-2 rounded-sm mr-1" style={{ background: "#898781" }} />% demanda de la línea</span>
+                  <span className="text-amber-700">Ámbar: se cargó de más</span>
+                  <span className="text-sky-700">Azul: se agotó, posible quiebre</span>
+                </div>
+              </>
             )}
           </div>
 
