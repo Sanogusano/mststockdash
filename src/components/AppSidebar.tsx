@@ -47,12 +47,15 @@ const desempenoCategoriaItem: NavItem = { title: "Desempeño por categoría", ur
 
 const producto360Item: NavItem = { title: "Análisis de producto", url: "/analisis-producto", icon: LayoutGrid, description: "Vista consolidada: meta, pares, calidad de venta y cobertura", module: "dashboards.salud_producto", action: "view" };
 
+const linea360Item: NavItem = { title: "Análisis por línea", url: "/analisis-linea", icon: Layers, description: "Evacuación, calidad de venta y stock agregados por línea", module: "dashboards.salud_producto", action: "view" };
+
 const saludPublicacionItem: NavItem = { title: "Salud de publicación", url: "/salud-publicacion", icon: Globe, description: "Diagnóstico del canal online", module: "dashboards.salud_producto", action: "view" };
 
 const topProductosItem: NavItem = { title: "Top de productos", url: "/top-productos", icon: Trophy, description: "Top ganadores y perdedores por índice", module: "dashboards.inventario_salud", action: "view" };
 
 const zoomProductoItems: NavItem[] = [
   producto360Item,
+  linea360Item,
   topProductosItem,
   desempenoCategoriaItem,
   bajaRotacionItem,
