@@ -4,6 +4,7 @@ import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { LoadingState, EmptyState } from "@/components/dashboard/LoadingState";
 import { HeaderTooltip } from "@/components/HeaderTooltip";
+import { DiagnosticoBadge, DIAGNOSTICOS } from "@/components/dashboard/DiagnosticoBadge";
 import { Button } from "@/components/ui/button";
 import {
   Download, Package, Trophy, TrendingDown, Tag, HelpCircle, X,
@@ -91,7 +92,6 @@ interface Row {
   stock_detenido: number;
   diagnostico: string;
   pct_venta_sana: number | null;
-  pct_activacion: number | null;
   pct_activacion_tienda: number | null;
   pct_activacion_online: number | null;
   objetivo_unidades: number;
