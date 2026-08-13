@@ -301,6 +301,19 @@ export default function DesempenoCategoria() {
           <div className="p-4 space-y-4">
             {ayuda && <ExplicaRDV onClose={() => setAyuda(false)} />}
 
+            <div className="inline-flex rounded-md border p-0.5">
+              {([
+                { v: "desempeno", l: "Desempeño" },
+                { v: "tallas",    l: "Curva de tallas" },
+              ] as const).map(t => (
+                <button key={t.v} onClick={() => setTab(t.v)}
+                  className={`px-3 py-1.5 text-xs rounded ${
+                    tab === t.v ? "bg-primary text-primary-foreground" : "hover:bg-muted"
+                  }`}>{t.l}</button>
+              ))}
+            </div>
+
+
             <div className="flex flex-wrap items-center gap-2">
               <div className="inline-flex rounded-md border p-0.5">
                 {([
