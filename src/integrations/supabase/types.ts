@@ -2355,6 +2355,58 @@ export type Database = {
         }
         Relationships: []
       }
+      linea_360: {
+        Row: {
+          bod_exportaciones: number | null
+          bod_principal: number | null
+          bod_reserva: number | null
+          bod_tiendas: number | null
+          categoria_padre: string | null
+          desc_activacion_pct: number | null
+          fecha_snapshot_bodega: string | null
+          genero_norm: string | null
+          indice_meta: number | null
+          indice_total: number | null
+          mix_online_pct: number | null
+          n_cobertura_ajustada: number | null
+          n_cobertura_critica: number | null
+          n_colecciones: number | null
+          n_con_ventana: number | null
+          n_en_curso: number | null
+          n_productos: number | null
+          n_repetir: number | null
+          n_revisar_cantidad: number | null
+          n_revisar_concepto: number | null
+          n_revisar_precio: number | null
+          objetivo_unidades: number | null
+          pct_activacion: number | null
+          pct_evacuado_120d: number | null
+          pct_rebaja: number | null
+          pct_venta_full: number | null
+          pct_venta_sana: number | null
+          producido: number | null
+          semanas_prom: number | null
+          sin_evacuar: number | null
+          st_disponibilizado: number | null
+          st_total: number | null
+          stock_detenido: number | null
+          stock_disponibilizado: number | null
+          stock_online: number | null
+          stock_tiendas: number | null
+          stock_total: number | null
+          uds_online: number | null
+          uds_revisar_cantidad: number | null
+          uds_revisar_concepto: number | null
+          uds_tienda: number | null
+          unidades_activacion: number | null
+          unidades_full: number | null
+          unidades_rebaja: number | null
+          vendido: number | null
+          vendido_120d: number | null
+          wos_prom: number | null
+        }
+        Relationships: []
+      }
       linea_curva_tallas: {
         Row: {
           aplica_curva: boolean | null
