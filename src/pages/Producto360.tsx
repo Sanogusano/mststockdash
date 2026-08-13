@@ -263,8 +263,8 @@ export default function Producto360() {
   }, [rows, coleccion, categoria, foco, busqueda, orden]);
 
   const kpis = useMemo(() => {
-    const sobrecompra = filtrados.filter(r => (r.indice_meta ?? 9) < 0.6 && (r.indice_total ?? 0) >= 100);
-    const malProducto = filtrados.filter(r => (r.indice_meta ?? 9) < 0.6 && (r.indice_total ?? 999) < 70);
+    const sobrecompra = filtrados.filter(r => r.diagnostico === "SE PRODUJO DE MAS");
+    const malProducto = filtrados.filter(r => r.diagnostico === "MAL PRODUCTO");
     return {
       productos: filtrados.length,
       producido: filtrados.reduce((s, r) => s + (r.producido ?? 0), 0),
