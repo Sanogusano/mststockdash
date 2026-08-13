@@ -2510,6 +2510,7 @@ export type Database = {
           integridad_tallas: number | null
           med_pctfull_cohorte: number | null
           med_st_cohorte: number | null
+          meta_st: number | null
           mix_online_cat: number | null
           mix_online_pct: number | null
           n_cohorte: number | null
@@ -2518,6 +2519,7 @@ export type Database = {
           objetivo_dia_tienda: number | null
           objetivo_online_semana: number | null
           objetivo_tienda_semana: number | null
+          objetivo_unidades: number | null
           pct_activacion: number | null
           pct_evacuado_120d: number | null
           pct_proyectado_120d: number | null
@@ -2762,6 +2764,7 @@ export type Database = {
           image_url: string | null
           indice_meta: number | null
           indice_total: number | null
+          meta_st: number | null
           n_tiendas: number | null
           objetivo_dia: number | null
           objetivo_dia_online: number | null

@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { LoadingState, EmptyState } from "@/components/dashboard/LoadingState";
+import { HeaderTooltip } from "@/components/HeaderTooltip";
 import { ProductoDetallePanel } from "@/components/dashboard/ProductoDetallePanel";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -448,15 +449,33 @@ export default function Producto360() {
                       <thead>
                         <tr className="border-b bg-muted/40 text-xs text-muted-foreground">
                           <th className="text-left p-2.5 font-medium" colSpan={2}>Producto</th>
-                          <th className="text-right p-2.5 font-medium">Unidades</th>
-                          <th className="text-left p-2.5 font-medium">Ventas por canal</th>
-                          <th className="text-left p-2.5 font-medium">Ritmo vs Presupuesto</th>
-                          <th className="text-left p-2.5 font-medium">RDV</th>
-                          <th className="text-right p-2.5 font-medium">Calidad de venta</th>
-                          <th className="text-left p-2.5 font-medium">Cobertura</th>
-                          <th className="text-right p-2.5 font-medium">Stock</th>
-                          <th className="text-right p-2.5 font-medium">Sell-through</th>
-                          <th className="text-right p-2.5 font-medium">Sin evacuar</th>
+                          <th className="text-right p-2.5 font-medium">
+                            <HeaderTooltip label="Unidades" tip="Vendido + stock en tiendas, online y bodega" />
+                          </th>
+                          <th className="text-left p-2.5 font-medium">
+                            <HeaderTooltip label="Ventas por canal" tip="Unidades por tienda y por online" />
+                          </th>
+                          <th className="text-left p-2.5 font-medium">
+                            <HeaderTooltip label="Ritmo vs Presupuesto" tip="¿Va al ritmo de vender el 70% en 120 días? 1,00 = sí" />
+                          </th>
+                          <th className="text-left p-2.5 font-medium">
+                            <HeaderTooltip label="RDV" tip="¿Vende más rápido que productos parecidos? 1,00× = igual" />
+                          </th>
+                          <th className="text-right p-2.5 font-medium">
+                            <HeaderTooltip label="Calidad de venta" tip="Qué parte se vendió a precio lleno" />
+                          </th>
+                          <th className="text-left p-2.5 font-medium">
+                            <HeaderTooltip label="Cobertura" tip="Semanas que dura el stock, y cuántas quedan de temporada" />
+                          </th>
+                          <th className="text-right p-2.5 font-medium">
+                            <HeaderTooltip label="Stock" tip="Disponible: a la venta. Detenido: en bodega" />
+                          </th>
+                          <th className="text-right p-2.5 font-medium">
+                            <HeaderTooltip label="Sell-through" tip="Verde: de lo disponible. Gris: incluyendo bodega" />
+                          </th>
+                          <th className="text-right p-2.5 font-medium">
+                            <HeaderTooltip label="Sin evacuar" tip="Unidades que no salieron en los 120 días" />
+                          </th>
                         </tr>
                       </thead>
                       <tbody>
