@@ -311,6 +311,8 @@ export default function Producto360() {
       "Índice vs. meta": r.indice_meta, "Percentil catálogo": r.percentil_catalogo,
       "RDV × el típico": r.indice_total == null ? null : Number((r.indice_total / 100).toFixed(2)),
       Cohorte: `${r.n_cohorte} · ${r.base_cohorte}`,
+      Diagnóstico: r.diagnostico,
+      "% venta sana": r.pct_venta_sana, "% activación": r.pct_activacion,
       "% venta full": r.pct_venta_full, "% full típico": r.med_pctfull_cohorte,
       "Uds full": r.unidades_full, "Uds rebaja": r.unidades_rebaja,
       "Uds activación": r.unidades_activacion,
