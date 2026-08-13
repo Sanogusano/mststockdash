@@ -2486,6 +2486,7 @@ export type Database = {
           category: string | null
           cobertura: string | null
           coleccion: string | null
+          cumple_calidad: boolean | null
           desempeno: string | null
           dias_en_venta: number | null
           dias_medidos: number | null
@@ -2531,6 +2532,8 @@ export type Database = {
           rasero_online: number | null
           rasero_tienda: number | null
           ratio_cobertura: number | null
+          rdv_online_sano: number | null
+          rdv_tienda_sano: number | null
           ritmo_dia: number | null
           ritmo_dia_online: number | null
           ritmo_dia_tienda: number | null
