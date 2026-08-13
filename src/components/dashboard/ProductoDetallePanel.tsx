@@ -373,12 +373,14 @@ export function ProductoDetallePanel({ producto, onClose }: {
                 stock: (producto.stock_tienda ?? 0) + (producto.stock_outlet ?? 0),
                 st: producto.st_tienda_pct,
                 obj: producto.objetivo_dia_tienda, real: producto.ritmo_dia_tienda,
-                full: producto.uds_tie_full, reb: producto.uds_tie_rebaja, act: producto.uds_tie_activacion },
+                full: producto.uds_tie_full, reb: producto.uds_tie_rebaja, act: producto.uds_tie_activacion,
+                desc_activacion: producto.desc_activacion_tienda_pct },
               { i: ShoppingBag, l: "Online",
                 vend: producto.uds_online, stock: producto.stock_online,
                 st: producto.st_online_pct,
                 obj: producto.objetivo_dia_online, real: producto.ritmo_dia_online,
-                full: producto.uds_onl_full, reb: producto.uds_onl_rebaja, act: producto.uds_onl_activacion },
+                full: producto.uds_onl_full, reb: producto.uds_onl_rebaja, act: producto.uds_onl_activacion,
+                desc_activacion: producto.desc_activacion_online_pct },
             ].map(c => (
               <div key={c.l} className="rounded-lg border p-3">
                 <div className="flex items-center gap-1.5 text-xs font-medium mb-2">
