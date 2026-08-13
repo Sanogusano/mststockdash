@@ -320,9 +320,14 @@ export default function TopProductos() {
   const ranking = useMemo(() => {
     const min = Number(minUds);
     const base = rows.filter(r => {
+      if (buscar && !r.title.toLowerCase().includes(buscar.toLowerCase())) return false;
       if (coleccion !== "all" && r.coleccion !== coleccion) return false;
       if (categoria !== "all" && catKey(r) !== categoria) return false;
       if (diagnostico !== "all" && r.diagnostico !== FILTRO_DIAGNOSTICO[diagnostico]) return false;
+      if (canal !== "all") {
+        if (canal === "tienda" && (r.uds_tienda + r.uds_outlet) <= 0) return false;
+        if (canal === "online" && r.uds_online <= 0) return false;
+      }
       if (idxDe(r) == null) return false;
       if (udsDe(r) < min) return false;
       // Exige historia suficiente del modo elegido: sin esto, un producto que
@@ -346,7 +351,8 @@ export default function TopProductos() {
         ? (idxDe(b) ?? 0) - (idxDe(a) ?? 0)
         : (idxDe(a) ?? 0) - (idxDe(b) ?? 0));
     return ord.slice(0, Number(limite));
-  }, [rows, lado, modo, coleccion, categoria, diagnostico, minUds, limite]);
+  }, [rows, lado, modo, coleccion, categoria, diagnostico, minUds, limite, buscar, canal]);
+
 
   const exportar = () => {
     if (!ranking.length) return;
