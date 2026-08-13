@@ -2453,6 +2453,9 @@ export type Database = {
           category: string | null
           cobertura: string | null
           coleccion: string | null
+          desc_activacion_online_pct: number | null
+          desc_activacion_pct: number | null
+          desc_activacion_tienda_pct: number | null
           desempeno: string | null
           diagnostico: string | null
           dias_en_venta: number | null
@@ -2691,6 +2694,16 @@ export type Database = {
           vendio_full: boolean | null
           vendio_rebajada: boolean | null
           wos: number | null
+        }
+        Relationships: []
+      }
+      producto_descuento_activacion: {
+        Row: {
+          desc_activacion_online_pct: number | null
+          desc_activacion_pct: number | null
+          desc_activacion_tienda_pct: number | null
+          product_id: string | null
+          uds_con_activacion: number | null
         }
         Relationships: []
       }
