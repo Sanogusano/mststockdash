@@ -1716,39 +1716,6 @@ export type Database = {
         }
         Relationships: []
       }
-      rasero_linea: {
-        Row: {
-          actualizado_por: string | null
-          categoria_padre: string
-          genero_norm: string
-          id: string
-          nota: string | null
-          uds_online_semana: number | null
-          uds_tienda_semana: number
-          updated_at: string | null
-        }
-        Insert: {
-          actualizado_por?: string | null
-          categoria_padre: string
-          genero_norm: string
-          id?: string
-          nota?: string | null
-          uds_online_semana?: number | null
-          uds_tienda_semana: number
-          updated_at?: string | null
-        }
-        Update: {
-          actualizado_por?: string | null
-          categoria_padre?: string
-          genero_norm?: string
-          id?: string
-          nota?: string | null
-          uds_online_semana?: number | null
-          uds_tienda_semana?: number
-          updated_at?: string | null
-        }
-        Relationships: []
-      }
       role_permissions: {
         Row: {
           action_key: string
@@ -2486,12 +2453,11 @@ export type Database = {
           category: string | null
           cobertura: string | null
           coleccion: string | null
-          cumple_calidad: boolean | null
           desempeno: string | null
+          diagnostico: string | null
           dias_en_venta: number | null
           dias_medidos: number | null
           estado_online: string | null
-          estado_rasero: string | null
           estado_tallas: string | null
           fecha_inicio: string | null
           fecha_snapshot_bodega: string | null
@@ -2501,9 +2467,6 @@ export type Database = {
           indice_full: number | null
           indice_meta: number | null
           indice_online: number | null
-          indice_rasero: number | null
-          indice_rasero_online: number | null
-          indice_rasero_tienda: number | null
           indice_rebajado: number | null
           indice_tienda: number | null
           indice_total: number | null
@@ -2521,21 +2484,20 @@ export type Database = {
           objetivo_tienda_semana: number | null
           objetivo_unidades: number | null
           pct_activacion: number | null
+          pct_activacion_online: number | null
+          pct_activacion_tienda: number | null
           pct_evacuado_120d: number | null
           pct_proyectado_120d: number | null
           pct_rebaja: number | null
           pct_venta_full: number | null
+          pct_venta_sana: number | null
           percentil_catalogo: number | null
           perfil_canal: string | null
           peso_online: number | null
           producido: number | null
           product_id: string | null
           profundidad_desc_pct: number | null
-          rasero_online: number | null
-          rasero_tienda: number | null
           ratio_cobertura: number | null
-          rdv_online_sano: number | null
-          rdv_tienda_sano: number | null
           ritmo_dia: number | null
           ritmo_dia_online: number | null
           ritmo_dia_tienda: number | null
@@ -2581,6 +2543,7 @@ export type Database = {
           unidades_activacion: number | null
           unidades_full: number | null
           unidades_rebaja: number | null
+          unidades_sanas: number | null
           unidades_vendidas: number | null
           velocidad_meta: string | null
           ventana_completa: boolean | null

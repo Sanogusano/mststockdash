@@ -4,6 +4,7 @@ import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { LoadingState, EmptyState } from "@/components/dashboard/LoadingState";
 import { HeaderTooltip } from "@/components/HeaderTooltip";
+import { DiagnosticoBadge, DIAGNOSTICOS } from "@/components/dashboard/DiagnosticoBadge";
 import { ProductoDetallePanel } from "@/components/dashboard/ProductoDetallePanel";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -99,16 +100,14 @@ interface Row {
   bod_tiendas: number | null;
   bod_exportaciones: number | null;
   fecha_snapshot_bodega: string | null;
-  indice_rasero: number | null;
-  indice_rasero_tienda: number | null;
-  indice_rasero_online: number | null;
-  rasero_tienda: number | null;
-  rasero_online: number | null;
-  estado_rasero: string;
-  cumple_calidad: boolean;
-  rdv_tienda_sano: number | null;
-  rdv_online_sano: number | null;
   ros_total: number | null;
+  diagnostico: string;
+  pct_venta_sana: number | null;
+  pct_activacion: number | null;
+  pct_activacion_tienda: number | null;
+  pct_activacion_online: number | null;
+  objetivo_unidades: number;
+  meta_st: number;
   [k: string]: any;
 }
 
@@ -250,19 +249,8 @@ export default function Producto360() {
       if (coleccion !== "all" && r.coleccion !== coleccion) return false;
       if (categoria !== "all" && `${r.categoria_padre} · ${r.genero_norm}` !== categoria) return false;
       if (q && !r.title?.toLowerCase().includes(q)) return false;
-      // Focos: cruces que responden una decisión concreta
-      if (foco === "sobrecompra")
-        return (r.indice_meta ?? 9) < 0.6 && (r.indice_total ?? 0) >= 100;
-      if (foco === "mal_producto")
-        return (r.indice_meta ?? 9) < 0.6 && (r.indice_total ?? 999) < 70;
-      if (foco === "ganadores")
-        return (r.indice_meta ?? 0) >= 0.8 && (r.pct_venta_full ?? 0) >= (r.med_pctfull_cohorte ?? 0);
-      if (foco === "reponer")
-        return r.cobertura === "AJUSTADA" && (r.indice_total ?? 0) >= 100;
-      if (foco === "liquidar")
-        return r.cobertura === "CRITICA" && (r.indice_total ?? 999) < 70;
-      if (foco === "solo_con_descuento")
-        return r.estado_rasero === "SOLO CON DESCUENTO";
+      // Focos: el diagnóstico ya resume la decisión de cada producto
+      if (foco !== "all" && r.diagnostico !== foco) return false;
       return true;
     });
     const cmp: Record<string, (a: Row, b: Row) => number> = {
@@ -276,8 +264,8 @@ export default function Producto360() {
   }, [rows, coleccion, categoria, foco, busqueda, orden]);
 
   const kpis = useMemo(() => {
-    const sobrecompra = filtrados.filter(r => (r.indice_meta ?? 9) < 0.6 && (r.indice_total ?? 0) >= 100);
-    const malProducto = filtrados.filter(r => (r.indice_meta ?? 9) < 0.6 && (r.indice_total ?? 999) < 70);
+    const sobrecompra = filtrados.filter(r => r.diagnostico === "SE PRODUJO DE MAS");
+    const malProducto = filtrados.filter(r => r.diagnostico === "MAL PRODUCTO");
     return {
       productos: filtrados.length,
       producido: filtrados.reduce((s, r) => s + (r.producido ?? 0), 0),
@@ -302,6 +290,8 @@ export default function Producto360() {
       "Índice vs. meta": r.indice_meta, "Percentil catálogo": r.percentil_catalogo,
       "RDV × el típico": r.indice_total == null ? null : Number((r.indice_total / 100).toFixed(2)),
       Cohorte: `${r.n_cohorte} · ${r.base_cohorte}`,
+      Diagnóstico: r.diagnostico,
+      "% venta sana": r.pct_venta_sana, "% activación": r.pct_activacion,
       "% venta full": r.pct_venta_full, "% full típico": r.med_pctfull_cohorte,
       "Uds full": r.unidades_full, "Uds rebaja": r.unidades_rebaja,
       "Uds activación": r.unidades_activacion,
@@ -369,13 +359,8 @@ export default function Producto360() {
               <Select value={foco} onValueChange={setFoco}>
                 <SelectTrigger className="w-[195px]"><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">Todos los productos</SelectItem>
-                  <SelectItem value="sobrecompra">Error de compra</SelectItem>
-                  <SelectItem value="mal_producto">Mal producto</SelectItem>
-                  <SelectItem value="ganadores">Ganadores</SelectItem>
-                  <SelectItem value="reponer">Reponer</SelectItem>
-                  <SelectItem value="liquidar">Liquidar</SelectItem>
-                  <SelectItem value="solo_con_descuento">Solo con descuento</SelectItem>
+                  <SelectItem value="all">Todos los diagnósticos</SelectItem>
+                  {DIAGNOSTICOS.map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}
                 </SelectContent>
               </Select>
 
@@ -421,18 +406,18 @@ export default function Producto360() {
                       {nf(kpis.producido ? (kpis.sinEvacuar / kpis.producido) * 100 : 0, 0)}% de lo producido
                     </div>
                   </div>
-                  <button onClick={() => setFoco(foco === "sobrecompra" ? "all" : "sobrecompra")}
+                  <button onClick={() => setFoco(foco === "SE PRODUJO DE MAS" ? "all" : "SE PRODUJO DE MAS")}
                     className={`rounded-lg border p-3 text-left transition-colors ${
-                      foco === "sobrecompra" ? "border-amber-300 bg-amber-50" : "hover:bg-muted/40"}`}>
-                    <div className="text-xs text-muted-foreground">Error de compra</div>
+                      foco === "SE PRODUJO DE MAS" ? "border-orange-300 bg-orange-50" : "hover:bg-muted/40"}`}>
+                    <div className="text-xs text-muted-foreground">Se produjo de más</div>
                     <div className="text-xl font-semibold tabular-nums mt-0.5">{nf(kpis.sobrecompra.n)}</div>
                     <div className="text-[11px] text-muted-foreground">
                       buen RDV, no evacúa · {nf(kpis.sobrecompra.uds)} uds
                     </div>
                   </button>
-                  <button onClick={() => setFoco(foco === "mal_producto" ? "all" : "mal_producto")}
+                  <button onClick={() => setFoco(foco === "MAL PRODUCTO" ? "all" : "MAL PRODUCTO")}
                     className={`rounded-lg border p-3 text-left transition-colors ${
-                      foco === "mal_producto" ? "border-rose-300 bg-rose-50" : "hover:bg-muted/40"}`}>
+                      foco === "MAL PRODUCTO" ? "border-rose-300 bg-rose-50" : "hover:bg-muted/40"}`}>
                     <div className="text-xs text-muted-foreground">Mal producto</div>
                     <div className="text-xl font-semibold tabular-nums mt-0.5">{nf(kpis.malProducto.n)}</div>
                     <div className="text-[11px] text-muted-foreground">
@@ -462,7 +447,10 @@ export default function Producto360() {
                             <HeaderTooltip label="RDV" tip="¿Vende más rápido que productos parecidos? 1,00× = igual" />
                           </th>
                           <th className="text-right p-2.5 font-medium">
-                            <HeaderTooltip label="Calidad de venta" tip="Qué parte se vendió a precio lleno" />
+                            <HeaderTooltip label="Calidad de venta" tip="Qué parte se vendió sin liquidar (precio full o activación)" />
+                          </th>
+                          <th className="text-left p-2.5 font-medium">
+                            <HeaderTooltip label="Diagnóstico" tip="Cierre del producto: si funcionó, si evacuó liquidando, si sobró producción o si aún está en curso" />
                           </th>
                           <th className="text-left p-2.5 font-medium">
                             <HeaderTooltip label="Cobertura" tip="Semanas que dura el stock, y cuántas quedan de temporada" />
@@ -556,9 +544,6 @@ export default function Producto360() {
                                       n={r.n_cohorte}
                                     </span>
                                   </div>
-                                  <div className="text-[10px] text-muted-foreground">
-                                    {r.indice_rasero == null ? "—" : `${nf(r.indice_rasero, 2)}× vs. objetivo de línea`}
-                                  </div>
                                   <div className="text-[10px] text-muted-foreground tabular-nums">
                                     {r.ros_total == null ? "—" : `${nf(r.ros_total, 2)} uds/t/sem`}
                                   </div>
@@ -566,9 +551,14 @@ export default function Producto360() {
                               </td>
                               <td className="p-2.5 text-right whitespace-nowrap">
                                 <div className={`tabular-nums ${fullOk ? "text-emerald-700 font-medium" : ""}`}>
-                                  {nf(r.pct_venta_full, 0)}% <span className="text-[10px] text-muted-foreground">a precio full</span>
+                                  {nf(r.pct_venta_sana, 0)}% <span className="text-[10px] text-muted-foreground">sin liquidar</span>
                                 </div>
-                                <div className="text-[10px] text-muted-foreground">típico {nf(r.med_pctfull_cohorte, 0)}%</div>
+                                <div className="text-[10px] text-muted-foreground tabular-nums">
+                                  {nf(r.pct_venta_full, 0)}% full · {nf(r.pct_activacion, 0)}% activación
+                                </div>
+                              </td>
+                              <td className="p-2.5">
+                                <DiagnosticoBadge valor={r.diagnostico} />
                               </td>
                               <td className="p-2.5">
                                 <span className={`inline-flex rounded-md border px-2 py-0.5 text-[11px] font-medium ${

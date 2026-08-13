@@ -4,6 +4,7 @@ import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { LoadingState, EmptyState } from "@/components/dashboard/LoadingState";
 import { HeaderTooltip } from "@/components/HeaderTooltip";
+import { DiagnosticoBadge, DIAGNOSTICOS } from "@/components/dashboard/DiagnosticoBadge";
 import { Button } from "@/components/ui/button";
 import {
   Download, Package, Trophy, TrendingDown, Tag, HelpCircle, X,
@@ -88,12 +89,13 @@ interface Row {
   estado_tallas: string;
   med_pctfull_cohorte: number | null;
   med_st_cohorte: number | null;
-  indice_rasero: number | null;
-  indice_rasero_tienda: number | null;
-  indice_rasero_online: number | null;
-  estado_rasero: string;
-  cumple_calidad: boolean;
   stock_detenido: number;
+  diagnostico: string;
+  pct_venta_sana: number | null;
+  pct_activacion_tienda: number | null;
+  pct_activacion_online: number | null;
+  objetivo_unidades: number;
+  meta_st: number;
   st_total: number | null;
   semanas_restantes: number;
 }
@@ -161,7 +163,7 @@ function BarraCalidad({ full, rebaja, activacion, ancho = 96 }: {
 
 /** Lightbox: foto grande y todos los datos de la fila. */
 function Detalle({ r, onClose }: { r: Row; onClose: () => void }) {
-  const idx = r.indice_rasero;
+  const idx = r.indice_total == null ? null : r.indice_total / 100;
   const col = colorIdx(idx);
 
   const Dato = ({ l, v, sub }: { l: string; v: React.ReactNode; sub?: string }) => (
@@ -201,9 +203,9 @@ function Detalle({ r, onClose }: { r: Row; onClose: () => void }) {
           <div className="space-y-4">
             <div className="grid grid-cols-3 gap-3">
               <Dato l="Unidades vendidas" v={nf(r.unidades_vendidas)} />
-              <Dato l="RDV vs. objetivo de línea"
+              <Dato l="RDV vs. sus pares"
                     v={<span style={{ color: col }}>{idx == null ? "—" : `${nf(idx, 2)}×`}</span>}
-                    sub={`vs. ${r.n_cohorte} de su ${r.base_cohorte} · ${r.estado_rasero}`} />
+                    sub={`vs. ${r.n_cohorte} de su ${r.base_cohorte} · ${r.diagnostico}`} />
 
               <Dato l="Stock actual" v={nf(r.stock_actual)} />
             </div>
@@ -354,6 +356,7 @@ export default function TopProductos() {
   const [lado, setLado] = useState<Lado>("top");
   const [modo, setModo] = useState<Modo>("full");
   const [coleccion, setColeccion] = useState("all");
+  const [diagnostico, setDiagnostico] = useState("all");
   const [categoria, setCategoria] = useState("all");
   const [minUds, setMinUds] = useState("30");
   const [limite, setLimite] = useState("25");
@@ -400,7 +403,10 @@ export default function TopProductos() {
     () => Array.from(new Set(rows.map(catKey).filter(Boolean)))
       .sort((a, b) => a.localeCompare(b, "es")), [rows]);
 
-  const idxDe = (r: Row) => r.indice_rasero;
+  const idxDe = (r: Row) => {
+    const v = modo === "full" ? r.indice_full : modo === "rebajado" ? r.indice_rebajado : r.indice_total;
+    return v == null ? null : v / 100;
+  };
   const rdvDe = (r: Row) =>
     modo === "full" ? r.ros_full : modo === "rebajado" ? r.ros_rebajado : r.ros_total;
   const udsDe = (r: Row) =>
@@ -412,14 +418,13 @@ export default function TopProductos() {
     const base = rows.filter(r => {
       if (coleccion !== "all" && r.coleccion !== coleccion) return false;
       if (categoria !== "all" && catKey(r) !== categoria) return false;
+      if (diagnostico !== "all" && r.diagnostico !== diagnostico) return false;
       if (idxDe(r) == null) return false;
       if (udsDe(r) < min) return false;
       // Exige historia suficiente del modo elegido: sin esto, un producto que
       // concentró su venta en una semana distorsiona el ranking.
       if (modo === "full" && r.semanas_full < 4) return false;
       if (modo === "rebajado" && r.semanas_rebajada < 4) return false;
-      // Ganadores: solo productos que superan o cumplen el objetivo de línea.
-      if (lado === "top" && !["SUPERA", "CUMPLE"].includes(r.estado_rasero)) return false;
 
       // En Perdedores se excluye lo que YA se vendió. Un producto con
       // sell-through alto o cobertura ajustada no es perdedor aunque su RDV
@@ -437,7 +442,7 @@ export default function TopProductos() {
         ? (idxDe(b) ?? 0) - (idxDe(a) ?? 0)
         : (idxDe(a) ?? 0) - (idxDe(b) ?? 0));
     return ord.slice(0, Number(limite));
-  }, [rows, lado, modo, coleccion, categoria, minUds, limite]);
+  }, [rows, lado, modo, coleccion, categoria, diagnostico, minUds, limite]);
 
   const exportar = () => {
     if (!ranking.length) return;
@@ -463,9 +468,11 @@ export default function TopProductos() {
       Cohorte: `${r.n_cohorte} · ${r.base_cohorte}`,
       "Perfil de canal": r.perfil_canal,
       "RDV del modo": rdvDe(r),
-      "Índice rasero (× objetivo línea)": r.indice_rasero,
+      "Índice del modo (× el típico)": idxDe(r) == null ? null : Number((idxDe(r) as number).toFixed(2)),
       "Índice cohorte (× el típico)": r.indice_total == null ? null : Number((r.indice_total / 100).toFixed(2)),
-      "Estado rasero": r.estado_rasero,
+      Diagnóstico: r.diagnostico,
+      "% venta sana": r.pct_venta_sana,
+      "% activación": r.pct_activacion,
 
       "% venta full": r.pct_venta_full,
       "% full típico de la cohorte": r.med_pctfull_cohorte,
@@ -550,6 +557,14 @@ export default function TopProductos() {
                 </SelectContent>
               </Select>
 
+              <Select value={diagnostico} onValueChange={setDiagnostico}>
+                <SelectTrigger className="w-[195px]"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos los diagnósticos</SelectItem>
+                  {DIAGNOSTICOS.map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}
+                </SelectContent>
+              </Select>
+
               <Select value={categoria} onValueChange={setCategoria}>
                 <SelectTrigger className="w-[230px]"><SelectValue /></SelectTrigger>
                 <SelectContent className="max-h-[320px]">
@@ -606,10 +621,13 @@ export default function TopProductos() {
                           <HeaderTooltip label="Por canal" tip="Unidades por tienda y por online" />
                         </th>
                         <th className="text-left p-2.5 font-medium">
-                          <HeaderTooltip label="Rasero" tip="¿Vende más rápido que productos parecidos? 1,00× = igual" />
+                          <HeaderTooltip label="RDV" tip="¿Vende más rápido que productos parecidos? 1,00× = igual" />
                         </th>
                         <th className="text-left p-2.5 font-medium">
-                          <HeaderTooltip label="Calidad de venta" tip="Qué parte se vendió a precio lleno" />
+                          <HeaderTooltip label="Calidad de venta" tip="Qué parte se vendió sin liquidar (precio full o activación)" />
+                        </th>
+                        <th className="text-left p-2.5 font-medium">
+                          <HeaderTooltip label="Diagnóstico" tip="Cierre del producto: si funcionó, si evacuó liquidando, si sobró producción o si aún está en curso" />
                         </th>
                         <th className="text-left p-2.5 font-medium">
                           <HeaderTooltip label="Por canal" tip="Calidad de venta por tienda y online" />
@@ -690,8 +708,8 @@ export default function TopProductos() {
                               </div>
                               <div className="mt-1">
                                 <span className="text-sm font-medium tabular-nums" style={{ color: col }}
-                                      title="Índice vs. objetivo de línea">
-                                  {r.indice_rasero == null ? "—" : `${nf(r.indice_rasero, 2)}×`}
+                                      title="Índice vs. sus pares">
+                                  {idx == null ? "—" : `${nf(idx, 2)}×`}
                                 </span>
                                 <div className="text-[10px] text-muted-foreground tabular-nums">
                                   {nf((r.indice_total ?? 0) / 100, 2)}× vs. sus pares
@@ -701,12 +719,17 @@ export default function TopProductos() {
                             </div>
                           </td>
                           <td className="p-2.5">
+                            <div className="text-sm font-medium tabular-nums">
+                              {nf(r.pct_venta_sana, 0)}% <span className="text-[10px] font-normal text-muted-foreground">sin liquidar</span>
+                            </div>
+                            <div className="text-[10px] text-muted-foreground tabular-nums">
+                              {nf(r.pct_venta_full, 0)}% full · {nf(r.pct_activacion, 0)}% activación
+                            </div>
                             <BarraCalidad full={r.unidades_full} rebaja={r.unidades_rebaja}
                                           activacion={r.unidades_activacion} />
-                            <div className="text-[10px] text-muted-foreground mt-0.5"
-                                 title="Mediana de su cohorte">
-                              típico {nf(r.med_pctfull_cohorte, 0)}%
-                            </div>
+                          </td>
+                          <td className="p-2.5">
+                            <DiagnosticoBadge valor={r.diagnostico} />
                           </td>
                           <td className="p-2.5">
                             <div className="space-y-1">
