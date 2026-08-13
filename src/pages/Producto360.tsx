@@ -466,7 +466,10 @@ export default function Producto360() {
                             <HeaderTooltip label="RDV" tip="¿Vende más rápido que productos parecidos? 1,00× = igual" />
                           </th>
                           <th className="text-right p-2.5 font-medium">
-                            <HeaderTooltip label="Calidad de venta" tip="Qué parte se vendió a precio lleno" />
+                            <HeaderTooltip label="Calidad de venta" tip="Qué parte se vendió sin liquidar (precio full o activación)" />
+                          </th>
+                          <th className="text-left p-2.5 font-medium">
+                            <HeaderTooltip label="Diagnóstico" tip="Cierre del producto: si funcionó, si evacuó liquidando, si sobró producción o si aún está en curso" />
                           </th>
                           <th className="text-left p-2.5 font-medium">
                             <HeaderTooltip label="Cobertura" tip="Semanas que dura el stock, y cuántas quedan de temporada" />
