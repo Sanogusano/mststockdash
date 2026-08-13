@@ -106,6 +106,9 @@ interface Row {
   pct_activacion: number | null;
   pct_activacion_tienda: number | null;
   pct_activacion_online: number | null;
+  desc_activacion_pct: number | null;
+  desc_activacion_tienda_pct: number | null;
+  desc_activacion_online_pct: number | null;
   objetivo_unidades: number;
   meta_st: number;
   [k: string]: any;
@@ -556,6 +559,11 @@ export default function Producto360() {
                                 <div className="text-[10px] text-muted-foreground tabular-nums">
                                   {nf(r.pct_venta_full, 0)}% full · {nf(r.pct_activacion, 0)}% activación
                                 </div>
+                                {r.desc_activacion_pct != null && (
+                                  <div className="text-[10px] text-muted-foreground">
+                                    −{nf(r.desc_activacion_pct, 0)}% en activaciones
+                                  </div>
+                                )}
                               </td>
                               <td className="p-2.5">
                                 <DiagnosticoBadge valor={r.diagnostico} />
