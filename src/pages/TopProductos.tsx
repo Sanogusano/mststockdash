@@ -399,12 +399,12 @@ export default function TopProductos() {
     () => Array.from(new Set(rows.map(catKey).filter(Boolean)))
       .sort((a, b) => a.localeCompare(b, "es")), [rows]);
 
-  const idxDe = (r: Row) =>
-    modo === "full" ? r.indice_full : modo === "rebajado" ? r.indice_rebajado : r.indice_total;
+  const idxDe = (r: Row) => r.indice_rasero;
   const rdvDe = (r: Row) =>
     modo === "full" ? r.ros_full : modo === "rebajado" ? r.ros_rebajado : r.ros_total;
   const udsDe = (r: Row) =>
     modo === "full" ? r.unidades_full : modo === "rebajado" ? r.unidades_rebajada : r.unidades_vendidas;
+
 
   const ranking = useMemo(() => {
     const min = Number(minUds);
@@ -417,12 +417,9 @@ export default function TopProductos() {
       // concentró su venta en una semana distorsiona el ranking.
       if (modo === "full" && r.semanas_full < 4) return false;
       if (modo === "rebajado" && r.semanas_rebajada < 4) return false;
-      // En el top de precio full no basta con vender rapido las pocas unidades
-      // que salieron a precio lleno: el producto tiene que haberse vendido
-      // mayormente asi. (Caso real: PHASE vendio 1 unidad full de 422 y con
-      // solo el RDV encabezaba el ranking.)
-      if (lado === "top" && modo === "full" &&
-          (r.pct_venta_full ?? 0) < (r.med_pctfull_cohorte ?? 0)) return false;
+      // Ganadores: solo productos que superan o cumplen el objetivo de línea.
+      if (lado === "top" && !["SUPERA", "CUMPLE"].includes(r.estado_rasero)) return false;
+
       // En Perdedores se excluye lo que YA se vendió. Un producto con
       // sell-through alto o cobertura ajustada no es perdedor aunque su RDV
       // full sea bajo: eso solo refleja que se liquidó con precio, no que
