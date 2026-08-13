@@ -405,6 +405,12 @@ export function ProductoDetallePanel({ producto, onClose }: {
                       {nf(c.real, 2)} / {nf(c.obj, 2)}
                     </span>
                   </div>
+                  {c.desc_activacion != null && (
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Descuento en activación</span>
+                      <span className="tabular-nums text-amber-700">−{nf(c.desc_activacion, 0)}%</span>
+                    </div>
+                  )}
                 </div>
                 <div className="mt-2">
                   <BarraCalidad full={c.full} rebaja={c.reb} activacion={c.act} ancho={150} />
