@@ -87,7 +87,16 @@ interface Row {
   estado_tallas: string;
   med_pctfull_cohorte: number | null;
   med_st_cohorte: number | null;
+  indice_rasero: number | null;
+  indice_rasero_tienda: number | null;
+  indice_rasero_online: number | null;
+  estado_rasero: string;
+  cumple_calidad: boolean;
+  stock_detenido: number;
+  st_total: number | null;
+  semanas_restantes: number;
 }
+
 
 type Modo = "full" | "rebajado" | "prom";
 type Lado = "top" | "bottom";
@@ -99,11 +108,12 @@ const nf = (v: number | null | undefined, d = 0) =>
 
 function colorIdx(i: number | null) {
   if (i == null) return "#898781";
-  if (i >= 130) return "#2a78d6";
-  if (i >= 100) return "#0ca30c";
-  if (i >= 70)  return "#c98500";
+  if (i >= 1.30) return "#2a78d6";
+  if (i >= 1.00) return "#0ca30c";
+  if (i >= 0.70)  return "#c98500";
   return "#d03b3b";
 }
+
 
 const PERFIL_CANAL: Record<string, { txt: string; cls: string }> = {
   fuerte_online: { txt: "Gana en online", cls: "bg-sky-100 text-sky-700 border-sky-200" },
@@ -149,9 +159,10 @@ function BarraCalidad({ full, rebaja, activacion, ancho = 96 }: {
 }
 
 /** Lightbox: foto grande y todos los datos de la fila. */
-function Detalle({ r, modo, onClose }: { r: Row; modo: Modo; onClose: () => void }) {
-  const idx = modo === "full" ? r.indice_full : modo === "rebajado" ? r.indice_rebajado : r.indice_total;
+function Detalle({ r, onClose }: { r: Row; onClose: () => void }) {
+  const idx = r.indice_rasero;
   const col = colorIdx(idx);
+
   const Dato = ({ l, v, sub }: { l: string; v: React.ReactNode; sub?: string }) => (
     <div>
       <div className="text-[11px] text-muted-foreground">{l}</div>
