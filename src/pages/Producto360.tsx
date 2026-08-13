@@ -150,6 +150,15 @@ const PERFIL: Record<string, string> = {
   equilibrado: "Parejo",
 };
 
+/** Mapeo de las etiquetas de acción del filtro al valor real de `diagnostico`. */
+const FILTRO_DIAGNOSTICO: Record<string, string> = {
+  "Repetir": "GANADOR",
+  "Revisar cantidad": "SE PRODUJO DE MAS",
+  "Revisar precio": "EVACUO LIQUIDANDO",
+  "Revisar concepto": "MAL PRODUCTO",
+  "En curso": "EN CURSO",
+};
+
 function Ayuda({ onClose }: { onClose: () => void }) {
   return (
     <div className="rounded-lg border bg-muted/30 p-4 text-sm space-y-3 relative">
