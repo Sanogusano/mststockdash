@@ -185,11 +185,12 @@ export default function Linea360() {
       "Revisar precio": r.n_revisar_precio, "Revisar concepto": r.n_revisar_concepto,
       "En curso": r.n_en_curso,
     }));
-    const ws = XLSX.utils.json_to_sheet(datos, { origin: "A3" });
+    const ws = XLSX.utils.aoa_to_sheet([]);
     XLSX.utils.sheet_add_aoa(ws, [
       ["Análisis por línea — índice vs. meta (70% de lo producido en 120 días)"],
       [`Índice 1,00 = la línea evacuó lo esperado · ${new Date().toLocaleDateString("es-CO")}`],
     ], { origin: "A1" });
+    XLSX.utils.sheet_add_json(ws, datos, { origin: "A3" });
     ws["!cols"] = [{ wch: 24 }, { wch: 12 }, ...Array(26).fill({ wch: 13 })];
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Análisis por línea");
