@@ -248,19 +248,8 @@ export default function Producto360() {
       if (coleccion !== "all" && r.coleccion !== coleccion) return false;
       if (categoria !== "all" && `${r.categoria_padre} · ${r.genero_norm}` !== categoria) return false;
       if (q && !r.title?.toLowerCase().includes(q)) return false;
-      // Focos: cruces que responden una decisión concreta
-      if (foco === "sobrecompra")
-        return (r.indice_meta ?? 9) < 0.6 && (r.indice_total ?? 0) >= 100;
-      if (foco === "mal_producto")
-        return (r.indice_meta ?? 9) < 0.6 && (r.indice_total ?? 999) < 70;
-      if (foco === "ganadores")
-        return (r.indice_meta ?? 0) >= 0.8 && (r.pct_venta_full ?? 0) >= (r.med_pctfull_cohorte ?? 0);
-      if (foco === "reponer")
-        return r.cobertura === "AJUSTADA" && (r.indice_total ?? 0) >= 100;
-      if (foco === "liquidar")
-        return r.cobertura === "CRITICA" && (r.indice_total ?? 999) < 70;
-      if (foco === "solo_con_descuento")
-        return r.estado_rasero === "SOLO CON DESCUENTO";
+      // Focos: el diagnóstico ya resume la decisión de cada producto
+      if (foco !== "all" && r.diagnostico !== foco) return false;
       return true;
     });
     const cmp: Record<string, (a: Row, b: Row) => number> = {
