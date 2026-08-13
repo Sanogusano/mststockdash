@@ -392,79 +392,84 @@ export function ProductoDetallePanel({ producto, onClose }: {
                   return isNaN(n) ? 999 : 100 + n;
                 };
                 const filas = [...tallas].sort((a, b) => ordenTalla(a.talla) - ordenTalla(b.talla));
-                const maxPct = Math.max(1, ...filas.map(t => Math.max(Number(t.pct_cargado ?? 0), Number(t.pct_demanda_linea ?? 0))));
-                const haySobra = filas.some(f => Number(f.desvio_pts ?? 0) > 3);
-                const hayQuiebre = filas.some(f => Number(f.sell_through_talla ?? 0) >= 90);
+                const maxDesvio = Math.max(1, ...filas.map(f => Math.abs(Number(f.desvio_pts ?? 0))));
                 const sts = filas.map(f => f.sell_through_talla).filter((v): v is number => v != null);
-                const desvioMax = Math.max(...filas.map(f => Math.abs(f.desvio_pts ?? 0)));
                 const rango = sts.length ? Math.max(...sts) - Math.min(...sts) : 0;
-                const curvaPropia = desvioMax >= 5 && rango <= 20;
+                const curvaPropia = maxDesvio >= 5 && rango <= 20;
+
+                const stColor = (st: number) => {
+                  if (st >= 70) return "bg-emerald-500";
+                  if (st >= 50) return "bg-amber-500";
+                  return "bg-rose-500";
+                };
+
                 return (
                   <>
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-xs">
-                        <thead>
-                          <tr className="border-b text-muted-foreground">
-                            <th className="text-left p-1.5 font-medium">Talla</th>
-                            <th className="text-right p-1.5 font-medium">% cargado</th>
-                            <th className="text-right p-1.5 font-medium">% demanda línea</th>
-                            <th className="text-left p-1.5 font-medium w-[140px]">Comparación</th>
-                            <th className="text-right p-1.5 font-medium">Sell-through</th>
-                            <th className="text-right p-1.5 font-medium">Sobrantes</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {filas.map((t: any) => {
-                            const sobra = Number(t.desvio_pts ?? 0) > 3;
-                            const quiebre = Number(t.sell_through_talla ?? 0) >= 90;
-                            return (
-                              <tr key={t.talla} className={`border-b ${
-                                sobra ? "bg-amber-50" : quiebre ? "bg-sky-50" : ""}`}>
-                                <td className="p-1.5 font-medium">{t.talla}</td>
-                                <td className="p-1.5 text-right tabular-nums">{nf(t.pct_cargado, 1)}%</td>
-                                <td className="p-1.5 text-right tabular-nums">{nf(t.pct_demanda_linea, 1)}%</td>
-                                <td className="p-1.5">
-                                  <div className="relative h-2 rounded-full bg-muted overflow-hidden w-[120px]">
-                                    <div className="absolute inset-y-0 left-0 rounded-full bg-primary/70"
-                                         style={{ width: `${Math.min(100, (Number(t.pct_cargado ?? 0) / maxPct) * 100)}%` }} />
-                                    <div className="absolute inset-y-0 w-0.5 bg-foreground"
-                                         style={{ left: `${Math.min(100, (Number(t.pct_demanda_linea ?? 0) / maxPct) * 100)}%` }} />
-                                  </div>
-                                </td>
-                                <td className="p-1.5 text-right tabular-nums">
-                                  <span className={quiebre ? "text-sky-700 font-medium" : ""}>
-                                    {nf(t.sell_through_talla, 0)}%
-                                  </span>
-                                </td>
-                                <td className="p-1.5 text-right tabular-nums">
-                                  {Number(t.uds_sobrantes ?? 0) > 0
-                                    ? <span className="text-amber-700 font-medium">{nf(t.uds_sobrantes, 0)}</span>
-                                    : <span className="text-muted-foreground">—</span>}
-                                </td>
-                              </tr>
-                            );
-                          })}
-                        </tbody>
-                      </table>
+                    {/* Rail header */}
+                    <div className="flex items-center text-[10px] text-muted-foreground mb-2">
+                      <div className="w-12 shrink-0" />
+                      <div className="flex-1 relative h-4">
+                        <span className="absolute left-0 top-0">faltó</span>
+                        <div className="absolute left-1/2 top-0 bottom-0 w-px bg-foreground/30" />
+                        <span className="absolute left-1/2 -translate-x-1/2 top-0 text-[10px] text-muted-foreground/60">demanda línea</span>
+                        <span className="absolute right-0 top-0">sobró</span>
+                      </div>
+                      <div className="w-20 shrink-0" />
                     </div>
-                    <div className="flex flex-wrap gap-x-4 gap-y-1 text-[10px] text-muted-foreground mt-2">
+
+                    <div className="space-y-1">
+                      {filas.map((t: any) => {
+                        const desvio = Number(t.desvio_pts ?? 0);
+                        const pct = (Math.abs(desvio) / maxDesvio) * 50;
+                        const st = Number(t.sell_through_talla ?? 0);
+                        const color = stColor(st);
+                        const udsSob = Number(t.uds_sobrantes ?? 0);
+                        const tooltip = `${t.talla}: desvío ${desvio > 0 ? '+' : ''}${desvio.toFixed(1)} pts vs línea · sell-through ${st.toFixed(0)}%${udsSob > 0 ? ` · ${udsSob} uds sobrantes` : ''}`;
+
+                        return (
+                          <div key={t.talla} className="flex items-center gap-2">
+                            <div className="w-12 text-xs font-medium text-right shrink-0">{t.talla}</div>
+                            <div className="flex-1 relative h-5">
+                              {/* Center line */}
+                              <div className="absolute left-1/2 top-0 bottom-0 w-px bg-foreground/20" />
+
+                              {desvio < 0 && (
+                                <div className={`absolute top-0.5 bottom-0.5 rounded-l ${color}`}
+                                     style={{ left: `${50 - pct}%`, width: `${pct}%` }}
+                                     title={tooltip} />
+                              )}
+
+                              {desvio > 0 && (
+                                <div className={`absolute top-0.5 bottom-0.5 rounded-r ${color}`}
+                                     style={{ left: '50%', width: `${pct}%` }}
+                                     title={tooltip} />
+                              )}
+
+                              {desvio === 0 && (
+                                <div className="absolute left-1/2 top-0.5 bottom-0.5 w-1.5 -translate-x-1/2 rounded-full bg-muted-foreground/30" />
+                              )}
+                            </div>
+                            <div className="w-20 text-[10px] tabular-nums text-muted-foreground text-right shrink-0">
+                              {st.toFixed(0)}%{udsSob > 0 && ` · ${udsSob}`}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    {/* Legend */}
+                    <div className="flex flex-wrap gap-x-4 gap-y-1 text-[10px] text-muted-foreground mt-3">
                       <span className="inline-flex items-center gap-1">
-                        <span className="inline-block h-2 w-4 rounded-full bg-primary/70" />% cargado
+                        <span className="inline-block h-2 w-2 rounded-full bg-emerald-500" />Sell-through ≥70%
                       </span>
                       <span className="inline-flex items-center gap-1">
-                        <span className="inline-block h-2 w-0.5 bg-foreground" />% demanda de la línea
+                        <span className="inline-block h-2 w-2 rounded-full bg-amber-500" />Sell-through 50–69%
                       </span>
-                      {haySobra && (
-                        <span className="text-amber-700 inline-flex items-center gap-1">
-                          <span className="inline-block h-2 w-2 rounded-full bg-amber-500" />Ámbar: se cargó de más
-                        </span>
-                      )}
-                      {hayQuiebre && (
-                        <span className="text-sky-700 inline-flex items-center gap-1">
-                          <span className="inline-block h-2 w-2 rounded-full bg-sky-500" />Azul: se agotó, posible quiebre
-                        </span>
-                      )}
+                      <span className="inline-flex items-center gap-1">
+                        <span className="inline-block h-2 w-2 rounded-full bg-rose-500" />Sell-through &lt;50%
+                      </span>
                     </div>
+
                     {curvaPropia && (
                       <p className="text-[11px] text-muted-foreground mt-2">
                         Este producto vende con una curva distinta a la de su línea: todas sus tallas
