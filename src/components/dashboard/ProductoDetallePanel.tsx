@@ -397,78 +397,81 @@ export function ProductoDetallePanel({ producto, onClose }: {
                 const rango = sts.length ? Math.max(...sts) - Math.min(...sts) : 0;
                 const curvaPropia = maxDesvio >= 5 && rango <= 20;
 
-                const stColor = (st: number) => {
-                  if (st >= 70) return "bg-emerald-500";
-                  if (st >= 50) return "bg-amber-500";
-                  return "bg-rose-500";
+                const stMin = sts.length ? Math.min(...sts) : 0;
+                const stMax = sts.length ? Math.max(...sts) : 0;
+                const bg = (st: number | null) => {
+                  if (st == null || rango < 5) return "bg-slate-100 text-slate-600";
+                  const pos = (st - stMin) / rango;
+                  if (pos >= 0.75) return "bg-emerald-200 text-emerald-900";
+                  if (pos >= 0.50) return "bg-emerald-100 text-emerald-800";
+                  if (pos >= 0.25) return "bg-amber-100 text-amber-800";
+                  return "bg-rose-100 text-rose-800";
                 };
 
                 return (
                   <>
-                    {/* Rail header */}
-                    <div className="flex items-center text-[10px] text-muted-foreground mb-2">
-                      <div className="w-12 shrink-0" />
-                      <div className="flex-1 relative h-4">
-                        <span className="absolute left-0 top-0">faltó</span>
-                        <div className="absolute left-1/2 top-0 bottom-0 w-px bg-foreground/30" />
-                        <span className="absolute left-1/2 -translate-x-1/2 top-0 text-[10px] text-muted-foreground/60">demanda línea</span>
-                        <span className="absolute right-0 top-0">sobró</span>
-                      </div>
-                      <div className="w-20 shrink-0" />
-                    </div>
-
                     <div className="space-y-1">
-                      {filas.map((t: any) => {
-                        const desvio = Number(t.desvio_pts ?? 0);
-                        const pct = (Math.abs(desvio) / maxDesvio) * 50;
-                        const st = Number(t.sell_through_talla ?? 0);
-                        const color = stColor(st);
-                        const udsSob = Number(t.uds_sobrantes ?? 0);
-                        const tooltip = `${t.talla}: desvío ${desvio > 0 ? '+' : ''}${desvio.toFixed(1)} pts vs línea · sell-through ${st.toFixed(0)}%${udsSob > 0 ? ` · ${udsSob} uds sobrantes` : ''}`;
-
-                        return (
-                          <div key={t.talla} className="flex items-center gap-2">
-                            <div className="w-12 text-xs font-medium text-right shrink-0">{t.talla}</div>
-                            <div className="flex-1 relative h-5">
-                              {/* Center line */}
-                              <div className="absolute left-1/2 top-0 bottom-0 w-px bg-foreground/20" />
-
-                              {desvio < 0 && (
-                                <div className={`absolute top-0.5 bottom-0.5 rounded-l ${color}`}
-                                     style={{ left: `${50 - pct}%`, width: `${pct}%` }}
-                                     title={tooltip} />
-                              )}
-
-                              {desvio > 0 && (
-                                <div className={`absolute top-0.5 bottom-0.5 rounded-r ${color}`}
-                                     style={{ left: '50%', width: `${pct}%` }}
-                                     title={tooltip} />
-                              )}
-
-                              {desvio === 0 && (
-                                <div className="absolute left-1/2 top-0.5 bottom-0.5 w-1.5 -translate-x-1/2 rounded-full bg-muted-foreground/30" />
-                              )}
-                            </div>
-                            <div className="w-20 text-[10px] tabular-nums text-muted-foreground text-right shrink-0">
-                              {st.toFixed(0)}%{udsSob > 0 && ` · ${udsSob}`}
-                            </div>
+                      {/* Header: size labels */}
+                      <div className="flex gap-1">
+                        <div className="w-24 shrink-0 p-2 text-xs font-medium text-muted-foreground flex items-end" />
+                        {filas.map((t: any) => (
+                          <div key={t.talla} className="flex-1 p-2 text-center text-xs font-medium tabular-nums rounded">
+                            {t.talla}
                           </div>
-                        );
-                      })}
+                        ))}
+                      </div>
+
+                      {/* Cargado */}
+                      <div className="flex gap-1">
+                        <div className="w-24 shrink-0 p-2 text-xs font-medium text-muted-foreground flex items-center">Cargado</div>
+                        {filas.map((t: any) => {
+                          const desvio = Number(t.desvio_pts ?? 0);
+                          const udsSob = Number(t.uds_sobrantes ?? 0);
+                          const tooltip = `${t.talla}: cargado ${Number(t.pct_cargado ?? 0).toFixed(1)}% · desvío ${desvio > 0 ? '+' : ''}${desvio.toFixed(1)} pts${udsSob > 0 ? ` · ${udsSob} uds sobrantes` : ''}`;
+                          return (
+                            <div key={t.talla} className="relative flex-1 p-2 text-center text-xs tabular-nums rounded bg-muted/40" title={tooltip}>
+                              {nf(t.pct_cargado, 1)}%
+                              {desvio >= 3 && (
+                                <span className="absolute top-1 right-1 h-1.5 w-1.5 rounded-full bg-amber-500" />
+                              )}
+                              {desvio <= -3 && (
+                                <span className="absolute top-1 right-1 h-1.5 w-1.5 rounded-full bg-blue-500" />
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+
+                      {/* Demanda línea */}
+                      <div className="flex gap-1">
+                        <div className="w-24 shrink-0 p-2 text-xs font-medium text-muted-foreground flex items-center">Demanda línea</div>
+                        {filas.map((t: any) => (
+                          <div key={t.talla} className="flex-1 p-2 text-center text-xs tabular-nums rounded text-muted-foreground">
+                            {nf(t.pct_demanda_linea, 1)}%
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Sell-through */}
+                      <div className="flex gap-1">
+                        <div className="w-24 shrink-0 p-2 text-xs font-medium text-muted-foreground flex items-center">Sell-through</div>
+                        {filas.map((t: any) => {
+                          const st = t.sell_through_talla == null ? null : Number(t.sell_through_talla);
+                          const cls = bg(st);
+                          return (
+                            <div key={t.talla} className={`flex-1 p-2 text-center text-xs tabular-nums rounded ${cls}`}>
+                              {st == null ? '—' : `${st.toFixed(0)}%`}
+                            </div>
+                          );
+                        })}
+                      </div>
                     </div>
 
                     {/* Legend */}
-                    <div className="flex flex-wrap gap-x-4 gap-y-1 text-[10px] text-muted-foreground mt-3">
-                      <span className="inline-flex items-center gap-1">
-                        <span className="inline-block h-2 w-2 rounded-full bg-emerald-500" />Sell-through ≥70%
-                      </span>
-                      <span className="inline-flex items-center gap-1">
-                        <span className="inline-block h-2 w-2 rounded-full bg-amber-500" />Sell-through 50–69%
-                      </span>
-                      <span className="inline-flex items-center gap-1">
-                        <span className="inline-block h-2 w-2 rounded-full bg-rose-500" />Sell-through &lt;50%
-                      </span>
-                    </div>
+                    <p className="text-[11px] text-muted-foreground mt-3">
+                      El color muestra qué tallas rotan más rápido dentro de este producto.
+                      El punto marca desviación respecto a la curva de su línea.
+                    </p>
 
                     {curvaPropia && (
                       <p className="text-[11px] text-muted-foreground mt-2">
