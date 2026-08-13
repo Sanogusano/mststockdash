@@ -94,7 +94,6 @@ interface Row {
   st_disponibilizado: number | null;
   st_total: number | null;
   bod_principal: number | null;
-  bod_guayabal: number | null;
   bod_reserva: number | null;
   bod_tiendas: number | null;
   bod_exportaciones: number | null;

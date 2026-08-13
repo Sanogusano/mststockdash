@@ -134,10 +134,9 @@ export function ProductoDetallePanel({ producto, onClose }: {
 
 
   const bodegas = ([
-    { l: "Principal", v: producto.bod_principal },
-    { l: "Guayabal", v: producto.bod_guayabal },
-    { l: "Reserva", v: producto.bod_reserva },
-    { l: "Tiendas", v: producto.bod_tiendas },
+    { l: "CEDI Principal", v: producto.bod_principal },
+    { l: "Reserva mayoristas", v: producto.bod_reserva },
+    { l: "Reserva tiendas", v: producto.bod_tiendas },
     { l: "Exportaciones", v: producto.bod_exportaciones },
   ] as { l: string; v: number | null }[]).filter(b => (b.v ?? 0) > 0);
 
@@ -294,6 +293,9 @@ export function ProductoDetallePanel({ producto, onClose }: {
                   </div>
                 ))}
               </div>
+              <p className="mt-3 text-[11px] text-amber-800/80 leading-relaxed">
+                Inventario que no está visible para vender. El stock de despacho online no cuenta aquí: está disponible.
+              </p>
               {producto.fecha_snapshot_bodega && (
                 <div className="mt-2 text-[10px] text-muted-foreground">
                   Snapshot {new Date(producto.fecha_snapshot_bodega).toLocaleDateString("es-CO")}
