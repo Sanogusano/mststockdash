@@ -4,7 +4,7 @@ import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { LoadingState, EmptyState } from "@/components/dashboard/LoadingState";
 import { HeaderTooltip } from "@/components/HeaderTooltip";
-import { DiagnosticoBadge, DIAGNOSTICOS } from "@/components/dashboard/DiagnosticoBadge";
+
 import { Button } from "@/components/ui/button";
 import {
   Download, Package, Trophy, TrendingDown, Tag, HelpCircle, X,
