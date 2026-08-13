@@ -595,24 +595,39 @@ export default function TopProductos() {
             ) : (
               <div className="rounded-lg border overflow-x-auto">
                 <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b bg-muted/40 text-xs text-muted-foreground">
-                      <th className="p-2.5 w-8"></th>
-                      <th className="text-left p-2.5 font-medium" colSpan={2}>Producto</th>
-                      <th className="text-right p-2.5 font-medium">Vendido</th>
-                      <th className="text-left p-2.5 font-medium">Por canal</th>
-                      <th className="text-left p-2.5 font-medium">
-                        Rasero
-                      </th>
-
-                      <th className="text-left p-2.5 font-medium">Calidad de venta</th>
-                      <th className="text-left p-2.5 font-medium">Por canal</th>
-                      <th className="text-right p-2.5 font-medium">Sell-thr.</th>
-                      <th className="text-left p-2.5 font-medium">Canal</th>
-                      <th className="text-left p-2.5 font-medium">Cobertura</th>
-                      <th className="text-right p-2.5 font-medium">Stock</th>
-                    </tr>
-                  </thead>
+                    <thead>
+                      <tr className="border-b bg-muted/40 text-xs text-muted-foreground">
+                        <th className="p-2.5 w-8"></th>
+                        <th className="text-left p-2.5 font-medium" colSpan={2}>Producto</th>
+                        <th className="text-right p-2.5 font-medium">
+                          <HeaderTooltip label="Vendido" tip="Vendido + stock en tiendas, online y bodega" />
+                        </th>
+                        <th className="text-left p-2.5 font-medium">
+                          <HeaderTooltip label="Por canal" tip="Unidades por tienda y por online" />
+                        </th>
+                        <th className="text-left p-2.5 font-medium">
+                          <HeaderTooltip label="Rasero" tip="¿Vende más rápido que productos parecidos? 1,00× = igual" />
+                        </th>
+                        <th className="text-left p-2.5 font-medium">
+                          <HeaderTooltip label="Calidad de venta" tip="Qué parte se vendió a precio lleno" />
+                        </th>
+                        <th className="text-left p-2.5 font-medium">
+                          <HeaderTooltip label="Por canal" tip="Calidad de venta por tienda y online" />
+                        </th>
+                        <th className="text-right p-2.5 font-medium">
+                          <HeaderTooltip label="Sell-thr." tip="Verde: de lo disponible. Gris: incluyendo bodega" />
+                        </th>
+                        <th className="text-left p-2.5 font-medium">
+                          <HeaderTooltip label="Canal" tip="Perfil de canal según unidades vendidas" />
+                        </th>
+                        <th className="text-left p-2.5 font-medium">
+                          <HeaderTooltip label="Cobertura" tip="Semanas que dura el stock, y cuántas quedan de temporada" />
+                        </th>
+                        <th className="text-right p-2.5 font-medium">
+                          <HeaderTooltip label="Stock" tip="Disponible: a la venta. Detenido: en bodega" />
+                        </th>
+                      </tr>
+                    </thead>
                   <tbody>
                     {ranking.map((r, i) => {
                       const idx = idxDe(r);
