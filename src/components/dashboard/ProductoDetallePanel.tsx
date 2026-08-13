@@ -114,6 +114,8 @@ export function ProductoDetallePanel({ producto, onClose }: {
   const [curva, setCurva] = useState<PuntoCurva[]>([]);
   const [cargando, setCargando] = useState(true);
   const [zoom, setZoom] = useState(false);
+  const [tallas, setTallas] = useState<any[]>([]);
+  const [cargandoTallas, setCargandoTallas] = useState(true);
 
 
   useEffect(() => {
@@ -126,6 +128,20 @@ export function ProductoDetallePanel({ producto, onClose }: {
         p_modo: "vida",
       });
       if (activo) { setCurva((data ?? []) as PuntoCurva[]); setCargando(false); }
+    })();
+    return () => { activo = false; };
+  }, [producto]);
+
+  useEffect(() => {
+    if (!producto) return;
+    let activo = true;
+    (async () => {
+      setCargandoTallas(true);
+      const { data } = await supabase
+        .from("producto_curva_tallas")
+        .select("*")
+        .eq("product_id", producto.product_id);
+      if (activo) { setTallas((data ?? []) as any[]); setCargandoTallas(false); }
     })();
     return () => { activo = false; };
   }, [producto]);
