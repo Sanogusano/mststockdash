@@ -461,9 +461,6 @@ export default function Producto360() {
                             <HeaderTooltip label="Calidad de venta" tip="Qué parte se vendió sin liquidar (precio full o activación)" />
                           </th>
                           <th className="text-left p-2.5 font-medium">
-                            <HeaderTooltip label="Diagnóstico" tip="Cierre del producto: si funcionó, si evacuó liquidando, si sobró producción o si aún está en curso" />
-                          </th>
-                          <th className="text-left p-2.5 font-medium">
                             <HeaderTooltip label="Cobertura" tip="Semanas que dura el stock, y cuántas quedan de temporada" />
                           </th>
                           <th className="text-right p-2.5 font-medium">
@@ -566,15 +563,8 @@ export default function Producto360() {
                                 </div>
                                 <div className="text-[10px] text-muted-foreground tabular-nums">
                                   {nf(r.pct_venta_full, 0)}% full · {nf(r.pct_activacion, 0)}% activación
+                                  {r.desc_activacion_pct != null && ` · −${nf(r.desc_activacion_pct, 0)}%`}
                                 </div>
-                                {r.desc_activacion_pct != null && (
-                                  <div className="text-[10px] text-muted-foreground">
-                                    −{nf(r.desc_activacion_pct, 0)}% en activaciones
-                                  </div>
-                                )}
-                              </td>
-                              <td className="p-2.5">
-                                <DiagnosticoBadge valor={r.diagnostico} />
                               </td>
                               <td className="p-2.5">
                                 <span className={`inline-flex rounded-md border px-2 py-0.5 text-[11px] font-medium ${
