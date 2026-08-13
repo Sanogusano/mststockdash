@@ -170,6 +170,25 @@ export default function DesempenoCategoria() {
   const [catFiltro, setCatFiltro] = useState("all");
   const [orden, setOrden] = useState<"riesgo" | "ros" | "wos" | "st" | "stock">("riesgo");
   const [ayuda, setAyuda] = useState(false);
+  const [tab, setTab] = useState<"desempeno" | "tallas">("desempeno");
+  const [tallas, setTallas] = useState<any[]>([]);
+  const [cargandoTallas, setCargandoTallas] = useState(false);
+
+  useEffect(() => {
+    if (tab !== "tallas" || catFiltro === "all") { setTallas([]); return; }
+    const [padre, genero] = catFiltro.split(" · ");
+    let activo = true;
+    (async () => {
+      setCargandoTallas(true);
+      const { data } = await supabase
+        .from("linea_curva_tallas")
+        .select("*")
+        .eq("categoria_padre", padre)
+        .eq("genero_norm", genero);
+      if (activo) { setTallas((data ?? []) as any[]); setCargandoTallas(false); }
+    })();
+    return () => { activo = false; };
+  }, [tab, catFiltro]);
 
   useEffect(() => {
     let activo = true;
