@@ -279,15 +279,31 @@ export function ProductoDetallePanel({ producto, onClose }: {
                 <span className="font-semibold tabular-nums">{nf(producto.stock_online ?? 0)}</span> uds online
               </div>
             </CardSalud>
-            <CardSalud
-              icon={Split}
-              label="Mix de canal"
-              v={null}
-            >
-              <div className="text-xl font-semibold tabular-nums">{nf(producto.mix_online_pct, 0)}% Online</div>
-              <div className="text-sm font-medium tabular-nums">{nf(100 - (producto.mix_online_pct ?? 0), 0)}% Tiendas</div>
-              <div className="text-[10px] text-muted-foreground">su categoría vende {nf(producto.mix_online_cat, 0)}% online</div>
-            </CardSalud>
+            <div className="rounded-lg border p-3">
+              <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                <Split className="h-3.5 w-3.5" />
+                <span>Mix de canal</span>
+              </div>
+              <div className="mt-1.5 space-y-1">
+                <div className="flex items-center gap-1.5">
+                  <Store className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                  <span className="text-base font-semibold tabular-nums">
+                    {nf(100 - (producto.mix_online_pct ?? 0), 0)}%
+                  </span>
+                  <span className="text-[11px] text-muted-foreground">Tiendas</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <ShoppingBag className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                  <span className="text-base font-semibold tabular-nums">
+                    {nf(producto.mix_online_pct, 0)}%
+                  </span>
+                  <span className="text-[11px] text-muted-foreground">Online</span>
+                </div>
+              </div>
+              <div className="text-[10px] text-muted-foreground mt-1.5">
+                su categoría vende {nf(producto.mix_online_cat, 0)}% online
+              </div>
+            </div>
           </div>
 
 
