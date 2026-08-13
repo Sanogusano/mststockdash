@@ -573,7 +573,7 @@ export default function TopProductos() {
                 <SelectTrigger className="w-[195px]"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Todos los diagnósticos</SelectItem>
-                  {DIAGNOSTICOS.map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}
+                  {Object.keys(FILTRO_DIAGNOSTICO).map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}
                 </SelectContent>
               </Select>
 
