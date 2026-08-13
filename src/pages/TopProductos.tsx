@@ -430,7 +430,7 @@ export default function TopProductos() {
     const base = rows.filter(r => {
       if (coleccion !== "all" && r.coleccion !== coleccion) return false;
       if (categoria !== "all" && catKey(r) !== categoria) return false;
-      if (diagnostico !== "all" && r.diagnostico !== diagnostico) return false;
+      if (diagnostico !== "all" && r.diagnostico !== FILTRO_DIAGNOSTICO[diagnostico]) return false;
       if (idxDe(r) == null) return false;
       if (udsDe(r) < min) return false;
       // Exige historia suficiente del modo elegido: sin esto, un producto que
