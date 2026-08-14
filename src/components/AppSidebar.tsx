@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { LineChart, BarChart3, TrendingUp, ArrowLeftRight, Package, Tag, Layers, Target, Zap, Trophy, Archive, Users, Calculator, UserCog, Briefcase, ChevronDown, Settings, MapPin, Upload, LogOut, Truck, Shield, Store, Banknote, LayoutDashboard, CreditCard, MessageCircle, AlertTriangle, RefreshCw, Sparkles, Search, LayoutGrid, TrendingDown, Globe, Gauge } from "lucide-react";
+import { LineChart, BarChart3, TrendingUp, ArrowLeftRight, Package, Tag, Layers, Target, Zap, Trophy, Archive, Users, Calculator, UserCog, Briefcase, ChevronDown, Settings, MapPin, Upload, LogOut, Truck, Shield, Store, Banknote, LayoutDashboard, CreditCard, MessageCircle, AlertTriangle, RefreshCw, Sparkles, Search, LayoutGrid, TrendingDown, Globe, Gauge, ScatterChart } from "lucide-react";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useAuth } from "@/hooks/useAuth";
 import { useUserPermissions } from "@/hooks/useUserPermissions";
@@ -47,6 +47,8 @@ const desempenoCategoriaItem: NavItem = { title: "Desempeño por categoría", ur
 
 const producto360Item: NavItem = { title: "Análisis de producto", url: "/analisis-producto", icon: LayoutGrid, description: "Vista consolidada: meta, pares, calidad de venta y cobertura", module: "dashboards.salud_producto", action: "view" };
 
+const mapaProductoItem: NavItem = { title: "Mapa de producto", url: "/mapa-producto", icon: ScatterChart, description: "Evacuación contra calidad de venta", module: "dashboards.salud_producto", action: "view" };
+
 const linea360Item: NavItem = { title: "Análisis por línea", url: "/analisis-linea", icon: Layers, description: "Evacuación, calidad de venta y stock agregados por línea", module: "dashboards.salud_producto", action: "view" };
 
 const saludPublicacionItem: NavItem = { title: "Salud de publicación", url: "/salud-publicacion", icon: Globe, description: "Diagnóstico del canal online", module: "dashboards.salud_producto", action: "view" };
@@ -55,6 +57,7 @@ const topProductosItem: NavItem = { title: "Top de productos", url: "/top-produc
 
 const zoomProductoItems: NavItem[] = [
   producto360Item,
+  mapaProductoItem,
   linea360Item,
   topProductosItem,
   desempenoCategoriaItem,
