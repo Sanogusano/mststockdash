@@ -445,7 +445,7 @@ export default function Producto360() {
                         <tr className="border-b bg-muted/40 text-xs text-muted-foreground">
                           <th className="text-left p-2.5 font-medium" colSpan={2}>Producto</th>
                           <th className="text-right p-2.5 font-medium">
-                            <HeaderTooltip label="Unidades" tip="Vendido + stock en tiendas, online y bodega" />
+                            <HeaderTooltip label="Unidades" tip="Unidades vendidas totales, dentro y fuera de la ventana de 120 días" />
                           </th>
                           <th className="text-left p-2.5 font-medium">
                             <HeaderTooltip label="Ventas por canal" tip="Unidades por tienda y por online" />
