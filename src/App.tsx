@@ -42,6 +42,7 @@ import ConfiguracionRolesPage from "./pages/ConfiguracionRoles";
 import ConfiguracionNotificacionesPage from "./pages/ConfiguracionNotificaciones";
 import ConfiguracionSyncInventarioPage from "./pages/ConfiguracionSyncInventario";
 import RendimientoRedPage from "./pages/RendimientoRed";
+import AlertasDistribucionPage from "./pages/AlertasDistribucion";
 import FinanzasDashboardPage from "./pages/finanzas/FinanzasDashboard";
 import AddiPage from "./pages/finanzas/AddiPage";
 import ComposicionIngresosPage from "./pages/finanzas/ComposicionIngresosPage";
