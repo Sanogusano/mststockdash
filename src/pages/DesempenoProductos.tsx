@@ -102,7 +102,7 @@ export default function DesempenoProductosPage() {
         p_canal: canalParam,
         p_categoria: catParam,
         p_orden: orden,
-        p_limite: 50,
+        p_limite: 500,
         p_hasta: hastaParam,
       });
       if (err) {
