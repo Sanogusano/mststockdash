@@ -409,6 +409,7 @@ export function AppSidebar() {
                           {logisticaOpen && visibleLogistica.map((item) => renderItem(item, 2))}
                         </>
                       )}
+                      {visibleAlertas.length > 0 && renderItem(alertasDistribucionItem, 1)}
                       {visibleHerramientas
                         .filter((i) => i.url !== bundleConstructionItem.url)
                         .map((item) => renderItem(item, 1))}
