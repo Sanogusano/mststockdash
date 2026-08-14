@@ -199,14 +199,37 @@ export function ProductoDetallePanel({ producto, onClose }: {
 
         <div className="p-4 space-y-5">
           {/* Cifras gruesas */}
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-            <CardSalud
-              icon={Shirt}
-              label="Producido"
-              value={nf(producto.producido)}
-              sub={subProducido}
-              v={null}
-            />
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div className="rounded-lg border p-3">
+              <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                <Shirt className="h-3.5 w-3.5" />
+                <span>Producido</span>
+              </div>
+              <div className="text-xl font-semibold tabular-nums mt-1">
+                {nf(producto.producido)}
+              </div>
+
+              <div className="border-t mt-2 pt-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] text-muted-foreground">En stock</span>
+                  <span className="text-base font-semibold tabular-nums">
+                    {nf(producto.stock_total)}
+                  </span>
+                </div>
+                <div className="text-[11px] space-y-0.5 mt-1">
+                  <div className="flex justify-between gap-3">
+                    <span className="text-muted-foreground">Disponible</span>
+                    <span className="tabular-nums">{nf(producto.stock_disponibilizado)}</span>
+                  </div>
+                  {(producto.stock_detenido ?? 0) > 0 && (
+                    <div className="flex justify-between gap-3">
+                      <span className="text-amber-700">Detenido</span>
+                      <span className="tabular-nums text-amber-700">{nf(producto.stock_detenido)}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
 
             <CardSalud
               icon={Flag}
@@ -228,28 +251,6 @@ export function ProductoDetallePanel({ producto, onClose }: {
                 </div>
               </div>
             </CardSalud>
-            <div className="rounded-lg border p-3">
-              <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
-                <Package className="h-3.5 w-3.5" />
-                <span>Stock actual</span>
-              </div>
-              <div className="text-xl font-semibold tabular-nums mt-1">
-                {nf(producto.stock_total)}
-              </div>
-              <div className="text-[10px] text-muted-foreground">unidades por vender</div>
-              <div className="text-[11px] mt-1.5 space-y-0.5">
-                <div className="flex justify-between gap-3">
-                  <span className="text-muted-foreground">Disponible</span>
-                  <span className="tabular-nums">{nf(producto.stock_disponibilizado)}</span>
-                </div>
-                {(producto.stock_detenido ?? 0) > 0 && (
-                  <div className="flex justify-between gap-3">
-                    <span className="text-amber-700">Detenido</span>
-                    <span className="tabular-nums text-amber-700">{nf(producto.stock_detenido)}</span>
-                  </div>
-                )}
-              </div>
-            </div>
             <CardSalud
               icon={Gauge}
               label="Ritmo vs. presupuesto"
