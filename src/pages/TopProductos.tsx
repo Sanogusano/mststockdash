@@ -606,11 +606,12 @@ export default function TopProductos() {
                           </td>
                           <td className="p-2.5 text-right">
                             <div className="font-medium tabular-nums">{nf(r.unidades_vendidas)}</div>
-                            {modo !== "prom" && (
-                              <div className="text-[10px] text-muted-foreground">
-                                {nf(udsDe(r))} {modo === "full" ? "full" : "rebaj."}
-                              </div>
-                            )}
+                            <div className="text-[10px] text-muted-foreground tabular-nums">
+                              {nf(r.uds_120d)} en sus 120 días
+                            </div>
+                            <div className="text-[10px] text-muted-foreground tabular-nums">
+                              {nf((r.unidades_vendidas ?? 0) - (r.uds_120d ?? 0))} después de la ventana
+                            </div>
                           </td>
                           <td className="p-2.5">
                             <div className="space-y-0.5 text-[11px] whitespace-nowrap">
