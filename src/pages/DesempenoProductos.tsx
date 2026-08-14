@@ -120,13 +120,21 @@ export default function DesempenoProductosPage() {
     return [...new Set(data.map(r => r.categoria).filter(Boolean))].sort();
   }, [data]);
 
-  const filtered = useMemo(() => {
+  // Universo filtrado (colección/línea/búsqueda), antes del corte de Top N
+  const universe = useMemo(() => {
     if (!search.trim()) return data;
     const q = search.toLowerCase();
     return data.filter(r =>
       r.producto?.toLowerCase().includes(q) || r.categoria?.toLowerCase().includes(q)
     );
   }, [data, search]);
+
+  const totalUnidadesUniverso = useMemo(
+    () => universe.reduce((s, r) => s + (r.und_total ?? 0), 0),
+    [universe]
+  );
+
+  const filtered = useMemo(() => universe.slice(0, topN), [universe, topN]);
 
   const handleExportCSV = () => {
     if (!filtered.length) return;
