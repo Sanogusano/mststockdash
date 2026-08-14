@@ -140,6 +140,7 @@ export function AppSidebar() {
   const visibleProductoBottom = useMemo(() => productoBottomItems.filter((i) => can(i.module, i.action)), [permissions, isAdmin]);
   const visibleInventario = useMemo(() => inventarioItems.filter((i) => can(i.module, i.action)), [permissions, isAdmin]);
   const visibleHerramientas = useMemo(() => herramientasItems.filter((i) => can(i.module, i.action)), [permissions, isAdmin]);
+  const visibleAlertas = useMemo(() => [alertasDistribucionItem].filter((i) => can(i.module, i.action)), [permissions, isAdmin]);
   const visibleZoom = useMemo(() => zoomProductoItems.filter((i) => can(i.module, i.action)), [permissions, isAdmin]);
 
   const canPresupuesto = can(presupuestoItem.module, presupuestoItem.action);
