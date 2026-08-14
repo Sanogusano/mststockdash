@@ -156,6 +156,14 @@ export function ProductoDetallePanel({ producto, onClose }: {
     { l: "Exportaciones", v: producto.bod_exportaciones },
   ] as { l: string; v: number | null }[]).filter(b => (b.v ?? 0) > 0);
 
+  const estaAgotado = ((producto.stock_disponibilizado ?? 0) + (producto.stock_detenido ?? 0)) === 0;
+  const distribucionAgotada = (producto.stock_disponibilizado ?? 0) === 0 && (producto.tiendas_con_venta ?? 0) > 0;
+
+  const subProducido = estaAgotado
+    ? "agotado — sin stock en ningún canal"
+    : `${nf(producto.stock_bodegas)} bodega · ${nf(producto.stock_tiendas)} tienda`;
+
+
   const pico = curva.length ? curva.reduce((a, b) => (b.uds > a.uds ? b : a), curva[0]) : null;
   const al80 = curva.find(p => (p.pct_acumulado ?? 0) >= 80);
 
