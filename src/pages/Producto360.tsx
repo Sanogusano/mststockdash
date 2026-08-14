@@ -1,5 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
+import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { LoadingState, EmptyState } from "@/components/dashboard/LoadingState";
@@ -214,6 +216,21 @@ export default function Producto360() {
   const [foco, setFoco] = useState("all");
   const [orden, setOrden] = useState<"sin_evacuar" | "meta_asc" | "meta_desc" | "rdv_desc" | "producido">("sin_evacuar");
   const [ayuda, setAyuda] = useState(false);
+
+  // Filtros por querystring (ej. desde Análisis por línea):
+  // /analisis-producto?categoria=T-SHIRT&genero=HOMBRE&diagnostico=Repetir
+  const [searchParams] = useSearchParams();
+  useEffect(() => {
+    const cat = searchParams.get("categoria");
+    const gen = searchParams.get("genero");
+    const diag = searchParams.get("diagnostico");
+    const col = searchParams.get("coleccion");
+    if (cat && gen) setCategoria(`${cat} · ${gen}`);
+    if (diag && FILTRO_DIAGNOSTICO[diag]) setFoco(diag);
+    if (col) setColeccion(col);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
 
   useEffect(() => {
     let activo = true;
