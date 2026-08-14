@@ -173,7 +173,7 @@ export default function MapaProducto() {
 
   const tamano = (prod: number) => {
     const rel = Math.sqrt((prod ?? 0) / maxProd);   // raíz: el área crece proporcional
-    return Math.round(26 + rel * 34);               // entre 26 y 60 px
+    return Math.round(22 + rel * 38);               // entre 22 y 60 px
   };
 
   const posX = (v: number) => Math.min(100, Math.max(0, (Math.min(v, X_MAX) / X_MAX) * 100));
