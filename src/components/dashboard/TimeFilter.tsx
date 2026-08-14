@@ -189,6 +189,7 @@ const presets: Preset[] = [
   { label: "30 Días", value: 30 },
   { label: "Mes Anterior", value: PREV_MONTH_SENTINEL },
   { label: "90 Días", value: 90 },
+  { label: "120 Días", value: 120 },
   { label: "180 Días", value: 180 },
 ];
 

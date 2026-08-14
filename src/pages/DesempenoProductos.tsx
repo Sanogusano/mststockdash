@@ -84,6 +84,7 @@ export default function DesempenoProductosPage() {
   const [days, setDays] = useState<number>(initialDays);
   const [canal, setCanal] = useState(initialCanal);
   const [catFilter, setCatFilter] = useState("all");
+  const [topN, setTopN] = useState(50);
   const [search, setSearch] = useState("");
   const [data, setData] = useState<ProductRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -101,7 +102,7 @@ export default function DesempenoProductosPage() {
         p_canal: canalParam,
         p_categoria: catParam,
         p_orden: orden,
-        p_limite: 50,
+        p_limite: 500,
         p_hasta: hastaParam,
       });
       if (err) {
@@ -119,13 +120,21 @@ export default function DesempenoProductosPage() {
     return [...new Set(data.map(r => r.categoria).filter(Boolean))].sort();
   }, [data]);
 
-  const filtered = useMemo(() => {
+  // Universo filtrado (colección/línea/búsqueda), antes del corte de Top N
+  const universe = useMemo(() => {
     if (!search.trim()) return data;
     const q = search.toLowerCase();
     return data.filter(r =>
       r.producto?.toLowerCase().includes(q) || r.categoria?.toLowerCase().includes(q)
     );
   }, [data, search]);
+
+  const totalUnidadesUniverso = useMemo(
+    () => universe.reduce((s, r) => s + (r.und_total ?? 0), 0),
+    [universe]
+  );
+
+  const filtered = useMemo(() => universe.slice(0, topN), [universe, topN]);
 
   const handleExportCSV = () => {
     if (!filtered.length) return;
@@ -205,6 +214,18 @@ export default function DesempenoProductosPage() {
                   ))}
                 </SelectContent>
               </Select>
+              <Select value={String(topN)} onValueChange={v => setTopN(Number(v))}>
+                <SelectTrigger className="w-full sm:w-[150px] h-10">
+                  <SelectValue placeholder="Cantidad" />
+                </SelectTrigger>
+                <SelectContent>
+                  {[5, 10, 20, 50, 100].map(n => (
+                    <SelectItem key={n} value={String(n)}>
+                      {orden === "BOTTOM" ? `Bottom ${n}` : `Top ${n}`}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               <div className="flex items-center gap-2 ml-auto">
                 <Button variant="outline" size="sm" onClick={handleExportCSV} disabled={!filtered.length}>
                   <Download className="h-4 w-4 mr-1" /> CSV
@@ -214,6 +235,20 @@ export default function DesempenoProductosPage() {
                 </Button>
               </div>
             </div>
+
+            {/* Total del universo filtrado (antes del corte de Top N) */}
+            <div className="glass-card rounded-xl p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1">
+              <div>
+                <p className="text-xs text-muted-foreground uppercase tracking-widest">Unidades vendidas — universo filtrado</p>
+                <p className="text-2xl font-display font-bold text-primary tabular-nums">
+                  {totalUnidadesUniverso.toLocaleString("es-CO")}
+                </p>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                {universe.length.toLocaleString("es-CO")} referencias · mostrando {filtered.length.toLocaleString("es-CO")}
+              </p>
+            </div>
+
 
             {/* Legend */}
             <div className="flex items-center gap-4 text-[10px] text-muted-foreground">

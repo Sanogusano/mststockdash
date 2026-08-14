@@ -2357,8 +2357,8 @@ export type Database = {
       }
       coleccion_cobertura_red: {
         Row: {
-          cobertura_max: number | null
           cobertura_min: number | null
+          cobertura_ponderada: number | null
           cobertura_prom: number | null
           coleccion: string | null
           con_ventana: number | null
@@ -2800,16 +2800,20 @@ export type Database = {
           indice_meta: number | null
           indice_total: number | null
           pct_cobertura: number | null
+          pct_cobertura_ponderada: number | null
+          pct_venta_sana: number | null
           producido: number | null
           product_id: string | null
-          rdv_tienda_real: number | null
           semanas_en_venta: number | null
+          stock_detenido: number | null
+          stock_disponibilizado: number | null
           tiendas_con_presencia: number | null
           tiendas_elegibles: number | null
           tiendas_sin_producto: number | null
           title: string | null
           unidades_vendidas: number | null
           venta_perdida_est: number | null
+          venta_por_factor_semana: number | null
           ventana_completa: boolean | null
         }
         Relationships: []
