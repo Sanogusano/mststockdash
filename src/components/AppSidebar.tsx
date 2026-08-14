@@ -77,6 +77,15 @@ const inventarioItems: NavItem[] = [inventariosItem, proyeccionDemandaItem];
 
 const herramientasItems: NavItem[] = [bundleConstructionItem, insumosItem];
 
+const alertasDistribucionItem: NavItem = {
+  title: "Alertas de distribución",
+  url: "/alertas-distribucion",
+  icon: AlertTriangle,
+  description: "Agotados, impulso, quiebre y sobrestock",
+  module: "dashboards.inventario_salud",
+  action: "view",
+};
+
 
 const gestionComercialItems: NavItem[] = [
   { title: "Gestión de Incentivos", url: "/incentivos", icon: Trophy, description: "Campañas & liquidaciones", module: "incentivos", action: "view" },
