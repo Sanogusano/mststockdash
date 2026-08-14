@@ -42,6 +42,7 @@ import ConfiguracionRolesPage from "./pages/ConfiguracionRoles";
 import ConfiguracionNotificacionesPage from "./pages/ConfiguracionNotificaciones";
 import ConfiguracionSyncInventarioPage from "./pages/ConfiguracionSyncInventario";
 import RendimientoRedPage from "./pages/RendimientoRed";
+import AlertasDistribucionPage from "./pages/AlertasDistribucion";
 import FinanzasDashboardPage from "./pages/finanzas/FinanzasDashboard";
 import AddiPage from "./pages/finanzas/AddiPage";
 import ComposicionIngresosPage from "./pages/finanzas/ComposicionIngresosPage";
@@ -99,6 +100,7 @@ const App = () => (
           <Route path="/top-productos" element={<Guard module="dashboards.inventario_salud" action="view"><TopProductosPage /></Guard>} />
           <Route path="/venta-m2" element={<Guard module="dashboards.venta_m2" action="view"><VentaM2Page /></Guard>} />
           <Route path="/insumos" element={<Guard module="dashboards.gestion_insumos" action="view"><InsumosPage /></Guard>} />
+          <Route path="/alertas-distribucion" element={<Guard module="dashboards.inventario_salud" action="view"><AlertasDistribucionPage /></Guard>} />
           <Route path="/presupuestos" element={<Guard module="dashboards.presupuestos" action="view"><PresupuestosPage /></Guard>} />
           <Route path="/centro-accion" element={<Guard module="dashboards.centro_accion" action="view"><CentroAccionPage /></Guard>} />
           <Route path="/incentivos" element={<Guard module="incentivos" action="view"><IncentivosPage /></Guard>} />

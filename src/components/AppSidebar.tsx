@@ -77,6 +77,15 @@ const inventarioItems: NavItem[] = [inventariosItem, proyeccionDemandaItem];
 
 const herramientasItems: NavItem[] = [bundleConstructionItem, insumosItem];
 
+const alertasDistribucionItem: NavItem = {
+  title: "Alertas de distribución",
+  url: "/alertas-distribucion",
+  icon: AlertTriangle,
+  description: "Agotados, impulso, quiebre y sobrestock",
+  module: "dashboards.inventario_salud",
+  action: "view",
+};
+
 
 const gestionComercialItems: NavItem[] = [
   { title: "Gestión de Incentivos", url: "/incentivos", icon: Trophy, description: "Campañas & liquidaciones", module: "incentivos", action: "view" },
@@ -131,6 +140,7 @@ export function AppSidebar() {
   const visibleProductoBottom = useMemo(() => productoBottomItems.filter((i) => can(i.module, i.action)), [permissions, isAdmin]);
   const visibleInventario = useMemo(() => inventarioItems.filter((i) => can(i.module, i.action)), [permissions, isAdmin]);
   const visibleHerramientas = useMemo(() => herramientasItems.filter((i) => can(i.module, i.action)), [permissions, isAdmin]);
+  const visibleAlertas = useMemo(() => [alertasDistribucionItem].filter((i) => can(i.module, i.action)), [permissions, isAdmin]);
   const visibleZoom = useMemo(() => zoomProductoItems.filter((i) => can(i.module, i.action)), [permissions, isAdmin]);
 
   const canPresupuesto = can(presupuestoItem.module, presupuestoItem.action);
@@ -146,7 +156,9 @@ export function AppSidebar() {
     [...visibleProducto, ...visibleProductoBottom].some((i) => location.pathname === i.url) || isZoomActive;
   const isInventarioActive = visibleInventario.some((i) => location.pathname === i.url);
   const isHerramientasActive =
-    visibleHerramientas.some((i) => location.pathname === i.url) || isLogisticaActive;
+    visibleHerramientas.some((i) => location.pathname === i.url) ||
+    isLogisticaActive ||
+    visibleAlertas.some((i) => location.pathname === i.url);
 
   const [gestionOpen, setGestionOpen] = useState(isGestionActive);
   const [configOpen, setConfigOpen] = useState(isConfigActive);
@@ -397,6 +409,7 @@ export function AppSidebar() {
                           {logisticaOpen && visibleLogistica.map((item) => renderItem(item, 2))}
                         </>
                       )}
+                      {visibleAlertas.length > 0 && renderItem(alertasDistribucionItem, 1)}
                       {visibleHerramientas
                         .filter((i) => i.url !== bundleConstructionItem.url)
                         .map((item) => renderItem(item, 1))}

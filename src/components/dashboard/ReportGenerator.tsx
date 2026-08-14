@@ -990,7 +990,7 @@ async function generateTransferReport(days: number) {
   const effectiveDays = resolveDays(days);
   const hastaParam = getFilterEndDate(days);
   const [transferRes, logoB64] = await Promise.all([
-    supabase.rpc("reporte_sugerencias_traslado", { dias_atras: effectiveDays, p_hasta: hastaParam }),
+    supabase.rpc("reporte_sugerencias_traslado" as never, { dias_atras: effectiveDays, p_hasta: hastaParam } as never),
     getLogoBase64(),
   ]);
 

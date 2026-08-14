@@ -209,6 +209,49 @@ export type Database = {
         }
         Relationships: []
       }
+      allocation_reglas_origen: {
+        Row: {
+          location_id: string
+          max_stock_cedible: number | null
+          nota: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          location_id: string
+          max_stock_cedible?: number | null
+          nota?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          location_id?: string
+          max_stock_cedible?: number | null
+          nota?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "allocation_reglas_origen_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: true
+            referencedRelation: "locations"
+            referencedColumns: ["location_id"]
+          },
+          {
+            foreignKeyName: "allocation_reglas_origen_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: true
+            referencedRelation: "v_locations_allocation_config"
+            referencedColumns: ["location_id"]
+          },
+          {
+            foreignKeyName: "allocation_reglas_origen_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: true
+            referencedRelation: "v_ubicaciones_gestion"
+            referencedColumns: ["location_id"]
+          },
+        ]
+      }
       allocation_runs: {
         Row: {
           destino_location_id: string
@@ -923,6 +966,8 @@ export type Database = {
       }
       locations: {
         Row: {
+          ciudad: string | null
+          ciudad_principal: boolean | null
           created_at: string | null
           dimension_m2: number | null
           is_active: boolean | null
@@ -932,6 +977,8 @@ export type Database = {
           zona: string | null
         }
         Insert: {
+          ciudad?: string | null
+          ciudad_principal?: boolean | null
           created_at?: string | null
           dimension_m2?: number | null
           is_active?: boolean | null
@@ -941,6 +988,8 @@ export type Database = {
           zona?: string | null
         }
         Update: {
+          ciudad?: string | null
+          ciudad_principal?: boolean | null
           created_at?: string | null
           dimension_m2?: number | null
           is_active?: boolean | null
@@ -2300,6 +2349,35 @@ export type Database = {
       }
     }
     Views: {
+      alertas_distribucion: {
+        Row: {
+          alerta: string | null
+          ciudad: string | null
+          color: string | null
+          image_url: string | null
+          linea: string | null
+          location_id: string | null
+          producto: string | null
+          ritmo_linea_tienda: number | null
+          ritmo_red: number | null
+          ritmo_semanal: number | null
+          severidad: number | null
+          sku: string | null
+          stock: number | null
+          stock_red_cedible: number | null
+          talla: string | null
+          tienda: string | null
+          tiendas_vendiendo: number | null
+          tiene_solucion: boolean | null
+          tier: string | null
+          uds_28d: number | null
+          venta_perdida_semanal: number | null
+          wos: number | null
+          wos_objetivo: number | null
+          zona: string | null
+        }
+        Relationships: []
+      }
       allocation_suggestions: {
         Row: {
           sku: string | null
@@ -4361,20 +4439,6 @@ export type Database = {
           r_vpm_actual: number
           r_vpm_base: number
           r_zona: string
-        }[]
-      }
-      reporte_sugerencias_traslado: {
-        Args: { dias_atras: number; p_hasta?: string }
-        Returns: {
-          accion: string
-          foto: string
-          producto: string
-          ritmo_venta_destino: number
-          sku: string
-          stock_origen: number
-          tienda_destino: string
-          tienda_origen: string
-          uds_sugeridas: number
         }[]
       }
       reporte_tipos_venta: {
