@@ -45,6 +45,7 @@ interface Row {
   semanas_full: number;
   semanas_rebajada: number;
   unidades_vendidas: number;
+  uds_120d: number;
   unidades_full: number;
   unidades_rebaja: number;
   unidades_activacion: number;
