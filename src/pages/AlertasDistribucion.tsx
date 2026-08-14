@@ -226,11 +226,11 @@ export default function AlertasDistribucion() {
       "Stock disponible en red": r.stock_red_cedible,
       "Hay en red": r.tiene_solucion ? "Sí" : "No",
     }));
-    const ws = XLSX.utils.json_to_sheet(datos, { origin: "A3" });
-    XLSX.utils.sheet_add_aoa(ws, [
+    const ws = XLSX.utils.aoa_to_sheet([
       ["Alertas de distribución — agotados, impulso, quiebre y sobrestock"],
       [`Ritmo sobre los últimos 28 días · ${new Date().toLocaleDateString("es-CO")}`],
-    ], { origin: "A1" });
+    ]);
+    XLSX.utils.sheet_add_json(ws, datos, { origin: "A3" });
     ws["!cols"] = [{ wch: 21 }, { wch: 40 }, { wch: 18 }, ...Array(17).fill({ wch: 13 })];
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Alertas");
