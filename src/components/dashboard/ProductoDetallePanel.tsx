@@ -201,11 +201,24 @@ export function ProductoDetallePanel({ producto, onClose }: {
             />
             <CardSalud
               icon={Flag}
-              label="Vendido en 120 días"
-              value={nf(producto.uds_120d)}
-              sub={`${nf(producto.pct_evacuado_120d, 0)}% de lo producido`}
+              label="Vendido"
               v={null}
-            />
+            >
+              <div className="text-xl font-semibold tabular-nums">{nf(producto.unidades_vendidas)}</div>
+              <div className="text-[10px] text-muted-foreground">en total</div>
+              <div className="text-[11px] mt-1.5 space-y-0.5">
+                <div className="flex justify-between gap-3">
+                  <span className="text-muted-foreground">En sus 120 días</span>
+                  <span className="tabular-nums">{nf(producto.uds_120d)}</span>
+                </div>
+                <div className="flex justify-between gap-3">
+                  <span className="text-muted-foreground">Después de la ventana</span>
+                  <span className="tabular-nums">
+                    {nf((producto.unidades_vendidas ?? 0) - (producto.uds_120d ?? 0))}
+                  </span>
+                </div>
+              </div>
+            </CardSalud>
             <CardSalud
               icon={Gauge}
               label="Ritmo vs. presupuesto"

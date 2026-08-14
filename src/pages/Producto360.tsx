@@ -445,7 +445,7 @@ export default function Producto360() {
                         <tr className="border-b bg-muted/40 text-xs text-muted-foreground">
                           <th className="text-left p-2.5 font-medium" colSpan={2}>Producto</th>
                           <th className="text-right p-2.5 font-medium">
-                            <HeaderTooltip label="Unidades" tip="Vendido + stock en tiendas, online y bodega" />
+                            <HeaderTooltip label="Unidades" tip="Unidades vendidas totales, dentro y fuera de la ventana de 120 días" />
                           </th>
                           <th className="text-left p-2.5 font-medium">
                             <HeaderTooltip label="Ventas por canal" tip="Unidades por tienda y por online" />
@@ -500,9 +500,12 @@ export default function Producto360() {
                                 </div>
                               </td>
                               <td className="p-2.5 text-right">
-                                <div className="tabular-nums font-medium">{nf(r.producido)}</div>
-                                <div className="text-[10px] text-muted-foreground whitespace-nowrap">
-                                  {nf(r.uds_120d)} vendidas
+                                <div className="tabular-nums font-medium">{nf(r.unidades_vendidas)}</div>
+                                <div className="text-[10px] text-muted-foreground tabular-nums">
+                                  {nf(r.uds_120d)} en sus 120 días
+                                </div>
+                                <div className="text-[10px] text-muted-foreground tabular-nums">
+                                  {nf((r.unidades_vendidas ?? 0) - (r.uds_120d ?? 0))} después de la ventana
                                 </div>
                               </td>
                               <td className="p-2.5">
