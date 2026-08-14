@@ -2355,6 +2355,23 @@ export type Database = {
         }
         Relationships: []
       }
+      coleccion_cobertura_red: {
+        Row: {
+          cobertura_max: number | null
+          cobertura_min: number | null
+          cobertura_prom: number | null
+          coleccion: string | null
+          con_ventana: number | null
+          indice_meta_prom: number | null
+          pct_perdido_sobre_vendido: number | null
+          perdida_en_buenos: number | null
+          prod_baja_cobertura: number | null
+          productos: number | null
+          vendido: number | null
+          venta_perdida_est: number | null
+        }
+        Relationships: []
+      }
       linea_360: {
         Row: {
           bod_exportaciones: number | null
@@ -2769,6 +2786,31 @@ export type Database = {
           vendio_full: boolean | null
           vendio_rebajada: boolean | null
           wos: number | null
+        }
+        Relationships: []
+      }
+      producto_cobertura_red: {
+        Row: {
+          categoria_padre: string | null
+          coleccion: string | null
+          diagnostico: string | null
+          fecha_inicio: string | null
+          genero_norm: string | null
+          image_url: string | null
+          indice_meta: number | null
+          indice_total: number | null
+          pct_cobertura: number | null
+          producido: number | null
+          product_id: string | null
+          rdv_tienda_real: number | null
+          semanas_en_venta: number | null
+          tiendas_con_presencia: number | null
+          tiendas_elegibles: number | null
+          tiendas_sin_producto: number | null
+          title: string | null
+          unidades_vendidas: number | null
+          venta_perdida_est: number | null
+          ventana_completa: boolean | null
         }
         Relationships: []
       }
