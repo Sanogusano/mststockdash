@@ -336,7 +336,7 @@ export default function MapaProducto() {
                           onMouseEnter={() => setHover(p)}
                           onMouseLeave={() => setHover(null)}
                           className={`absolute rounded-md overflow-hidden border-2 transition-all ${
-                            activo ? "border-primary z-20 shadow-lg scale-110" : "border-white/80 z-10 hover:z-20"
+                            activo ? "border-primary z-20 shadow-lg scale-110" : "border-background z-10 shadow-sm hover:z-20"
                           }`}
                           style={{
                             left: `${x}%`, bottom: `${y}%`,
