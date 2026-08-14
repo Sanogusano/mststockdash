@@ -294,13 +294,25 @@ export function ProductoDetallePanel({ producto, onClose }: {
               label="Distribución"
               v={null}
             >
-              <div className="text-sm">
-                <span className="font-semibold tabular-nums">{nf((producto.stock_tienda ?? 0) + (producto.stock_outlet ?? 0))}</span> uds en {producto.tiendas_con_stock} tiendas
-              </div>
-              <div className="text-sm">
-                <span className="font-semibold tabular-nums">{nf(producto.stock_online ?? 0)}</span> uds online
-              </div>
+              {distribucionAgotada ? (
+                <>
+                  <div className="text-sm">Agotado</div>
+                  <div className="text-[10px] text-muted-foreground">
+                    vendió en {producto.tiendas_con_venta} tiendas
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="text-sm">
+                    <span className="font-semibold tabular-nums">{nf((producto.stock_tienda ?? 0) + (producto.stock_outlet ?? 0))}</span> uds en {producto.tiendas_con_stock} tiendas
+                  </div>
+                  <div className="text-sm">
+                    <span className="font-semibold tabular-nums">{nf(producto.stock_online ?? 0)}</span> uds online
+                  </div>
+                </>
+              )}
             </CardSalud>
+
             <div className="rounded-lg border p-3">
               <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
                 <Split className="h-3.5 w-3.5" />
