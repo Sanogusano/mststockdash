@@ -52,7 +52,7 @@ const nf = (v: number | null | undefined, d = 0) =>
 
 // Ejes topados: el índice meta tiene cola larga y sin tope el 95% de los
 // productos quedaría amontonado contra el borde.
-const X_MAX = 1.5;   // 1,00 = alcanzó la meta
+const X_MAX = 2.0;   // 1,00 = alcanzó la meta
 const Y_MIN = 0;
 const Y_MAX = 100;
 const CORTE_X = 1.0;
