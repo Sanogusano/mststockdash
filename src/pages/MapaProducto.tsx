@@ -306,16 +306,20 @@ export default function MapaProducto() {
                          style={{ bottom: `${posY(CORTE_Y)}%` }} />
 
                     {/* Rótulos de cuadrante */}
-                    <div className="absolute top-2 right-3 text-[11px] font-medium text-emerald-800/70 pointer-events-none">
+                    <div className="absolute text-[10px] font-medium text-emerald-800/40 pointer-events-none"
+                         style={{ left: 'calc(50% + 25%)', top: '25%', transform: 'translate(-50%, -50%)' }}>
                       Repetir
                     </div>
-                    <div className="absolute top-2 left-3 text-[11px] font-medium text-orange-800/70 pointer-events-none">
+                    <div className="absolute text-[10px] font-medium text-orange-800/40 pointer-events-none"
+                         style={{ left: '25%', top: '25%', transform: 'translate(-50%, -50%)' }}>
                       Revisar cantidad
                     </div>
-                    <div className="absolute bottom-2 right-3 text-[11px] font-medium text-amber-800/70 pointer-events-none">
+                    <div className="absolute text-[10px] font-medium text-amber-800/40 pointer-events-none"
+                         style={{ left: 'calc(50% + 25%)', top: '75%', transform: 'translate(-50%, -50%)' }}>
                       Revisar precio
                     </div>
-                    <div className="absolute bottom-2 left-3 text-[11px] font-medium text-rose-800/70 pointer-events-none">
+                    <div className="absolute text-[10px] font-medium text-rose-800/40 pointer-events-none"
+                         style={{ left: '25%', top: '75%', transform: 'translate(-50%, -50%)' }}>
                       Revisar concepto
                     </div>
 
