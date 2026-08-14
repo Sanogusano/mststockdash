@@ -156,7 +156,9 @@ export function AppSidebar() {
     [...visibleProducto, ...visibleProductoBottom].some((i) => location.pathname === i.url) || isZoomActive;
   const isInventarioActive = visibleInventario.some((i) => location.pathname === i.url);
   const isHerramientasActive =
-    visibleHerramientas.some((i) => location.pathname === i.url) || isLogisticaActive;
+    visibleHerramientas.some((i) => location.pathname === i.url) ||
+    isLogisticaActive ||
+    visibleAlertas.some((i) => location.pathname === i.url);
 
   const [gestionOpen, setGestionOpen] = useState(isGestionActive);
   const [configOpen, setConfigOpen] = useState(isConfigActive);
