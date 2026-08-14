@@ -52,7 +52,7 @@ const nf = (v: number | null | undefined, d = 0) =>
 
 // Ejes topados: el índice meta tiene cola larga y sin tope el 95% de los
 // productos quedaría amontonado contra el borde.
-const X_MAX = 1.5;   // 1,00 = alcanzó la meta
+const X_MAX = 2.0;   // 1,00 = alcanzó la meta
 const Y_MIN = 0;
 const Y_MAX = 100;
 const CORTE_X = 1.0;
@@ -173,7 +173,7 @@ export default function MapaProducto() {
 
   const tamano = (prod: number) => {
     const rel = Math.sqrt((prod ?? 0) / maxProd);   // raíz: el área crece proporcional
-    return Math.round(26 + rel * 34);               // entre 26 y 60 px
+    return Math.round(22 + rel * 38);               // entre 22 y 60 px
   };
 
   const posX = (v: number) => Math.min(100, Math.max(0, (Math.min(v, X_MAX) / X_MAX) * 100));
@@ -306,16 +306,20 @@ export default function MapaProducto() {
                          style={{ bottom: `${posY(CORTE_Y)}%` }} />
 
                     {/* Rótulos de cuadrante */}
-                    <div className="absolute top-2 right-3 text-[11px] font-medium text-emerald-800/70 pointer-events-none">
+                    <div className="absolute text-[10px] font-medium text-emerald-800/40 pointer-events-none"
+                         style={{ left: 'calc(50% + 25%)', top: '25%', transform: 'translate(-50%, -50%)' }}>
                       Repetir
                     </div>
-                    <div className="absolute top-2 left-3 text-[11px] font-medium text-orange-800/70 pointer-events-none">
+                    <div className="absolute text-[10px] font-medium text-orange-800/40 pointer-events-none"
+                         style={{ left: '25%', top: '25%', transform: 'translate(-50%, -50%)' }}>
                       Revisar cantidad
                     </div>
-                    <div className="absolute bottom-2 right-3 text-[11px] font-medium text-amber-800/70 pointer-events-none">
+                    <div className="absolute text-[10px] font-medium text-amber-800/40 pointer-events-none"
+                         style={{ left: 'calc(50% + 25%)', top: '75%', transform: 'translate(-50%, -50%)' }}>
                       Revisar precio
                     </div>
-                    <div className="absolute bottom-2 left-3 text-[11px] font-medium text-rose-800/70 pointer-events-none">
+                    <div className="absolute text-[10px] font-medium text-rose-800/40 pointer-events-none"
+                         style={{ left: '25%', top: '75%', transform: 'translate(-50%, -50%)' }}>
                       Revisar concepto
                     </div>
 
@@ -332,7 +336,7 @@ export default function MapaProducto() {
                           onMouseEnter={() => setHover(p)}
                           onMouseLeave={() => setHover(null)}
                           className={`absolute rounded-md overflow-hidden border-2 transition-all ${
-                            activo ? "border-primary z-20 shadow-lg scale-110" : "border-white/80 z-10 hover:z-20"
+                            activo ? "border-primary z-20 shadow-lg scale-110" : "border-background z-10 shadow-sm hover:z-20"
                           }`}
                           style={{
                             left: `${x}%`, bottom: `${y}%`,
