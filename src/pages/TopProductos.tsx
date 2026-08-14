@@ -547,7 +547,7 @@ export default function TopProductos() {
                         <th className="p-2.5 w-8"></th>
                         <th className="text-left p-2.5 font-medium" colSpan={2}>Producto</th>
                         <th className="text-right p-2.5 font-medium">
-                          <HeaderTooltip label="Vendido" tip="Vendido + stock en tiendas, online y bodega" />
+                          <HeaderTooltip label="Unidades" tip="Unidades vendidas totales, dentro y fuera de la ventana de 120 días" />
                         </th>
                         <th className="text-left p-2.5 font-medium">
                           <HeaderTooltip label="Por canal" tip="Unidades por tienda y por online" />
