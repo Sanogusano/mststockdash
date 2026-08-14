@@ -204,9 +204,10 @@ export function ProductoDetallePanel({ producto, onClose }: {
               icon={Shirt}
               label="Producido"
               value={nf(producto.producido)}
-              sub={`${nf(producto.stock_bodegas)} bodega · ${nf(producto.stock_tiendas)} tienda`}
+              sub={subProducido}
               v={null}
             />
+
             <CardSalud
               icon={Flag}
               label="Vendido"
