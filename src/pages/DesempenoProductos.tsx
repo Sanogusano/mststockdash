@@ -84,6 +84,7 @@ export default function DesempenoProductosPage() {
   const [days, setDays] = useState<number>(initialDays);
   const [canal, setCanal] = useState(initialCanal);
   const [catFilter, setCatFilter] = useState("all");
+  const [topN, setTopN] = useState(50);
   const [search, setSearch] = useState("");
   const [data, setData] = useState<ProductRow[]>([]);
   const [loading, setLoading] = useState(true);
