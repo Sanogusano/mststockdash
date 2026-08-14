@@ -156,6 +156,14 @@ export function ProductoDetallePanel({ producto, onClose }: {
     { l: "Exportaciones", v: producto.bod_exportaciones },
   ] as { l: string; v: number | null }[]).filter(b => (b.v ?? 0) > 0);
 
+  const estaAgotado = ((producto.stock_disponibilizado ?? 0) + (producto.stock_detenido ?? 0)) === 0;
+  const distribucionAgotada = (producto.stock_disponibilizado ?? 0) === 0 && (producto.tiendas_con_venta ?? 0) > 0;
+
+  const subProducido = estaAgotado
+    ? "agotado — sin stock en ningún canal"
+    : `${nf(producto.stock_bodegas)} bodega · ${nf(producto.stock_tiendas)} tienda`;
+
+
   const pico = curva.length ? curva.reduce((a, b) => (b.uds > a.uds ? b : a), curva[0]) : null;
   const al80 = curva.find(p => (p.pct_acumulado ?? 0) >= 80);
 
@@ -196,9 +204,10 @@ export function ProductoDetallePanel({ producto, onClose }: {
               icon={Shirt}
               label="Producido"
               value={nf(producto.producido)}
-              sub={`${nf(producto.stock_bodegas)} bodega · ${nf(producto.stock_tiendas)} tienda`}
+              sub={subProducido}
               v={null}
             />
+
             <CardSalud
               icon={Flag}
               label="Vendido"
@@ -285,13 +294,25 @@ export function ProductoDetallePanel({ producto, onClose }: {
               label="Distribución"
               v={null}
             >
-              <div className="text-sm">
-                <span className="font-semibold tabular-nums">{nf((producto.stock_tienda ?? 0) + (producto.stock_outlet ?? 0))}</span> uds en {producto.tiendas_con_stock} tiendas
-              </div>
-              <div className="text-sm">
-                <span className="font-semibold tabular-nums">{nf(producto.stock_online ?? 0)}</span> uds online
-              </div>
+              {distribucionAgotada ? (
+                <>
+                  <div className="text-sm">Agotado</div>
+                  <div className="text-[10px] text-muted-foreground">
+                    vendió en {producto.tiendas_con_venta} tiendas
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="text-sm">
+                    <span className="font-semibold tabular-nums">{nf((producto.stock_tienda ?? 0) + (producto.stock_outlet ?? 0))}</span> uds en {producto.tiendas_con_stock} tiendas
+                  </div>
+                  <div className="text-sm">
+                    <span className="font-semibold tabular-nums">{nf(producto.stock_online ?? 0)}</span> uds online
+                  </div>
+                </>
+              )}
             </CardSalud>
+
             <div className="rounded-lg border p-3">
               <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
                 <Split className="h-3.5 w-3.5" />
@@ -320,7 +341,7 @@ export function ProductoDetallePanel({ producto, onClose }: {
           </div>
 
 
-          {bodegas.length > 0 && (
+          {(producto.stock_detenido ?? 0) > 0 && bodegas.length > 0 && (
             <div className="rounded-lg border bg-amber-50/40 p-3">
               <div className="flex items-center gap-1.5 text-sm font-medium">
                 <PauseCircle className="h-4 w-4 text-amber-700" />
