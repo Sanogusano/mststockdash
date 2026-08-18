@@ -2317,6 +2317,39 @@ export type Database = {
           },
         ]
       }
+      whatsapp_consultas: {
+        Row: {
+          comando: string | null
+          created_at: string | null
+          error: string | null
+          id: string
+          nombre: string | null
+          numero: string
+          respondido: boolean | null
+          texto_recibido: string | null
+        }
+        Insert: {
+          comando?: string | null
+          created_at?: string | null
+          error?: string | null
+          id?: string
+          nombre?: string | null
+          numero: string
+          respondido?: boolean | null
+          texto_recibido?: string | null
+        }
+        Update: {
+          comando?: string | null
+          created_at?: string | null
+          error?: string | null
+          id?: string
+          nombre?: string | null
+          numero?: string
+          respondido?: boolean | null
+          texto_recibido?: string | null
+        }
+        Relationships: []
+      }
       whatsapp_destinatarios: {
         Row: {
           activo: boolean | null
@@ -3017,6 +3050,16 @@ export type Database = {
         }
         Relationships: []
       }
+      resumen_inventario_linea: {
+        Row: {
+          linea: string | null
+          uds_detenido: number | null
+          uds_online: number | null
+          uds_tiendas: number | null
+          uds_total: number | null
+        }
+        Relationships: []
+      }
       sales_rolling: {
         Row: {
           daily_rate: number | null
@@ -3264,7 +3307,57 @@ export type Database = {
         }
         Returns: string
       }
+      crisis_room_productos: {
+        Args: { p_busqueda: string; p_limite?: number }
+        Returns: {
+          accion: string
+          image_url: string
+          linea: string
+          potencial_semanal: number
+          producto: string
+          ritmo_red: number
+          stock_red: number
+          stock_tienda: number
+          tiendas_vendiendo: number
+        }[]
+      }
+      crisis_room_tienda: {
+        Args: { p_busqueda: string; p_fecha?: string }
+        Returns: {
+          brecha_fecha: number
+          cierre_probable: number
+          ciudad: string
+          dias_mes: number
+          dias_restantes: number
+          dias_transcurridos: number
+          falta_para_meta: number
+          gap_por_ticket: number
+          gap_por_trafico: number
+          gap_por_upt: number
+          pct_cierre: number
+          pct_cumpl: number
+          pct_descuento: number
+          presupuesto_fecha: number
+          presupuesto_mes: number
+          ritmo_actual_dia: number
+          ritmo_necesario_dia: number
+          salto_requerido_pct: number
+          tendencia_7d: number
+          ticket: number
+          ticket_red: number
+          tienda: string
+          transacciones: number
+          tx_dia_red: number
+          upt: number
+          upt_red: number
+          var_ano_anterior: number
+          venta_ano_anterior: number
+          venta_mtd: number
+          zona: string
+        }[]
+      }
       cruzar_addi_con_shopify: { Args: never; Returns: undefined }
+      fecha_bogota: { Args: { p_offset_dias?: number }; Returns: string }
       generar_archivo_shopify_inventario: {
         Args: never
         Returns: {
@@ -4680,6 +4773,147 @@ export type Database = {
       user_has_permission: {
         Args: { p_action_key: string; p_module_key: string; p_user_id: string }
         Returns: boolean
+      }
+      whatsapp_acumulado_digital: {
+        Args: { p_fecha?: string }
+        Returns: {
+          pct_cumpl: number
+          presupuesto: number
+          sub_canal: string
+          venta: number
+        }[]
+      }
+      whatsapp_acumulado_tiendas: {
+        Args: { p_fecha?: string }
+        Returns: {
+          ciudad: string
+          es_outlet: boolean
+          pct_cumpl: number
+          presupuesto: number
+          tienda: string
+          venta: number
+          zona: string
+        }[]
+      }
+      whatsapp_cumplimiento_mes: {
+        Args: { p_fecha?: string; p_zona?: string }
+        Returns: {
+          cierre_conservador: number
+          cierre_optimista: number
+          cierre_probable: number
+          dias_mes: number
+          dias_transcurridos: number
+          nombre: string
+          pct_cumpl: number
+          presupuesto_fecha: number
+          presupuesto_mes: number
+          ticket: number
+          tipo: string
+          transacciones: number
+          unidades: number
+          venta: number
+          zona: string
+        }[]
+      }
+      whatsapp_detalle_tienda: {
+        Args: { p_busqueda: string; p_fecha?: string; p_limite?: number }
+        Returns: {
+          linea: string
+          pct_full: number
+          producto: string
+          tienda: string
+          transacciones: number
+          unidades: number
+          venta: number
+        }[]
+      }
+      whatsapp_mover_ya: {
+        Args: { p_limite?: number }
+        Returns: {
+          disponible: number
+          image_url: string
+          linea: string
+          producto: string
+          ritmo_semanal: number
+          semanas_cobertura: number
+          stand_by: number
+          tiendas_agotadas: number
+          tiendas_vendiendo: number
+        }[]
+      }
+      whatsapp_proyeccion_accionable: {
+        Args: { p_fecha?: string }
+        Returns: {
+          accionable: string
+          brecha: number
+          cierre_conservador: number
+          cierre_optimista: number
+          cierre_probable: number
+          dias_mes: number
+          dias_transcurridos: number
+          nombre: string
+          pct_cierre: number
+          pct_descuento: number
+          presupuesto: number
+          tendencia: number
+          ticket: number
+          ticket_nal: number
+          tipo: string
+          upt: number
+          upt_nal: number
+          venta: number
+          zona: string
+        }[]
+      }
+      whatsapp_resumen_traslados: {
+        Args: never
+        Returns: {
+          agotadas: number
+          ciudad: string
+          dias: number
+          lineas: number
+          tienda: string
+          unidades: number
+        }[]
+      }
+      whatsapp_top_productos: {
+        Args: { p_fecha?: string; p_limite?: number }
+        Returns: {
+          image_url: string
+          neta: number
+          pct_activacion: number
+          pct_full: number
+          pct_rebaja: number
+          tiendas: number
+          titulo: string
+          uds: number
+        }[]
+      }
+      whatsapp_totales_dia: {
+        Args: { p_fecha?: string }
+        Returns: {
+          dias_mes: number
+          dias_transcurridos: number
+          fecha: string
+          pct_acum: number
+          pct_dia: number
+          presupuesto_acum: number
+          presupuesto_dia: number
+          venta_acum: number
+          venta_dia: number
+        }[]
+      }
+      whatsapp_ventas_zona: {
+        Args: { p_fecha?: string }
+        Returns: {
+          ciudad: string
+          neta: number
+          pct_cumpl: number
+          presupuesto_dia: number
+          tienda: string
+          uds: number
+          zona: string
+        }[]
       }
     }
     Enums: {
