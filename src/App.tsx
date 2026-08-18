@@ -42,6 +42,7 @@ import ConfiguracionRolesPage from "./pages/ConfiguracionRoles";
 import ConfiguracionNotificacionesPage from "./pages/ConfiguracionNotificaciones";
 import ConfiguracionSyncInventarioPage from "./pages/ConfiguracionSyncInventario";
 import RendimientoRedPage from "./pages/RendimientoRed";
+import CrisisRoomPage from "./pages/CrisisRoom";
 import AlertasDistribucionPage from "./pages/AlertasDistribucion";
 import FinanzasDashboardPage from "./pages/finanzas/FinanzasDashboard";
 import AddiPage from "./pages/finanzas/AddiPage";
@@ -109,6 +110,7 @@ const App = () => (
           <Route path="/rendimiento-vendedores" element={<Guard module="dashboards.rendimiento_vendedores" action="view"><RendimientoVendedoresPage /></Guard>} />
           <Route path="/comisiones" element={<Guard module="comisiones" action="view"><ComisionesPage /></Guard>} />
           <Route path="/vendedores" element={<Guard module="vendedores" action="view"><VendedoresPage /></Guard>} />
+          <Route path="/crisis-room" element={<Guard module="dashboards.rendimiento_red" action="view"><CrisisRoomPage /></Guard>} />
           <Route path="/rendimiento-red" element={<Guard module="dashboards.rendimiento_red" action="view"><RendimientoRedPage /></Guard>} />
 
           {/* ===== Finanzas ===== */}

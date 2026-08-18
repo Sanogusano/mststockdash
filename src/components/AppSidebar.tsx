@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { LineChart, BarChart3, TrendingUp, ArrowLeftRight, Package, Tag, Layers, Target, Zap, Trophy, Archive, Users, Calculator, UserCog, Briefcase, ChevronDown, Settings, MapPin, Upload, LogOut, Truck, Shield, Store, Banknote, LayoutDashboard, CreditCard, MessageCircle, AlertTriangle, RefreshCw, Sparkles, Search, LayoutGrid, TrendingDown, Globe, Gauge, ScatterChart } from "lucide-react";
+import { LineChart, BarChart3, TrendingUp, ArrowLeftRight, Package, Tag, Layers, Target, Zap, Trophy, Archive, Users, Calculator, UserCog, Briefcase, ChevronDown, Settings, MapPin, Upload, LogOut, Truck, Shield, Store, Banknote, LayoutDashboard, CreditCard, MessageCircle, AlertTriangle, RefreshCw, Sparkles, Search, LayoutGrid, TrendingDown, Globe, Gauge, ScatterChart, Siren } from "lucide-react";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useAuth } from "@/hooks/useAuth";
 import { useUserPermissions } from "@/hooks/useUserPermissions";
@@ -33,6 +33,7 @@ const resumenItem: NavItem = { title: "Resumen Ejecutivo", url: "/", icon: Trend
 const presupuestoItem: NavItem = { title: "Presupuesto", url: "/presupuestos", icon: Target, description: "Metas de venta", module: "dashboards.presupuestos", action: "view" };
 const centroAccionItem: NavItem = { title: "Centro de Acciones", url: "/centro-accion", icon: Zap, description: "Alertas comerciales", module: "dashboards.centro_accion", action: "view" };
 const rendimientoTiendasItem: NavItem = { title: "Rendimiento Tiendas", url: "/rendimiento-red", icon: Store, description: "Same-store, maduración y eficiencia", module: "dashboards.rendimiento_red", action: "view" };
+const crisisRoomItem: NavItem = { title: "Crisis Room", url: "/crisis-room", icon: Siren, description: "Diagnóstico de tienda en crisis", module: "dashboards.rendimiento_red", action: "view" };
 const saludProductoItem: NavItem = { title: "Salud de Producto", url: "/producto", icon: Tag, description: "Sell-through & WOS", module: "dashboards.salud_producto", action: "view" };
 const desempenoLineaItem: NavItem = { title: "Desempeño por Línea", url: "/lineas", icon: Layers, description: "Categorías & canales", module: "dashboards.desempeno_linea", action: "view" };
 const cierreColeccionItem: NavItem = { title: "Cierre de Colecciones", url: "/cierre-coleccion", icon: Archive, description: "Desempeño por colección & remanentes", module: "dashboards.cierre_colecciones", action: "view" };
@@ -281,6 +282,7 @@ export function AppSidebar() {
 
               {/* 4 - Rendimiento Tiendas */}
               {can(rendimientoTiendasItem.module, rendimientoTiendasItem.action) && renderItem(rendimientoTiendasItem)}
+              {can(crisisRoomItem.module, crisisRoomItem.action) && renderItem(crisisRoomItem, true)}
 
               {/* 5 - PRODUCTO */}
               {(visibleProducto.length > 0 || visibleZoom.length > 0 || visibleProductoBottom.length > 0) && (
