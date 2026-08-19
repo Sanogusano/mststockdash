@@ -52,6 +52,7 @@ interface TiendaRow {
   ciudad: string | null;
   zona: string | null;
   tier: string | null;
+  canal: string | null;
   agotados: number;
   impulsar: number;
   quiebres: number;
