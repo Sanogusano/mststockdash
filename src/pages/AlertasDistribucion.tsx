@@ -319,6 +319,60 @@ export default function AlertasDistribucion() {
       <div className="text-[10px] text-muted-foreground mt-1 truncate">{label}</div>
     </div>
   );
+  const StoreCard = ({ t, className }: { t: TiendaRow; className?: string }) => {
+    const ctx = contexto(t);
+    const isOnline = t.zona === "Online";
+    return (
+      <button
+        onClick={() => {
+          setDetalle(t);
+          setTabDetalle(alerta !== "all" ? alerta
+            : t.agotados > 0 ? "AGOTADO VENDIENDO"
+            : t.impulsar > 0 ? "IMPULSAR"
+            : t.quiebres > 0 ? "QUIEBRE EN 2 SEMANAS"
+            : "SOBRESTOCK");
+        }}
+        className={`rounded-lg border bg-card p-4 text-left transition-colors hover:bg-muted/40 hover:border-primary/40 ${className ?? ""}`}>
+        <div className="flex items-center gap-2">
+          <div className={`font-semibold leading-tight line-clamp-1 ${isOnline ? "text-lg" : "text-base"}`}>
+            {t.tienda}
+          </div>
+          {t.zona && !isOnline && (
+            <span className="shrink-0 rounded bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground">
+              {t.zona}
+            </span>
+          )}
+          {isOnline && (
+            <span className="shrink-0 rounded bg-sky-100 px-1.5 py-0.5 text-[10px] font-medium text-sky-700">
+              Online
+            </span>
+          )}
+        </div>
+        <div className="text-[11px] text-muted-foreground">
+          {[t.ciudad, t.tier].filter(Boolean).join(" · ") || "—"}
+        </div>
+
+        <div className="flex gap-2 mt-3">
+          <Contador label="Agotados" valor={t.agotados} color="text-rose-700" />
+          <Contador label="Impulsar" valor={t.impulsar} color="text-violet-700" />
+          <Contador label="Quiebre" valor={t.quiebres} color="text-amber-700" />
+          <Contador label="Sobrestock" valor={t.sobrestock} color="text-sky-700" />
+        </div>
+
+        {ctx && (
+          <div className="text-[11px] text-muted-foreground mt-3 leading-snug">
+            {ctx}
+          </div>
+        )}
+
+        {!!t.uds_perdidas_semana && (
+          <div className="text-xs font-medium text-rose-700 mt-1.5">
+            −{nf(t.uds_perdidas_semana, 1)} uds/sem perdidas
+          </div>
+        )}
+      </button>
+    );
+  };
 
   return (
     <SidebarProvider>
