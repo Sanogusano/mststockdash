@@ -4,11 +4,10 @@ import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { LoadingState, EmptyState } from "@/components/dashboard/LoadingState";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
-  Search, Download, Package, AlertTriangle, Megaphone, Clock, Layers,
+  Download, Package, AlertTriangle, Megaphone, Clock, Layers,
   HelpCircle, X, RotateCcw, ArrowRight,
 } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -150,9 +149,9 @@ export default function AlertasDistribucion() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const [busqueda, setBusqueda] = useState("");
+  const [zona, setZona] = useState("all");
+  const [tiendaSel, setTiendaSel] = useState("all");
   const [alerta, setAlerta] = useState("all");
-  const [ciudad, setCiudad] = useState("all");
   const [ayuda, setAyuda] = useState(false);
 
   const [detalle, setDetalle] = useState<TiendaRow | null>(null);
@@ -198,9 +197,16 @@ export default function AlertasDistribucion() {
     return () => { activo = false; };
   }, []);
 
-  const ciudades = useMemo(
-    () => Array.from(new Set(tiendasRows.map(t => t.ciudad).filter(Boolean) as string[])).sort(),
+  const zonas = useMemo(
+    () => Array.from(new Set(tiendasRows.map(t => t.zona).filter(Boolean) as string[])).sort(),
     [tiendasRows]);
+
+  const tiendasOpciones = useMemo(
+    () => tiendasRows
+      .filter(t => zona === "all" || t.zona === zona)
+      .map(t => ({ id: t.location_id, nombre: t.tienda }))
+      .sort((a, b) => a.nombre.localeCompare(b.nombre, "es")),
+    [tiendasRows, zona]);
 
   const resumen = useMemo(() => {
     const por = (a: string) => rows.filter(r => r.alerta === a);
@@ -227,22 +233,41 @@ export default function AlertasDistribucion() {
     : t.sobrestock;
 
   const tarjetas = useMemo(() => {
-    const q = busqueda.trim().toLowerCase();
     return tiendasRows.filter(t => {
-      if (ciudad !== "all" && t.ciudad !== ciudad) return false;
+      if (zona !== "all" && t.zona !== zona) return false;
+      if (tiendaSel !== "all" && t.location_id !== tiendaSel) return false;
       if (alerta !== "all" && conteoTipo(t, alerta) <= 0) return false;
-      if (q && !(t.tienda ?? "").toLowerCase().includes(q)
-             && !(t.ciudad ?? "").toLowerCase().includes(q)) return false;
       return true;
     });
-  }, [tiendasRows, ciudad, alerta, busqueda]);
+  }, [tiendasRows, zona, tiendaSel, alerta]);
+
+  const grupos = useMemo(() => {
+    const map = new Map<string, TiendaRow[]>();
+    tarjetas.forEach(t => {
+      const z = t.zona ?? "Sin zona";
+      if (!map.has(z)) map.set(z, []);
+      map.get(z)!.push(t);
+    });
+    return Array.from(map.entries())
+      .sort((a, b) => a[0].localeCompare(b[0], "es"))
+      .map(([nombre, lista]) => ({
+        nombre,
+        lista,
+        tiendas: lista.length,
+        agotados: lista.reduce((s, t) => s + (t.agotados ?? 0), 0),
+        impulsar: lista.reduce((s, t) => s + (t.impulsar ?? 0), 0),
+        quiebres: lista.reduce((s, t) => s + (t.quiebres ?? 0), 0),
+        sobrestock: lista.reduce((s, t) => s + (t.sobrestock ?? 0), 0),
+        perdidas: lista.reduce((s, t) => s + (t.uds_perdidas_semana ?? 0), 0),
+      }));
+  }, [tarjetas]);
 
   const detalleRows = useMemo(() => {
     if (!detalle) return [];
     return rows.filter(r => r.location_id === detalle.location_id && r.alerta === tabDetalle);
   }, [rows, detalle, tabDetalle]);
 
-  const limpiar = () => { setAlerta("all"); setCiudad("all"); setBusqueda(""); };
+  const limpiar = () => { setAlerta("all"); setZona("all"); setTiendaSel("all"); };
 
   const exportar = () => {
     const ids = new Set(tarjetas.map(t => t.location_id));
@@ -347,17 +372,29 @@ export default function AlertasDistribucion() {
                 </div>
 
                 <div className="flex flex-wrap items-center gap-2">
-                  <div className="relative">
-                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                    <Input placeholder="Buscar tienda o ciudad…" className="pl-8 w-[210px] h-9"
-                           value={busqueda} onChange={e => setBusqueda(e.target.value)} />
-                  </div>
-
-                  <Select value={ciudad} onValueChange={setCiudad}>
+                  <Select value={zona} onValueChange={(v) => { setZona(v); setTiendaSel("all"); }}>
                     <SelectTrigger className="w-[165px] h-9"><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all">Todas las ciudades</SelectItem>
-                      {ciudades.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                      <SelectItem value="all">Todas las zonas</SelectItem>
+                      {zonas.map(z => <SelectItem key={z} value={z}>{z}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+
+                  <Select value={tiendaSel} onValueChange={setTiendaSel}>
+                    <SelectTrigger className="w-[210px] h-9"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todas las tiendas</SelectItem>
+                      {tiendasOpciones.map(t => (
+                        <SelectItem key={t.id} value={t.id}>{t.nombre}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+
+                  <Select value={alerta} onValueChange={setAlerta}>
+                    <SelectTrigger className="w-[200px] h-9"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todos los tipos de alerta</SelectItem>
+                      {TIPOS.map(t => <SelectItem key={t.key} value={t.key}>{t.corto}</SelectItem>)}
                     </SelectContent>
                   </Select>
 
@@ -381,8 +418,22 @@ export default function AlertasDistribucion() {
                   <EmptyState message="No hay tiendas con estos filtros." />
                 ) : (
                   <>
-                    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
-                      {tarjetas.map(t => {
+                    <div className="space-y-6">
+                    {grupos.map(g => (
+                      <div key={g.nombre} className="space-y-3">
+                        <div className="flex flex-wrap items-baseline gap-x-5 gap-y-1 border-b pb-2">
+                          <span className="text-sm font-semibold">{g.nombre}</span>
+                          <span className="text-[11px] text-muted-foreground">{nf(g.tiendas)} tiendas</span>
+                          <span className="text-[11px] text-rose-700">{nf(g.agotados)} agotados</span>
+                          <span className="text-[11px] text-violet-700">{nf(g.impulsar)} impulsar</span>
+                          <span className="text-[11px] text-amber-700">{nf(g.quiebres)} quiebre</span>
+                          <span className="text-[11px] text-sky-700">{nf(g.sobrestock)} sobrestock</span>
+                          <span className="text-[11px] font-medium text-rose-700">
+                            −{nf(g.perdidas, 0)} uds/sem
+                          </span>
+                        </div>
+                        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
+                      {g.lista.map(t => {
                         const ctx = contexto(t);
                         return (
                           <button key={t.location_id}
@@ -395,7 +446,14 @@ export default function AlertasDistribucion() {
                                 : "SOBRESTOCK");
                             }}
                             className="rounded-lg border bg-card p-4 text-left transition-colors hover:bg-muted/40 hover:border-primary/40">
-                            <div className="font-medium text-sm leading-tight line-clamp-1">{t.tienda}</div>
+                            <div className="flex items-center gap-2">
+                              <div className="font-semibold text-base leading-tight line-clamp-1">{t.tienda}</div>
+                              {t.zona && (
+                                <span className="shrink-0 rounded bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground">
+                                  {t.zona}
+                                </span>
+                              )}
+                            </div>
                             <div className="text-[11px] text-muted-foreground">
                               {[t.ciudad, t.tier].filter(Boolean).join(" · ") || "—"}
                             </div>
@@ -421,6 +479,9 @@ export default function AlertasDistribucion() {
                           </button>
                         );
                       })}
+                        </div>
+                      </div>
+                    ))}
                     </div>
 
                     <div className="flex flex-wrap gap-x-5 gap-y-2 text-[11px] text-muted-foreground">
