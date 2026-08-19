@@ -234,22 +234,41 @@ export default function AlertasDistribucion() {
     : t.sobrestock;
 
   const tarjetas = useMemo(() => {
-    const q = busqueda.trim().toLowerCase();
     return tiendasRows.filter(t => {
-      if (ciudad !== "all" && t.ciudad !== ciudad) return false;
+      if (zona !== "all" && t.zona !== zona) return false;
+      if (tiendaSel !== "all" && t.location_id !== tiendaSel) return false;
       if (alerta !== "all" && conteoTipo(t, alerta) <= 0) return false;
-      if (q && !(t.tienda ?? "").toLowerCase().includes(q)
-             && !(t.ciudad ?? "").toLowerCase().includes(q)) return false;
       return true;
     });
-  }, [tiendasRows, ciudad, alerta, busqueda]);
+  }, [tiendasRows, zona, tiendaSel, alerta]);
+
+  const grupos = useMemo(() => {
+    const map = new Map<string, TiendaRow[]>();
+    tarjetas.forEach(t => {
+      const z = t.zona ?? "Sin zona";
+      if (!map.has(z)) map.set(z, []);
+      map.get(z)!.push(t);
+    });
+    return Array.from(map.entries())
+      .sort((a, b) => a[0].localeCompare(b[0], "es"))
+      .map(([nombre, lista]) => ({
+        nombre,
+        lista,
+        tiendas: lista.length,
+        agotados: lista.reduce((s, t) => s + (t.agotados ?? 0), 0),
+        impulsar: lista.reduce((s, t) => s + (t.impulsar ?? 0), 0),
+        quiebres: lista.reduce((s, t) => s + (t.quiebres ?? 0), 0),
+        sobrestock: lista.reduce((s, t) => s + (t.sobrestock ?? 0), 0),
+        perdidas: lista.reduce((s, t) => s + (t.uds_perdidas_semana ?? 0), 0),
+      }));
+  }, [tarjetas]);
 
   const detalleRows = useMemo(() => {
     if (!detalle) return [];
     return rows.filter(r => r.location_id === detalle.location_id && r.alerta === tabDetalle);
   }, [rows, detalle, tabDetalle]);
 
-  const limpiar = () => { setAlerta("all"); setCiudad("all"); setBusqueda(""); };
+  const limpiar = () => { setAlerta("all"); setZona("all"); setTiendaSel("all"); };
 
   const exportar = () => {
     const ids = new Set(tarjetas.map(t => t.location_id));
