@@ -198,9 +198,16 @@ export default function AlertasDistribucion() {
     return () => { activo = false; };
   }, []);
 
-  const ciudades = useMemo(
-    () => Array.from(new Set(tiendasRows.map(t => t.ciudad).filter(Boolean) as string[])).sort(),
+  const zonas = useMemo(
+    () => Array.from(new Set(tiendasRows.map(t => t.zona).filter(Boolean) as string[])).sort(),
     [tiendasRows]);
+
+  const tiendasOpciones = useMemo(
+    () => tiendasRows
+      .filter(t => zona === "all" || t.zona === zona)
+      .map(t => ({ id: t.location_id, nombre: t.tienda }))
+      .sort((a, b) => a.nombre.localeCompare(b.nombre, "es")),
+    [tiendasRows, zona]);
 
   const resumen = useMemo(() => {
     const por = (a: string) => rows.filter(r => r.alerta === a);
