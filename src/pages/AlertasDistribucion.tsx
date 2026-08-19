@@ -379,7 +379,8 @@ export default function AlertasDistribucion() {
                     <SelectTrigger className="w-[165px] h-9"><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">Todas las zonas</SelectItem>
-                      {zonas.map(z => <SelectItem key={z} value={z}>{z}</SelectItem>)}
+                      <SelectItem value="Online">Online</SelectItem>
+                      {zonas.filter(z => z !== "Online").map(z => <SelectItem key={z} value={z}>{z}</SelectItem>)}
                     </SelectContent>
                   </Select>
 
