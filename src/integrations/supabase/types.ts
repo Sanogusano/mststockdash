@@ -2385,6 +2385,7 @@ export type Database = {
       alertas_distribucion: {
         Row: {
           alerta: string | null
+          canal: string | null
           ciudad: string | null
           color: string | null
           image_url: string | null
@@ -2415,6 +2416,7 @@ export type Database = {
         Row: {
           agotados: number | null
           agotados_con_stock: number | null
+          canal: string | null
           ciudad: string | null
           impulsar: number | null
           location_id: string | null
