@@ -373,17 +373,29 @@ export default function AlertasDistribucion() {
                 </div>
 
                 <div className="flex flex-wrap items-center gap-2">
-                  <div className="relative">
-                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                    <Input placeholder="Buscar tienda o ciudad…" className="pl-8 w-[210px] h-9"
-                           value={busqueda} onChange={e => setBusqueda(e.target.value)} />
-                  </div>
-
-                  <Select value={ciudad} onValueChange={setCiudad}>
+                  <Select value={zona} onValueChange={(v) => { setZona(v); setTiendaSel("all"); }}>
                     <SelectTrigger className="w-[165px] h-9"><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all">Todas las ciudades</SelectItem>
-                      {ciudades.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                      <SelectItem value="all">Todas las zonas</SelectItem>
+                      {zonas.map(z => <SelectItem key={z} value={z}>{z}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+
+                  <Select value={tiendaSel} onValueChange={setTiendaSel}>
+                    <SelectTrigger className="w-[210px] h-9"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todas las tiendas</SelectItem>
+                      {tiendasOpciones.map(t => (
+                        <SelectItem key={t.id} value={t.id}>{t.nombre}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+
+                  <Select value={alerta} onValueChange={setAlerta}>
+                    <SelectTrigger className="w-[200px] h-9"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todos los tipos de alerta</SelectItem>
+                      {TIPOS.map(t => <SelectItem key={t.key} value={t.key}>{t.corto}</SelectItem>)}
                     </SelectContent>
                   </Select>
 
