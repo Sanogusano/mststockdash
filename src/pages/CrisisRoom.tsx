@@ -15,7 +15,7 @@ import { Siren, AlertTriangle, Users, Receipt, ShoppingBag, Package } from "luci
  */
 
 interface Diag {
-  tienda: string;
+  entidad: string;
   ciudad: string | null;
   zona: string | null;
   venta_mtd: number;
@@ -52,7 +52,7 @@ interface Prod {
   linea: string | null;
   image_url: string | null;
   accion: string;
-  stock_tienda: number;
+  stock_local: number;
   stock_red: number;
   ritmo_red: number;
   tiendas_vendiendo: number;
@@ -123,8 +123,8 @@ export default function CrisisRoomPage() {
       setLoading(true);
       setError(null);
       const [d, p] = await Promise.all([
-        supabase.rpc("crisis_room_tienda", { p_busqueda: tienda, p_fecha: fechaCorte }),
-        supabase.rpc("crisis_room_productos", { p_busqueda: tienda, p_limite: 20 }),
+        supabase.rpc("crisis_room_tienda", { p_clave: tienda, p_fecha: fechaCorte }),
+        supabase.rpc("crisis_room_productos", { p_clave: tienda, p_limite: 20 }),
       ]);
       if (cancel) return;
       if (d.error) setError(d.error.message);
@@ -214,7 +214,7 @@ export default function CrisisRoomPage() {
                 {/* Bloque 1 — La situación */}
                 <section className="rounded-xl border bg-card p-5">
                   <div className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground mb-4">
-                    La situación · {diag.tienda}{diag.ciudad ? ` · ${diag.ciudad}` : ""}
+                    La situación · {diag.entidad}{diag.ciudad ? ` · ${diag.ciudad}` : ""}
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
                     <div>
@@ -389,7 +389,7 @@ export default function CrisisRoomPage() {
                               </div>
                             </div>
                             <div className="text-right text-xs text-muted-foreground shrink-0">
-                              <div>Tienda: {p.stock_tienda} uds</div>
+                              <div>Tienda: {p.stock_local} uds</div>
                               <div>Red: {p.stock_red} uds</div>
                             </div>
                           </li>

@@ -2411,6 +2411,26 @@ export type Database = {
         }
         Relationships: []
       }
+      alertas_por_tienda: {
+        Row: {
+          agotados: number | null
+          agotados_con_stock: number | null
+          ciudad: string | null
+          impulsar: number | null
+          location_id: string | null
+          prioridad: number | null
+          quiebres: number | null
+          sobrestock: number | null
+          tienda: string | null
+          tier: string | null
+          total_alertas: number | null
+          uds_impulsar: number | null
+          uds_perdidas_semana: number | null
+          uds_sobrestock: number | null
+          zona: string | null
+        }
+        Relationships: []
+      }
       allocation_suggestions: {
         Row: {
           sku: string | null
@@ -3307,8 +3327,18 @@ export type Database = {
         }
         Returns: string
       }
+      crisis_room_entidades: {
+        Args: never
+        Returns: {
+          ciudad: string
+          clave: string
+          nombre: string
+          tipo: string
+          zona: string
+        }[]
+      }
       crisis_room_productos: {
-        Args: { p_busqueda: string; p_limite?: number }
+        Args: { p_clave: string; p_limite?: number }
         Returns: {
           accion: string
           image_url: string
@@ -3316,13 +3346,13 @@ export type Database = {
           potencial_semanal: number
           producto: string
           ritmo_red: number
+          stock_local: number
           stock_red: number
-          stock_tienda: number
           tiendas_vendiendo: number
         }[]
       }
       crisis_room_tienda: {
-        Args: { p_busqueda: string; p_fecha?: string }
+        Args: { p_clave: string; p_fecha?: string }
         Returns: {
           brecha_fecha: number
           cierre_probable: number
@@ -3330,6 +3360,7 @@ export type Database = {
           dias_mes: number
           dias_restantes: number
           dias_transcurridos: number
+          entidad: string
           falta_para_meta: number
           gap_por_ticket: number
           gap_por_trafico: number
@@ -3345,9 +3376,11 @@ export type Database = {
           tendencia_7d: number
           ticket: number
           ticket_red: number
-          tienda: string
+          tipo: string
           transacciones: number
+          tx_dia: number
           tx_dia_red: number
+          unidades: number
           upt: number
           upt_red: number
           var_ano_anterior: number

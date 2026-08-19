@@ -5,6 +5,8 @@ import { AppSidebar } from "@/components/AppSidebar";
 import { LoadingState, EmptyState } from "@/components/dashboard/LoadingState";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Search, Download, Package, AlertTriangle, Megaphone, Clock, Layers,
   HelpCircle, X, RotateCcw, ArrowRight,
@@ -14,21 +16,8 @@ import * as XLSX from "xlsx";
 
 /**
  * Alertas de distribución — riesgos de agotado y mala colocación.
- *
- * Cuatro alertas, nombradas por la ACCIÓN que requieren:
- *   AGOTADO VENDIENDO   · stock 0 donde la tienda vende ≥1 uds/semana
- *   IMPULSAR            · hay stock, cero ventas, pero la línea rota en esa
- *                         tienda y el producto se vende en el resto de la red
- *   QUIEBRE EN 2 SEMANAS · menos de 2 semanas de cobertura
- *   SOBRESTOCK          · más de 20 semanas de cobertura
- *
- * IMPULSAR es la más accionable: el producto ya está en la tienda correcta con
- * demanda probada. No necesita logística ni producción, solo push. El filtro
- * por ritmo de línea es lo que quita el ruido — si la tienda no vende esa
- * categoría en general, que este producto no venda es normal.
- *
- * No se reproduce inventario: cuando un agotado no tiene stock en la red, no
- * hay solución posible. Por eso la etiqueta es "sin reposición".
+ * Vista principal: grilla de tarjetas por tienda (alertas_por_tienda),
+ * detalle SKU a SKU en panel lateral (alertas_distribucion por location_id).
  */
 
 interface Row {
@@ -58,6 +47,24 @@ interface Row {
   tiene_solucion: boolean;
 }
 
+interface TiendaRow {
+  location_id: string;
+  tienda: string;
+  ciudad: string | null;
+  zona: string | null;
+  tier: string | null;
+  agotados: number;
+  impulsar: number;
+  quiebres: number;
+  sobrestock: number;
+  uds_impulsar: number;
+  uds_sobrestock: number;
+  uds_perdidas_semana: number | null;
+  agotados_con_stock: number;
+  total_alertas: number;
+  prioridad: number | null;
+}
+
 const nf = (v: number | null | undefined, d = 0) =>
   v == null ? "—" : Number(v).toLocaleString("es-CO", {
     minimumFractionDigits: d, maximumFractionDigits: d,
@@ -69,6 +76,13 @@ const BADGE: Record<string, string> = {
   "QUIEBRE EN 2 SEMANAS": "bg-amber-100 text-amber-800",
   "SOBRESTOCK":           "bg-sky-100 text-sky-800",
 };
+
+const TIPOS = [
+  { key: "AGOTADO VENDIENDO", corto: "Agotados" },
+  { key: "IMPULSAR", corto: "Impulsar" },
+  { key: "QUIEBRE EN 2 SEMANAS", corto: "Quiebre" },
+  { key: "SOBRESTOCK", corto: "Sobrestock" },
+];
 
 function Ayuda({ onClose }: { onClose: () => void }) {
   return (
@@ -119,18 +133,30 @@ function Ayuda({ onClose }: { onClose: () => void }) {
   );
 }
 
+function contexto(t: TiendaRow): string | null {
+  if (t.agotados > 0 && t.sobrestock > 20) return "Tiene inventario, pero el equivocado";
+  if (t.agotados > 0 && t.agotados_con_stock === t.agotados)
+    return `${nf(t.agotados)} agotados, todos con stock en la red — despachar hoy`;
+  if (t.agotados === 0 && t.impulsar > 0)
+    return `Sin agotados · ${nf(t.uds_impulsar)} uds en tienda sin rotar`;
+  if (t.agotados > 0)
+    return `${nf(t.agotados)} agotados · ${nf(t.agotados_con_stock)} con stock en la red`;
+  return null;
+}
+
 export default function AlertasDistribucion() {
   const [rows, setRows] = useState<Row[]>([]);
+  const [tiendasRows, setTiendasRows] = useState<TiendaRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const [busqueda, setBusqueda] = useState("");
-  const [alerta, setAlerta] = useState("AGOTADO VENDIENDO");
+  const [alerta, setAlerta] = useState("all");
   const [ciudad, setCiudad] = useState("all");
-  const [tienda, setTienda] = useState("all");
-  const [linea, setLinea] = useState("all");
-  const [soloSolucion, setSoloSolucion] = useState("todos");
   const [ayuda, setAyuda] = useState(false);
+
+  const [detalle, setDetalle] = useState<TiendaRow | null>(null);
+  const [tabDetalle, setTabDetalle] = useState("AGOTADO VENDIENDO");
 
   useEffect(() => {
     let activo = true;
@@ -154,7 +180,15 @@ export default function AlertasDistribucion() {
           desde += PAGINA;
           if (desde > 20000) break;
         }
-        if (activo) setRows(acc);
+        const { data: tdata, error: terror } = await (supabase as any)
+          .from("alertas_por_tienda")
+          .select("*")
+          .order("prioridad", { ascending: false, nullsFirst: false });
+        if (terror) throw terror;
+        if (activo) {
+          setRows(acc);
+          setTiendasRows((tdata ?? []) as TiendaRow[]);
+        }
       } catch (e: any) {
         if (activo) setError(e?.message ?? String(e));
       } finally {
@@ -165,13 +199,8 @@ export default function AlertasDistribucion() {
   }, []);
 
   const ciudades = useMemo(
-    () => Array.from(new Set(rows.map(r => r.ciudad).filter(Boolean) as string[])).sort(), [rows]);
-  const tiendas = useMemo(
-    () => Array.from(new Set(rows
-      .filter(r => ciudad === "all" || r.ciudad === ciudad)
-      .map(r => r.tienda).filter(Boolean))).sort(), [rows, ciudad]);
-  const lineas = useMemo(
-    () => Array.from(new Set(rows.map(r => r.linea).filter(Boolean) as string[])).sort(), [rows]);
+    () => Array.from(new Set(tiendasRows.map(t => t.ciudad).filter(Boolean) as string[])).sort(),
+    [tiendasRows]);
 
   const resumen = useMemo(() => {
     const por = (a: string) => rows.filter(r => r.alerta === a);
@@ -191,27 +220,34 @@ export default function AlertasDistribucion() {
     };
   }, [rows]);
 
-  const filtrados = useMemo(() => {
+  const conteoTipo = (t: TiendaRow, tipo: string) =>
+    tipo === "AGOTADO VENDIENDO" ? t.agotados
+    : tipo === "IMPULSAR" ? t.impulsar
+    : tipo === "QUIEBRE EN 2 SEMANAS" ? t.quiebres
+    : t.sobrestock;
+
+  const tarjetas = useMemo(() => {
     const q = busqueda.trim().toLowerCase();
-    return rows.filter(r => {
-      if (alerta !== "all" && r.alerta !== alerta) return false;
-      if (ciudad !== "all" && r.ciudad !== ciudad) return false;
-      if (tienda !== "all" && r.tienda !== tienda) return false;
-      if (linea !== "all" && r.linea !== linea) return false;
-      if (soloSolucion === "con" && !r.tiene_solucion) return false;
-      if (soloSolucion === "sin" && r.tiene_solucion) return false;
-      if (q && !(r.producto ?? "").toLowerCase().includes(q)
-             && !(r.sku ?? "").toLowerCase().includes(q)) return false;
+    return tiendasRows.filter(t => {
+      if (ciudad !== "all" && t.ciudad !== ciudad) return false;
+      if (alerta !== "all" && conteoTipo(t, alerta) <= 0) return false;
+      if (q && !(t.tienda ?? "").toLowerCase().includes(q)
+             && !(t.ciudad ?? "").toLowerCase().includes(q)) return false;
       return true;
     });
-  }, [rows, alerta, ciudad, tienda, linea, soloSolucion, busqueda]);
+  }, [tiendasRows, ciudad, alerta, busqueda]);
 
-  const limpiar = () => {
-    setAlerta("AGOTADO VENDIENDO"); setCiudad("all"); setTienda("all");
-    setLinea("all"); setSoloSolucion("todos"); setBusqueda("");
-  };
+  const detalleRows = useMemo(() => {
+    if (!detalle) return [];
+    return rows.filter(r => r.location_id === detalle.location_id && r.alerta === tabDetalle);
+  }, [rows, detalle, tabDetalle]);
+
+  const limpiar = () => { setAlerta("all"); setCiudad("all"); setBusqueda(""); };
 
   const exportar = () => {
+    const ids = new Set(tarjetas.map(t => t.location_id));
+    const filtrados = rows.filter(r => ids.has(r.location_id)
+      && (alerta === "all" || r.alerta === alerta));
     if (!filtrados.length) return;
     const datos = filtrados.map(r => ({
       Alerta: r.alerta, Producto: r.producto, SKU: r.sku,
@@ -247,6 +283,13 @@ export default function AlertasDistribucion() {
       <div className={`text-xl font-semibold tabular-nums mt-0.5 ${color.texto}`}>{valor}</div>
       <div className="text-[10px] text-muted-foreground">{sub}</div>
     </button>
+  );
+
+  const Contador = ({ label, valor, color }: { label: string; valor: number; color: string }) => (
+    <div className="flex-1 min-w-0">
+      <div className={`text-lg font-semibold tabular-nums leading-none ${color}`}>{nf(valor)}</div>
+      <div className="text-[10px] text-muted-foreground mt-1 truncate">{label}</div>
+    </div>
   );
 
   return (
@@ -306,175 +349,83 @@ export default function AlertasDistribucion() {
                 <div className="flex flex-wrap items-center gap-2">
                   <div className="relative">
                     <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                    <Input placeholder="Buscar producto o SKU…" className="pl-8 w-[195px] h-9"
+                    <Input placeholder="Buscar tienda o ciudad…" className="pl-8 w-[210px] h-9"
                            value={busqueda} onChange={e => setBusqueda(e.target.value)} />
                   </div>
 
-                  <Select value={alerta} onValueChange={setAlerta}>
-                    <SelectTrigger className="w-[185px] h-9"><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">Todas las alertas</SelectItem>
-                      <SelectItem value="AGOTADO VENDIENDO">Agotado vendiendo</SelectItem>
-                      <SelectItem value="IMPULSAR">Impulsar</SelectItem>
-                      <SelectItem value="QUIEBRE EN 2 SEMANAS">Quiebre en 2 semanas</SelectItem>
-                      <SelectItem value="SOBRESTOCK">Sobrestock</SelectItem>
-                    </SelectContent>
-                  </Select>
-
-                  <Select value={ciudad} onValueChange={v => { setCiudad(v); setTienda("all"); }}>
-                    <SelectTrigger className="w-[145px] h-9"><SelectValue /></SelectTrigger>
+                  <Select value={ciudad} onValueChange={setCiudad}>
+                    <SelectTrigger className="w-[165px] h-9"><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">Todas las ciudades</SelectItem>
                       {ciudades.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
                     </SelectContent>
                   </Select>
 
-                  <Select value={tienda} onValueChange={setTienda}>
-                    <SelectTrigger className="w-[185px] h-9"><SelectValue /></SelectTrigger>
-                    <SelectContent className="max-h-[320px]">
-                      <SelectItem value="all">Todas las tiendas</SelectItem>
-                      {tiendas.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-
-                  <Select value={linea} onValueChange={setLinea}>
-                    <SelectTrigger className="w-[160px] h-9"><SelectValue /></SelectTrigger>
-                    <SelectContent className="max-h-[320px]">
-                      <SelectItem value="all">Todas las líneas</SelectItem>
-                      {lineas.map(l => <SelectItem key={l} value={l}>{l}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-
-                  <Select value={soloSolucion} onValueChange={setSoloSolucion}>
-                    <SelectTrigger className="w-[165px] h-9"><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="todos">Con y sin stock</SelectItem>
-                      <SelectItem value="con">Hay stock en red</SelectItem>
-                      <SelectItem value="sin">Sin reposición</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  {alerta !== "all" && (
+                    <span className={`inline-flex rounded-md px-2 py-1 text-[11px] font-medium ${BADGE[alerta] ?? ""}`}>
+                      Filtrando por {alerta}
+                    </span>
+                  )}
 
                   <Button variant="ghost" size="sm" className="h-9" onClick={limpiar}>
                     <RotateCcw className="h-4 w-4 mr-1.5" />Limpiar
                   </Button>
 
                   <Button variant="outline" size="sm" className="ml-auto h-9"
-                          onClick={exportar} disabled={!filtrados.length}>
+                          onClick={exportar} disabled={!tarjetas.length}>
                     <Download className="h-4 w-4 mr-1.5" />Excel
                   </Button>
                 </div>
 
-                {!filtrados.length ? (
-                  <EmptyState message="No hay alertas con estos filtros." />
+                {!tarjetas.length ? (
+                  <EmptyState message="No hay tiendas con estos filtros." />
                 ) : (
                   <>
-                    <div className="rounded-lg border overflow-x-auto">
-                      <table className="w-full text-sm">
-                        <thead>
-                          <tr className="border-b bg-muted/40 text-xs text-muted-foreground">
-                            <th className="text-left p-2.5 font-medium" colSpan={2}>Producto</th>
-                            <th className="text-left p-2.5 font-medium">Tienda</th>
-                            <th className="text-right p-2.5 font-medium">Stock</th>
-                            <th className="text-right p-2.5 font-medium">Aquí</th>
-                            <th className="text-right p-2.5 font-medium">En la red</th>
-                            <th className="text-left p-2.5 font-medium">Alerta</th>
-                            <th className="text-left p-2.5 font-medium">Acción</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {filtrados.slice(0, 200).map((r, i) => (
-                            <tr key={`${r.sku}-${r.location_id}-${i}`} className="border-b hover:bg-muted/20">
-                              <td className="p-2 w-[52px]">
-                                {r.image_url ? (
-                                  <img src={r.image_url} alt="" loading="lazy"
-                                       className="h-11 w-11 rounded object-cover bg-muted" />
-                                ) : (
-                                  <div className="h-11 w-11 rounded bg-muted flex items-center justify-center">
-                                    <Package className="h-4 w-4 text-muted-foreground/50" />
-                                  </div>
-                                )}
-                              </td>
-                              <td className="p-2.5 min-w-[185px]">
-                                <div className="font-medium leading-tight line-clamp-1">
-                                  {r.producto ?? r.sku}
-                                </div>
-                                <div className="text-[11px] text-muted-foreground">
-                                  {[r.linea, r.color, r.talla].filter(Boolean).join(" · ")}
-                                </div>
-                              </td>
-                              <td className="p-2.5">
-                                <div className="text-xs">{r.tienda}</div>
-                                <div className="text-[10px] text-muted-foreground">
-                                  {r.ciudad}{r.tier ? ` · ${r.tier}` : ""}
-                                </div>
-                              </td>
-                              <td className="p-2.5 text-right tabular-nums">
-                                <span className={r.stock === 0 ? "text-rose-700 font-medium" : ""}>
-                                  {nf(r.stock)}
-                                </span>
-                              </td>
-                              <td className="p-2.5 text-right">
-                                <div className="tabular-nums">{nf(r.ritmo_semanal, 1)}</div>
-                                <div className="text-[10px] text-muted-foreground whitespace-nowrap">
-                                  {r.wos != null
-                                    ? `${nf(Math.min(r.wos, 99), 1)} sem stock`
-                                    : r.ritmo_linea_tienda != null
-                                      ? `línea ${nf(r.ritmo_linea_tienda, 1)}/sem`
-                                      : "uds/sem"}
-                                </div>
-                              </td>
-                              <td className="p-2.5 text-right">
-                                {r.ritmo_red != null ? (
-                                  <>
-                                    <div className="tabular-nums">{nf(r.ritmo_red, 1)}</div>
-                                    <div className="text-[10px] text-muted-foreground whitespace-nowrap">
-                                      en {r.tiendas_vendiendo} tiendas
-                                    </div>
-                                  </>
-                                ) : <span className="text-xs text-muted-foreground">—</span>}
-                              </td>
-                              <td className="p-2.5">
-                                <span className={`inline-flex rounded-md px-2 py-0.5 text-[11px] font-medium ${BADGE[r.alerta] ?? ""}`}>
-                                  {r.alerta}
-                                </span>
-                                {r.venta_perdida_semanal != null && (
-                                  <div className="text-[10px] text-rose-700 mt-0.5">
-                                    −{nf(r.venta_perdida_semanal, 1)} uds/sem
-                                  </div>
-                                )}
-                              </td>
-                              <td className="p-2.5">
-                                {r.alerta === "IMPULSAR" ? (
-                                  <span className="text-[11px] text-violet-700">
-                                    Ya está en tienda · dar push
-                                  </span>
-                                ) : r.alerta === "SOBRESTOCK" ? (
-                                  <span className="text-[11px] text-sky-700">Redistribuir</span>
-                                ) : r.tiene_solucion ? (
-                                  <div className="flex items-center gap-1 text-[11px] text-emerald-700">
-                                    <ArrowRight className="h-3 w-3" />
-                                    {nf(r.stock_red_cedible)} uds en red
-                                  </div>
-                                ) : (
-                                  <span className="text-[11px] text-muted-foreground">
-                                    Sin reposición
-                                  </span>
-                                )}
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                      {filtrados.length > 200 && (
-                        <div className="p-2.5 text-center text-xs text-muted-foreground border-t">
-                          Mostrando 200 de {nf(filtrados.length)}. Exporta el Excel para ver el resto.
-                        </div>
-                      )}
+                    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
+                      {tarjetas.map(t => {
+                        const ctx = contexto(t);
+                        return (
+                          <button key={t.location_id}
+                            onClick={() => {
+                              setDetalle(t);
+                              setTabDetalle(alerta !== "all" ? alerta
+                                : t.agotados > 0 ? "AGOTADO VENDIENDO"
+                                : t.impulsar > 0 ? "IMPULSAR"
+                                : t.quiebres > 0 ? "QUIEBRE EN 2 SEMANAS"
+                                : "SOBRESTOCK");
+                            }}
+                            className="rounded-lg border bg-card p-4 text-left transition-colors hover:bg-muted/40 hover:border-primary/40">
+                            <div className="font-medium text-sm leading-tight line-clamp-1">{t.tienda}</div>
+                            <div className="text-[11px] text-muted-foreground">
+                              {[t.ciudad, t.tier].filter(Boolean).join(" · ") || "—"}
+                            </div>
+
+                            <div className="flex gap-2 mt-3">
+                              <Contador label="Agotados" valor={t.agotados} color="text-rose-700" />
+                              <Contador label="Impulsar" valor={t.impulsar} color="text-violet-700" />
+                              <Contador label="Quiebre" valor={t.quiebres} color="text-amber-700" />
+                              <Contador label="Sobrestock" valor={t.sobrestock} color="text-sky-700" />
+                            </div>
+
+                            {ctx && (
+                              <div className="text-[11px] text-muted-foreground mt-3 leading-snug">
+                                {ctx}
+                              </div>
+                            )}
+
+                            {!!t.uds_perdidas_semana && (
+                              <div className="text-xs font-medium text-rose-700 mt-1.5">
+                                −{nf(t.uds_perdidas_semana, 1)} uds/sem perdidas
+                              </div>
+                            )}
+                          </button>
+                        );
+                      })}
                     </div>
 
                     <div className="flex flex-wrap gap-x-5 gap-y-2 text-[11px] text-muted-foreground">
+                      <span>Tiendas ordenadas por prioridad</span>
                       <span>Ritmo y cobertura sobre los últimos 28 días</span>
-                      <span>"Impulsar": la tienda vende la línea y el producto rota en la red, pero aquí no se mueve</span>
                       <span>Sin stock en red no hay reposición: el producto no se vuelve a producir</span>
                     </div>
                   </>
@@ -484,6 +435,124 @@ export default function AlertasDistribucion() {
           </div>
         </main>
       </div>
+
+      <Sheet open={!!detalle} onOpenChange={(o) => { if (!o) setDetalle(null); }}>
+        <SheetContent side="right" className="!max-w-3xl w-full overflow-y-auto p-0">
+          {detalle && (
+            <>
+              <SheetHeader className="p-5 pb-3 border-b">
+                <SheetTitle className="text-base">{detalle.tienda}</SheetTitle>
+                <p className="text-xs text-muted-foreground">
+                  {[detalle.ciudad, detalle.tier].filter(Boolean).join(" · ")} ·{" "}
+                  {nf(detalle.total_alertas)} alertas
+                </p>
+              </SheetHeader>
+
+              <div className="p-5 space-y-4">
+                <Tabs value={tabDetalle} onValueChange={setTabDetalle}>
+                  <TabsList className="w-full">
+                    {TIPOS.map(t => (
+                      <TabsTrigger key={t.key} value={t.key} className="flex-1 text-xs">
+                        {t.corto} ({nf(conteoTipo(detalle, t.key))})
+                      </TabsTrigger>
+                    ))}
+                  </TabsList>
+                </Tabs>
+
+                {!detalleRows.length ? (
+                  <EmptyState message="Sin alertas de este tipo en la tienda." />
+                ) : (
+                  <div className="rounded-lg border overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b bg-muted/40 text-xs text-muted-foreground">
+                          <th className="text-left p-2.5 font-medium" colSpan={2}>Producto</th>
+                          <th className="text-right p-2.5 font-medium">Stock</th>
+                          <th className="text-right p-2.5 font-medium">Aquí</th>
+                          <th className="text-right p-2.5 font-medium">En la red</th>
+                          <th className="text-left p-2.5 font-medium">Acción</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {detalleRows.map((r, i) => (
+                          <tr key={`${r.sku}-${i}`} className="border-b hover:bg-muted/20">
+                            <td className="p-2 w-[52px]">
+                              {r.image_url ? (
+                                <img src={r.image_url} alt="" loading="lazy"
+                                     className="h-11 w-11 rounded object-cover bg-muted" />
+                              ) : (
+                                <div className="h-11 w-11 rounded bg-muted flex items-center justify-center">
+                                  <Package className="h-4 w-4 text-muted-foreground/50" />
+                                </div>
+                              )}
+                            </td>
+                            <td className="p-2.5 min-w-[185px]">
+                              <div className="font-medium leading-tight line-clamp-1">
+                                {r.producto ?? r.sku}
+                              </div>
+                              <div className="text-[11px] text-muted-foreground">
+                                {[r.linea, r.color, r.talla].filter(Boolean).join(" · ")}
+                              </div>
+                            </td>
+                            <td className="p-2.5 text-right tabular-nums">
+                              <span className={r.stock === 0 ? "text-rose-700 font-medium" : ""}>
+                                {nf(r.stock)}
+                              </span>
+                            </td>
+                            <td className="p-2.5 text-right">
+                              <div className="tabular-nums">{nf(r.ritmo_semanal, 1)}</div>
+                              <div className="text-[10px] text-muted-foreground whitespace-nowrap">
+                                {r.wos != null
+                                  ? `${nf(Math.min(r.wos, 99), 1)} sem stock`
+                                  : r.ritmo_linea_tienda != null
+                                    ? `línea ${nf(r.ritmo_linea_tienda, 1)}/sem`
+                                    : "uds/sem"}
+                              </div>
+                            </td>
+                            <td className="p-2.5 text-right">
+                              {r.ritmo_red != null ? (
+                                <>
+                                  <div className="tabular-nums">{nf(r.ritmo_red, 1)}</div>
+                                  <div className="text-[10px] text-muted-foreground whitespace-nowrap">
+                                    en {r.tiendas_vendiendo} tiendas
+                                  </div>
+                                </>
+                              ) : <span className="text-xs text-muted-foreground">—</span>}
+                            </td>
+                            <td className="p-2.5">
+                              {r.alerta === "IMPULSAR" ? (
+                                <span className="text-[11px] text-violet-700">
+                                  Ya está en tienda · dar push
+                                </span>
+                              ) : r.alerta === "SOBRESTOCK" ? (
+                                <span className="text-[11px] text-sky-700">Redistribuir</span>
+                              ) : r.tiene_solucion ? (
+                                <div className="flex items-center gap-1 text-[11px] text-emerald-700">
+                                  <ArrowRight className="h-3 w-3" />
+                                  {nf(r.stock_red_cedible)} uds en red
+                                </div>
+                              ) : (
+                                <span className="text-[11px] text-muted-foreground">
+                                  Sin reposición
+                                </span>
+                              )}
+                              {r.venta_perdida_semanal != null && (
+                                <div className="text-[10px] text-rose-700 mt-0.5">
+                                  −{nf(r.venta_perdida_semanal, 1)} uds/sem
+                                </div>
+                              )}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            </>
+          )}
+        </SheetContent>
+      </Sheet>
     </SidebarProvider>
   );
 }
