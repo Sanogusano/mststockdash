@@ -244,7 +244,7 @@ export default function AlertasDistribucion() {
 
   const grupos = useMemo(() => {
     const map = new Map<string, TiendaRow[]>();
-    tarjetas.forEach(t => {
+    tarjetas.filter(t => t.zona !== "Online").forEach(t => {
       const z = t.zona ?? "Sin zona";
       if (!map.has(z)) map.set(z, []);
       map.get(z)!.push(t);
@@ -262,6 +262,8 @@ export default function AlertasDistribucion() {
         perdidas: lista.reduce((s, t) => s + (t.uds_perdidas_semana ?? 0), 0),
       }));
   }, [tarjetas]);
+
+  const onlineTienda = useMemo(() => tarjetas.find(t => t.zona === "Online"), [tarjetas]);
 
   const detalleRows = useMemo(() => {
     if (!detalle) return [];
