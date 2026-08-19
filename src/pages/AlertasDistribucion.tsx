@@ -150,9 +150,9 @@ export default function AlertasDistribucion() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const [busqueda, setBusqueda] = useState("");
+  const [zona, setZona] = useState("all");
+  const [tiendaSel, setTiendaSel] = useState("all");
   const [alerta, setAlerta] = useState("all");
-  const [ciudad, setCiudad] = useState("all");
   const [ayuda, setAyuda] = useState(false);
 
   const [detalle, setDetalle] = useState<TiendaRow | null>(null);
