@@ -477,69 +477,46 @@ export default function AlertasDistribucion() {
                 ) : (
                   <>
                     <div className="space-y-6">
-                    {grupos.map(g => (
-                      <div key={g.nombre} className="space-y-3">
-                        <div className="flex flex-wrap items-baseline gap-x-5 gap-y-1 border-b pb-2">
-                          <span className="text-sm font-semibold">{g.nombre}</span>
-                          <span className="text-[11px] text-muted-foreground">{nf(g.tiendas)} tiendas</span>
-                          <span className="text-[11px] text-rose-700">{nf(g.agotados)} agotados</span>
-                          <span className="text-[11px] text-violet-700">{nf(g.impulsar)} impulsar</span>
-                          <span className="text-[11px] text-amber-700">{nf(g.quiebres)} quiebre</span>
-                          <span className="text-[11px] text-sky-700">{nf(g.sobrestock)} sobrestock</span>
-                          <span className="text-[11px] font-medium text-rose-700">
-                            −{nf(g.perdidas, 0)} uds/sem
-                          </span>
+                      {onlineTienda && (
+                        <div className="space-y-3">
+                          <div className="flex flex-wrap items-baseline gap-x-5 gap-y-1 border-b border-sky-200 pb-2">
+                            <span className="text-sm font-semibold text-sky-900">Tienda Online</span>
+                            <span className="text-[11px] text-muted-foreground">1 tienda</span>
+                            <span className="text-[11px] text-rose-700">{nf(onlineTienda.agotados)} agotados</span>
+                            <span className="text-[11px] text-violet-700">{nf(onlineTienda.impulsar)} impulsar</span>
+                            <span className="text-[11px] text-amber-700">{nf(onlineTienda.quiebres)} quiebre</span>
+                            <span className="text-[11px] text-sky-700">{nf(onlineTienda.sobrestock)} sobrestock</span>
+                            <span className="text-[11px] font-medium text-rose-700">
+                              −{nf(onlineTienda.uds_perdidas_semana ?? 0, 0)} uds/sem
+                            </span>
+                          </div>
+                          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
+                            <StoreCard
+                              t={onlineTienda}
+                              className="bg-sky-50/60 border-sky-300 hover:border-sky-400 ring-1 ring-sky-100"
+                            />
+                          </div>
                         </div>
-                        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
-                      {g.lista.map(t => {
-                        const ctx = contexto(t);
-                        return (
-                          <button key={t.location_id}
-                            onClick={() => {
-                              setDetalle(t);
-                              setTabDetalle(alerta !== "all" ? alerta
-                                : t.agotados > 0 ? "AGOTADO VENDIENDO"
-                                : t.impulsar > 0 ? "IMPULSAR"
-                                : t.quiebres > 0 ? "QUIEBRE EN 2 SEMANAS"
-                                : "SOBRESTOCK");
-                            }}
-                            className="rounded-lg border bg-card p-4 text-left transition-colors hover:bg-muted/40 hover:border-primary/40">
-                            <div className="flex items-center gap-2">
-                              <div className="font-semibold text-base leading-tight line-clamp-1">{t.tienda}</div>
-                              {t.zona && (
-                                <span className="shrink-0 rounded bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground">
-                                  {t.zona}
-                                </span>
-                              )}
-                            </div>
-                            <div className="text-[11px] text-muted-foreground">
-                              {[t.ciudad, t.tier].filter(Boolean).join(" · ") || "—"}
-                            </div>
+                      )}
 
-                            <div className="flex gap-2 mt-3">
-                              <Contador label="Agotados" valor={t.agotados} color="text-rose-700" />
-                              <Contador label="Impulsar" valor={t.impulsar} color="text-violet-700" />
-                              <Contador label="Quiebre" valor={t.quiebres} color="text-amber-700" />
-                              <Contador label="Sobrestock" valor={t.sobrestock} color="text-sky-700" />
-                            </div>
-
-                            {ctx && (
-                              <div className="text-[11px] text-muted-foreground mt-3 leading-snug">
-                                {ctx}
-                              </div>
-                            )}
-
-                            {!!t.uds_perdidas_semana && (
-                              <div className="text-xs font-medium text-rose-700 mt-1.5">
-                                −{nf(t.uds_perdidas_semana, 1)} uds/sem perdidas
-                              </div>
-                            )}
-                          </button>
-                        );
-                      })}
+                      {grupos.map(g => (
+                        <div key={g.nombre} className="space-y-3">
+                          <div className="flex flex-wrap items-baseline gap-x-5 gap-y-1 border-b pb-2">
+                            <span className="text-sm font-semibold">{g.nombre}</span>
+                            <span className="text-[11px] text-muted-foreground">{nf(g.tiendas)} tiendas</span>
+                            <span className="text-[11px] text-rose-700">{nf(g.agotados)} agotados</span>
+                            <span className="text-[11px] text-violet-700">{nf(g.impulsar)} impulsar</span>
+                            <span className="text-[11px] text-amber-700">{nf(g.quiebres)} quiebre</span>
+                            <span className="text-[11px] text-sky-700">{nf(g.sobrestock)} sobrestock</span>
+                            <span className="text-[11px] font-medium text-rose-700">
+                              −{nf(g.perdidas, 0)} uds/sem
+                            </span>
+                          </div>
+                          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
+                            {g.lista.map(t => <StoreCard key={t.location_id} t={t} />)}
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      ))}
                     </div>
 
                     <div className="flex flex-wrap gap-x-5 gap-y-2 text-[11px] text-muted-foreground">
