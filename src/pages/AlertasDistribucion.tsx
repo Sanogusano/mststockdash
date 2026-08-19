@@ -419,8 +419,22 @@ export default function AlertasDistribucion() {
                   <EmptyState message="No hay tiendas con estos filtros." />
                 ) : (
                   <>
-                    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
-                      {tarjetas.map(t => {
+                    <div className="space-y-6">
+                    {grupos.map(g => (
+                      <div key={g.nombre} className="space-y-3">
+                        <div className="flex flex-wrap items-baseline gap-x-5 gap-y-1 border-b pb-2">
+                          <span className="text-sm font-semibold">{g.nombre}</span>
+                          <span className="text-[11px] text-muted-foreground">{nf(g.tiendas)} tiendas</span>
+                          <span className="text-[11px] text-rose-700">{nf(g.agotados)} agotados</span>
+                          <span className="text-[11px] text-violet-700">{nf(g.impulsar)} impulsar</span>
+                          <span className="text-[11px] text-amber-700">{nf(g.quiebres)} quiebre</span>
+                          <span className="text-[11px] text-sky-700">{nf(g.sobrestock)} sobrestock</span>
+                          <span className="text-[11px] font-medium text-rose-700">
+                            −{nf(g.perdidas, 0)} uds/sem
+                          </span>
+                        </div>
+                        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
+                      {g.lista.map(t => {
                         const ctx = contexto(t);
                         return (
                           <button key={t.location_id}
@@ -433,7 +447,14 @@ export default function AlertasDistribucion() {
                                 : "SOBRESTOCK");
                             }}
                             className="rounded-lg border bg-card p-4 text-left transition-colors hover:bg-muted/40 hover:border-primary/40">
-                            <div className="font-medium text-sm leading-tight line-clamp-1">{t.tienda}</div>
+                            <div className="flex items-center gap-2">
+                              <div className="font-semibold text-base leading-tight line-clamp-1">{t.tienda}</div>
+                              {t.zona && (
+                                <span className="shrink-0 rounded bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground">
+                                  {t.zona}
+                                </span>
+                              )}
+                            </div>
                             <div className="text-[11px] text-muted-foreground">
                               {[t.ciudad, t.tier].filter(Boolean).join(" · ") || "—"}
                             </div>
@@ -459,6 +480,9 @@ export default function AlertasDistribucion() {
                           </button>
                         );
                       })}
+                        </div>
+                      </div>
+                    ))}
                     </div>
 
                     <div className="flex flex-wrap gap-x-5 gap-y-2 text-[11px] text-muted-foreground">
