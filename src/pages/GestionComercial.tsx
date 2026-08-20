@@ -636,7 +636,14 @@ function DetalleTienda({ fila, anio, mes }: { fila: Fila; anio: number; mes: num
       setCombinar(((cb.data as any[]) ?? []));
       setMejorDia(((md.data as any[]) ?? []));
       setTop5(((tp.data as any[]) ?? []));
-      setLineas(((ln.data as any[]) ?? []));
+      setLineas(((ln.data as any[]) ?? []).map((l) => ({
+        linea: String(l.linea ?? ""),
+        unidades: Number(l.unidades ?? 0),
+        venta: Number(l.venta ?? 0),
+        uds_por_semana: Number(l.uds_por_semana ?? 0),
+        participacion: Number(l.participacion ?? 0),
+        stock_tienda: Number(l.stock_tienda ?? 0),
+      })) as Linea[]);
       const fila_cv = ((cv.data as any[]) ?? []).find((r) => String(r.nombre ?? "") === fila.nombre);
       setCalidadEnt(fila_cv ? {
         nombre: fila.nombre,
