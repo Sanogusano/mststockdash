@@ -1153,15 +1153,22 @@ function DetalleTienda({ fila, anio, mes }: { fila: Fila; anio: number; mes: num
       {!loading && diag && (
         esTienda ? (
           <Tabs value={tab} onValueChange={setTab}>
-            <TabsList className="w-full grid grid-cols-2">
+            <TabsList className="w-full grid grid-cols-3">
               <TabsTrigger value="diagnostico">Diagnóstico</TabsTrigger>
+              <TabsTrigger value="producto">Producto</TabsTrigger>
               <TabsTrigger value="equipo">Equipo</TabsTrigger>
             </TabsList>
             <TabsContent value="diagnostico" className="mt-4">
               {Diagnostico}
             </TabsContent>
+            <TabsContent value="producto" className="mt-4">
+              {PanelProducto}
+            </TabsContent>
             <TabsContent value="equipo" className="mt-4 space-y-4">
-              <div className="grid grid-cols-3 gap-3">
+              <h3 className="text-sm font-semibold flex items-center gap-2">
+                <Users className="h-4 w-4 text-muted-foreground" /> Equipo
+              </h3>
+              <div className="grid grid-cols-4 gap-3">
                 <div className="rounded-xl border bg-card p-3">
                   <div className="text-xs text-muted-foreground mb-1">Ticket promedio tienda</div>
                   <div className="text-xl font-semibold tabular-nums">{money(ticketPromedio)}</div>
@@ -1171,10 +1178,17 @@ function DetalleTienda({ fila, anio, mes }: { fila: Fila; anio: number; mes: num
                   <div className="text-xl font-semibold tabular-nums">{nf(uptPromedio, 2)}</div>
                 </div>
                 <div className="rounded-xl border bg-card p-3">
+                  <div className="text-xs text-muted-foreground mb-1">% venta full tienda</div>
+                  <div className="text-xl font-semibold tabular-nums text-emerald-700">
+                    {calidadEnt ? `${nf(calidadEnt.pct_full, 0)}%` : "—"}
+                  </div>
+                </div>
+                <div className="rounded-xl border bg-card p-3">
                   <div className="text-xs text-muted-foreground mb-1">Sobre el promedio</div>
                   <div className="text-xl font-semibold tabular-nums">{sobrePromedio} <span className="text-sm font-normal text-muted-foreground">vendedores</span></div>
                 </div>
               </div>
+
 
               <div className="rounded-xl border bg-card overflow-x-auto">
                 <table className="w-full text-sm">
