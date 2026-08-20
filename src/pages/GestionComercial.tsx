@@ -865,8 +865,13 @@ function DetalleTienda({ fila, anio, mes }: { fila: Fila; anio: number; mes: num
             </div>
             <div className="text-right text-xs text-muted-foreground shrink-0">
               <div>Tienda: {p.stock_local} uds</div>
-              <div>Red: {p.stock_red} uds</div>
+              <div>Red: {(p as any).stock_red ?? "—"} uds</div>
             </div>
+            {accion === "PEDIR" && (
+              <div className="w-40 shrink-0 text-xs text-sky-700 leading-tight">
+                {(p as any).donde_hay ?? "—"}
+              </div>
+            )}
           </li>
         ))}
       </ul>
@@ -885,12 +890,25 @@ function DetalleTienda({ fila, anio, mes }: { fila: Fila; anio: number; mes: num
           {top5.length === 0 ? (
             <p className="text-xs text-muted-foreground">Sin datos de venta en el mes</p>
           ) : (
-            <ol className="space-y-1">
+            <ol className="space-y-2">
               {top5.map((t, i) => (
-                <li key={t.nombre + i} className="flex items-center gap-2 text-sm">
-                  <span className="w-4 text-xs text-muted-foreground">{i + 1}</span>
-                  <span className="truncate flex-1">{t.nombre}</span>
-                  <span className="tabular-nums font-medium">{nf(t.uds, 0)}</span>
+                <li key={`${t.producto}-${i}`} className="flex items-center gap-2 text-sm">
+                  <span className="w-3 text-[11px] text-muted-foreground shrink-0">{i + 1}</span>
+                  {t.image_url ? (
+                    <ProductImageThumb src={t.image_url} alt={t.producto} title={t.producto} className="h-9 w-9 rounded-md object-cover border shrink-0" />
+                  ) : (
+                    <div className="h-9 w-9 rounded-md border bg-muted flex items-center justify-center shrink-0">
+                      <Package className="h-3.5 w-3.5 text-muted-foreground" />
+                    </div>
+                  )}
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate text-xs font-medium">{t.producto}</div>
+                    <div className="text-[10px] text-muted-foreground truncate">{t.linea ?? "—"}</div>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <div className="tabular-nums text-sm font-medium">{nf(t.unidades, 0)}</div>
+                    <div className="text-[10px] text-emerald-700 tabular-nums">{nf(t.pct_full, 0)}% full</div>
+                  </div>
                 </li>
               ))}
             </ol>
