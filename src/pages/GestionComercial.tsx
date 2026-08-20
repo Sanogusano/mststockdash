@@ -997,47 +997,142 @@ function DetalleTienda({ fila, anio, mes }: { fila: Fila; anio: number; mes: num
         </div>
       </section>
 
-      {/* 5 — Qué hacer */}
-      <section className="rounded-xl border bg-card p-4">
-        <div className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground mb-3">Qué hacer</div>
-        {prods.length === 0 ? (
-          <EmptyState message="Sin acciones de producto sugeridas" />
-        ) : (
-          <ul className="divide-y">
-            {prods.map((p, i) => {
-              const impulsar = (p.accion ?? "").toUpperCase().includes("IMPULSAR");
-              return (
-                <li key={`${p.producto}-${i}`} className="flex items-center gap-3 py-2.5">
-                  {p.image_url ? (
-                    <ProductImageThumb src={p.image_url} alt={p.producto} title={p.producto} className="h-11 w-11 rounded-md object-cover border shrink-0" />
-                  ) : (
-                    <div className="h-11 w-11 rounded-md border bg-muted flex items-center justify-center shrink-0">
-                      <Package className="h-4 w-4 text-muted-foreground" />
-                    </div>
-                  )}
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-medium truncate">{p.producto}</span>
-                      <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold ${impulsar ? "bg-violet-100 text-violet-800" : "bg-sky-100 text-sky-800"}`}>
-                        {impulsar ? "IMPULSAR" : "PEDIR"}
-                      </span>
-                    </div>
-                    <div className="text-xs text-muted-foreground">
-                      Vende {nf(p.ritmo_red, 1)} uds/semana en {p.tiendas_vendiendo} tiendas{p.linea ? ` · ${p.linea}` : ""}
-                    </div>
-                  </div>
-                  <div className="text-right text-xs text-muted-foreground shrink-0">
-                    <div>Tienda: {p.stock_local} uds</div>
-                    <div>Red: {p.stock_red} uds</div>
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
-        )}
-      </section>
     </div>
   );
+
+  const ListaProductos = (accion: "PEDIR" | "IMPULSAR") => {
+    const items = prods.filter((p) => (p.accion ?? "").toUpperCase().includes(accion));
+    if (!items.length) return <EmptyState message={`Sin productos para ${accion.toLowerCase()}`} />;
+    return (
+      <ul className="divide-y">
+        {items.map((p, i) => (
+          <li key={`${p.producto}-${i}`} className="flex items-center gap-3 py-2.5">
+            {p.image_url ? (
+              <ProductImageThumb src={p.image_url} alt={p.producto} title={p.producto} className="h-11 w-11 rounded-md object-cover border shrink-0" />
+            ) : (
+              <div className="h-11 w-11 rounded-md border bg-muted flex items-center justify-center shrink-0">
+                <Package className="h-4 w-4 text-muted-foreground" />
+              </div>
+            )}
+            <div className="min-w-0 flex-1">
+              <div className="text-sm font-medium truncate">{p.producto}</div>
+              <div className="text-xs text-muted-foreground">
+                Vende {nf(p.ritmo_red, 1)} uds/semana en {p.tiendas_vendiendo} tiendas{p.linea ? ` · ${p.linea}` : ""}
+              </div>
+            </div>
+            <div className="text-right text-xs text-muted-foreground shrink-0">
+              <div>Tienda: {p.stock_local} uds</div>
+              <div>Red: {p.stock_red} uds</div>
+            </div>
+          </li>
+        ))}
+      </ul>
+    );
+  };
+
+  const diaTop = mejorDia.find((d) => d.es_mejor) ?? [...mejorDia].sort((a, b) => Number(b.venta_promedio_dia ?? 0) - Number(a.venta_promedio_dia ?? 0))[0];
+
+  const PanelProducto = (
+    <div className="space-y-4">
+      <div className="grid gap-3 sm:grid-cols-2">
+        <section className="rounded-xl border bg-card p-4">
+          <div className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground mb-2 flex items-center gap-2">
+            <Package className="h-3.5 w-3.5" /> Top 5 más vendido
+          </div>
+          {top5.length === 0 ? (
+            <p className="text-xs text-muted-foreground">Sin datos de venta en el mes</p>
+          ) : (
+            <ol className="space-y-1">
+              {top5.map((t, i) => (
+                <li key={t.nombre + i} className="flex items-center gap-2 text-sm">
+                  <span className="w-4 text-xs text-muted-foreground">{i + 1}</span>
+                  <span className="truncate flex-1">{t.nombre}</span>
+                  <span className="tabular-nums font-medium">{nf(t.uds, 0)}</span>
+                </li>
+              ))}
+            </ol>
+          )}
+        </section>
+        <section className="rounded-xl border bg-card p-4">
+          <div className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground mb-2 flex items-center gap-2">
+            <CalendarDays className="h-3.5 w-3.5" /> Mejor día de la semana
+          </div>
+          {!diaTop ? (
+            <p className="text-xs text-muted-foreground">Sin datos</p>
+          ) : (
+            <>
+              <div className="text-2xl font-semibold text-emerald-700">{diaTop.dia_semana}</div>
+              <div className="text-xs text-muted-foreground mt-1">
+                {money(Number(diaTop.venta_promedio_dia ?? 0))} promedio · {nf(diaTop.transacciones, 0)} tx
+              </div>
+              <div className="mt-2 space-y-1">
+                {mejorDia.map((d) => {
+                  const max = Math.max(1, ...mejorDia.map((x) => Number(x.venta_promedio_dia ?? 0)));
+                  const w = (Number(d.venta_promedio_dia ?? 0) / max) * 100;
+                  return (
+                    <div key={d.dow} className="flex items-center gap-2">
+                      <span className="w-16 text-[10px] text-muted-foreground truncate">{d.dia_semana}</span>
+                      <div className="flex-1 h-1.5 rounded-full bg-muted overflow-hidden">
+                        <div className={`h-full rounded-full ${d.es_mejor ? "bg-emerald-500" : "bg-slate-300"}`} style={{ width: `${Math.max(2, w)}%` }} />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </>
+          )}
+        </section>
+      </div>
+
+      <Tabs value={tabProd} onValueChange={setTabProd}>
+        <TabsList className="w-full grid grid-cols-3">
+          <TabsTrigger value="PEDIR">PEDIR</TabsTrigger>
+          <TabsTrigger value="IMPULSAR">IMPULSAR</TabsTrigger>
+          <TabsTrigger value="COMBINAR">COMBINAR</TabsTrigger>
+        </TabsList>
+        <TabsContent value="PEDIR" className="mt-3">
+          <div className="rounded-xl border bg-card p-4">{ListaProductos("PEDIR")}</div>
+        </TabsContent>
+        <TabsContent value="IMPULSAR" className="mt-3">
+          <div className="rounded-xl border bg-card p-4">{ListaProductos("IMPULSAR")}</div>
+        </TabsContent>
+        <TabsContent value="COMBINAR" className="mt-3">
+          <div className="rounded-xl border bg-card overflow-x-auto">
+            {combinar.length === 0 ? (
+              <div className="p-4"><EmptyState message="Sin combinaciones frecuentes" /></div>
+            ) : (
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b bg-muted/40 text-[11px] uppercase tracking-wider text-muted-foreground">
+                    <th className="px-3 py-2 text-left font-medium">Producto</th>
+                    <th className="px-3 py-2 text-left font-medium">Combina con</th>
+                    <th className="px-3 py-2 text-right font-medium">Veces juntos</th>
+                    <th className="px-3 py-2 text-right font-medium">Lift</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {combinar.map((c, i) => (
+                    <tr key={`${c.producto}-${i}`} className="border-b last:border-b-0 hover:bg-muted/40">
+                      <td className="px-3 py-2">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <Layers className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                          <span className="truncate max-w-[180px]">{c.producto}</span>
+                        </div>
+                      </td>
+                      <td className="px-3 py-2 truncate max-w-[180px]">{c.combina_con}</td>
+                      <td className="px-3 py-2 text-right tabular-nums">{nf(c.veces_juntos, 0)}</td>
+                      <td className="px-3 py-2 text-right tabular-nums font-medium text-sky-700">{nf(c.lift, 2)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+        </TabsContent>
+      </Tabs>
+    </div>
+  );
+
 
   return (
     <div className="space-y-5 pt-2">
