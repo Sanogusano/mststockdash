@@ -387,12 +387,34 @@ export default function GestionComercialPage() {
     return { presupuesto, venta, cierre, pctMes, brechaCierre, enRiesgo, dt, dm };
   }, [visibles]);
 
-  const enRiesgo = useMemo(
-    () => visibles.filter((f) => f.pct_cierre < 80).slice(0, 8),
-    [visibles]
-  );
-  const clavesRiesgo = useMemo(() => new Set(enRiesgo.map((f) => f.clave)), [enRiesgo]);
-  const resto = useMemo(() => visibles.filter((f) => !clavesRiesgo.has(f.clave)), [visibles, clavesRiesgo]);
+  // ── Calidad de venta y crecimiento intermensual por entidad ──
+  const [calidad, setCalidad] = useState<Record<string, Calidad>>({});
+  const [mom, setMom] = useState<Record<string, number>>({});
+  useEffect(() => {
+    let cancel = false;
+    (async () => {
+      const [c, m] = await Promise.all([
+        supabase.rpc("calidad_venta_entidad" as any, { p_anio: anio, p_mes: mes }),
+        supabase.rpc("crecimiento_mom" as any, { p_anio: anio, p_mes: mes }),
+      ]);
+      if (cancel) return;
+      const cm: Record<string, Calidad> = {};
+      ((c.data as any[]) ?? []).forEach((r) => {
+        cm[String(r.nombre ?? "")] = {
+          nombre: String(r.nombre ?? ""),
+          uds: Number(r.uds ?? 0),
+          pct_full: Number(r.pct_full ?? 0),
+          pct_promo: Number(r.pct_promo ?? 0),
+          pct_rebaja: Number(r.pct_rebaja ?? 0),
+        };
+      });
+      setCalidad(cm);
+      const mm: Record<string, number> = {};
+      ((m.data as any[]) ?? []).forEach((r) => { mm[String(r.nombre ?? "")] = Number(r.var_pct ?? 0); });
+      setMom(mm);
+    })();
+    return () => { cancel = true; };
+  }, [anio, mes]);
 
   return (
     <SidebarProvider>
