@@ -757,6 +757,113 @@ export type Database = {
         }
         Relationships: []
       }
+      estrategias_aplicadas: {
+        Row: {
+          anio: number
+          aplicada_at: string
+          aplicada_por: string | null
+          cerrada_at: string | null
+          codigo_estrategia: string
+          entidad: string
+          estado: string
+          id: string
+          mes: number
+          nota: string | null
+          pct_cumpl_al_aplicar: number | null
+          resultado: string | null
+          ritmo_dia_al_aplicar: number | null
+          ticket_al_aplicar: number | null
+          upt_al_aplicar: number | null
+          venta_al_aplicar: number | null
+        }
+        Insert: {
+          anio: number
+          aplicada_at?: string
+          aplicada_por?: string | null
+          cerrada_at?: string | null
+          codigo_estrategia: string
+          entidad: string
+          estado?: string
+          id?: string
+          mes: number
+          nota?: string | null
+          pct_cumpl_al_aplicar?: number | null
+          resultado?: string | null
+          ritmo_dia_al_aplicar?: number | null
+          ticket_al_aplicar?: number | null
+          upt_al_aplicar?: number | null
+          venta_al_aplicar?: number | null
+        }
+        Update: {
+          anio?: number
+          aplicada_at?: string
+          aplicada_por?: string | null
+          cerrada_at?: string | null
+          codigo_estrategia?: string
+          entidad?: string
+          estado?: string
+          id?: string
+          mes?: number
+          nota?: string | null
+          pct_cumpl_al_aplicar?: number | null
+          resultado?: string | null
+          ritmo_dia_al_aplicar?: number | null
+          ticket_al_aplicar?: number | null
+          upt_al_aplicar?: number | null
+          venta_al_aplicar?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "estrategias_aplicadas_codigo_estrategia_fkey"
+            columns: ["codigo_estrategia"]
+            isOneToOne: false
+            referencedRelation: "estrategias_comerciales"
+            referencedColumns: ["codigo"]
+          },
+        ]
+      }
+      estrategias_comerciales: {
+        Row: {
+          acciones: string[]
+          activa: boolean | null
+          codigo: string
+          descripcion: string
+          esfuerzo: string
+          horizonte_dias: number
+          nombre: string
+          orden: number
+          palanca: string
+          responsable: string
+          riesgo_margen: number
+        }
+        Insert: {
+          acciones: string[]
+          activa?: boolean | null
+          codigo: string
+          descripcion: string
+          esfuerzo: string
+          horizonte_dias: number
+          nombre: string
+          orden: number
+          palanca: string
+          responsable: string
+          riesgo_margen: number
+        }
+        Update: {
+          acciones?: string[]
+          activa?: boolean | null
+          codigo?: string
+          descripcion?: string
+          esfuerzo?: string
+          horizonte_dias?: number
+          nombre?: string
+          orden?: number
+          palanca?: string
+          responsable?: string
+          riesgo_margen?: number
+        }
+        Relationships: []
+      }
       incentivo_liquidaciones: {
         Row: {
           cumple_meta: boolean | null
@@ -3396,6 +3503,7 @@ export type Database = {
       crisis_room_tienda: {
         Args: { p_clave: string; p_fecha?: string }
         Returns: {
+          base_comparacion: string
           brecha_fecha: number
           cierre_probable: number
           ciudad: string
@@ -3432,6 +3540,52 @@ export type Database = {
         }[]
       }
       cruzar_addi_con_shopify: { Args: never; Returns: undefined }
+      estrategia_aplicar: {
+        Args: {
+          p_clave: string
+          p_codigo: string
+          p_nota?: string
+          p_por?: string
+        }
+        Returns: string
+      }
+      estrategias_seguimiento: {
+        Args: { p_anio?: number; p_mes?: number }
+        Returns: {
+          aplicada_at: string
+          avance: number
+          codigo: string
+          dias_desde: number
+          entidad: string
+          estado: string
+          estrategia: string
+          horizonte_dias: number
+          id: string
+          palanca: string
+          ritmo_al_aplicar: number
+          ritmo_hoy: number
+          var_ritmo_pct: number
+          venta_al_aplicar: number
+          venta_hoy: number
+          ya_deberia_verse: boolean
+        }[]
+      }
+      estrategias_sugeridas: {
+        Args: { p_clave: string; p_fecha?: string }
+        Returns: {
+          acciones: string[]
+          codigo: string
+          descripcion: string
+          esfuerzo: string
+          horizonte_dias: number
+          motivo: string
+          nombre: string
+          palanca: string
+          relevancia: number
+          responsable: string
+          riesgo_margen: number
+        }[]
+      }
       fecha_bogota: { Args: { p_offset_dias?: number }; Returns: string }
       generar_archivo_shopify_inventario: {
         Args: never
