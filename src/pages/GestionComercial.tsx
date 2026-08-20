@@ -607,7 +607,8 @@ function DetalleTienda({ fila, anio, mes }: { fila: Fila; anio: number; mes: num
   const [combinar, setCombinar] = useState<any[]>([]);
   const [mejorDia, setMejorDia] = useState<any[]>([]);
   const [calidadEnt, setCalidadEnt] = useState<Calidad | null>(null);
-  const [top5, setTop5] = useState<{ nombre: string; uds: number }[]>([]);
+  const [top5, setTop5] = useState<any[]>([]);
+  const [lineas, setLineas] = useState<any[]>([]);
   const [fullVendedor, setFullVendedor] = useState<Record<string, number>>({});
   const [tabProd, setTabProd] = useState("PEDIR");
 
@@ -615,14 +616,18 @@ function DetalleTienda({ fila, anio, mes }: { fila: Fila; anio: number; mes: num
     let cancel = false;
     (async () => {
       const clave = fila.clave ?? fila.nombre;
-      const [cb, md, cv] = await Promise.all([
+      const [cb, md, cv, tp, ln] = await Promise.all([
         supabase.rpc("productos_combinar" as any, { p_clave: clave, p_limite: 12 }),
         supabase.rpc("mejor_dia_semana" as any, { p_clave: clave, p_dias: 90 }),
         supabase.rpc("calidad_venta_entidad" as any, { p_anio: anio, p_mes: mes }),
+        supabase.rpc("top_productos_tienda" as any, { p_clave: clave, p_limite: 5, p_dias: 30 }),
+        supabase.rpc("lineas_tienda" as any, { p_clave: clave, p_dias: 30 }),
       ]);
       if (cancel) return;
       setCombinar(((cb.data as any[]) ?? []));
       setMejorDia(((md.data as any[]) ?? []));
+      setTop5(((tp.data as any[]) ?? []));
+      setLineas(((ln.data as any[]) ?? []));
       const fila_cv = ((cv.data as any[]) ?? []).find((r) => String(r.nombre ?? "") === fila.nombre);
       setCalidadEnt(fila_cv ? {
         nombre: fila.nombre,
@@ -639,7 +644,7 @@ function DetalleTienda({ fila, anio, mes }: { fila: Fila; anio: number; mes: num
   useEffect(() => {
     let cancel = false;
     (async () => {
-      if (!esTienda) { setTop5([]); setFullVendedor({}); return; }
+      if (!esTienda) { setFullVendedor({}); return; }
       const desde = `${anio}-${String(mes).padStart(2, "0")}-01`;
       const finMes = new Date(anio, mes, 1);
       const hasta = `${finMes.getFullYear()}-${String(finMes.getMonth() + 1).padStart(2, "0")}-01`;
@@ -656,17 +661,6 @@ function DetalleTienda({ fila, anio, mes }: { fila: Fila; anio: number; mes: num
         return !c.includes("BOLSA") && !c.includes("INSUMO");
       });
 
-      // Top 5 por unidades
-      const porSku: Record<string, number> = {};
-      rows.forEach((r) => { porSku[String(r.sku ?? "")] = (porSku[String(r.sku ?? "")] ?? 0) + Number(r.quantity ?? 0); });
-      const topSkus = Object.entries(porSku).sort((a, b) => b[1] - a[1]).slice(0, 5);
-      let titulos: Record<string, string> = {};
-      if (topSkus.length) {
-        const { data: cat } = await supabase.from("product_catalog").select("sku,title").in("sku", topSkus.map(([s]) => s));
-        ((cat as any[]) ?? []).forEach((c) => { titulos[String(c.sku)] = String(c.title ?? c.sku); });
-      }
-      if (cancel) return;
-      setTop5(topSkus.map(([sku, uds]) => ({ nombre: titulos[sku] ?? sku, uds })));
 
       // % venta full por vendedor
       const acum: Record<string, { full: number; total: number }> = {};
