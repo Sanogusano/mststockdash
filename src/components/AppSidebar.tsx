@@ -31,9 +31,7 @@ type NavItem = {
 // Items principales en orden solicitado
 const resumenItem: NavItem = { title: "Resumen Ejecutivo", url: "/", icon: TrendingUp, description: "Desempeño comercial", module: "dashboards.resumen_ejecutivo", action: "view" };
 const presupuestoItem: NavItem = { title: "Presupuesto", url: "/presupuestos", icon: Target, description: "Metas de venta", module: "dashboards.presupuestos", action: "view" };
-const centroAccionItem: NavItem = { title: "Centro de Acciones", url: "/centro-accion", icon: Zap, description: "Alertas comerciales", module: "dashboards.centro_accion", action: "view" };
 const rendimientoTiendasItem: NavItem = { title: "Rendimiento Tiendas", url: "/rendimiento-red", icon: Store, description: "Same-store, maduración y eficiencia", module: "dashboards.rendimiento_red", action: "view" };
-const crisisRoomItem: NavItem = { title: "Crisis Room", url: "/crisis-room", icon: Siren, description: "Diagnóstico de tienda en crisis", module: "dashboards.rendimiento_red", action: "view" };
 const saludProductoItem: NavItem = { title: "Salud de Producto", url: "/producto", icon: Tag, description: "Sell-through & WOS", module: "dashboards.salud_producto", action: "view" };
 const desempenoLineaItem: NavItem = { title: "Desempeño por Línea", url: "/lineas", icon: Layers, description: "Categorías & canales", module: "dashboards.desempeno_linea", action: "view" };
 const cierreColeccionItem: NavItem = { title: "Cierre de Colecciones", url: "/cierre-coleccion", icon: Archive, description: "Desempeño por colección & remanentes", module: "dashboards.cierre_colecciones", action: "view" };
@@ -89,6 +87,7 @@ const alertasDistribucionItem: NavItem = {
 
 
 const gestionComercialItems: NavItem[] = [
+  { title: "Gestión Comercial", url: "/gestion-comercial", icon: Siren, description: "Diagnóstico y acción por tienda", module: "dashboards.centro_accion", action: "view" },
   { title: "Gestión de Incentivos", url: "/incentivos", icon: Trophy, description: "Campañas & liquidaciones", module: "incentivos", action: "view" },
   { title: "Rendimiento Equipo", url: "/rendimiento-vendedores", icon: Users, description: "Desempeño por vendedor", module: "dashboards.rendimiento_vendedores", action: "view" },
   { title: "Liquidación Comisiones", url: "/comisiones", icon: Calculator, description: "Cálculo y aprobación", module: "comisiones", action: "view" },
@@ -145,13 +144,12 @@ export function AppSidebar() {
   const visibleZoom = useMemo(() => zoomProductoItems.filter((i) => can(i.module, i.action)), [permissions, isAdmin]);
 
   const canPresupuesto = can(presupuestoItem.module, presupuestoItem.action);
-  const canCentroAccion = can(centroAccionItem.module, centroAccionItem.action);
 
   const isGestionActive = visibleGestion.some((i) => location.pathname === i.url);
   const isConfigActive = visibleConfig.some((i) => location.pathname === i.url);
   const isLogisticaActive = visibleLogistica.some((i) => location.pathname === i.url);
   const isFinanzasActive = visibleFinanzas.some((i) => location.pathname === i.url);
-  const isPresupuestoActive = [presupuestoItem.url, centroAccionItem.url].includes(location.pathname);
+  const isPresupuestoActive = location.pathname === presupuestoItem.url;
   const isZoomActive = visibleZoom.some((i) => location.pathname === i.url);
   const isProductoActive =
     [...visibleProducto, ...visibleProductoBottom].some((i) => location.pathname === i.url) || isZoomActive;
@@ -249,7 +247,6 @@ export function AppSidebar() {
                   {presupuestoOpen && (
                     <>
                       {renderItem(presupuestoItem, true)}
-                      {canCentroAccion && renderItem(centroAccionItem, true)}
                     </>
                   )}
                 </>
@@ -282,7 +279,6 @@ export function AppSidebar() {
 
               {/* 4 - Rendimiento Tiendas */}
               {can(rendimientoTiendasItem.module, rendimientoTiendasItem.action) && renderItem(rendimientoTiendasItem)}
-              {can(crisisRoomItem.module, crisisRoomItem.action) && renderItem(crisisRoomItem, true)}
 
               {/* 5 - PRODUCTO */}
               {(visibleProducto.length > 0 || visibleZoom.length > 0 || visibleProductoBottom.length > 0) && (

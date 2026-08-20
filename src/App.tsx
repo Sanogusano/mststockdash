@@ -28,7 +28,6 @@ import PedidosDetallePage from "./pages/PedidosDetalle";
 import TiendaDetailPage from "./pages/TiendaDetail";
 import VentaM2Page from "./pages/VentaM2";
 import PresupuestosPage from "./pages/Presupuestos";
-import CentroAccionPage from "./pages/CentroAccion";
 import IncentivosPage from "./pages/Incentivos";
 import CierreColeccionPage from "./pages/CierreColeccion";
 import ProyeccionDemandaPage from "./pages/ProyeccionDemanda";
@@ -42,7 +41,7 @@ import ConfiguracionRolesPage from "./pages/ConfiguracionRoles";
 import ConfiguracionNotificacionesPage from "./pages/ConfiguracionNotificaciones";
 import ConfiguracionSyncInventarioPage from "./pages/ConfiguracionSyncInventario";
 import RendimientoRedPage from "./pages/RendimientoRed";
-import CrisisRoomPage from "./pages/CrisisRoom";
+import GestionComercialPage from "./pages/GestionComercial";
 import AlertasDistribucionPage from "./pages/AlertasDistribucion";
 import FinanzasDashboardPage from "./pages/finanzas/FinanzasDashboard";
 import AddiPage from "./pages/finanzas/AddiPage";
@@ -103,14 +102,13 @@ const App = () => (
           <Route path="/insumos" element={<Guard module="dashboards.gestion_insumos" action="view"><InsumosPage /></Guard>} />
           <Route path="/alertas-distribucion" element={<Guard module="dashboards.inventario_salud" action="view"><AlertasDistribucionPage /></Guard>} />
           <Route path="/presupuestos" element={<Guard module="dashboards.presupuestos" action="view"><PresupuestosPage /></Guard>} />
-          <Route path="/centro-accion" element={<Guard module="dashboards.centro_accion" action="view"><CentroAccionPage /></Guard>} />
           <Route path="/incentivos" element={<Guard module="incentivos" action="view"><IncentivosPage /></Guard>} />
           <Route path="/cierre-coleccion" element={<Guard module="dashboards.cierre_colecciones" action="view"><CierreColeccionPage /></Guard>} />
           <Route path="/proyeccion-demanda" element={<ProtectedRoute><ProyeccionDemandaPage /></ProtectedRoute>} />
           <Route path="/rendimiento-vendedores" element={<Guard module="dashboards.rendimiento_vendedores" action="view"><RendimientoVendedoresPage /></Guard>} />
           <Route path="/comisiones" element={<Guard module="comisiones" action="view"><ComisionesPage /></Guard>} />
           <Route path="/vendedores" element={<Guard module="vendedores" action="view"><VendedoresPage /></Guard>} />
-          <Route path="/crisis-room" element={<Guard module="dashboards.rendimiento_red" action="view"><CrisisRoomPage /></Guard>} />
+          <Route path="/gestion-comercial" element={<Guard module="dashboards.centro_accion" action="view"><GestionComercialPage /></Guard>} />
           <Route path="/rendimiento-red" element={<Guard module="dashboards.rendimiento_red" action="view"><RendimientoRedPage /></Guard>} />
 
           {/* ===== Finanzas ===== */}
