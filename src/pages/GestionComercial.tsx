@@ -372,8 +372,12 @@ export default function GestionComercialPage() {
 function DetalleTienda({ fila, anio, mes }: { fila: Fila; anio: number; mes: number }) {
   const [diag, setDiag] = useState<Diag | null>(null);
   const [prods, setProds] = useState<Prod[]>([]);
+  const [equipo, setEquipo] = useState<EquipoRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [tab, setTab] = useState("diagnostico");
+
+  const esTienda = (fila.tipo ?? "").toLowerCase() === "tienda";
 
   const fechaCorte = useMemo(() => {
     const ahora = new Date();
@@ -385,24 +389,52 @@ function DetalleTienda({ fila, anio, mes }: { fila: Fila; anio: number; mes: num
   }, [anio, mes]);
 
   useEffect(() => {
+    setTab("diagnostico");
+  }, [fila.clave, fila.nombre]);
+
+  useEffect(() => {
     let cancel = false;
     (async () => {
       setLoading(true);
       setError(null);
       const clave = fila.clave ?? fila.nombre;
-      const [d, p] = await Promise.all([
+      const calls: [Promise<any>, Promise<any>, Promise<any> | null] = [
         supabase.rpc("crisis_room_tienda", { p_clave: clave, p_fecha: fechaCorte }),
         supabase.rpc("crisis_room_productos", { p_clave: clave, p_limite: 20 }),
-      ]);
+        esTienda ? supabase.rpc("equipo_tienda", { p_clave: clave, p_fecha: fechaCorte }) : null,
+      ];
+      const [d, p, e] = await Promise.all(calls);
       if (cancel) return;
       if (d.error) setError(d.error.message);
       else if (p.error) setError(p.error.message);
+      else if (e && e.error) setError(e.error.message);
       setDiag(((d.data as any[]) ?? [])[0] ?? null);
       setProds(((p.data as any[]) ?? []) as Prod[]);
+      if (e && e.data) {
+        setEquipo(
+          ((e.data as any[]) ?? []).map((r) => ({
+            ...r,
+            transacciones: Number(r.transacciones ?? 0),
+            unidades: Number(r.unidades ?? 0),
+            venta: Number(r.venta ?? 0),
+            ticket: Number(r.ticket ?? 0),
+            upt: Number(r.upt ?? 0),
+            pct_descuento: Number(r.pct_descuento ?? 0),
+            ticket_tienda: Number(r.ticket_tienda ?? 0),
+            upt_tienda: Number(r.upt_tienda ?? 0),
+            var_ticket_pct: Number(r.var_ticket_pct ?? 0),
+            var_upt_pct: Number(r.var_upt_pct ?? 0),
+            participacion_venta: Number(r.participacion_venta ?? 0),
+            dias_con_venta: Number(r.dias_con_venta ?? 0),
+          })) as EquipoRow[]
+        );
+      } else {
+        setEquipo([]);
+      }
       setLoading(false);
     })();
     return () => { cancel = true; };
-  }, [fila.clave, fila.nombre, fechaCorte, anio, mes]);
+  }, [fila.clave, fila.nombre, fechaCorte, anio, mes, esTienda]);
 
   const palancas = useMemo(() => {
     if (!diag) return [];
@@ -413,10 +445,190 @@ function DetalleTienda({ fila, anio, mes }: { fila: Fila; anio: number; mes: num
     ];
   }, [diag]);
 
+  const equipoOrdenado = useMemo(() => {
+    return [...equipo].sort((a, b) => Number(b.ticket) - Number(a.ticket));
+  }, [equipo]);
+
+  const ticketPromedio = equipo[0]?.ticket_tienda ?? 0;
+  const uptPromedio = equipo[0]?.upt_tienda ?? 0;
+  const sobrePromedio = useMemo(
+    () => equipo.filter((e) => Number(e.ticket) > Number(ticketPromedio)).length,
+    [equipo, ticketPromedio]
+  );
+
   const maxPalanca = Math.max(1, ...palancas.map((p) => Math.abs(p.valor)));
   const dominante = palancas.length ? palancas.reduce((a, b) => (Math.abs(b.valor) > Math.abs(a.valor) ? b : a)) : null;
   const maxRitmo = diag ? Math.max(1, Number(diag.ritmo_actual_dia ?? 0), Number(diag.ritmo_necesario_dia ?? 0)) : 1;
   const saltoAlto = diag ? Number(diag.salto_requerido_pct ?? 0) > 150 : false;
+
+  const Diagnostico = (
+    <div className="space-y-5">
+      {/* 1 — La situación */}
+      <section className="rounded-xl border bg-card p-4">
+        <div className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground mb-3">La situación</div>
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <div className="text-xs text-muted-foreground mb-1">Venta del mes</div>
+            <div className="text-2xl font-semibold tabular-nums">{money(diag?.venta_mtd)}</div>
+            <div className="text-xs text-muted-foreground mt-1">Meta {money(diag?.presupuesto_mes)} · {nf(diag?.pct_cumpl, 0)}%</div>
+          </div>
+          <div>
+            <div className="text-xs text-muted-foreground mb-1">Cierre probable</div>
+            <div className="text-2xl font-semibold tabular-nums">{money(diag?.cierre_probable)}</div>
+            <div className="text-xs text-muted-foreground mt-1">{nf(diag?.pct_cierre, 0)}% de la meta</div>
+          </div>
+          <div>
+            <div className="text-xs text-muted-foreground mb-1">Brecha</div>
+            <div className={`text-2xl font-semibold tabular-nums ${Number(diag?.brecha_fecha) < 0 ? "text-rose-600" : "text-emerald-600"}`}>
+              {money(diag?.brecha_fecha)}
+            </div>
+            <div className="text-xs text-muted-foreground mt-1">Falta para la meta: {money(diag?.falta_para_meta)}</div>
+          </div>
+          <div>
+            <div className="text-xs text-muted-foreground mb-1">Días restantes</div>
+            <div className="text-2xl font-semibold tabular-nums">{diag?.dias_restantes}</div>
+            <div className="text-xs text-muted-foreground mt-1">de {diag?.dias_mes} días del mes</div>
+          </div>
+        </div>
+      </section>
+
+      {/* 2 — El ritmo */}
+      <section className="rounded-xl border bg-card p-4">
+        <div className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground mb-3">El ritmo</div>
+        <div className="space-y-2">
+          {[
+            { label: "Ritmo actual/día", v: Number(diag?.ritmo_actual_dia ?? 0), c: "bg-slate-400" },
+            { label: "Ritmo necesario/día", v: Number(diag?.ritmo_necesario_dia ?? 0), c: "bg-rose-500" },
+          ].map((b) => (
+            <div key={b.label} className="flex items-center gap-3">
+              <div className="w-36 shrink-0 text-xs text-muted-foreground">{b.label}</div>
+              <div className="flex-1 h-4 rounded-full bg-muted overflow-hidden">
+                <div className={`h-full rounded-full ${b.c}`} style={{ width: `${Math.max(2, (b.v / maxRitmo) * 100)}%` }} />
+              </div>
+              <div className="w-20 text-right text-sm font-medium tabular-nums">{money(b.v)}</div>
+            </div>
+          ))}
+        </div>
+        {saltoAlto && (
+          <div className="mt-3 flex gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+            <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
+            <span>
+              Un salto de {nf(diag?.salto_requerido_pct, 0)}% no es alcanzable. La conversación es de contención, no de recuperación.
+            </span>
+          </div>
+        )}
+      </section>
+
+      {/* 3 — Palancas */}
+      <section className="rounded-xl border bg-card p-4">
+        <div className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground mb-1">Por dónde se está perdiendo</div>
+        {dominante && <p className="text-sm font-medium mb-3">{dominante.titulo}</p>}
+        <div className="space-y-2">
+          {palancas.map((p) => {
+            const esDominante = dominante?.key === p.key;
+            const negativo = p.valor < 0;
+            return (
+              <div key={p.key} className={`flex items-center gap-3 rounded-lg px-2 py-2 ${esDominante ? "bg-muted/60" : ""}`}>
+                <div className="w-28 shrink-0 flex items-center gap-2 text-xs">
+                  <p.icon className="h-3.5 w-3.5 text-muted-foreground" />
+                  <span className={esDominante ? "font-semibold" : "text-muted-foreground"}>{p.label}</span>
+                </div>
+                <div className="flex-1 h-3 rounded-full bg-muted overflow-hidden">
+                  <div
+                    className={`h-full rounded-full ${negativo ? "bg-emerald-500" : esDominante ? "bg-rose-600" : "bg-rose-300"}`}
+                    style={{ width: `${Math.max(2, (Math.abs(p.valor) / maxPalanca) * 100)}%` }}
+                  />
+                </div>
+                <div className={`w-20 text-right text-sm font-medium tabular-nums ${negativo ? "text-emerald-600" : "text-rose-600"}`}>
+                  {money(p.valor)}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+        <p className="mt-2 text-xs text-muted-foreground">En verde, la palanca está por encima del promedio de la red.</p>
+      </section>
+
+      {/* 4 — Contexto */}
+      <section className="rounded-xl border bg-card p-4">
+        <div className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground mb-1">Contexto</div>
+        <p className="text-xs text-muted-foreground mb-3">
+          Base de comparación: {diag?.base_comparacion ?? "Promedio de la red de tiendas"}
+        </p>
+        <div className="grid grid-cols-2 gap-3 mb-4">
+          <div className="rounded-lg border p-3">
+            <div className={`text-xl font-semibold tabular-nums ${Number(diag?.var_ano_anterior) < 0 ? "text-rose-600" : "text-emerald-600"}`}>
+              {pct(diag?.var_ano_anterior)}
+            </div>
+            <div className="text-xs text-muted-foreground mt-1">
+              vs. {MESES[mes - 1].toLowerCase()} del año pasado ({money(diag?.venta_ano_anterior)})
+            </div>
+          </div>
+          <div className="rounded-lg border p-3">
+            <div className={`text-xl font-semibold tabular-nums ${Number(diag?.tendencia_7d) < 0 ? "text-rose-600" : "text-emerald-600"}`}>
+              {pct(diag?.tendencia_7d)}
+            </div>
+            <div className="text-xs text-muted-foreground mt-1">Transacciones vs. la semana anterior</div>
+          </div>
+        </div>
+        <div className="grid grid-cols-3 gap-2 text-sm">
+          {[
+            { l: "Ticket", a: diag?.ticket ?? 0, b: diag?.ticket_red ?? 0, fmt: money },
+            { l: "UPT", a: diag?.upt ?? 0, b: diag?.upt_red ?? 0, fmt: (v: number) => nf(v, 2) },
+            { l: "Tx/día", a: Number(diag?.transacciones ?? 0) / Math.max(1, Number(diag?.dias_transcurridos ?? 1)), b: diag?.tx_dia_red ?? 0, fmt: (v: number) => nf(v, 1) },
+          ].map((k) => (
+            <div key={k.l} className="rounded-lg border p-2.5">
+              <div className="text-xs text-muted-foreground">{k.l}</div>
+              <div className={`text-base font-semibold tabular-nums ${Number(k.a) < Number(k.b) ? "text-rose-600" : "text-emerald-600"}`}>
+                {k.fmt(Number(k.a))}
+              </div>
+              <div className="text-[11px] text-muted-foreground">Base: {k.fmt(Number(k.b))}</div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* 5 — Qué hacer */}
+      <section className="rounded-xl border bg-card p-4">
+        <div className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground mb-3">Qué hacer</div>
+        {prods.length === 0 ? (
+          <EmptyState message="Sin acciones de producto sugeridas" />
+        ) : (
+          <ul className="divide-y">
+            {prods.map((p, i) => {
+              const impulsar = (p.accion ?? "").toUpperCase().includes("IMPULSAR");
+              return (
+                <li key={`${p.producto}-${i}`} className="flex items-center gap-3 py-2.5">
+                  {p.image_url ? (
+                    <ProductImageThumb src={p.image_url} alt={p.producto} title={p.producto} className="h-11 w-11 rounded-md object-cover border shrink-0" />
+                  ) : (
+                    <div className="h-11 w-11 rounded-md border bg-muted flex items-center justify-center shrink-0">
+                      <Package className="h-4 w-4 text-muted-foreground" />
+                    </div>
+                  )}
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-medium truncate">{p.producto}</span>
+                      <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold ${impulsar ? "bg-violet-100 text-violet-800" : "bg-sky-100 text-sky-800"}`}>
+                        {impulsar ? "IMPULSAR" : "PEDIR"}
+                      </span>
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      Vende {nf(p.ritmo_red, 1)} uds/semana en {p.tiendas_vendiendo} tiendas{p.linea ? ` · ${p.linea}` : ""}
+                    </div>
+                  </div>
+                  <div className="text-right text-xs text-muted-foreground shrink-0">
+                    <div>Tienda: {p.stock_local} uds</div>
+                    <div>Red: {p.stock_red} uds</div>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </section>
+    </div>
+  );
 
   return (
     <div className="space-y-5 pt-2">
@@ -435,173 +647,114 @@ function DetalleTienda({ fila, anio, mes }: { fila: Fila; anio: number; mes: num
       {!loading && !diag && !error && <EmptyState message="Sin datos para esta entidad en el mes seleccionado" />}
 
       {!loading && diag && (
-        <>
-          {/* 1 — La situación */}
-          <section className="rounded-xl border bg-card p-4">
-            <div className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground mb-3">La situación</div>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <div className="text-xs text-muted-foreground mb-1">Venta del mes</div>
-                <div className="text-2xl font-semibold tabular-nums">{money(diag.venta_mtd)}</div>
-                <div className="text-xs text-muted-foreground mt-1">Meta {money(diag.presupuesto_mes)} · {nf(diag.pct_cumpl, 0)}%</div>
-              </div>
-              <div>
-                <div className="text-xs text-muted-foreground mb-1">Cierre probable</div>
-                <div className="text-2xl font-semibold tabular-nums">{money(diag.cierre_probable)}</div>
-                <div className="text-xs text-muted-foreground mt-1">{nf(diag.pct_cierre, 0)}% de la meta</div>
-              </div>
-              <div>
-                <div className="text-xs text-muted-foreground mb-1">Brecha</div>
-                <div className={`text-2xl font-semibold tabular-nums ${Number(diag.brecha_fecha) < 0 ? "text-rose-600" : "text-emerald-600"}`}>
-                  {money(diag.brecha_fecha)}
+        esTienda ? (
+          <Tabs value={tab} onValueChange={setTab}>
+            <TabsList className="w-full grid grid-cols-2">
+              <TabsTrigger value="diagnostico">Diagnóstico</TabsTrigger>
+              <TabsTrigger value="equipo">Equipo</TabsTrigger>
+            </TabsList>
+            <TabsContent value="diagnostico" className="mt-4">
+              {Diagnostico}
+            </TabsContent>
+            <TabsContent value="equipo" className="mt-4 space-y-4">
+              <div className="grid grid-cols-3 gap-3">
+                <div className="rounded-xl border bg-card p-3">
+                  <div className="text-xs text-muted-foreground mb-1">Ticket promedio tienda</div>
+                  <div className="text-xl font-semibold tabular-nums">{money(ticketPromedio)}</div>
                 </div>
-                <div className="text-xs text-muted-foreground mt-1">Falta para la meta: {money(diag.falta_para_meta)}</div>
+                <div className="rounded-xl border bg-card p-3">
+                  <div className="text-xs text-muted-foreground mb-1">UPT promedio tienda</div>
+                  <div className="text-xl font-semibold tabular-nums">{nf(uptPromedio, 2)}</div>
+                </div>
+                <div className="rounded-xl border bg-card p-3">
+                  <div className="text-xs text-muted-foreground mb-1">Sobre el promedio</div>
+                  <div className="text-xl font-semibold tabular-nums">{sobrePromedio} <span className="text-sm font-normal text-muted-foreground">vendedores</span></div>
+                </div>
               </div>
-              <div>
-                <div className="text-xs text-muted-foreground mb-1">Días restantes</div>
-                <div className="text-2xl font-semibold tabular-nums">{diag.dias_restantes}</div>
-                <div className="text-xs text-muted-foreground mt-1">de {diag.dias_mes} días del mes</div>
-              </div>
-            </div>
-          </section>
 
-          {/* 2 — El ritmo */}
-          <section className="rounded-xl border bg-card p-4">
-            <div className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground mb-3">El ritmo</div>
-            <div className="space-y-2">
-              {[
-                { label: "Ritmo actual/día", v: Number(diag.ritmo_actual_dia ?? 0), c: "bg-slate-400" },
-                { label: "Ritmo necesario/día", v: Number(diag.ritmo_necesario_dia ?? 0), c: "bg-rose-500" },
-              ].map((b) => (
-                <div key={b.label} className="flex items-center gap-3">
-                  <div className="w-36 shrink-0 text-xs text-muted-foreground">{b.label}</div>
-                  <div className="flex-1 h-4 rounded-full bg-muted overflow-hidden">
-                    <div className={`h-full rounded-full ${b.c}`} style={{ width: `${Math.max(2, (b.v / maxRitmo) * 100)}%` }} />
-                  </div>
-                  <div className="w-20 text-right text-sm font-medium tabular-nums">{money(b.v)}</div>
-                </div>
-              ))}
-            </div>
-            {saltoAlto && (
-              <div className="mt-3 flex gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
-                <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
-                <span>
-                  Un salto de {nf(diag.salto_requerido_pct, 0)}% no es alcanzable. La conversación es de contención, no de recuperación.
-                </span>
+              <div className="rounded-xl border bg-card overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b bg-muted/40 text-[11px] uppercase tracking-wider text-muted-foreground">
+                      <th className="px-3 py-2 text-left font-medium">Vendedor</th>
+                      <th className="px-3 py-2 text-left font-medium">Rol</th>
+                      <th className="px-3 py-2 text-right font-medium">Trans.</th>
+                      <th className="px-3 py-2 text-right font-medium">Venta</th>
+                      <th className="px-3 py-2 text-right font-medium">Ticket</th>
+                      <th className="px-3 py-2 text-right font-medium">UPT</th>
+                      <th className="px-3 py-2 text-right font-medium">% Desc.</th>
+                      <th className="px-3 py-2 text-right font-medium">Particip.</th>
+                      <th className="px-3 py-2 text-center font-medium">Desempeño</th>
+                      <th className="px-3 py-2 text-left font-medium">Palanca</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {equipoOrdenado.map((e, i) => {
+                      const perf = badgeDesempeno(e.desempeno);
+                      return (
+                        <tr key={`${e.shopify_user_id ?? e.vendedor}-${i}`} className="border-b last:border-b-0 hover:bg-muted/40">
+                          <td className="px-3 py-2 font-medium truncate max-w-[140px]">{e.vendedor}</td>
+                          <td className="px-3 py-2 text-muted-foreground">{e.rol ?? "—"}</td>
+                          <td className="px-3 py-2 text-right tabular-nums">{nf(e.transacciones, 0)}</td>
+                          <td className="px-3 py-2 text-right tabular-nums">{money(e.venta)}</td>
+                          <td className="px-3 py-2 text-right tabular-nums">
+                            {money(e.ticket)}
+                            <div className={`text-[11px] tabular-nums ${varColor(e.var_ticket_pct)}`}>{pct(e.var_ticket_pct, 1)}</div>
+                          </td>
+                          <td className="px-3 py-2 text-right tabular-nums">
+                            {nf(e.upt, 2)}
+                            <div className={`text-[11px] tabular-nums ${varColor(e.var_upt_pct)}`}>{pct(e.var_upt_pct, 1)}</div>
+                          </td>
+                          <td className="px-3 py-2 text-right tabular-nums">{nf(e.pct_descuento, 1)}%</td>
+                          <td className="px-3 py-2 text-right tabular-nums">{nf(e.participacion_venta, 1)}%</td>
+                          <td className="px-3 py-2 text-center">
+                            <span className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px] font-medium ${perf.className}`}>
+                              <span className={`h-1.5 w-1.5 rounded-full ${perf.dot}`} />
+                              {perf.label}
+                            </span>
+                          </td>
+                          <td className="px-3 py-2 text-left">
+                            {e.palanca_a_trabajar ? (
+                              <span className="inline-block rounded-md bg-sky-50 px-2 py-1 text-xs font-medium text-sky-700 border border-sky-100">
+                                {e.palanca_a_trabajar}
+                              </span>
+                            ) : (
+                              "—"
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                    {equipoOrdenado.length === 0 && (
+                      <tr>
+                        <td colSpan={10} className="px-3 py-6 text-center text-sm text-muted-foreground">
+                          Sin datos de equipo para esta tienda
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
               </div>
-            )}
-          </section>
-
-          {/* 3 — Palancas */}
-          <section className="rounded-xl border bg-card p-4">
-            <div className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground mb-1">Por dónde se está perdiendo</div>
-            {dominante && <p className="text-sm font-medium mb-3">{dominante.titulo}</p>}
-            <div className="space-y-2">
-              {palancas.map((p) => {
-                const esDominante = dominante?.key === p.key;
-                const negativo = p.valor < 0;
-                return (
-                  <div key={p.key} className={`flex items-center gap-3 rounded-lg px-2 py-2 ${esDominante ? "bg-muted/60" : ""}`}>
-                    <div className="w-28 shrink-0 flex items-center gap-2 text-xs">
-                      <p.icon className="h-3.5 w-3.5 text-muted-foreground" />
-                      <span className={esDominante ? "font-semibold" : "text-muted-foreground"}>{p.label}</span>
-                    </div>
-                    <div className="flex-1 h-3 rounded-full bg-muted overflow-hidden">
-                      <div
-                        className={`h-full rounded-full ${negativo ? "bg-emerald-500" : esDominante ? "bg-rose-600" : "bg-rose-300"}`}
-                        style={{ width: `${Math.max(2, (Math.abs(p.valor) / maxPalanca) * 100)}%` }}
-                      />
-                    </div>
-                    <div className={`w-20 text-right text-sm font-medium tabular-nums ${negativo ? "text-emerald-600" : "text-rose-600"}`}>
-                      {money(p.valor)}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-            <p className="mt-2 text-xs text-muted-foreground">En verde, la palanca está por encima del promedio de la red.</p>
-          </section>
-
-          {/* 4 — Contexto */}
-          <section className="rounded-xl border bg-card p-4">
-            <div className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground mb-1">Contexto</div>
-            <p className="text-xs text-muted-foreground mb-3">
-              Base de comparación: {diag.base_comparacion ?? "Promedio de la red de tiendas"}
-            </p>
-            <div className="grid grid-cols-2 gap-3 mb-4">
-              <div className="rounded-lg border p-3">
-                <div className={`text-xl font-semibold tabular-nums ${Number(diag.var_ano_anterior) < 0 ? "text-rose-600" : "text-emerald-600"}`}>
-                  {pct(diag.var_ano_anterior)}
-                </div>
-                <div className="text-xs text-muted-foreground mt-1">
-                  vs. {MESES[mes - 1].toLowerCase()} del año pasado ({money(diag.venta_ano_anterior)})
-                </div>
-              </div>
-              <div className="rounded-lg border p-3">
-                <div className={`text-xl font-semibold tabular-nums ${Number(diag.tendencia_7d) < 0 ? "text-rose-600" : "text-emerald-600"}`}>
-                  {pct(diag.tendencia_7d)}
-                </div>
-                <div className="text-xs text-muted-foreground mt-1">Transacciones vs. la semana anterior</div>
-              </div>
-            </div>
-            <div className="grid grid-cols-3 gap-2 text-sm">
-              {[
-                { l: "Ticket", a: diag.ticket, b: diag.ticket_red, fmt: money },
-                { l: "UPT", a: diag.upt, b: diag.upt_red, fmt: (v: number) => nf(v, 2) },
-                { l: "Tx/día", a: Number(diag.transacciones ?? 0) / Math.max(1, Number(diag.dias_transcurridos ?? 1)), b: diag.tx_dia_red, fmt: (v: number) => nf(v, 1) },
-              ].map((k) => (
-                <div key={k.l} className="rounded-lg border p-2.5">
-                  <div className="text-xs text-muted-foreground">{k.l}</div>
-                  <div className={`text-base font-semibold tabular-nums ${Number(k.a) < Number(k.b) ? "text-rose-600" : "text-emerald-600"}`}>
-                    {k.fmt(Number(k.a))}
-                  </div>
-                  <div className="text-[11px] text-muted-foreground">Base: {k.fmt(Number(k.b))}</div>
-                </div>
-              ))}
-            </div>
-          </section>
-
-          {/* 5 — Qué hacer */}
-          <section className="rounded-xl border bg-card p-4">
-            <div className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground mb-3">Qué hacer</div>
-            {prods.length === 0 ? (
-              <EmptyState message="Sin acciones de producto sugeridas" />
-            ) : (
-              <ul className="divide-y">
-                {prods.map((p, i) => {
-                  const impulsar = (p.accion ?? "").toUpperCase().includes("IMPULSAR");
-                  return (
-                    <li key={`${p.producto}-${i}`} className="flex items-center gap-3 py-2.5">
-                      {p.image_url ? (
-                        <ProductImageThumb src={p.image_url} alt={p.producto} title={p.producto} className="h-11 w-11 rounded-md object-cover border shrink-0" />
-                      ) : (
-                        <div className="h-11 w-11 rounded-md border bg-muted flex items-center justify-center shrink-0">
-                          <Package className="h-4 w-4 text-muted-foreground" />
-                        </div>
-                      )}
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm font-medium truncate">{p.producto}</span>
-                          <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold ${impulsar ? "bg-violet-100 text-violet-800" : "bg-sky-100 text-sky-800"}`}>
-                            {impulsar ? "IMPULSAR" : "PEDIR"}
-                          </span>
-                        </div>
-                        <div className="text-xs text-muted-foreground">
-                          Vende {nf(p.ritmo_red, 1)} uds/semana en {p.tiendas_vendiendo} tiendas{p.linea ? ` · ${p.linea}` : ""}
-                        </div>
-                      </div>
-                      <div className="text-right text-xs text-muted-foreground shrink-0">
-                        <div>Tienda: {p.stock_local} uds</div>
-                        <div>Red: {p.stock_red} uds</div>
-                      </div>
-                    </li>
-                  );
-                })}
-              </ul>
-            )}
-          </section>
-        </>
+            </TabsContent>
+          </Tabs>
+        ) : (
+          Diagnostico
+        )
       )}
     </div>
   );
+}
+
+function varColor(v: number) {
+  if (v > 0) return "text-emerald-600";
+  if (v < 0) return "text-rose-600";
+  return "text-muted-foreground";
+}
+
+function badgeDesempeno(d: string | null) {
+  const n = (d ?? "").toLowerCase().trim();
+  if (n.includes("referente")) return { label: "Referente", className: "bg-emerald-100 text-emerald-800", dot: "bg-emerald-500" };
+  if (n.includes("sobre")) return { label: "Sobre el promedio", className: "bg-emerald-50 text-emerald-700", dot: "bg-emerald-400" };
+  if (n.includes("necesita")) return { label: "Necesita apoyo", className: "bg-amber-50 text-amber-700", dot: "bg-amber-500" };
+  return { label: "En el promedio", className: "bg-muted text-muted-foreground", dot: "bg-slate-400" };
 }
