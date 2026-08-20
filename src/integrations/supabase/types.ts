@@ -5266,6 +5266,19 @@ export type Database = {
           uds: number
         }[]
       }
+      whatsapp_top_rango: {
+        Args: { p_desde: string; p_hasta: string; p_limite?: number }
+        Returns: {
+          image_url: string
+          neta: number
+          pct_activacion: number
+          pct_full: number
+          pct_rebaja: number
+          tiendas: number
+          titulo: string
+          uds: number
+        }[]
+      }
       whatsapp_totales_dia: {
         Args: { p_fecha?: string }
         Returns: {
