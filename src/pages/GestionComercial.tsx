@@ -1230,6 +1230,9 @@ function DetalleTienda({ fila, anio, mes }: { fila: Fila; anio: number; mes: num
                             <div className={`text-[11px] tabular-nums ${varColor(e.var_upt_pct)}`}>{pct(e.var_upt_pct, 1)}</div>
                           </td>
                           <td className="px-3 py-2 text-right tabular-nums">{nf(e.pct_descuento, 1)}%</td>
+                          <td className="px-3 py-2 text-right tabular-nums font-medium text-emerald-700">
+                            {fullVendedor[e.vendedor] != null ? `${nf(fullVendedor[e.vendedor], 0)}%` : "—"}
+                          </td>
                           <td className="px-3 py-2 text-right tabular-nums">{nf(e.participacion_venta, 1)}%</td>
                           <td className="px-3 py-2 text-center">
                             <span className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px] font-medium ${perf.className}`}>
