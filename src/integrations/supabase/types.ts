@@ -3373,6 +3373,16 @@ export type Database = {
         Args: { min_variants?: number }
         Returns: string
       }
+      accionables_serie: {
+        Args: { p_anio?: number; p_mes?: number }
+        Returns: {
+          acumulado: number
+          dia: string
+          entidad: string
+          meta_dia: number
+          venta: number
+        }[]
+      }
       actualizar_params_ubicacion: {
         Args: {
           p_activa?: boolean

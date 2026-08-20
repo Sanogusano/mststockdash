@@ -31,6 +31,8 @@ interface Fila {
   esfuerzo_requerido: number;
   crecimiento_yoy: number;
   tendencia_7d: number;
+  dias_transcurridos?: number;
+  dias_mes?: number;
   accionable: string | null;
   marcada: boolean;
   marcada_at: string | null;
@@ -135,6 +137,57 @@ function colorPct(v: number) {
   return "text-rose-600";
 }
 
+interface SerieRow { entidad: string; dia: string; venta: number; acumulado: number; meta_dia: number }
+
+/** Tarjeta de red (nivel 1) */
+function CardRed({
+  titulo, valor, detalle, tono, icon: Icon,
+}: {
+  titulo: string; valor: string; detalle?: React.ReactNode;
+  tono: "neutral" | "rose" | "amber" | "emerald"; icon: any;
+}) {
+  const tonos = {
+    neutral: "bg-slate-50 border-slate-200 text-slate-700",
+    rose: "bg-rose-50 border-rose-200 text-rose-700",
+    amber: "bg-amber-50 border-amber-200 text-amber-700",
+    emerald: "bg-emerald-50 border-emerald-200 text-emerald-700",
+  }[tono];
+  return (
+    <div className={`rounded-xl border p-4 ${tonos}`}>
+      <div className="flex items-center gap-2 text-[11px] uppercase tracking-wider font-medium opacity-80">
+        <Icon className="h-3.5 w-3.5" />
+        {titulo}
+      </div>
+      <div className="mt-2 text-2xl font-semibold tabular-nums text-foreground">{valor}</div>
+      {detalle && <div className="mt-1 text-xs text-muted-foreground">{detalle}</div>}
+    </div>
+  );
+}
+
+/** Curva de acumulado vs meta (nivel 2) */
+function CurvaAcumulado({ serie }: { serie: SerieRow[] }) {
+  const W = 260, H = 56, P = 3;
+  if (!serie.length) {
+    return <div className="h-[56px] flex items-center text-[11px] text-muted-foreground">Sin serie diaria</div>;
+  }
+  let metaAcum = 0;
+  const puntos = serie.map((s) => {
+    metaAcum += Number(s.meta_dia ?? 0);
+    return { acum: Number(s.acumulado ?? 0), meta: metaAcum };
+  });
+  const max = Math.max(1, ...puntos.map((p) => Math.max(p.acum, p.meta)));
+  const x = (i: number) => P + (i * (W - P * 2)) / Math.max(1, puntos.length - 1);
+  const y = (v: number) => H - P - (v / max) * (H - P * 2);
+  const path = (key: "acum" | "meta") =>
+    puntos.map((p, i) => `${i === 0 ? "M" : "L"}${x(i).toFixed(1)},${y(p[key]).toFixed(1)}`).join(" ");
+  return (
+    <svg viewBox={`0 0 ${W} ${H}`} className="w-full h-[56px]" preserveAspectRatio="none">
+      <path d={path("meta")} fill="none" stroke="currentColor" className="text-muted-foreground" strokeWidth={1.2} strokeDasharray="4 3" />
+      <path d={path("acum")} fill="none" stroke="currentColor" className="text-rose-500" strokeWidth={1.8} />
+    </svg>
+  );
+}
+
 export default function GestionComercialPage() {
   // El valor inicial se calcula en cada render (no en constante de módulo).
   const hoy = new Date();
@@ -226,6 +279,69 @@ export default function GestionComercialPage() {
     [filasZona, tienda]
   );
 
+  // ── Series diarias por entidad (nivel 2) ──
+  const [series, setSeries] = useState<Record<string, SerieRow[]>>({});
+  useEffect(() => {
+    let cancel = false;
+    (async () => {
+      const { data } = await supabase.rpc("accionables_serie" as any, { p_anio: anio, p_mes: mes });
+      if (cancel) return;
+      const grp: Record<string, SerieRow[]> = {};
+      ((data as any[]) ?? []).forEach((r) => {
+        const k = String(r.entidad ?? "");
+        (grp[k] ||= []).push({
+          entidad: k, dia: r.dia,
+          venta: Number(r.venta ?? 0),
+          acumulado: Number(r.acumulado ?? 0),
+          meta_dia: Number(r.meta_dia ?? 0),
+        });
+      });
+      Object.values(grp).forEach((s) => s.sort((a, b) => a.dia.localeCompare(b.dia)));
+      setSeries(grp);
+    })();
+    return () => { cancel = true; };
+  }, [anio, mes]);
+
+  // ── Vendedores (nivel 1: referentes) ──
+  const [vendedores, setVendedores] = useState<any[]>([]);
+  useEffect(() => {
+    let cancel = false;
+    (async () => {
+      const { data } = await supabase.rpc("reporte_ventas_por_vendedor" as any, { p_anio: anio, p_mes: mes });
+      if (!cancel) setVendedores((data as any[]) ?? []);
+    })();
+    return () => { cancel = true; };
+  }, [anio, mes]);
+
+  const nombresVisibles = useMemo(() => new Set(visibles.map((f) => f.nombre)), [visibles]);
+
+  const referentes = useMemo(() => {
+    const vs = vendedores.filter((v) => nombresVisibles.has(String(v.tienda ?? "")));
+    const base = vs.length ? vs : (tienda === "todas" && zona === "todas" ? vendedores : []);
+    if (!base.length) return 0;
+    const prom = base.reduce((a, v) => a + Number(v.ticket_promedio ?? 0), 0) / base.length;
+    return base.filter((v) => Number(v.ticket_promedio ?? 0) > prom).length;
+  }, [vendedores, nombresVisibles, tienda, zona]);
+
+  const resumen = useMemo(() => {
+    const presupuesto = visibles.reduce((a, f) => a + f.presupuesto, 0);
+    const venta = visibles.reduce((a, f) => a + f.venta_mtd, 0);
+    const cierre = visibles.reduce((a, f) => a + f.cierre_probable, 0);
+    const pctMes = presupuesto > 0 ? (venta / presupuesto) * 100 : 0;
+    const brechaCierre = cierre - presupuesto;
+    const enRiesgo = visibles.filter((f) => f.pct_cierre < 80).length;
+    const dt = visibles.find((f) => f.dias_transcurridos != null)?.dias_transcurridos ?? null;
+    const dm = visibles.find((f) => f.dias_mes != null)?.dias_mes ?? null;
+    return { presupuesto, venta, cierre, pctMes, brechaCierre, enRiesgo, dt, dm };
+  }, [visibles]);
+
+  const enRiesgo = useMemo(
+    () => visibles.filter((f) => f.pct_cierre < 80).slice(0, 8),
+    [visibles]
+  );
+  const clavesRiesgo = useMemo(() => new Set(enRiesgo.map((f) => f.clave)), [enRiesgo]);
+  const resto = useMemo(() => visibles.filter((f) => !clavesRiesgo.has(f.clave)), [visibles, clavesRiesgo]);
+
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full bg-background">
@@ -284,7 +400,98 @@ export default function GestionComercialPage() {
               <EmptyState message={`Sin presupuestos configurados para ${MESES[mes - 1]} ${anio}`} />
             )}
 
+            {/* ── Nivel 1: tarjetas de red ── */}
             {!loading && visibles.length > 0 && (
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                <CardRed
+                  titulo="Cumplimiento del mes"
+                  valor={`${nf(resumen.pctMes, 0)}%`}
+                  detalle={resumen.dt && resumen.dm ? `día ${resumen.dt} de ${resumen.dm}` : money(resumen.venta)}
+                  tono="neutral"
+                  icon={Receipt}
+                />
+                <CardRed
+                  titulo="Cierre probable"
+                  valor={money(resumen.cierre)}
+                  detalle={
+                    resumen.brechaCierre < 0
+                      ? <span className="text-rose-600 font-medium">Faltan {money(Math.abs(resumen.brechaCierre))}</span>
+                      : <span className="text-emerald-600 font-medium">+{money(resumen.brechaCierre)} sobre meta</span>
+                  }
+                  tono={resumen.brechaCierre < 0 ? "rose" : "emerald"}
+                  icon={ShoppingBag}
+                />
+                <CardRed
+                  titulo="En riesgo"
+                  valor={String(resumen.enRiesgo)}
+                  detalle="entidades bajo 80% de cierre"
+                  tono="amber"
+                  icon={AlertTriangle}
+                />
+                <CardRed
+                  titulo="Referentes"
+                  valor={String(referentes)}
+                  detalle="vendedores sobre el ticket promedio"
+                  tono="emerald"
+                  icon={Users}
+                />
+              </div>
+            )}
+
+            {/* ── Nivel 2: tarjetas de entidades en riesgo ── */}
+            {!loading && enRiesgo.length > 0 && (
+              <div>
+                <h2 className="text-sm font-semibold mb-2">Entidades en riesgo</h2>
+                <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                  {enRiesgo.map((f) => (
+                    <button
+                      key={f.clave}
+                      onClick={() => setSel(f)}
+                      className="text-left rounded-xl border bg-card p-4 hover:shadow-md transition-shadow"
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <TipoIcon tipo={f.tipo} />
+                          <span className="font-medium truncate">{f.nombre}</span>
+                        </div>
+                        <span className={`text-2xl font-semibold tabular-nums ${colorPct(f.pct_cierre)}`}>
+                          {nf(f.pct_cierre, 0)}%
+                        </span>
+                      </div>
+                      <div className="mt-2">
+                        <CurvaAcumulado serie={series[f.nombre] ?? series[f.clave] ?? []} />
+                      </div>
+                      <div className="mt-2 grid grid-cols-3 gap-2 text-[11px]">
+                        <div>
+                          <div className="text-muted-foreground">Interanual</div>
+                          <div className={`tabular-nums font-medium ${f.crecimiento_yoy < 0 ? "text-rose-600" : "text-emerald-600"}`}>
+                            {pct(f.crecimiento_yoy, 0)}
+                          </div>
+                        </div>
+                        <div>
+                          <div className="text-muted-foreground">Tend. 7d</div>
+                          <div className={`tabular-nums font-medium ${f.tendencia_7d < 0 ? "text-rose-600" : "text-emerald-600"}`}>
+                            {pct(f.tendencia_7d, 0)}
+                          </div>
+                        </div>
+                        <div>
+                          <div className="text-muted-foreground">Esfuerzo</div>
+                          <div className="tabular-nums font-medium">
+                            {f.esfuerzo_requerido > 0 ? `+${nf(f.esfuerzo_requerido, 0)}%` : "Alcanzable"}
+                          </div>
+                        </div>
+                      </div>
+                      {f.accionable && (
+                        <p className="mt-3 pt-2 border-t text-xs text-muted-foreground">{f.accionable}</p>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* ── Nivel 3: tabla con el resto ── */}
+            {!loading && resto.length > 0 && (
               <div className="rounded-xl border bg-card overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
@@ -302,7 +509,7 @@ export default function GestionComercialPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {visibles.map((f) => (
+                    {resto.map((f) => (
                       <tr
                         key={f.clave}
                         onClick={() => setSel(f)}
