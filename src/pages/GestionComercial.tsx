@@ -398,7 +398,7 @@ function DetalleTienda({ fila, anio, mes }: { fila: Fila; anio: number; mes: num
       setLoading(true);
       setError(null);
       const clave = fila.clave ?? fila.nombre;
-      const calls: [Promise<any>, Promise<any>, Promise<any> | null] = [
+      const calls: any[] = [
         supabase.rpc("crisis_room_tienda", { p_clave: clave, p_fecha: fechaCorte }),
         supabase.rpc("crisis_room_productos", { p_clave: clave, p_limite: 20 }),
         esTienda ? supabase.rpc("equipo_tienda", { p_clave: clave, p_fecha: fechaCorte }) : null,
