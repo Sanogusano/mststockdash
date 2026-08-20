@@ -254,20 +254,6 @@ export default function GestionComercialPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [anio, mes]);
 
-  const marcar = async (f: Fila) => {
-    setMarcando(f.nombre);
-    const { error } = await supabase.rpc("gestion_comercial_marcar" as any, {
-      p_nombre: f.nombre,
-      p_marcar: !f.marcada,
-      p_nota: null,
-    });
-    if (error) toast.error(error.message);
-    else {
-      toast.success(f.marcada ? `Seguimiento cerrado en ${f.nombre}` : `Seguimiento iniciado en ${f.nombre}`);
-      await cargar();
-    }
-    setMarcando(null);
-  };
 
   const esCanal = (f: Fila) => (f.tipo ?? "").toLowerCase() === "canal";
 
