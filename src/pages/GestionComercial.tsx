@@ -1254,7 +1254,7 @@ function DetalleTienda({ fila, anio, mes }: { fila: Fila; anio: number; mes: num
                     })}
                     {equipoOrdenado.length === 0 && (
                       <tr>
-                        <td colSpan={10} className="px-3 py-6 text-center text-sm text-muted-foreground">
+                        <td colSpan={11} className="px-3 py-6 text-center text-sm text-muted-foreground">
                           Sin datos de equipo para esta tienda
                         </td>
                       </tr>
