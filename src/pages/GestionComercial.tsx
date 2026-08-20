@@ -279,6 +279,69 @@ export default function GestionComercialPage() {
     [filasZona, tienda]
   );
 
+  // ── Series diarias por entidad (nivel 2) ──
+  const [series, setSeries] = useState<Record<string, SerieRow[]>>({});
+  useEffect(() => {
+    let cancel = false;
+    (async () => {
+      const { data } = await supabase.rpc("accionables_serie" as any, { p_anio: anio, p_mes: mes });
+      if (cancel) return;
+      const grp: Record<string, SerieRow[]> = {};
+      ((data as any[]) ?? []).forEach((r) => {
+        const k = String(r.entidad ?? "");
+        (grp[k] ||= []).push({
+          entidad: k, dia: r.dia,
+          venta: Number(r.venta ?? 0),
+          acumulado: Number(r.acumulado ?? 0),
+          meta_dia: Number(r.meta_dia ?? 0),
+        });
+      });
+      Object.values(grp).forEach((s) => s.sort((a, b) => a.dia.localeCompare(b.dia)));
+      setSeries(grp);
+    })();
+    return () => { cancel = true; };
+  }, [anio, mes]);
+
+  // ── Vendedores (nivel 1: referentes) ──
+  const [vendedores, setVendedores] = useState<any[]>([]);
+  useEffect(() => {
+    let cancel = false;
+    (async () => {
+      const { data } = await supabase.rpc("reporte_ventas_por_vendedor" as any, { p_anio: anio, p_mes: mes });
+      if (!cancel) setVendedores((data as any[]) ?? []);
+    })();
+    return () => { cancel = true; };
+  }, [anio, mes]);
+
+  const nombresVisibles = useMemo(() => new Set(visibles.map((f) => f.nombre)), [visibles]);
+
+  const referentes = useMemo(() => {
+    const vs = vendedores.filter((v) => nombresVisibles.has(String(v.tienda ?? "")));
+    const base = vs.length ? vs : (tienda === "todas" && zona === "todas" ? vendedores : []);
+    if (!base.length) return 0;
+    const prom = base.reduce((a, v) => a + Number(v.ticket_promedio ?? 0), 0) / base.length;
+    return base.filter((v) => Number(v.ticket_promedio ?? 0) > prom).length;
+  }, [vendedores, nombresVisibles, tienda, zona]);
+
+  const resumen = useMemo(() => {
+    const presupuesto = visibles.reduce((a, f) => a + f.presupuesto, 0);
+    const venta = visibles.reduce((a, f) => a + f.venta_mtd, 0);
+    const cierre = visibles.reduce((a, f) => a + f.cierre_probable, 0);
+    const pctMes = presupuesto > 0 ? (venta / presupuesto) * 100 : 0;
+    const brechaCierre = cierre - presupuesto;
+    const enRiesgo = visibles.filter((f) => f.pct_cierre < 80).length;
+    const dt = visibles.find((f) => f.dias_transcurridos != null)?.dias_transcurridos ?? null;
+    const dm = visibles.find((f) => f.dias_mes != null)?.dias_mes ?? null;
+    return { presupuesto, venta, cierre, pctMes, brechaCierre, enRiesgo, dt, dm };
+  }, [visibles]);
+
+  const enRiesgo = useMemo(
+    () => visibles.filter((f) => f.pct_cierre < 80).slice(0, 8),
+    [visibles]
+  );
+  const clavesRiesgo = useMemo(() => new Set(enRiesgo.map((f) => f.clave)), [enRiesgo]);
+  const resto = useMemo(() => visibles.filter((f) => !clavesRiesgo.has(f.clave)), [visibles, clavesRiesgo]);
+
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full bg-background">
