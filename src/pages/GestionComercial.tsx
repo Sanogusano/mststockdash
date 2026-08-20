@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { Siren, AlertTriangle, Users, Receipt, ShoppingBag, Package, Flag, Store, Globe } from "lucide-react";
+import { Siren, AlertTriangle, Users, UserRound, Receipt, ShoppingBag, Package, Flag, Store, Globe, Lightbulb, CalendarDays, Layers } from "lucide-react";
 
 /**
  * Accionables — lista priorizada de puntos de venta lejos de cumplir,
