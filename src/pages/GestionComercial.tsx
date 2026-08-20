@@ -139,6 +139,58 @@ function colorPct(v: number) {
 
 interface SerieRow { entidad: string; dia: string; venta: number; acumulado: number; meta_dia: number }
 
+interface Calidad { nombre: string; uds: number; pct_full: number; pct_promo: number; pct_rebaja: number }
+
+/** Fondo suave de la tarjeta según cumplimiento */
+function tonoCumpl(v: number) {
+  if (v >= 100) return "bg-emerald-100/70 border-emerald-300";
+  if (v >= 90) return "bg-emerald-50 border-emerald-200";
+  if (v >= 80) return "bg-amber-50 border-amber-200";
+  return "bg-rose-50 border-rose-200";
+}
+
+function iconoCumpl(v: number) {
+  if (v >= 100) return "🚀";
+  if (v >= 90) return "🟢";
+  if (v >= 80) return "⚠️";
+  return "🐢";
+}
+
+/** Barra de cumplimiento con marca de días transcurridos */
+function BarraMes({ pctv, marca }: { pctv: number; marca: number | null }) {
+  const ancho = Math.max(1, Math.min(100, pctv));
+  const barra = pctv >= 100 ? "bg-emerald-500" : pctv >= 90 ? "bg-emerald-400" : pctv >= 80 ? "bg-amber-500" : "bg-rose-500";
+  return (
+    <div className="relative h-2.5 rounded-full bg-white/70 border overflow-hidden">
+      <div className={`absolute inset-y-0 left-0 rounded-full ${barra}`} style={{ width: `${ancho}%` }} />
+      {marca != null && (
+        <div className="absolute inset-y-0 w-0.5 bg-slate-700/70" style={{ left: `${Math.min(100, Math.max(0, marca))}%` }} />
+      )}
+    </div>
+  );
+}
+
+/** Barra apilada de calidad de venta */
+function BarraCalidad({ c }: { c: Calidad | undefined }) {
+  if (!c) return <div className="text-[11px] text-muted-foreground">Sin calidad de venta</div>;
+  const full = Number(c.pct_full ?? 0), promo = Number(c.pct_promo ?? 0), reb = Number(c.pct_rebaja ?? 0);
+  const tot = Math.max(1, full + promo + reb);
+  return (
+    <div>
+      <div className="flex h-2.5 rounded-full overflow-hidden bg-white/70 border">
+        <div className="bg-emerald-500" style={{ width: `${(full / tot) * 100}%` }} />
+        <div className="bg-amber-500" style={{ width: `${(promo / tot) * 100}%` }} />
+        <div className="bg-rose-500" style={{ width: `${(reb / tot) * 100}%` }} />
+      </div>
+      <div className="mt-1 flex items-center gap-3 text-[10px] text-muted-foreground">
+        <span className="text-emerald-700">Full {nf(full, 0)}%</span>
+        <span className="text-amber-700">Promo {nf(promo, 0)}%</span>
+        <span className="text-rose-700">Rebaja {nf(reb, 0)}%</span>
+      </div>
+    </div>
+  );
+}
+
 /** Tarjeta de red (nivel 1) */
 function CardRed({
   titulo, valor, detalle, tono, icon: Icon,
