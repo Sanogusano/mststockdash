@@ -6,7 +6,6 @@ import { LoadingState, EmptyState } from "@/components/dashboard/LoadingState";
 import { ProductImageThumb } from "@/components/dashboard/ProductImageThumb";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
-import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { Siren, AlertTriangle, Users, Receipt, ShoppingBag, Package, Flag } from "lucide-react";
 
