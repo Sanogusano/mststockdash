@@ -754,6 +754,97 @@ function DetalleTienda({ fila, anio, mes }: { fila: Fila; anio: number; mes: num
     return () => { cancel = true; };
   }, [fila.clave, fila.nombre, fechaCorte, anio, mes, esTienda]);
 
+  // ── Datos del panel Producto ──
+  const [combinar, setCombinar] = useState<any[]>([]);
+  const [mejorDia, setMejorDia] = useState<any[]>([]);
+  const [calidadEnt, setCalidadEnt] = useState<Calidad | null>(null);
+  const [top5, setTop5] = useState<{ nombre: string; uds: number }[]>([]);
+  const [fullVendedor, setFullVendedor] = useState<Record<string, number>>({});
+  const [tabProd, setTabProd] = useState("PEDIR");
+
+  useEffect(() => {
+    let cancel = false;
+    (async () => {
+      const clave = fila.clave ?? fila.nombre;
+      const [cb, md, cv] = await Promise.all([
+        supabase.rpc("productos_combinar" as any, { p_clave: clave, p_limite: 12 }),
+        supabase.rpc("mejor_dia_semana" as any, { p_clave: clave, p_dias: 90 }),
+        supabase.rpc("calidad_venta_entidad" as any, { p_anio: anio, p_mes: mes }),
+      ]);
+      if (cancel) return;
+      setCombinar(((cb.data as any[]) ?? []));
+      setMejorDia(((md.data as any[]) ?? []));
+      const fila_cv = ((cv.data as any[]) ?? []).find((r) => String(r.nombre ?? "") === fila.nombre);
+      setCalidadEnt(fila_cv ? {
+        nombre: fila.nombre,
+        uds: Number(fila_cv.uds ?? 0),
+        pct_full: Number(fila_cv.pct_full ?? 0),
+        pct_promo: Number(fila_cv.pct_promo ?? 0),
+        pct_rebaja: Number(fila_cv.pct_rebaja ?? 0),
+      } : null);
+    })();
+    return () => { cancel = true; };
+  }, [fila.clave, fila.nombre, anio, mes]);
+
+  // Top 5 más vendido y % venta full por vendedor (solo tiendas físicas)
+  useEffect(() => {
+    let cancel = false;
+    (async () => {
+      if (!esTienda) { setTop5([]); setFullVendedor({}); return; }
+      const desde = `${anio}-${String(mes).padStart(2, "0")}-01`;
+      const finMes = new Date(anio, mes, 1);
+      const hasta = `${finMes.getFullYear()}-${String(finMes.getMonth() + 1).padStart(2, "0")}-01`;
+      const { data } = await supabase
+        .from("order_items")
+        .select("sku,quantity,price,category,manual_discount_amount,is_markdown,orders!inner(created_at,user_id)")
+        .eq("location_id", fila.clave)
+        .gte("orders.created_at", desde)
+        .lt("orders.created_at", hasta)
+        .limit(20000);
+      if (cancel) return;
+      const rows = ((data as any[]) ?? []).filter((r) => {
+        const c = String(r.category ?? "").toUpperCase();
+        return !c.includes("BOLSA") && !c.includes("INSUMO");
+      });
+
+      // Top 5 por unidades
+      const porSku: Record<string, number> = {};
+      rows.forEach((r) => { porSku[String(r.sku ?? "")] = (porSku[String(r.sku ?? "")] ?? 0) + Number(r.quantity ?? 0); });
+      const topSkus = Object.entries(porSku).sort((a, b) => b[1] - a[1]).slice(0, 5);
+      let titulos: Record<string, string> = {};
+      if (topSkus.length) {
+        const { data: cat } = await supabase.from("product_catalog").select("sku,title").in("sku", topSkus.map(([s]) => s));
+        ((cat as any[]) ?? []).forEach((c) => { titulos[String(c.sku)] = String(c.title ?? c.sku); });
+      }
+      if (cancel) return;
+      setTop5(topSkus.map(([sku, uds]) => ({ nombre: titulos[sku] ?? sku, uds })));
+
+      // % venta full por vendedor
+      const acum: Record<string, { full: number; total: number }> = {};
+      rows.forEach((r) => {
+        const uid = String(r.orders?.user_id ?? "");
+        if (!uid) return;
+        const val = Number(r.price ?? 0) * Number(r.quantity ?? 0);
+        const esFull = !r.is_markdown && Number(r.manual_discount_amount ?? 0) === 0;
+        acum[uid] ||= { full: 0, total: 0 };
+        acum[uid].total += val;
+        if (esFull) acum[uid].full += val;
+      });
+      const uids = Object.keys(acum);
+      const res: Record<string, number> = {};
+      if (uids.length) {
+        const { data: staff } = await supabase.from("staff_members").select("shopify_user_id,nombre").in("shopify_user_id", uids);
+        ((staff as any[]) ?? []).forEach((s) => {
+          const a = acum[String(s.shopify_user_id)];
+          if (a && a.total > 0) res[String(s.nombre ?? "")] = (a.full / a.total) * 100;
+        });
+      }
+      if (!cancel) setFullVendedor(res);
+    })();
+    return () => { cancel = true; };
+  }, [fila.clave, esTienda, anio, mes]);
+
+
   const palancas = useMemo(() => {
     if (!diag) return [];
     return [
