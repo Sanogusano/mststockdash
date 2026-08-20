@@ -3540,6 +3540,28 @@ export type Database = {
         }[]
       }
       cruzar_addi_con_shopify: { Args: never; Returns: undefined }
+      equipo_tienda: {
+        Args: { p_clave: string; p_fecha?: string }
+        Returns: {
+          desempeno: string
+          dias_con_venta: number
+          palanca_a_trabajar: string
+          participacion_venta: number
+          pct_descuento: number
+          rol: string
+          shopify_user_id: string
+          ticket: number
+          ticket_tienda: number
+          transacciones: number
+          unidades: number
+          upt: number
+          upt_tienda: number
+          var_ticket_pct: number
+          var_upt_pct: number
+          vendedor: string
+          venta: number
+        }[]
+      }
       estrategia_aplicar: {
         Args: {
           p_clave: string
