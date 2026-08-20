@@ -83,6 +83,26 @@ interface Prod {
   potencial_semanal: number;
 }
 
+interface EquipoRow {
+  vendedor: string;
+  rol: string | null;
+  shopify_user_id: string | null;
+  transacciones: number;
+  unidades: number;
+  venta: number;
+  ticket: number;
+  upt: number;
+  pct_descuento: number;
+  ticket_tienda: number;
+  upt_tienda: number;
+  var_ticket_pct: number;
+  var_upt_pct: number;
+  participacion_venta: number;
+  dias_con_venta: number;
+  desempeno: string | null;
+  palanca_a_trabajar: string | null;
+}
+
 const MESES = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
 
 const money = (v: number | null | undefined) => {
