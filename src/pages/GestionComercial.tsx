@@ -137,6 +137,57 @@ function colorPct(v: number) {
   return "text-rose-600";
 }
 
+interface SerieRow { entidad: string; dia: string; venta: number; acumulado: number; meta_dia: number }
+
+/** Tarjeta de red (nivel 1) */
+function CardRed({
+  titulo, valor, detalle, tono, icon: Icon,
+}: {
+  titulo: string; valor: string; detalle?: React.ReactNode;
+  tono: "neutral" | "rose" | "amber" | "emerald"; icon: any;
+}) {
+  const tonos = {
+    neutral: "bg-slate-50 border-slate-200 text-slate-700",
+    rose: "bg-rose-50 border-rose-200 text-rose-700",
+    amber: "bg-amber-50 border-amber-200 text-amber-700",
+    emerald: "bg-emerald-50 border-emerald-200 text-emerald-700",
+  }[tono];
+  return (
+    <div className={`rounded-xl border p-4 ${tonos}`}>
+      <div className="flex items-center gap-2 text-[11px] uppercase tracking-wider font-medium opacity-80">
+        <Icon className="h-3.5 w-3.5" />
+        {titulo}
+      </div>
+      <div className="mt-2 text-2xl font-semibold tabular-nums text-foreground">{valor}</div>
+      {detalle && <div className="mt-1 text-xs text-muted-foreground">{detalle}</div>}
+    </div>
+  );
+}
+
+/** Curva de acumulado vs meta (nivel 2) */
+function CurvaAcumulado({ serie }: { serie: SerieRow[] }) {
+  const W = 260, H = 56, P = 3;
+  if (!serie.length) {
+    return <div className="h-[56px] flex items-center text-[11px] text-muted-foreground">Sin serie diaria</div>;
+  }
+  let metaAcum = 0;
+  const puntos = serie.map((s) => {
+    metaAcum += Number(s.meta_dia ?? 0);
+    return { acum: Number(s.acumulado ?? 0), meta: metaAcum };
+  });
+  const max = Math.max(1, ...puntos.map((p) => Math.max(p.acum, p.meta)));
+  const x = (i: number) => P + (i * (W - P * 2)) / Math.max(1, puntos.length - 1);
+  const y = (v: number) => H - P - (v / max) * (H - P * 2);
+  const path = (key: "acum" | "meta") =>
+    puntos.map((p, i) => `${i === 0 ? "M" : "L"}${x(i).toFixed(1)},${y(p[key]).toFixed(1)}`).join(" ");
+  return (
+    <svg viewBox={`0 0 ${W} ${H}`} className="w-full h-[56px]" preserveAspectRatio="none">
+      <path d={path("meta")} fill="none" stroke="currentColor" className="text-muted-foreground" strokeWidth={1.2} strokeDasharray="4 3" />
+      <path d={path("acum")} fill="none" stroke="currentColor" className="text-rose-500" strokeWidth={1.8} />
+    </svg>
+  );
+}
+
 export default function GestionComercialPage() {
   // El valor inicial se calcula en cada render (no en constante de módulo).
   const hoy = new Date();
