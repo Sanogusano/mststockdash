@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { Siren, AlertTriangle, Users, Receipt, ShoppingBag, Package, Flag, Store, Globe } from "lucide-react";
+import { Siren, AlertTriangle, Users, UserRound, Receipt, ShoppingBag, Package, Flag, Store, Globe, Lightbulb, CalendarDays, Layers } from "lucide-react";
 
 /**
  * Accionables — lista priorizada de puntos de venta lejos de cumplir,
@@ -138,6 +138,58 @@ function colorPct(v: number) {
 }
 
 interface SerieRow { entidad: string; dia: string; venta: number; acumulado: number; meta_dia: number }
+
+interface Calidad { nombre: string; uds: number; pct_full: number; pct_promo: number; pct_rebaja: number }
+
+/** Fondo suave de la tarjeta según cumplimiento */
+function tonoCumpl(v: number) {
+  if (v >= 100) return "bg-emerald-100/70 border-emerald-300";
+  if (v >= 90) return "bg-emerald-50 border-emerald-200";
+  if (v >= 80) return "bg-amber-50 border-amber-200";
+  return "bg-rose-50 border-rose-200";
+}
+
+function iconoCumpl(v: number) {
+  if (v >= 100) return "🚀";
+  if (v >= 90) return "🟢";
+  if (v >= 80) return "⚠️";
+  return "🐢";
+}
+
+/** Barra de cumplimiento con marca de días transcurridos */
+function BarraMes({ pctv, marca }: { pctv: number; marca: number | null }) {
+  const ancho = Math.max(1, Math.min(100, pctv));
+  const barra = pctv >= 100 ? "bg-emerald-500" : pctv >= 90 ? "bg-emerald-400" : pctv >= 80 ? "bg-amber-500" : "bg-rose-500";
+  return (
+    <div className="relative h-2.5 rounded-full bg-white/70 border overflow-hidden">
+      <div className={`absolute inset-y-0 left-0 rounded-full ${barra}`} style={{ width: `${ancho}%` }} />
+      {marca != null && (
+        <div className="absolute inset-y-0 w-0.5 bg-slate-700/70" style={{ left: `${Math.min(100, Math.max(0, marca))}%` }} />
+      )}
+    </div>
+  );
+}
+
+/** Barra apilada de calidad de venta */
+function BarraCalidad({ c }: { c: Calidad | undefined }) {
+  if (!c) return <div className="text-[11px] text-muted-foreground">Sin calidad de venta</div>;
+  const full = Number(c.pct_full ?? 0), promo = Number(c.pct_promo ?? 0), reb = Number(c.pct_rebaja ?? 0);
+  const tot = Math.max(1, full + promo + reb);
+  return (
+    <div>
+      <div className="flex h-2.5 rounded-full overflow-hidden bg-white/70 border">
+        <div className="bg-emerald-500" style={{ width: `${(full / tot) * 100}%` }} />
+        <div className="bg-amber-500" style={{ width: `${(promo / tot) * 100}%` }} />
+        <div className="bg-rose-500" style={{ width: `${(reb / tot) * 100}%` }} />
+      </div>
+      <div className="mt-1 flex items-center gap-3 text-[10px] text-muted-foreground">
+        <span className="text-emerald-700">Full {nf(full, 0)}%</span>
+        <span className="text-amber-700">Promo {nf(promo, 0)}%</span>
+        <span className="text-rose-700">Rebaja {nf(reb, 0)}%</span>
+      </div>
+    </div>
+  );
+}
 
 /** Tarjeta de red (nivel 1) */
 function CardRed({
@@ -335,12 +387,34 @@ export default function GestionComercialPage() {
     return { presupuesto, venta, cierre, pctMes, brechaCierre, enRiesgo, dt, dm };
   }, [visibles]);
 
-  const enRiesgo = useMemo(
-    () => visibles.filter((f) => f.pct_cierre < 80).slice(0, 8),
-    [visibles]
-  );
-  const clavesRiesgo = useMemo(() => new Set(enRiesgo.map((f) => f.clave)), [enRiesgo]);
-  const resto = useMemo(() => visibles.filter((f) => !clavesRiesgo.has(f.clave)), [visibles, clavesRiesgo]);
+  // ── Calidad de venta y crecimiento intermensual por entidad ──
+  const [calidad, setCalidad] = useState<Record<string, Calidad>>({});
+  const [mom, setMom] = useState<Record<string, number>>({});
+  useEffect(() => {
+    let cancel = false;
+    (async () => {
+      const [c, m] = await Promise.all([
+        supabase.rpc("calidad_venta_entidad" as any, { p_anio: anio, p_mes: mes }),
+        supabase.rpc("crecimiento_mom" as any, { p_anio: anio, p_mes: mes }),
+      ]);
+      if (cancel) return;
+      const cm: Record<string, Calidad> = {};
+      ((c.data as any[]) ?? []).forEach((r) => {
+        cm[String(r.nombre ?? "")] = {
+          nombre: String(r.nombre ?? ""),
+          uds: Number(r.uds ?? 0),
+          pct_full: Number(r.pct_full ?? 0),
+          pct_promo: Number(r.pct_promo ?? 0),
+          pct_rebaja: Number(r.pct_rebaja ?? 0),
+        };
+      });
+      setCalidad(cm);
+      const mm: Record<string, number> = {};
+      ((m.data as any[]) ?? []).forEach((r) => { mm[String(r.nombre ?? "")] = Number(r.var_pct ?? 0); });
+      setMom(mm);
+    })();
+    return () => { cancel = true; };
+  }, [anio, mes]);
 
   return (
     <SidebarProvider>
@@ -438,60 +512,97 @@ export default function GestionComercialPage() {
               </div>
             )}
 
-            {/* ── Nivel 2: tarjetas de entidades en riesgo ── */}
-            {!loading && enRiesgo.length > 0 && (
+            {/* ── Nivel 2: tarjetas de todas las entidades ── */}
+            {!loading && visibles.length > 0 && (
               <div>
-                <h2 className="text-sm font-semibold mb-2">Entidades en riesgo</h2>
+                <h2 className="text-sm font-semibold mb-2">Entidades</h2>
                 <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-                  {enRiesgo.map((f) => (
-                    <button
-                      key={f.clave}
-                      onClick={() => setSel(f)}
-                      className="text-left rounded-xl border bg-card p-4 hover:shadow-md transition-shadow"
-                    >
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="flex items-center gap-2 min-w-0">
-                          <TipoIcon tipo={f.tipo} />
-                          <span className="font-medium truncate">{f.nombre}</span>
+                  {visibles.map((f) => {
+                    const pctMesEnt = f.presupuesto > 0 ? (f.venta_mtd / f.presupuesto) * 100 : 0;
+                    const marca = f.dias_mes ? ((f.dias_transcurridos ?? 0) / f.dias_mes) * 100 : null;
+                    const varMom = mom[f.nombre];
+                    return (
+                      <button
+                        key={f.clave}
+                        onClick={() => setSel(f)}
+                        className={`text-left rounded-xl border p-4 hover:shadow-md transition-shadow ${tonoCumpl(f.pct_cierre)}`}
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <TipoIcon tipo={f.tipo} />
+                            <span className="font-medium truncate">{f.nombre}</span>
+                          </div>
+                          <span className={`flex items-center gap-1 text-2xl font-semibold tabular-nums ${colorPct(f.pct_cierre)}`}>
+                            <span className="text-base">{iconoCumpl(f.pct_cierre)}</span>
+                            {nf(f.pct_cierre, 0)}%
+                          </span>
                         </div>
-                        <span className={`text-2xl font-semibold tabular-nums ${colorPct(f.pct_cierre)}`}>
-                          {nf(f.pct_cierre, 0)}%
-                        </span>
-                      </div>
-                      <div className="mt-2">
-                        <CurvaAcumulado serie={series[f.nombre] ?? series[f.clave] ?? []} />
-                      </div>
-                      <div className="mt-2 grid grid-cols-3 gap-2 text-[11px]">
-                        <div>
-                          <div className="text-muted-foreground">Interanual</div>
-                          <div className={`tabular-nums font-medium ${f.crecimiento_yoy < 0 ? "text-rose-600" : "text-emerald-600"}`}>
-                            {pct(f.crecimiento_yoy, 0)}
+
+                        <div className="mt-3">
+                          <BarraMes pctv={pctMesEnt} marca={marca} />
+                          <div className="mt-1 flex justify-between text-[10px] text-muted-foreground">
+                            <span>{nf(pctMesEnt, 0)}% del mes</span>
+                            <span>{f.dias_transcurridos ?? "—"}/{f.dias_mes ?? "—"} días</span>
                           </div>
                         </div>
-                        <div>
-                          <div className="text-muted-foreground">Tend. 7d</div>
-                          <div className={`tabular-nums font-medium ${f.tendencia_7d < 0 ? "text-rose-600" : "text-emerald-600"}`}>
-                            {pct(f.tendencia_7d, 0)}
+
+                        <div className="mt-3 grid grid-cols-2 gap-2 text-[11px]">
+                          <div>
+                            <div className="text-muted-foreground">Intermensual</div>
+                            <div className={`tabular-nums font-medium ${Number(varMom ?? 0) < 0 ? "text-rose-600" : "text-emerald-600"}`}>
+                              {varMom == null ? "—" : pct(varMom, 0)}
+                            </div>
+                          </div>
+                          <div>
+                            <div className="text-muted-foreground">Interanual</div>
+                            <div className={`tabular-nums font-medium ${f.crecimiento_yoy < 0 ? "text-rose-600" : "text-emerald-600"}`}>
+                              {pct(f.crecimiento_yoy, 0)}
+                            </div>
+                          </div>
+                          <div>
+                            <div className="text-muted-foreground">Ticket</div>
+                            <div className="tabular-nums font-medium">{money((f as any).ticket)}</div>
+                          </div>
+                          <div>
+                            <div className="text-muted-foreground">UPT</div>
+                            <div className="tabular-nums font-medium">{nf((f as any).upt, 2)}</div>
                           </div>
                         </div>
-                        <div>
-                          <div className="text-muted-foreground">Esfuerzo</div>
-                          <div className="tabular-nums font-medium">
-                            {f.esfuerzo_requerido > 0 ? `+${nf(f.esfuerzo_requerido, 0)}%` : "Alcanzable"}
-                          </div>
+
+                        <div className="mt-3">
+                          <BarraCalidad c={calidad[f.nombre]} />
                         </div>
-                      </div>
-                      {f.accionable && (
-                        <p className="mt-3 pt-2 border-t text-xs text-muted-foreground">{f.accionable}</p>
-                      )}
-                    </button>
-                  ))}
+
+                        <div className="mt-3 flex items-center gap-4 text-[11px]">
+                          <span className="text-muted-foreground">
+                            Tend. 7d{" "}
+                            <span className={`tabular-nums font-medium ${f.tendencia_7d < 0 ? "text-rose-600" : "text-emerald-600"}`}>
+                              {pct(f.tendencia_7d, 0)}
+                            </span>
+                          </span>
+                          <span className="text-muted-foreground">
+                            Esfuerzo{" "}
+                            <span className="tabular-nums font-medium text-foreground">
+                              {f.esfuerzo_requerido > 0 ? `+${nf(f.esfuerzo_requerido, 0)}%` : "Alcanzable"}
+                            </span>
+                          </span>
+                        </div>
+
+                        {f.accionable && (
+                          <div className="mt-3 flex gap-2 rounded-lg bg-white/70 border p-2 text-xs text-muted-foreground">
+                            <Lightbulb className="h-3.5 w-3.5 shrink-0 mt-0.5 text-amber-500" />
+                            <span>{f.accionable}</span>
+                          </div>
+                        )}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             )}
 
-            {/* ── Nivel 3: tabla con el resto ── */}
-            {!loading && resto.length > 0 && (
+            {/* ── Nivel 3: tabla comparativa ── */}
+            {!loading && visibles.length > 0 && (
               <div className="rounded-xl border bg-card overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
@@ -509,7 +620,7 @@ export default function GestionComercialPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {resto.map((f) => (
+                    {visibles.map((f) => (
                       <tr
                         key={f.clave}
                         onClick={() => setSel(f)}
@@ -642,6 +753,97 @@ function DetalleTienda({ fila, anio, mes }: { fila: Fila; anio: number; mes: num
     })();
     return () => { cancel = true; };
   }, [fila.clave, fila.nombre, fechaCorte, anio, mes, esTienda]);
+
+  // ── Datos del panel Producto ──
+  const [combinar, setCombinar] = useState<any[]>([]);
+  const [mejorDia, setMejorDia] = useState<any[]>([]);
+  const [calidadEnt, setCalidadEnt] = useState<Calidad | null>(null);
+  const [top5, setTop5] = useState<{ nombre: string; uds: number }[]>([]);
+  const [fullVendedor, setFullVendedor] = useState<Record<string, number>>({});
+  const [tabProd, setTabProd] = useState("PEDIR");
+
+  useEffect(() => {
+    let cancel = false;
+    (async () => {
+      const clave = fila.clave ?? fila.nombre;
+      const [cb, md, cv] = await Promise.all([
+        supabase.rpc("productos_combinar" as any, { p_clave: clave, p_limite: 12 }),
+        supabase.rpc("mejor_dia_semana" as any, { p_clave: clave, p_dias: 90 }),
+        supabase.rpc("calidad_venta_entidad" as any, { p_anio: anio, p_mes: mes }),
+      ]);
+      if (cancel) return;
+      setCombinar(((cb.data as any[]) ?? []));
+      setMejorDia(((md.data as any[]) ?? []));
+      const fila_cv = ((cv.data as any[]) ?? []).find((r) => String(r.nombre ?? "") === fila.nombre);
+      setCalidadEnt(fila_cv ? {
+        nombre: fila.nombre,
+        uds: Number(fila_cv.uds ?? 0),
+        pct_full: Number(fila_cv.pct_full ?? 0),
+        pct_promo: Number(fila_cv.pct_promo ?? 0),
+        pct_rebaja: Number(fila_cv.pct_rebaja ?? 0),
+      } : null);
+    })();
+    return () => { cancel = true; };
+  }, [fila.clave, fila.nombre, anio, mes]);
+
+  // Top 5 más vendido y % venta full por vendedor (solo tiendas físicas)
+  useEffect(() => {
+    let cancel = false;
+    (async () => {
+      if (!esTienda) { setTop5([]); setFullVendedor({}); return; }
+      const desde = `${anio}-${String(mes).padStart(2, "0")}-01`;
+      const finMes = new Date(anio, mes, 1);
+      const hasta = `${finMes.getFullYear()}-${String(finMes.getMonth() + 1).padStart(2, "0")}-01`;
+      const { data } = await supabase
+        .from("order_items")
+        .select("sku,quantity,price,category,manual_discount_amount,is_markdown,orders!inner(created_at,user_id)")
+        .eq("location_id", fila.clave)
+        .gte("orders.created_at", desde)
+        .lt("orders.created_at", hasta)
+        .limit(20000);
+      if (cancel) return;
+      const rows = ((data as any[]) ?? []).filter((r) => {
+        const c = String(r.category ?? "").toUpperCase();
+        return !c.includes("BOLSA") && !c.includes("INSUMO");
+      });
+
+      // Top 5 por unidades
+      const porSku: Record<string, number> = {};
+      rows.forEach((r) => { porSku[String(r.sku ?? "")] = (porSku[String(r.sku ?? "")] ?? 0) + Number(r.quantity ?? 0); });
+      const topSkus = Object.entries(porSku).sort((a, b) => b[1] - a[1]).slice(0, 5);
+      let titulos: Record<string, string> = {};
+      if (topSkus.length) {
+        const { data: cat } = await supabase.from("product_catalog").select("sku,title").in("sku", topSkus.map(([s]) => s));
+        ((cat as any[]) ?? []).forEach((c) => { titulos[String(c.sku)] = String(c.title ?? c.sku); });
+      }
+      if (cancel) return;
+      setTop5(topSkus.map(([sku, uds]) => ({ nombre: titulos[sku] ?? sku, uds })));
+
+      // % venta full por vendedor
+      const acum: Record<string, { full: number; total: number }> = {};
+      rows.forEach((r) => {
+        const uid = String(r.orders?.user_id ?? "");
+        if (!uid) return;
+        const val = Number(r.price ?? 0) * Number(r.quantity ?? 0);
+        const esFull = !r.is_markdown && Number(r.manual_discount_amount ?? 0) === 0;
+        acum[uid] ||= { full: 0, total: 0 };
+        acum[uid].total += val;
+        if (esFull) acum[uid].full += val;
+      });
+      const uids = Object.keys(acum);
+      const res: Record<string, number> = {};
+      if (uids.length) {
+        const { data: staff } = await supabase.from("staff_members").select("shopify_user_id,nombre").in("shopify_user_id", uids);
+        ((staff as any[]) ?? []).forEach((s) => {
+          const a = acum[String(s.shopify_user_id)];
+          if (a && a.total > 0) res[String(s.nombre ?? "")] = (a.full / a.total) * 100;
+        });
+      }
+      if (!cancel) setFullVendedor(res);
+    })();
+    return () => { cancel = true; };
+  }, [fila.clave, esTienda, anio, mes]);
+
 
   const palancas = useMemo(() => {
     if (!diag) return [];
@@ -795,47 +997,142 @@ function DetalleTienda({ fila, anio, mes }: { fila: Fila; anio: number; mes: num
         </div>
       </section>
 
-      {/* 5 — Qué hacer */}
-      <section className="rounded-xl border bg-card p-4">
-        <div className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground mb-3">Qué hacer</div>
-        {prods.length === 0 ? (
-          <EmptyState message="Sin acciones de producto sugeridas" />
-        ) : (
-          <ul className="divide-y">
-            {prods.map((p, i) => {
-              const impulsar = (p.accion ?? "").toUpperCase().includes("IMPULSAR");
-              return (
-                <li key={`${p.producto}-${i}`} className="flex items-center gap-3 py-2.5">
-                  {p.image_url ? (
-                    <ProductImageThumb src={p.image_url} alt={p.producto} title={p.producto} className="h-11 w-11 rounded-md object-cover border shrink-0" />
-                  ) : (
-                    <div className="h-11 w-11 rounded-md border bg-muted flex items-center justify-center shrink-0">
-                      <Package className="h-4 w-4 text-muted-foreground" />
-                    </div>
-                  )}
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-medium truncate">{p.producto}</span>
-                      <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold ${impulsar ? "bg-violet-100 text-violet-800" : "bg-sky-100 text-sky-800"}`}>
-                        {impulsar ? "IMPULSAR" : "PEDIR"}
-                      </span>
-                    </div>
-                    <div className="text-xs text-muted-foreground">
-                      Vende {nf(p.ritmo_red, 1)} uds/semana en {p.tiendas_vendiendo} tiendas{p.linea ? ` · ${p.linea}` : ""}
-                    </div>
-                  </div>
-                  <div className="text-right text-xs text-muted-foreground shrink-0">
-                    <div>Tienda: {p.stock_local} uds</div>
-                    <div>Red: {p.stock_red} uds</div>
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
-        )}
-      </section>
     </div>
   );
+
+  const ListaProductos = (accion: "PEDIR" | "IMPULSAR") => {
+    const items = prods.filter((p) => (p.accion ?? "").toUpperCase().includes(accion));
+    if (!items.length) return <EmptyState message={`Sin productos para ${accion.toLowerCase()}`} />;
+    return (
+      <ul className="divide-y">
+        {items.map((p, i) => (
+          <li key={`${p.producto}-${i}`} className="flex items-center gap-3 py-2.5">
+            {p.image_url ? (
+              <ProductImageThumb src={p.image_url} alt={p.producto} title={p.producto} className="h-11 w-11 rounded-md object-cover border shrink-0" />
+            ) : (
+              <div className="h-11 w-11 rounded-md border bg-muted flex items-center justify-center shrink-0">
+                <Package className="h-4 w-4 text-muted-foreground" />
+              </div>
+            )}
+            <div className="min-w-0 flex-1">
+              <div className="text-sm font-medium truncate">{p.producto}</div>
+              <div className="text-xs text-muted-foreground">
+                Vende {nf(p.ritmo_red, 1)} uds/semana en {p.tiendas_vendiendo} tiendas{p.linea ? ` · ${p.linea}` : ""}
+              </div>
+            </div>
+            <div className="text-right text-xs text-muted-foreground shrink-0">
+              <div>Tienda: {p.stock_local} uds</div>
+              <div>Red: {p.stock_red} uds</div>
+            </div>
+          </li>
+        ))}
+      </ul>
+    );
+  };
+
+  const diaTop = mejorDia.find((d) => d.es_mejor) ?? [...mejorDia].sort((a, b) => Number(b.venta_promedio_dia ?? 0) - Number(a.venta_promedio_dia ?? 0))[0];
+
+  const PanelProducto = (
+    <div className="space-y-4">
+      <div className="grid gap-3 sm:grid-cols-2">
+        <section className="rounded-xl border bg-card p-4">
+          <div className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground mb-2 flex items-center gap-2">
+            <Package className="h-3.5 w-3.5" /> Top 5 más vendido
+          </div>
+          {top5.length === 0 ? (
+            <p className="text-xs text-muted-foreground">Sin datos de venta en el mes</p>
+          ) : (
+            <ol className="space-y-1">
+              {top5.map((t, i) => (
+                <li key={t.nombre + i} className="flex items-center gap-2 text-sm">
+                  <span className="w-4 text-xs text-muted-foreground">{i + 1}</span>
+                  <span className="truncate flex-1">{t.nombre}</span>
+                  <span className="tabular-nums font-medium">{nf(t.uds, 0)}</span>
+                </li>
+              ))}
+            </ol>
+          )}
+        </section>
+        <section className="rounded-xl border bg-card p-4">
+          <div className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground mb-2 flex items-center gap-2">
+            <CalendarDays className="h-3.5 w-3.5" /> Mejor día de la semana
+          </div>
+          {!diaTop ? (
+            <p className="text-xs text-muted-foreground">Sin datos</p>
+          ) : (
+            <>
+              <div className="text-2xl font-semibold text-emerald-700">{diaTop.dia_semana}</div>
+              <div className="text-xs text-muted-foreground mt-1">
+                {money(Number(diaTop.venta_promedio_dia ?? 0))} promedio · {nf(diaTop.transacciones, 0)} tx
+              </div>
+              <div className="mt-2 space-y-1">
+                {mejorDia.map((d) => {
+                  const max = Math.max(1, ...mejorDia.map((x) => Number(x.venta_promedio_dia ?? 0)));
+                  const w = (Number(d.venta_promedio_dia ?? 0) / max) * 100;
+                  return (
+                    <div key={d.dow} className="flex items-center gap-2">
+                      <span className="w-16 text-[10px] text-muted-foreground truncate">{d.dia_semana}</span>
+                      <div className="flex-1 h-1.5 rounded-full bg-muted overflow-hidden">
+                        <div className={`h-full rounded-full ${d.es_mejor ? "bg-emerald-500" : "bg-slate-300"}`} style={{ width: `${Math.max(2, w)}%` }} />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </>
+          )}
+        </section>
+      </div>
+
+      <Tabs value={tabProd} onValueChange={setTabProd}>
+        <TabsList className="w-full grid grid-cols-3">
+          <TabsTrigger value="PEDIR">PEDIR</TabsTrigger>
+          <TabsTrigger value="IMPULSAR">IMPULSAR</TabsTrigger>
+          <TabsTrigger value="COMBINAR">COMBINAR</TabsTrigger>
+        </TabsList>
+        <TabsContent value="PEDIR" className="mt-3">
+          <div className="rounded-xl border bg-card p-4">{ListaProductos("PEDIR")}</div>
+        </TabsContent>
+        <TabsContent value="IMPULSAR" className="mt-3">
+          <div className="rounded-xl border bg-card p-4">{ListaProductos("IMPULSAR")}</div>
+        </TabsContent>
+        <TabsContent value="COMBINAR" className="mt-3">
+          <div className="rounded-xl border bg-card overflow-x-auto">
+            {combinar.length === 0 ? (
+              <div className="p-4"><EmptyState message="Sin combinaciones frecuentes" /></div>
+            ) : (
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b bg-muted/40 text-[11px] uppercase tracking-wider text-muted-foreground">
+                    <th className="px-3 py-2 text-left font-medium">Producto</th>
+                    <th className="px-3 py-2 text-left font-medium">Combina con</th>
+                    <th className="px-3 py-2 text-right font-medium">Veces juntos</th>
+                    <th className="px-3 py-2 text-right font-medium">Lift</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {combinar.map((c, i) => (
+                    <tr key={`${c.producto}-${i}`} className="border-b last:border-b-0 hover:bg-muted/40">
+                      <td className="px-3 py-2">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <Layers className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                          <span className="truncate max-w-[180px]">{c.producto}</span>
+                        </div>
+                      </td>
+                      <td className="px-3 py-2 truncate max-w-[180px]">{c.combina_con}</td>
+                      <td className="px-3 py-2 text-right tabular-nums">{nf(c.veces_juntos, 0)}</td>
+                      <td className="px-3 py-2 text-right tabular-nums font-medium text-sky-700">{nf(c.lift, 2)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+        </TabsContent>
+      </Tabs>
+    </div>
+  );
+
 
   return (
     <div className="space-y-5 pt-2">
@@ -856,15 +1153,22 @@ function DetalleTienda({ fila, anio, mes }: { fila: Fila; anio: number; mes: num
       {!loading && diag && (
         esTienda ? (
           <Tabs value={tab} onValueChange={setTab}>
-            <TabsList className="w-full grid grid-cols-2">
+            <TabsList className="w-full grid grid-cols-3">
               <TabsTrigger value="diagnostico">Diagnóstico</TabsTrigger>
+              <TabsTrigger value="producto">Producto</TabsTrigger>
               <TabsTrigger value="equipo">Equipo</TabsTrigger>
             </TabsList>
             <TabsContent value="diagnostico" className="mt-4">
               {Diagnostico}
             </TabsContent>
+            <TabsContent value="producto" className="mt-4">
+              {PanelProducto}
+            </TabsContent>
             <TabsContent value="equipo" className="mt-4 space-y-4">
-              <div className="grid grid-cols-3 gap-3">
+              <h3 className="text-sm font-semibold flex items-center gap-2">
+                <Users className="h-4 w-4 text-muted-foreground" /> Equipo
+              </h3>
+              <div className="grid grid-cols-4 gap-3">
                 <div className="rounded-xl border bg-card p-3">
                   <div className="text-xs text-muted-foreground mb-1">Ticket promedio tienda</div>
                   <div className="text-xl font-semibold tabular-nums">{money(ticketPromedio)}</div>
@@ -874,10 +1178,17 @@ function DetalleTienda({ fila, anio, mes }: { fila: Fila; anio: number; mes: num
                   <div className="text-xl font-semibold tabular-nums">{nf(uptPromedio, 2)}</div>
                 </div>
                 <div className="rounded-xl border bg-card p-3">
+                  <div className="text-xs text-muted-foreground mb-1">% venta full tienda</div>
+                  <div className="text-xl font-semibold tabular-nums text-emerald-700">
+                    {calidadEnt ? `${nf(calidadEnt.pct_full, 0)}%` : "—"}
+                  </div>
+                </div>
+                <div className="rounded-xl border bg-card p-3">
                   <div className="text-xs text-muted-foreground mb-1">Sobre el promedio</div>
                   <div className="text-xl font-semibold tabular-nums">{sobrePromedio} <span className="text-sm font-normal text-muted-foreground">vendedores</span></div>
                 </div>
               </div>
+
 
               <div className="rounded-xl border bg-card overflow-x-auto">
                 <table className="w-full text-sm">
@@ -890,6 +1201,7 @@ function DetalleTienda({ fila, anio, mes }: { fila: Fila; anio: number; mes: num
                       <th className="px-3 py-2 text-right font-medium">Ticket</th>
                       <th className="px-3 py-2 text-right font-medium">UPT</th>
                       <th className="px-3 py-2 text-right font-medium">% Desc.</th>
+                      <th className="px-3 py-2 text-right font-medium">% Full</th>
                       <th className="px-3 py-2 text-right font-medium">Particip.</th>
                       <th className="px-3 py-2 text-center font-medium">Desempeño</th>
                       <th className="px-3 py-2 text-left font-medium">Palanca</th>
@@ -900,7 +1212,12 @@ function DetalleTienda({ fila, anio, mes }: { fila: Fila; anio: number; mes: num
                       const perf = badgeDesempeno(e.desempeno);
                       return (
                         <tr key={`${e.shopify_user_id ?? e.vendedor}-${i}`} className="border-b last:border-b-0 hover:bg-muted/40">
-                          <td className="px-3 py-2 font-medium truncate max-w-[140px]">{e.vendedor}</td>
+                          <td className="px-3 py-2 font-medium max-w-[160px]">
+                            <span className="flex items-center gap-2">
+                              <UserRound className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                              <span className="truncate">{e.vendedor}</span>
+                            </span>
+                          </td>
                           <td className="px-3 py-2 text-muted-foreground">{e.rol ?? "—"}</td>
                           <td className="px-3 py-2 text-right tabular-nums">{nf(e.transacciones, 0)}</td>
                           <td className="px-3 py-2 text-right tabular-nums">{money(e.venta)}</td>
@@ -913,6 +1230,9 @@ function DetalleTienda({ fila, anio, mes }: { fila: Fila; anio: number; mes: num
                             <div className={`text-[11px] tabular-nums ${varColor(e.var_upt_pct)}`}>{pct(e.var_upt_pct, 1)}</div>
                           </td>
                           <td className="px-3 py-2 text-right tabular-nums">{nf(e.pct_descuento, 1)}%</td>
+                          <td className="px-3 py-2 text-right tabular-nums font-medium text-emerald-700">
+                            {fullVendedor[e.vendedor] != null ? `${nf(fullVendedor[e.vendedor], 0)}%` : "—"}
+                          </td>
                           <td className="px-3 py-2 text-right tabular-nums">{nf(e.participacion_venta, 1)}%</td>
                           <td className="px-3 py-2 text-center">
                             <span className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px] font-medium ${perf.className}`}>
@@ -934,7 +1254,7 @@ function DetalleTienda({ fila, anio, mes }: { fila: Fila; anio: number; mes: num
                     })}
                     {equipoOrdenado.length === 0 && (
                       <tr>
-                        <td colSpan={10} className="px-3 py-6 text-center text-sm text-muted-foreground">
+                        <td colSpan={11} className="px-3 py-6 text-center text-sm text-muted-foreground">
                           Sin datos de equipo para esta tienda
                         </td>
                       </tr>
@@ -945,7 +1265,14 @@ function DetalleTienda({ fila, anio, mes }: { fila: Fila; anio: number; mes: num
             </TabsContent>
           </Tabs>
         ) : (
-          Diagnostico
+          <Tabs value={tab === "equipo" ? "diagnostico" : tab} onValueChange={setTab}>
+            <TabsList className="w-full grid grid-cols-2">
+              <TabsTrigger value="diagnostico">Diagnóstico</TabsTrigger>
+              <TabsTrigger value="producto">Producto</TabsTrigger>
+            </TabsList>
+            <TabsContent value="diagnostico" className="mt-4">{Diagnostico}</TabsContent>
+            <TabsContent value="producto" className="mt-4">{PanelProducto}</TabsContent>
+          </Tabs>
         )
       )}
     </div>

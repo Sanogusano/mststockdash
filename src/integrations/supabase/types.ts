@@ -3474,6 +3474,18 @@ export type Database = {
           zona: string
         }[]
       }
+      calidad_venta_entidad: {
+        Args: { p_anio?: number; p_mes?: number }
+        Returns: {
+          desc_promedio_promo: number
+          nombre: string
+          pct_full: number
+          pct_promo: number
+          pct_rebaja: number
+          uds: number
+          venta_full: number
+        }[]
+      }
       crear_ubicacion_completa: {
         Args: {
           p_capacidad?: number
@@ -3485,6 +3497,15 @@ export type Database = {
           p_zona?: string
         }
         Returns: string
+      }
+      crecimiento_mom: {
+        Args: { p_anio?: number; p_mes?: number }
+        Returns: {
+          nombre: string
+          var_pct: number
+          venta_actual: number
+          venta_mes_anterior: number
+        }[]
       }
       crisis_room_entidades: {
         Args: never
@@ -3830,6 +3851,17 @@ export type Database = {
         }[]
       }
       get_user_scope: { Args: { p_user_id?: string }; Returns: string[] }
+      mejor_dia_semana: {
+        Args: { p_clave: string; p_dias?: number }
+        Returns: {
+          dia_semana: string
+          dow: number
+          es_mejor: boolean
+          transacciones: number
+          venta: number
+          venta_promedio_dia: number
+        }[]
+      }
       obtener_siguiente_consecutivo: {
         Args: { p_origen_netsuite_id: number }
         Returns: number
@@ -3841,6 +3873,20 @@ export type Database = {
           tipo: string
           uds_netsuite: number
           uds_shopify: number
+        }[]
+      }
+      productos_combinar: {
+        Args: { p_clave: string; p_limite?: number }
+        Returns: {
+          accion: string
+          combina_con: string
+          image_url: string
+          lift: number
+          linea: string
+          producto: string
+          stock_local: number
+          stock_red: number
+          veces_juntos: number
         }[]
       }
       proyeccion_pagos_addi: {
