@@ -1265,7 +1265,14 @@ function DetalleTienda({ fila, anio, mes }: { fila: Fila; anio: number; mes: num
             </TabsContent>
           </Tabs>
         ) : (
-          Diagnostico
+          <Tabs value={tab === "equipo" ? "diagnostico" : tab} onValueChange={setTab}>
+            <TabsList className="w-full grid grid-cols-2">
+              <TabsTrigger value="diagnostico">Diagnóstico</TabsTrigger>
+              <TabsTrigger value="producto">Producto</TabsTrigger>
+            </TabsList>
+            <TabsContent value="diagnostico" className="mt-4">{Diagnostico}</TabsContent>
+            <TabsContent value="producto" className="mt-4">{PanelProducto}</TabsContent>
+          </Tabs>
         )
       )}
     </div>
