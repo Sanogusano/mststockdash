@@ -105,6 +105,15 @@ interface EquipoRow {
   palanca_a_trabajar: string | null;
 }
 
+interface Linea {
+  linea: string;
+  unidades: number;
+  venta: number;
+  uds_por_semana: number;
+  participacion: number;
+  stock_tienda: number;
+}
+
 const MESES = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
 
 const money = (v: number | null | undefined) => {
