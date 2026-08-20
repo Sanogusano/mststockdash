@@ -209,7 +209,7 @@ export default function GestionComercialPage() {
   const [filas, setFilas] = useState<Fila[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [marcando, setMarcando] = useState<string | null>(null);
+  
   const [sel, setSel] = useState<Fila | null>(null);
   const [zona, setZona] = useState<string>("todas");
   const [tienda, setTienda] = useState<string>("todas");
