@@ -277,28 +277,6 @@ export default function GestionComercialPage() {
     [filasZona, tienda]
   );
 
-  // ── Series diarias por entidad (nivel 2) ──
-  const [series, setSeries] = useState<Record<string, SerieRow[]>>({});
-  useEffect(() => {
-    let cancel = false;
-    (async () => {
-      const { data } = await supabase.rpc("accionables_serie" as any, { p_anio: anio, p_mes: mes });
-      if (cancel) return;
-      const grp: Record<string, SerieRow[]> = {};
-      ((data as any[]) ?? []).forEach((r) => {
-        const k = String(r.entidad ?? "");
-        (grp[k] ||= []).push({
-          entidad: k, dia: r.dia,
-          venta: Number(r.venta ?? 0),
-          acumulado: Number(r.acumulado ?? 0),
-          meta_dia: Number(r.meta_dia ?? 0),
-        });
-      });
-      Object.values(grp).forEach((s) => s.sort((a, b) => a.dia.localeCompare(b.dia)));
-      setSeries(grp);
-    })();
-    return () => { cancel = true; };
-  }, [anio, mes]);
 
   // ── Vendedores (nivel 1: referentes) ──
   const [vendedores, setVendedores] = useState<any[]>([]);
