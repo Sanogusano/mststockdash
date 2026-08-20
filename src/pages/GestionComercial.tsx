@@ -957,18 +957,20 @@ function DetalleTienda({ fila, anio, mes }: { fila: Fila; anio: number; mes: num
       {(() => {
         const elegibles = lineas.filter((l) => Number(l.unidades ?? 0) >= 3);
         if (!elegibles.length) return null;
-        const orden = [...elegibles].sort((a, b) => Number(b.indice ?? 0) - Number(a.indice ?? 0));
-        const fuerte = orden[0];
-        const debil = orden[orden.length - 1];
-        const CardLinea = ({ l, titulo, tono }: { l: any; titulo: string; tono: string }) => (
+        const fuerte = elegibles[0];
+        const debil = [...elegibles].reverse().find((l) => Number(l.stock_tienda ?? 0) > 0) ?? elegibles[elegibles.length - 1];
+        const CardLinea = ({ l, titulo, tono }: { l: Linea; titulo: string; tono: string }) => (
           <section className={`rounded-xl border p-4 ${tono}`}>
             <div className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground mb-2">{titulo}</div>
             <div className="flex items-baseline justify-between gap-2">
               <span className="text-lg font-semibold truncate">{l.linea ?? "—"}</span>
-              <span className="text-2xl font-semibold tabular-nums">{nf(l.indice, 0)}</span>
+              <span className="text-2xl font-semibold tabular-nums">{nf(l.unidades, 0)}</span>
             </div>
             <div className="mt-1 text-xs text-muted-foreground">
-              {l.posicion ?? "—"} · {nf(l.unidades, 0)} uds · {nf(l.participacion, 1)}% aquí vs {nf(l.participacion_red, 1)}% red
+              {money(l.venta)} · {nf(l.uds_por_semana, 1)} uds/semana · {nf(l.participacion, 1)}% share
+            </div>
+            <div className="mt-2 text-xs text-muted-foreground">
+              Stock en tienda: <span className={Number(l.stock_tienda ?? 0) === 0 ? "text-rose-600 font-medium" : "text-foreground font-medium tabular-nums"}>{nf(l.stock_tienda, 0)} uds</span>
             </div>
           </section>
         );
