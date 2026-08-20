@@ -445,75 +445,74 @@ export default function GestionComercialPage() {
                     const pctMesEnt = f.presupuesto > 0 ? (f.venta_mtd / f.presupuesto) * 100 : 0;
                     const marca = f.dias_mes ? ((f.dias_transcurridos ?? 0) / f.dias_mes) * 100 : null;
                     const varMom = mom[f.nombre];
+                    const c = calidad[f.nombre];
                     return (
                       <button
                         key={f.clave}
                         onClick={() => setSel(f)}
-                        className={`text-left rounded-xl border p-4 hover:shadow-md transition-shadow ${tonoCumpl(f.pct_cierre)}`}
+                        className={`text-left rounded-xl border border-t-[3px] p-4 hover:shadow-md transition-shadow ${tonoCumpl(f.pct_cierre)}`}
                       >
-                        <div className="flex items-start justify-between gap-2">
+                        {/* 1. Encabezado */}
+                        <div className="flex items-center justify-between gap-2">
                           <div className="flex items-center gap-2 min-w-0">
                             <TipoIcon tipo={f.tipo} />
-                            <span className="font-medium truncate">{f.nombre}</span>
+                            <span className="font-medium text-sm truncate">{f.nombre}</span>
                           </div>
-                          <span className={`flex items-center gap-1 text-2xl font-semibold tabular-nums ${colorPct(f.pct_cierre)}`}>
-                            <span className="text-base">{iconoCumpl(f.pct_cierre)}</span>
-                            {nf(f.pct_cierre, 0)}%
-                          </span>
+                          <div className="text-right shrink-0">
+                            <div className="text-[9px] uppercase tracking-wider text-muted-foreground">Cierre proyectado</div>
+                            <div className={`text-2xl font-semibold tabular-nums ${colorPct(f.pct_cierre)}`}>
+                              <span className="text-base">{iconoCumpl(f.pct_cierre)}</span>
+                              {nf(f.pct_cierre, 0)}%
+                            </div>
+                          </div>
                         </div>
 
+                        {/* 2. Progreso */}
                         <div className="mt-3">
                           <BarraMes pctv={pctMesEnt} marca={marca} />
-                          <div className="mt-1 flex justify-between text-[10px] text-muted-foreground">
-                            <span>{nf(pctMesEnt, 0)}% del mes</span>
-                            <span>{f.dias_transcurridos ?? "—"}/{f.dias_mes ?? "—"} días</span>
+                          <div className="mt-1.5 text-[11px] text-muted-foreground tabular-nums">
+                            {money(f.venta_mtd)} de {money(f.presupuesto)} · día {f.dias_transcurridos ?? "—"} de {f.dias_mes ?? "—"}
                           </div>
                         </div>
 
-                        <div className="mt-3 grid grid-cols-2 gap-2 text-[11px]">
-                          <div>
-                            <div className="text-muted-foreground">Intermensual</div>
-                            <div className={`tabular-nums font-medium ${Number(varMom ?? 0) < 0 ? "text-rose-600" : "text-emerald-600"}`}>
-                              {varMom == null ? "—" : pct(varMom, 0)}
+                        {/* 3. Métricas */}
+                        <div className="mt-3 grid grid-cols-3 gap-2">
+                          <Metrica label="Ticket" value={money((f as any).ticket)} />
+                          <Metrica label="UPT" value={nf((f as any).upt, 2)} />
+                          <Metrica label="Intermensual" value={varMom == null ? "—" : pct(varMom, 0)} neg={Number(varMom) < 0} pos={Number(varMom) > 0} />
+                          <Metrica label="Interanual" value={pct(f.crecimiento_yoy, 0)} neg={f.crecimiento_yoy < 0} pos={f.crecimiento_yoy > 0} />
+                          <Metrica label="Tendencia 7d" value={pct(f.tendencia_7d, 0)} neg={f.tendencia_7d < 0} pos={f.tendencia_7d > 0} />
+                          <Metrica label="Esfuerzo" value={f.esfuerzo_requerido > 0 ? `+${nf(f.esfuerzo_requerido, 0)}%` : "Alcanzable"} pos={f.esfuerzo_requerido > 0} />
+                        </div>
+
+                        {/* 4. Composición de venta */}
+                        <div className="mt-3 grid grid-cols-3 gap-2">
+                          <div className="rounded-md bg-slate-50 p-2 flex items-center gap-2">
+                            <span className="h-2 w-2 rounded-full bg-emerald-500 shrink-0" />
+                            <div>
+                              <div className="text-[10px] text-muted-foreground">Full</div>
+                              <div className="text-sm font-medium tabular-nums">{nf(c?.pct_full ?? 0, 0)}%</div>
                             </div>
                           </div>
-                          <div>
-                            <div className="text-muted-foreground">Interanual</div>
-                            <div className={`tabular-nums font-medium ${f.crecimiento_yoy < 0 ? "text-rose-600" : "text-emerald-600"}`}>
-                              {pct(f.crecimiento_yoy, 0)}
+                          <div className="rounded-md bg-slate-50 p-2 flex items-center gap-2">
+                            <span className="h-2 w-2 rounded-full bg-amber-500 shrink-0" />
+                            <div>
+                              <div className="text-[10px] text-muted-foreground">Promo</div>
+                              <div className="text-sm font-medium tabular-nums">{nf(c?.pct_promo ?? 0, 0)}%</div>
                             </div>
                           </div>
-                          <div>
-                            <div className="text-muted-foreground">Ticket</div>
-                            <div className="tabular-nums font-medium">{money((f as any).ticket)}</div>
+                          <div className="rounded-md bg-slate-50 p-2 flex items-center gap-2">
+                            <span className="h-2 w-2 rounded-full bg-rose-500 shrink-0" />
+                            <div>
+                              <div className="text-[10px] text-muted-foreground">Rebaja</div>
+                              <div className="text-sm font-medium tabular-nums">{nf(c?.pct_rebaja ?? 0, 0)}%</div>
+                            </div>
                           </div>
-                          <div>
-                            <div className="text-muted-foreground">UPT</div>
-                            <div className="tabular-nums font-medium">{nf((f as any).upt, 2)}</div>
-                          </div>
                         </div>
 
-                        <div className="mt-3">
-                          <BarraCalidad c={calidad[f.nombre]} />
-                        </div>
-
-                        <div className="mt-3 flex items-center gap-4 text-[11px]">
-                          <span className="text-muted-foreground">
-                            Tend. 7d{" "}
-                            <span className={`tabular-nums font-medium ${f.tendencia_7d < 0 ? "text-rose-600" : "text-emerald-600"}`}>
-                              {pct(f.tendencia_7d, 0)}
-                            </span>
-                          </span>
-                          <span className="text-muted-foreground">
-                            Esfuerzo{" "}
-                            <span className="tabular-nums font-medium text-foreground">
-                              {f.esfuerzo_requerido > 0 ? `+${nf(f.esfuerzo_requerido, 0)}%` : "Alcanzable"}
-                            </span>
-                          </span>
-                        </div>
-
+                        {/* 5. Recomendación */}
                         {f.accionable && (
-                          <div className="mt-3 flex gap-2 rounded-lg bg-white/70 border p-2 text-xs text-muted-foreground">
+                          <div className="mt-3 flex gap-2 rounded-lg bg-slate-50/80 border border-slate-100 p-2.5 text-xs text-muted-foreground">
                             <Lightbulb className="h-3.5 w-3.5 shrink-0 mt-0.5 text-amber-500" />
                             <span>{f.accionable}</span>
                           </div>
@@ -522,80 +521,6 @@ export default function GestionComercialPage() {
                     );
                   })}
                 </div>
-              </div>
-            )}
-
-            {/* ── Nivel 3: tabla comparativa ── */}
-            {!loading && visibles.length > 0 && (
-              <div className="rounded-xl border bg-card overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b bg-muted/40 text-[11px] uppercase tracking-wider text-muted-foreground">
-                      <th className="w-10 px-2 py-2"></th>
-                      <th className="px-3 py-2 text-left font-medium">Entidad</th>
-                      <th className="px-3 py-2 text-left font-medium">Zona</th>
-                      <th className="px-3 py-2 text-right font-medium">Venta</th>
-                      <th className="px-3 py-2 text-right font-medium">Cumpl. a la fecha</th>
-                      <th className="px-3 py-2 text-right font-medium">Cierre probable</th>
-                      <th className="px-3 py-2 text-right font-medium">Esfuerzo req.</th>
-                      <th className="px-3 py-2 text-right font-medium">Interanual</th>
-                      <th className="px-3 py-2 text-right font-medium">Tend. 7d</th>
-                      <th className="px-3 py-2 text-left font-medium">Accionable</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {visibles.map((f) => (
-                      <tr
-                        key={f.clave}
-                        onClick={() => setSel(f)}
-                        className={`border-b cursor-pointer transition-colors ${
-                          f.marcada ? "bg-amber-50/70 hover:bg-amber-100/70" : "hover:bg-muted/40"
-                        }`}
-                      >
-                        <td className="px-2 py-2">
-                          <button
-                            onClick={(e) => { e.stopPropagation(); marcar(f); }}
-                            disabled={marcando === f.nombre}
-                            title={f.marcada ? "Quitar marca" : "Marcar para seguimiento"}
-                            className="p-1 rounded hover:bg-muted"
-                          >
-                            <Flag className={`h-4 w-4 ${f.marcada ? "text-amber-600 fill-amber-500" : "text-muted-foreground"}`} />
-                          </button>
-                        </td>
-                        <td className="px-3 py-2">
-                          <div className="flex items-center gap-2">
-                            <TipoIcon tipo={f.tipo} />
-                            <span className="font-medium truncate max-w-[220px]">{f.nombre}</span>
-                          </div>
-                          {f.marcada && f.avance_desde_marca != null && (
-                            <div className="text-[11px] text-amber-700">
-                              Desde la marca: {money(Number(f.avance_desde_marca))}
-                            </div>
-                          )}
-                        </td>
-                        <td className="px-3 py-2 text-muted-foreground">{f.zona ?? "—"}</td>
-                        <td className="px-3 py-2 text-right tabular-nums">{money(f.venta_mtd)}</td>
-                        <td className={`px-3 py-2 text-right tabular-nums font-medium ${colorPct(f.pct_cumpl)}`}>
-                          {nf(f.pct_cumpl, 0)}%
-                        </td>
-                        <td className={`px-3 py-2 text-right tabular-nums font-semibold ${colorPct(f.pct_cierre)}`}>
-                          {nf(f.pct_cierre, 0)}%
-                          <div className="text-[11px] font-normal text-muted-foreground">{money(f.cierre_probable)}</div>
-                        </td>
-                        <td className="px-3 py-2 text-right tabular-nums">
-                          {f.esfuerzo_requerido > 0 ? `+${nf(f.esfuerzo_requerido, 0)}%` : "Alcanzable"}
-                        </td>
-                        <td className={`px-3 py-2 text-right tabular-nums ${f.crecimiento_yoy < 0 ? "text-rose-600" : "text-emerald-600"}`}>
-                          {pct(f.crecimiento_yoy, 0)}
-                        </td>
-                        <td className={`px-3 py-2 text-right tabular-nums ${f.tendencia_7d < 0 ? "text-rose-600" : "text-emerald-600"}`}>
-                          {pct(f.tendencia_7d, 0)}
-                        </td>
-                        <td className="px-3 py-2 text-xs text-muted-foreground max-w-[280px]">{f.accionable ?? "—"}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
               </div>
             )}
           </div>
