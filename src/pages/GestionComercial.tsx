@@ -1212,7 +1212,12 @@ function DetalleTienda({ fila, anio, mes }: { fila: Fila; anio: number; mes: num
                       const perf = badgeDesempeno(e.desempeno);
                       return (
                         <tr key={`${e.shopify_user_id ?? e.vendedor}-${i}`} className="border-b last:border-b-0 hover:bg-muted/40">
-                          <td className="px-3 py-2 font-medium truncate max-w-[140px]">{e.vendedor}</td>
+                          <td className="px-3 py-2 font-medium max-w-[160px]">
+                            <span className="flex items-center gap-2">
+                              <UserRound className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                              <span className="truncate">{e.vendedor}</span>
+                            </span>
+                          </td>
                           <td className="px-3 py-2 text-muted-foreground">{e.rol ?? "—"}</td>
                           <td className="px-3 py-2 text-right tabular-nums">{nf(e.transacciones, 0)}</td>
                           <td className="px-3 py-2 text-right tabular-nums">{money(e.venta)}</td>
