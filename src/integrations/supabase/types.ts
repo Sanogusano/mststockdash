@@ -3521,13 +3521,15 @@ export type Database = {
         Args: { p_clave: string; p_limite?: number }
         Returns: {
           accion: string
+          donde_hay: string
           image_url: string
           linea: string
           potencial_semanal: number
           producto: string
           ritmo_red: number
+          stock_bodega: number
           stock_local: number
-          stock_red: number
+          stock_otras_tiendas: number
           tiendas_vendiendo: number
         }[]
       }
@@ -3851,6 +3853,19 @@ export type Database = {
         }[]
       }
       get_user_scope: { Args: { p_user_id?: string }; Returns: string[] }
+      lineas_tienda: {
+        Args: { p_clave: string; p_dias?: number }
+        Returns: {
+          indice: number
+          linea: string
+          participacion: number
+          participacion_red: number
+          posicion: string
+          uds_por_semana: number
+          unidades: number
+          venta: number
+        }[]
+      }
       mejor_dia_semana: {
         Args: { p_clave: string; p_dias?: number }
         Returns: {
@@ -3880,8 +3895,11 @@ export type Database = {
         Returns: {
           accion: string
           combina_con: string
+          de_cada_10: number
+          frase: string
+          fuerza: string
           image_url: string
-          lift: number
+          imagen_combina: string
           linea: string
           producto: string
           stock_local: number
@@ -5111,6 +5129,17 @@ export type Database = {
           sku: string
           stock_total: number
           titulo: string
+        }[]
+      }
+      top_productos_tienda: {
+        Args: { p_clave: string; p_dias?: number; p_limite?: number }
+        Returns: {
+          image_url: string
+          linea: string
+          pct_full: number
+          producto: string
+          unidades: number
+          venta: number
         }[]
       }
       top5_articulos_hoy: { Args: { p_fecha?: string }; Returns: Json }
