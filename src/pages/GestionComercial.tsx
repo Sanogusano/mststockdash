@@ -31,6 +31,8 @@ interface Fila {
   esfuerzo_requerido: number;
   crecimiento_yoy: number;
   tendencia_7d: number;
+  dias_transcurridos?: number;
+  dias_mes?: number;
   accionable: string | null;
   marcada: boolean;
   marcada_at: string | null;
