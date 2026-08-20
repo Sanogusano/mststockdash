@@ -132,21 +132,17 @@ function TipoIcon({ tipo, className = "h-3.5 w-3.5" }: { tipo: string | null; cl
 
 function colorPct(v: number) {
   if (v >= 100) return "text-emerald-600";
-  if (v >= 90) return "text-amber-600";
-  if (v >= 80) return "text-orange-600";
+  if (v >= 90) return "text-emerald-600";
+  if (v >= 80) return "text-amber-600";
   return "text-rose-600";
 }
 
-interface SerieRow { entidad: string; dia: string; venta: number; acumulado: number; meta_dia: number }
-
 interface Calidad { nombre: string; uds: number; pct_full: number; pct_promo: number; pct_rebaja: number }
 
-/** Fondo suave de la tarjeta según cumplimiento */
+/** Fondo de tarjeta tenue con borde superior de estado */
 function tonoCumpl(v: number) {
-  if (v >= 100) return "bg-emerald-100/70 border-emerald-300";
-  if (v >= 90) return "bg-emerald-50 border-emerald-200";
-  if (v >= 80) return "bg-amber-50 border-amber-200";
-  return "bg-rose-50 border-rose-200";
+  const top = v >= 100 ? "border-t-emerald-500" : v >= 90 ? "border-t-emerald-400" : v >= 80 ? "border-t-amber-500" : "border-t-rose-500";
+  return `bg-white hover:bg-slate-50/80 border-slate-200 ${top}`;
 }
 
 function iconoCumpl(v: number) {
@@ -159,34 +155,22 @@ function iconoCumpl(v: number) {
 /** Barra de cumplimiento con marca de días transcurridos */
 function BarraMes({ pctv, marca }: { pctv: number; marca: number | null }) {
   const ancho = Math.max(1, Math.min(100, pctv));
-  const barra = pctv >= 100 ? "bg-emerald-500" : pctv >= 90 ? "bg-emerald-400" : pctv >= 80 ? "bg-amber-500" : "bg-rose-500";
   return (
-    <div className="relative h-2.5 rounded-full bg-white/70 border overflow-hidden">
-      <div className={`absolute inset-y-0 left-0 rounded-full ${barra}`} style={{ width: `${ancho}%` }} />
+    <div className="relative h-2 rounded-full bg-slate-100 overflow-hidden">
+      <div className="absolute inset-y-0 left-0 rounded-full bg-slate-500" style={{ width: `${ancho}%` }} />
       {marca != null && (
-        <div className="absolute inset-y-0 w-0.5 bg-slate-700/70" style={{ left: `${Math.min(100, Math.max(0, marca))}%` }} />
+        <div className="absolute inset-y-0 w-0.5 bg-slate-800" style={{ left: `${Math.min(100, Math.max(0, marca))}%` }} />
       )}
     </div>
   );
 }
 
-/** Barra apilada de calidad de venta */
-function BarraCalidad({ c }: { c: Calidad | undefined }) {
-  if (!c) return <div className="text-[11px] text-muted-foreground">Sin calidad de venta</div>;
-  const full = Number(c.pct_full ?? 0), promo = Number(c.pct_promo ?? 0), reb = Number(c.pct_rebaja ?? 0);
-  const tot = Math.max(1, full + promo + reb);
+function Metrica({ label, value, neg, pos }: { label: string; value: string; neg?: boolean; pos?: boolean }) {
+  const color = neg ? "text-rose-600" : pos ? "text-emerald-600" : "text-foreground";
   return (
-    <div>
-      <div className="flex h-2.5 rounded-full overflow-hidden bg-white/70 border">
-        <div className="bg-emerald-500" style={{ width: `${(full / tot) * 100}%` }} />
-        <div className="bg-amber-500" style={{ width: `${(promo / tot) * 100}%` }} />
-        <div className="bg-rose-500" style={{ width: `${(reb / tot) * 100}%` }} />
-      </div>
-      <div className="mt-1 flex items-center gap-3 text-[10px] text-muted-foreground">
-        <span className="text-emerald-700">Full {nf(full, 0)}%</span>
-        <span className="text-amber-700">Promo {nf(promo, 0)}%</span>
-        <span className="text-rose-700">Rebaja {nf(reb, 0)}%</span>
-      </div>
+    <div className="rounded-md bg-slate-50 p-2">
+      <div className="text-[10px] text-muted-foreground leading-tight">{label}</div>
+      <div className={`text-sm font-medium tabular-nums mt-1 ${color}`}>{value}</div>
     </div>
   );
 }
@@ -213,30 +197,6 @@ function CardRed({
       <div className="mt-2 text-2xl font-semibold tabular-nums text-foreground">{valor}</div>
       {detalle && <div className="mt-1 text-xs text-muted-foreground">{detalle}</div>}
     </div>
-  );
-}
-
-/** Curva de acumulado vs meta (nivel 2) */
-function CurvaAcumulado({ serie }: { serie: SerieRow[] }) {
-  const W = 260, H = 56, P = 3;
-  if (!serie.length) {
-    return <div className="h-[56px] flex items-center text-[11px] text-muted-foreground">Sin serie diaria</div>;
-  }
-  let metaAcum = 0;
-  const puntos = serie.map((s) => {
-    metaAcum += Number(s.meta_dia ?? 0);
-    return { acum: Number(s.acumulado ?? 0), meta: metaAcum };
-  });
-  const max = Math.max(1, ...puntos.map((p) => Math.max(p.acum, p.meta)));
-  const x = (i: number) => P + (i * (W - P * 2)) / Math.max(1, puntos.length - 1);
-  const y = (v: number) => H - P - (v / max) * (H - P * 2);
-  const path = (key: "acum" | "meta") =>
-    puntos.map((p, i) => `${i === 0 ? "M" : "L"}${x(i).toFixed(1)},${y(p[key]).toFixed(1)}`).join(" ");
-  return (
-    <svg viewBox={`0 0 ${W} ${H}`} className="w-full h-[56px]" preserveAspectRatio="none">
-      <path d={path("meta")} fill="none" stroke="currentColor" className="text-muted-foreground" strokeWidth={1.2} strokeDasharray="4 3" />
-      <path d={path("acum")} fill="none" stroke="currentColor" className="text-rose-500" strokeWidth={1.8} />
-    </svg>
   );
 }
 
