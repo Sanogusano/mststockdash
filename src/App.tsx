@@ -108,7 +108,7 @@ const App = () => (
           <Route path="/rendimiento-vendedores" element={<Guard module="dashboards.rendimiento_vendedores" action="view"><RendimientoVendedoresPage /></Guard>} />
           <Route path="/comisiones" element={<Guard module="comisiones" action="view"><ComisionesPage /></Guard>} />
           <Route path="/vendedores" element={<Guard module="vendedores" action="view"><VendedoresPage /></Guard>} />
-          <Route path="/gestion-comercial" element={<Guard module="dashboards.centro_accion" action="view"><GestionComercialPage /></Guard>} />
+          <Route path="/accionables" element={<Guard module="dashboards.centro_accion" action="view"><GestionComercialPage /></Guard>} />
           <Route path="/rendimiento-red" element={<Guard module="dashboards.rendimiento_red" action="view"><RendimientoRedPage /></Guard>} />
 
           {/* ===== Finanzas ===== */}

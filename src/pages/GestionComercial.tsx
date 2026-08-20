@@ -7,10 +7,10 @@ import { ProductImageThumb } from "@/components/dashboard/ProductImageThumb";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { toast } from "sonner";
-import { Siren, AlertTriangle, Users, Receipt, ShoppingBag, Package, Flag } from "lucide-react";
+import { Siren, AlertTriangle, Users, Receipt, ShoppingBag, Package, Flag, Store, Globe } from "lucide-react";
 
 /**
- * Gestión Comercial — lista priorizada de puntos de venta lejos de cumplir,
+ * Accionables — lista priorizada de puntos de venta lejos de cumplir,
  * con panel de diagnóstico (Crisis Room) al hacer clic en una fila.
  */
 
@@ -67,6 +67,7 @@ interface Diag {
   venta_ano_anterior: number;
   tendencia_7d: number;
   pct_descuento: number;
+  base_comparacion: string | null;
 }
 
 interface Prod {
@@ -99,6 +100,13 @@ const nf = (v: number | null | undefined, d = 1) =>
 const pct = (v: number | null | undefined, d = 1) =>
   v == null || !isFinite(Number(v)) ? "—" : `${Number(v) > 0 ? "+" : ""}${nf(v, d)}%`;
 
+function TipoIcon({ tipo, className = "h-3.5 w-3.5" }: { tipo: string | null; className?: string }) {
+  const esCanal = (tipo ?? "").toLowerCase() === "canal";
+  return esCanal
+    ? <Globe className={`${className} text-sky-600 shrink-0`} />
+    : <Store className={`${className} text-muted-foreground shrink-0`} />;
+}
+
 function colorPct(v: number) {
   if (v >= 100) return "text-emerald-600";
   if (v >= 90) return "text-amber-600";
@@ -117,6 +125,8 @@ export default function GestionComercialPage() {
   const [error, setError] = useState<string | null>(null);
   const [marcando, setMarcando] = useState<string | null>(null);
   const [sel, setSel] = useState<Fila | null>(null);
+  const [zona, setZona] = useState<string>("todas");
+  const [tienda, setTienda] = useState<string>("todas");
 
   const anios = useMemo(() => {
     const y = new Date().getFullYear();
@@ -173,6 +183,28 @@ export default function GestionComercialPage() {
     setMarcando(null);
   };
 
+  const esCanal = (f: Fila) => (f.tipo ?? "").toLowerCase() === "canal";
+
+  const filasZona = useMemo(() => {
+    if (zona === "todas") return filas;
+    if (zona === "canales") return filas.filter(esCanal);
+    return filas.filter((f) => !esCanal(f) && (f.zona ?? "") === zona);
+  }, [filas, zona]);
+
+  const tiendasDisponibles = useMemo(
+    () => Array.from(new Set(filasZona.map((f) => f.nombre))).sort((a, b) => a.localeCompare(b, "es")),
+    [filasZona]
+  );
+
+  useEffect(() => {
+    if (tienda !== "todas" && !tiendasDisponibles.includes(tienda)) setTienda("todas");
+  }, [tiendasDisponibles, tienda]);
+
+  const visibles = useMemo(
+    () => (tienda === "todas" ? filasZona : filasZona.filter((f) => f.nombre === tienda)),
+    [filasZona, tienda]
+  );
+
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full bg-background">
@@ -181,7 +213,7 @@ export default function GestionComercialPage() {
           <header className="h-14 flex items-center gap-3 border-b px-4 sticky top-0 bg-background/95 backdrop-blur z-10">
             <SidebarTrigger />
             <Siren className="h-5 w-5 text-rose-600" />
-            <h1 className="text-base font-semibold">Gestión Comercial</h1>
+            <h1 className="text-base font-semibold">Accionables</h1>
           </header>
 
           <div className="p-4 md:p-6 space-y-5 max-w-[1400px] mx-auto">
@@ -190,6 +222,22 @@ export default function GestionComercialPage() {
                 Ordenado por cierre probable: las más lejos de cumplir, primero.
               </p>
               <div className="flex items-center gap-2">
+                <Select value={zona} onValueChange={setZona}>
+                  <SelectTrigger className="h-9 w-[140px]"><SelectValue placeholder="Zona" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="todas">Todas las zonas</SelectItem>
+                    <SelectItem value="Zona 1">Zona 1</SelectItem>
+                    <SelectItem value="Zona 2">Zona 2</SelectItem>
+                    <SelectItem value="canales">Canales</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Select value={tienda} onValueChange={setTienda}>
+                  <SelectTrigger className="h-9 w-[190px]"><SelectValue placeholder="Tienda" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="todas">Todas</SelectItem>
+                    {tiendasDisponibles.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                  </SelectContent>
+                </Select>
                 <Select value={String(mes)} onValueChange={(v) => setMes(Number(v))}>
                   <SelectTrigger className="h-9 w-[150px]"><SelectValue /></SelectTrigger>
                   <SelectContent>
@@ -211,11 +259,11 @@ export default function GestionComercialPage() {
 
             {loading && <LoadingState rows={6} />}
 
-            {!loading && !error && filas.length === 0 && (
+            {!loading && !error && visibles.length === 0 && (
               <EmptyState message={`Sin presupuestos configurados para ${MESES[mes - 1]} ${anio}`} />
             )}
 
-            {!loading && filas.length > 0 && (
+            {!loading && visibles.length > 0 && (
               <div className="rounded-xl border bg-card overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
@@ -233,7 +281,7 @@ export default function GestionComercialPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {filas.map((f) => (
+                    {visibles.map((f) => (
                       <tr
                         key={f.clave}
                         onClick={() => setSel(f)}
@@ -252,7 +300,10 @@ export default function GestionComercialPage() {
                           </button>
                         </td>
                         <td className="px-3 py-2">
-                          <div className="font-medium truncate max-w-[220px]">{f.nombre}</div>
+                          <div className="flex items-center gap-2">
+                            <TipoIcon tipo={f.tipo} />
+                            <span className="font-medium truncate max-w-[220px]">{f.nombre}</span>
+                          </div>
                           {f.marcada && f.avance_desde_marca != null && (
                             <div className="text-[11px] text-amber-700">
                               Desde la marca: {money(Number(f.avance_desde_marca))}
@@ -349,7 +400,10 @@ function DetalleTienda({ fila, anio, mes }: { fila: Fila; anio: number; mes: num
   return (
     <div className="space-y-5 pt-2">
       <div>
-        <h2 className="text-lg font-semibold">{fila.nombre}</h2>
+        <h2 className="text-lg font-semibold flex items-center gap-2">
+          <TipoIcon tipo={fila.tipo} className="h-4 w-4" />
+          {fila.nombre}
+        </h2>
         <p className="text-xs text-muted-foreground">
           {[fila.zona, fila.tipo, fila.tier].filter(Boolean).join(" · ") || "—"} · {MESES[mes - 1]} {anio}
         </p>
@@ -449,7 +503,10 @@ function DetalleTienda({ fila, anio, mes }: { fila: Fila; anio: number; mes: num
 
           {/* 4 — Contexto */}
           <section className="rounded-xl border bg-card p-4">
-            <div className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground mb-3">Contexto</div>
+            <div className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground mb-1">Contexto</div>
+            <p className="text-xs text-muted-foreground mb-3">
+              Base de comparación: {diag.base_comparacion ?? "Promedio de la red de tiendas"}
+            </p>
             <div className="grid grid-cols-2 gap-3 mb-4">
               <div className="rounded-lg border p-3">
                 <div className={`text-xl font-semibold tabular-nums ${Number(diag.var_ano_anterior) < 0 ? "text-rose-600" : "text-emerald-600"}`}>
@@ -477,7 +534,7 @@ function DetalleTienda({ fila, anio, mes }: { fila: Fila; anio: number; mes: num
                   <div className={`text-base font-semibold tabular-nums ${Number(k.a) < Number(k.b) ? "text-rose-600" : "text-emerald-600"}`}>
                     {k.fmt(Number(k.a))}
                   </div>
-                  <div className="text-[11px] text-muted-foreground">Red: {k.fmt(Number(k.b))}</div>
+                  <div className="text-[11px] text-muted-foreground">Base: {k.fmt(Number(k.b))}</div>
                 </div>
               ))}
             </div>

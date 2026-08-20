@@ -87,7 +87,7 @@ const alertasDistribucionItem: NavItem = {
 
 
 const gestionComercialItems: NavItem[] = [
-  { title: "Gestión Comercial", url: "/gestion-comercial", icon: Siren, description: "Diagnóstico y acción por tienda", module: "dashboards.centro_accion", action: "view" },
+  { title: "Accionables", url: "/accionables", icon: Siren, description: "Diagnóstico y acción por tienda", module: "dashboards.centro_accion", action: "view" },
   { title: "Gestión de Incentivos", url: "/incentivos", icon: Trophy, description: "Campañas & liquidaciones", module: "incentivos", action: "view" },
   { title: "Rendimiento Equipo", url: "/rendimiento-vendedores", icon: Users, description: "Desempeño por vendedor", module: "dashboards.rendimiento_vendedores", action: "view" },
   { title: "Liquidación Comisiones", url: "/comisiones", icon: Calculator, description: "Cálculo y aprobación", module: "comisiones", action: "view" },
