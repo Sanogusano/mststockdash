@@ -1201,6 +1201,7 @@ function DetalleTienda({ fila, anio, mes }: { fila: Fila; anio: number; mes: num
                       <th className="px-3 py-2 text-right font-medium">Ticket</th>
                       <th className="px-3 py-2 text-right font-medium">UPT</th>
                       <th className="px-3 py-2 text-right font-medium">% Desc.</th>
+                      <th className="px-3 py-2 text-right font-medium">% Full</th>
                       <th className="px-3 py-2 text-right font-medium">Particip.</th>
                       <th className="px-3 py-2 text-center font-medium">Desempeño</th>
                       <th className="px-3 py-2 text-left font-medium">Palanca</th>
