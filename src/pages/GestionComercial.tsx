@@ -617,7 +617,7 @@ function DetalleTienda({ fila, anio, mes }: { fila: Fila; anio: number; mes: num
   const [mejorDia, setMejorDia] = useState<any[]>([]);
   const [calidadEnt, setCalidadEnt] = useState<Calidad | null>(null);
   const [top5, setTop5] = useState<any[]>([]);
-  const [lineas, setLineas] = useState<any[]>([]);
+  const [lineas, setLineas] = useState<Linea[]>([]);
   const [fullVendedor, setFullVendedor] = useState<Record<string, number>>({});
   const [tabProd, setTabProd] = useState("PEDIR");
 
