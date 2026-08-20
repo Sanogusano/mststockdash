@@ -607,7 +607,8 @@ function DetalleTienda({ fila, anio, mes }: { fila: Fila; anio: number; mes: num
   const [combinar, setCombinar] = useState<any[]>([]);
   const [mejorDia, setMejorDia] = useState<any[]>([]);
   const [calidadEnt, setCalidadEnt] = useState<Calidad | null>(null);
-  const [top5, setTop5] = useState<{ nombre: string; uds: number }[]>([]);
+  const [top5, setTop5] = useState<any[]>([]);
+  const [lineas, setLineas] = useState<any[]>([]);
   const [fullVendedor, setFullVendedor] = useState<Record<string, number>>({});
   const [tabProd, setTabProd] = useState("PEDIR");
 
@@ -615,14 +616,18 @@ function DetalleTienda({ fila, anio, mes }: { fila: Fila; anio: number; mes: num
     let cancel = false;
     (async () => {
       const clave = fila.clave ?? fila.nombre;
-      const [cb, md, cv] = await Promise.all([
+      const [cb, md, cv, tp, ln] = await Promise.all([
         supabase.rpc("productos_combinar" as any, { p_clave: clave, p_limite: 12 }),
         supabase.rpc("mejor_dia_semana" as any, { p_clave: clave, p_dias: 90 }),
         supabase.rpc("calidad_venta_entidad" as any, { p_anio: anio, p_mes: mes }),
+        supabase.rpc("top_productos_tienda" as any, { p_clave: clave, p_limite: 5, p_dias: 30 }),
+        supabase.rpc("lineas_tienda" as any, { p_clave: clave, p_dias: 30 }),
       ]);
       if (cancel) return;
       setCombinar(((cb.data as any[]) ?? []));
       setMejorDia(((md.data as any[]) ?? []));
+      setTop5(((tp.data as any[]) ?? []));
+      setLineas(((ln.data as any[]) ?? []));
       const fila_cv = ((cv.data as any[]) ?? []).find((r) => String(r.nombre ?? "") === fila.nombre);
       setCalidadEnt(fila_cv ? {
         nombre: fila.nombre,
@@ -639,7 +644,7 @@ function DetalleTienda({ fila, anio, mes }: { fila: Fila; anio: number; mes: num
   useEffect(() => {
     let cancel = false;
     (async () => {
-      if (!esTienda) { setTop5([]); setFullVendedor({}); return; }
+      if (!esTienda) { setFullVendedor({}); return; }
       const desde = `${anio}-${String(mes).padStart(2, "0")}-01`;
       const finMes = new Date(anio, mes, 1);
       const hasta = `${finMes.getFullYear()}-${String(finMes.getMonth() + 1).padStart(2, "0")}-01`;
@@ -656,17 +661,6 @@ function DetalleTienda({ fila, anio, mes }: { fila: Fila; anio: number; mes: num
         return !c.includes("BOLSA") && !c.includes("INSUMO");
       });
 
-      // Top 5 por unidades
-      const porSku: Record<string, number> = {};
-      rows.forEach((r) => { porSku[String(r.sku ?? "")] = (porSku[String(r.sku ?? "")] ?? 0) + Number(r.quantity ?? 0); });
-      const topSkus = Object.entries(porSku).sort((a, b) => b[1] - a[1]).slice(0, 5);
-      let titulos: Record<string, string> = {};
-      if (topSkus.length) {
-        const { data: cat } = await supabase.from("product_catalog").select("sku,title").in("sku", topSkus.map(([s]) => s));
-        ((cat as any[]) ?? []).forEach((c) => { titulos[String(c.sku)] = String(c.title ?? c.sku); });
-      }
-      if (cancel) return;
-      setTop5(topSkus.map(([sku, uds]) => ({ nombre: titulos[sku] ?? sku, uds })));
 
       // % venta full por vendedor
       const acum: Record<string, { full: number; total: number }> = {};
@@ -871,8 +865,13 @@ function DetalleTienda({ fila, anio, mes }: { fila: Fila; anio: number; mes: num
             </div>
             <div className="text-right text-xs text-muted-foreground shrink-0">
               <div>Tienda: {p.stock_local} uds</div>
-              <div>Red: {p.stock_red} uds</div>
+              <div>Red: {(p as any).stock_red ?? "—"} uds</div>
             </div>
+            {accion === "PEDIR" && (
+              <div className="w-40 shrink-0 text-xs text-sky-700 leading-tight">
+                {(p as any).donde_hay ?? "—"}
+              </div>
+            )}
           </li>
         ))}
       </ul>
@@ -891,12 +890,25 @@ function DetalleTienda({ fila, anio, mes }: { fila: Fila; anio: number; mes: num
           {top5.length === 0 ? (
             <p className="text-xs text-muted-foreground">Sin datos de venta en el mes</p>
           ) : (
-            <ol className="space-y-1">
+            <ol className="space-y-2">
               {top5.map((t, i) => (
-                <li key={t.nombre + i} className="flex items-center gap-2 text-sm">
-                  <span className="w-4 text-xs text-muted-foreground">{i + 1}</span>
-                  <span className="truncate flex-1">{t.nombre}</span>
-                  <span className="tabular-nums font-medium">{nf(t.uds, 0)}</span>
+                <li key={`${t.producto}-${i}`} className="flex items-center gap-2 text-sm">
+                  <span className="w-3 text-[11px] text-muted-foreground shrink-0">{i + 1}</span>
+                  {t.image_url ? (
+                    <ProductImageThumb src={t.image_url} alt={t.producto} title={t.producto} className="h-9 w-9 rounded-md object-cover border shrink-0" />
+                  ) : (
+                    <div className="h-9 w-9 rounded-md border bg-muted flex items-center justify-center shrink-0">
+                      <Package className="h-3.5 w-3.5 text-muted-foreground" />
+                    </div>
+                  )}
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate text-xs font-medium">{t.producto}</div>
+                    <div className="text-[10px] text-muted-foreground truncate">{t.linea ?? "—"}</div>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <div className="tabular-nums text-sm font-medium">{nf(t.unidades, 0)}</div>
+                    <div className="text-[10px] text-emerald-700 tabular-nums">{nf(t.pct_full, 0)}% full</div>
+                  </div>
                 </li>
               ))}
             </ol>
@@ -933,6 +945,34 @@ function DetalleTienda({ fila, anio, mes }: { fila: Fila; anio: number; mes: num
         </section>
       </div>
 
+      {(() => {
+        const elegibles = lineas.filter((l) => Number(l.unidades ?? 0) >= 3);
+        if (!elegibles.length) return null;
+        const orden = [...elegibles].sort((a, b) => Number(b.indice ?? 0) - Number(a.indice ?? 0));
+        const fuerte = orden[0];
+        const debil = orden[orden.length - 1];
+        const CardLinea = ({ l, titulo, tono }: { l: any; titulo: string; tono: string }) => (
+          <section className={`rounded-xl border p-4 ${tono}`}>
+            <div className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground mb-2">{titulo}</div>
+            <div className="flex items-baseline justify-between gap-2">
+              <span className="text-lg font-semibold truncate">{l.linea ?? "—"}</span>
+              <span className="text-2xl font-semibold tabular-nums">{nf(l.indice, 0)}</span>
+            </div>
+            <div className="mt-1 text-xs text-muted-foreground">
+              {l.posicion ?? "—"} · {nf(l.unidades, 0)} uds · {nf(l.participacion, 1)}% aquí vs {nf(l.participacion_red, 1)}% red
+            </div>
+          </section>
+        );
+        return (
+          <div className="grid gap-3 sm:grid-cols-2">
+            <CardLinea l={fuerte} titulo="Línea más fuerte" tono="bg-emerald-50/60 border-emerald-200" />
+            {debil !== fuerte && <CardLinea l={debil} titulo="Línea más débil" tono="bg-rose-50/60 border-rose-200" />}
+          </div>
+        );
+      })()}
+
+
+
       <Tabs value={tabProd} onValueChange={setTabProd}>
         <TabsList className="w-full grid grid-cols-3">
           <TabsTrigger value="PEDIR">PEDIR</TabsTrigger>
@@ -956,21 +996,42 @@ function DetalleTienda({ fila, anio, mes }: { fila: Fila; anio: number; mes: num
                     <th className="px-3 py-2 text-left font-medium">Producto</th>
                     <th className="px-3 py-2 text-left font-medium">Combina con</th>
                     <th className="px-3 py-2 text-right font-medium">Veces juntos</th>
-                    <th className="px-3 py-2 text-right font-medium">Lift</th>
+                    <th className="px-3 py-2 text-right font-medium">De cada 10</th>
                   </tr>
                 </thead>
                 <tbody>
                   {combinar.map((c, i) => (
-                    <tr key={`${c.producto}-${i}`} className="border-b last:border-b-0 hover:bg-muted/40">
+                    <tr key={`${c.producto}-${i}`} className="border-b last:border-b-0 hover:bg-muted/40" title={c.frase ?? undefined}>
                       <td className="px-3 py-2">
                         <div className="flex items-center gap-2 min-w-0">
-                          <Layers className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                          {c.image_url ? (
+                            <ProductImageThumb src={c.image_url} alt={c.producto} title={c.producto} className="h-9 w-9 rounded-md object-cover border shrink-0" />
+                          ) : (
+                            <Layers className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                          )}
                           <span className="truncate max-w-[180px]">{c.producto}</span>
                         </div>
                       </td>
-                      <td className="px-3 py-2 truncate max-w-[180px]">{c.combina_con}</td>
+                      <td className="px-3 py-2">
+                        <div className="flex items-center gap-2 min-w-0">
+                          {c.imagen_combina ? (
+                            <ProductImageThumb src={c.imagen_combina} alt={c.combina_con} title={c.combina_con} className="h-9 w-9 rounded-md object-cover border shrink-0" />
+                          ) : (
+                            <div className="h-9 w-9 rounded-md border bg-muted flex items-center justify-center shrink-0">
+                              <Package className="h-3.5 w-3.5 text-muted-foreground" />
+                            </div>
+                          )}
+                          <span className="truncate max-w-[180px]">{c.combina_con}</span>
+                        </div>
+                      </td>
                       <td className="px-3 py-2 text-right tabular-nums">{nf(c.veces_juntos, 0)}</td>
-                      <td className="px-3 py-2 text-right tabular-nums font-medium text-sky-700">{nf(c.lift, 2)}</td>
+                      <td className="px-3 py-2 text-right">
+                        <div className="tabular-nums font-medium text-sky-700">{nf(c.de_cada_10, 1)}</div>
+                        <div className={`text-[10px] font-medium ${String(c.fuerza).toLowerCase() === "alta" ? "text-emerald-600" : String(c.fuerza).toLowerCase() === "media" ? "text-amber-600" : "text-muted-foreground"}`}>
+                          {c.fuerza ?? "—"}
+                        </div>
+                        {c.frase && <div className="text-[10px] text-muted-foreground max-w-[220px] whitespace-normal">{c.frase}</div>}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
