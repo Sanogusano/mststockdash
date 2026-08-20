@@ -1436,6 +1436,7 @@ export type Database = {
           shopify_order_id: string | null
           sku: string | null
           variant_id: string | null
+          variant_id_inferido: boolean
         }
         Insert: {
           category?: string | null
@@ -1450,6 +1451,7 @@ export type Database = {
           shopify_order_id?: string | null
           sku?: string | null
           variant_id?: string | null
+          variant_id_inferido?: boolean
         }
         Update: {
           category?: string | null
@@ -1464,6 +1466,7 @@ export type Database = {
           shopify_order_id?: string | null
           sku?: string | null
           variant_id?: string | null
+          variant_id_inferido?: boolean
         }
         Relationships: [
           {
@@ -2627,6 +2630,22 @@ export type Database = {
           productos: number | null
           vendido: number | null
           venta_perdida_est: number | null
+        }
+        Relationships: []
+      }
+      diagnostico_variantes_huerfanas: {
+        Row: {
+          diagnostico: string | null
+          linea: string | null
+          lineas: number | null
+          primera_venta: string | null
+          producto: string | null
+          sku: string | null
+          ultima_venta: string | null
+          unidades: number | null
+          variant_id: string | null
+          variant_id_actual: string | null
+          venta_neta: number | null
         }
         Relationships: []
       }
@@ -3856,11 +3875,9 @@ export type Database = {
       lineas_tienda: {
         Args: { p_clave: string; p_dias?: number }
         Returns: {
-          indice: number
           linea: string
           participacion: number
-          participacion_red: number
-          posicion: string
+          stock_tienda: number
           uds_por_semana: number
           unidades: number
           venta: number
@@ -4934,6 +4951,7 @@ export type Database = {
           dias_atras: number
           p_canal?: string
           p_categoria?: string
+          p_desde?: string
           p_hasta?: string
           p_limite?: number
           p_orden?: string
@@ -4949,10 +4967,12 @@ export type Database = {
           producto: string
           sku: string
           stock_venta_directa: number
+          tiendas: number
           und_digital: number
           und_outlets: number
           und_tiendas: number
           und_total: number
+          venta_neta: number
         }[]
       }
       reporte_ventas_diarias: {
@@ -5251,32 +5271,6 @@ export type Database = {
           lineas: number
           tienda: string
           unidades: number
-        }[]
-      }
-      whatsapp_top_productos: {
-        Args: { p_fecha?: string; p_limite?: number }
-        Returns: {
-          image_url: string
-          neta: number
-          pct_activacion: number
-          pct_full: number
-          pct_rebaja: number
-          tiendas: number
-          titulo: string
-          uds: number
-        }[]
-      }
-      whatsapp_top_rango: {
-        Args: { p_desde: string; p_hasta: string; p_limite?: number }
-        Returns: {
-          image_url: string
-          neta: number
-          pct_activacion: number
-          pct_full: number
-          pct_rebaja: number
-          tiendas: number
-          titulo: string
-          uds: number
         }[]
       }
       whatsapp_totales_dia: {
