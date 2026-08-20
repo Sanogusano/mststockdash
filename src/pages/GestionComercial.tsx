@@ -620,7 +620,7 @@ export default function GestionComercialPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {resto.map((f) => (
+                    {visibles.map((f) => (
                       <tr
                         key={f.clave}
                         onClick={() => setSel(f)}
