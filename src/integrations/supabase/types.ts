@@ -1975,21 +1975,39 @@ export type Database = {
       store_action_stamps: {
         Row: {
           active: boolean
+          anio: number | null
+          cerrado_at: string | null
           id: string
           location_name: string
+          mes: number | null
+          nota: string | null
+          pct_al_marcar: number | null
           stamped_at: string
+          venta_al_marcar: number | null
         }
         Insert: {
           active?: boolean
+          anio?: number | null
+          cerrado_at?: string | null
           id?: string
           location_name: string
+          mes?: number | null
+          nota?: string | null
+          pct_al_marcar?: number | null
           stamped_at?: string
+          venta_al_marcar?: number | null
         }
         Update: {
           active?: boolean
+          anio?: number | null
+          cerrado_at?: string | null
           id?: string
           location_name?: string
+          mes?: number | null
+          nota?: string | null
+          pct_al_marcar?: number | null
           stamped_at?: string
+          venta_al_marcar?: number | null
         }
         Relationships: []
       }
@@ -3061,6 +3079,28 @@ export type Database = {
         }
         Relationships: []
       }
+      productos_sin_coleccion: {
+        Row: {
+          categoria: string | null
+          fecha_publicacion: string | null
+          genero: string | null
+          image_url: string | null
+          linea: string | null
+          primera_venta: string | null
+          prioridad: string | null
+          product_id: string | null
+          producto: string | null
+          stock_bodega: number | null
+          stock_disponible: number | null
+          stock_total: number | null
+          ultima_venta: string | null
+          variantes: number | null
+          vendido_90d: number | null
+          vendido_total: number | null
+          venta_neta: number | null
+        }
+        Relationships: []
+      }
       reporte_cumplimiento_presupuesto: {
         Row: {
           diferencia_faltante: number | null
@@ -3424,6 +3464,47 @@ export type Database = {
           ubicacion_origen: number
           warning: string
         }[]
+      }
+      gestion_comercial: {
+        Args: { p_anio?: number; p_mes?: number }
+        Returns: {
+          accionable: string
+          avance_desde_marca: number
+          brecha: number
+          cierre_probable: number
+          clave: string
+          crecimiento_yoy: number
+          dias_mes: number
+          dias_restantes: number
+          dias_transcurridos: number
+          esfuerzo_requerido: number
+          marcada: boolean
+          marcada_at: string
+          nombre: string
+          pct_cierre: number
+          pct_cumpl: number
+          pct_descuento: number
+          presupuesto: number
+          presupuesto_fecha: number
+          ritmo_actual_dia: number
+          ritmo_necesario_dia: number
+          tendencia_7d: number
+          ticket: number
+          ticket_red: number
+          tier: string
+          tipo: string
+          transacciones: number
+          unidades: number
+          upt: number
+          upt_red: number
+          venta_al_marcar: number
+          venta_mtd: number
+          zona: string
+        }[]
+      }
+      gestion_comercial_marcar: {
+        Args: { p_marcar?: boolean; p_nombre: string; p_nota?: string }
+        Returns: boolean
       }
       get_addi_conciliacion_kpis: {
         Args: {
