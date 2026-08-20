@@ -105,6 +105,15 @@ interface EquipoRow {
   palanca_a_trabajar: string | null;
 }
 
+interface Linea {
+  linea: string;
+  unidades: number;
+  venta: number;
+  uds_por_semana: number;
+  participacion: number;
+  stock_tienda: number;
+}
+
 const MESES = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
 
 const money = (v: number | null | undefined) => {
@@ -608,7 +617,7 @@ function DetalleTienda({ fila, anio, mes }: { fila: Fila; anio: number; mes: num
   const [mejorDia, setMejorDia] = useState<any[]>([]);
   const [calidadEnt, setCalidadEnt] = useState<Calidad | null>(null);
   const [top5, setTop5] = useState<any[]>([]);
-  const [lineas, setLineas] = useState<any[]>([]);
+  const [lineas, setLineas] = useState<Linea[]>([]);
   const [fullVendedor, setFullVendedor] = useState<Record<string, number>>({});
   const [tabProd, setTabProd] = useState("PEDIR");
 
@@ -627,7 +636,14 @@ function DetalleTienda({ fila, anio, mes }: { fila: Fila; anio: number; mes: num
       setCombinar(((cb.data as any[]) ?? []));
       setMejorDia(((md.data as any[]) ?? []));
       setTop5(((tp.data as any[]) ?? []));
-      setLineas(((ln.data as any[]) ?? []));
+      setLineas(((ln.data as any[]) ?? []).map((l) => ({
+        linea: String(l.linea ?? ""),
+        unidades: Number(l.unidades ?? 0),
+        venta: Number(l.venta ?? 0),
+        uds_por_semana: Number(l.uds_por_semana ?? 0),
+        participacion: Number(l.participacion ?? 0),
+        stock_tienda: Number(l.stock_tienda ?? 0),
+      })) as Linea[]);
       const fila_cv = ((cv.data as any[]) ?? []).find((r) => String(r.nombre ?? "") === fila.nombre);
       setCalidadEnt(fila_cv ? {
         nombre: fila.nombre,
@@ -948,18 +964,20 @@ function DetalleTienda({ fila, anio, mes }: { fila: Fila; anio: number; mes: num
       {(() => {
         const elegibles = lineas.filter((l) => Number(l.unidades ?? 0) >= 3);
         if (!elegibles.length) return null;
-        const orden = [...elegibles].sort((a, b) => Number(b.indice ?? 0) - Number(a.indice ?? 0));
-        const fuerte = orden[0];
-        const debil = orden[orden.length - 1];
-        const CardLinea = ({ l, titulo, tono }: { l: any; titulo: string; tono: string }) => (
+        const fuerte = elegibles[0];
+        const debil = [...elegibles].reverse().find((l) => Number(l.stock_tienda ?? 0) > 0) ?? elegibles[elegibles.length - 1];
+        const CardLinea = ({ l, titulo, tono }: { l: Linea; titulo: string; tono: string }) => (
           <section className={`rounded-xl border p-4 ${tono}`}>
             <div className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground mb-2">{titulo}</div>
             <div className="flex items-baseline justify-between gap-2">
               <span className="text-lg font-semibold truncate">{l.linea ?? "—"}</span>
-              <span className="text-2xl font-semibold tabular-nums">{nf(l.indice, 0)}</span>
+              <span className="text-2xl font-semibold tabular-nums">{nf(l.unidades, 0)}</span>
             </div>
             <div className="mt-1 text-xs text-muted-foreground">
-              {l.posicion ?? "—"} · {nf(l.unidades, 0)} uds · {nf(l.participacion, 1)}% aquí vs {nf(l.participacion_red, 1)}% red
+              {money(l.venta)} · {nf(l.uds_por_semana, 1)} uds/semana · {nf(l.participacion, 1)}% share
+            </div>
+            <div className="mt-2 text-xs text-muted-foreground">
+              Stock en tienda: <span className={Number(l.stock_tienda ?? 0) === 0 ? "text-rose-600 font-medium" : "text-foreground font-medium tabular-nums"}>{nf(l.stock_tienda, 0)} uds</span>
             </div>
           </section>
         );
