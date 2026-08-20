@@ -945,6 +945,34 @@ function DetalleTienda({ fila, anio, mes }: { fila: Fila; anio: number; mes: num
         </section>
       </div>
 
+      {(() => {
+        const elegibles = lineas.filter((l) => Number(l.unidades ?? 0) >= 3);
+        if (!elegibles.length) return null;
+        const orden = [...elegibles].sort((a, b) => Number(b.indice ?? 0) - Number(a.indice ?? 0));
+        const fuerte = orden[0];
+        const debil = orden[orden.length - 1];
+        const CardLinea = ({ l, titulo, tono }: { l: any; titulo: string; tono: string }) => (
+          <section className={`rounded-xl border p-4 ${tono}`}>
+            <div className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground mb-2">{titulo}</div>
+            <div className="flex items-baseline justify-between gap-2">
+              <span className="text-lg font-semibold truncate">{l.linea ?? "—"}</span>
+              <span className="text-2xl font-semibold tabular-nums">{nf(l.indice, 0)}</span>
+            </div>
+            <div className="mt-1 text-xs text-muted-foreground">
+              {l.posicion ?? "—"} · {nf(l.unidades, 0)} uds · {nf(l.participacion, 1)}% aquí vs {nf(l.participacion_red, 1)}% red
+            </div>
+          </section>
+        );
+        return (
+          <div className="grid gap-3 sm:grid-cols-2">
+            <CardLinea l={fuerte} titulo="Línea más fuerte" tono="bg-emerald-50/60 border-emerald-200" />
+            {debil !== fuerte && <CardLinea l={debil} titulo="Línea más débil" tono="bg-rose-50/60 border-rose-200" />}
+          </div>
+        );
+      })()}
+
+
+
       <Tabs value={tabProd} onValueChange={setTabProd}>
         <TabsList className="w-full grid grid-cols-3">
           <TabsTrigger value="PEDIR">PEDIR</TabsTrigger>
@@ -968,21 +996,42 @@ function DetalleTienda({ fila, anio, mes }: { fila: Fila; anio: number; mes: num
                     <th className="px-3 py-2 text-left font-medium">Producto</th>
                     <th className="px-3 py-2 text-left font-medium">Combina con</th>
                     <th className="px-3 py-2 text-right font-medium">Veces juntos</th>
-                    <th className="px-3 py-2 text-right font-medium">Lift</th>
+                    <th className="px-3 py-2 text-right font-medium">De cada 10</th>
                   </tr>
                 </thead>
                 <tbody>
                   {combinar.map((c, i) => (
-                    <tr key={`${c.producto}-${i}`} className="border-b last:border-b-0 hover:bg-muted/40">
+                    <tr key={`${c.producto}-${i}`} className="border-b last:border-b-0 hover:bg-muted/40" title={c.frase ?? undefined}>
                       <td className="px-3 py-2">
                         <div className="flex items-center gap-2 min-w-0">
-                          <Layers className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                          {c.image_url ? (
+                            <ProductImageThumb src={c.image_url} alt={c.producto} title={c.producto} className="h-9 w-9 rounded-md object-cover border shrink-0" />
+                          ) : (
+                            <Layers className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                          )}
                           <span className="truncate max-w-[180px]">{c.producto}</span>
                         </div>
                       </td>
-                      <td className="px-3 py-2 truncate max-w-[180px]">{c.combina_con}</td>
+                      <td className="px-3 py-2">
+                        <div className="flex items-center gap-2 min-w-0">
+                          {c.imagen_combina ? (
+                            <ProductImageThumb src={c.imagen_combina} alt={c.combina_con} title={c.combina_con} className="h-9 w-9 rounded-md object-cover border shrink-0" />
+                          ) : (
+                            <div className="h-9 w-9 rounded-md border bg-muted flex items-center justify-center shrink-0">
+                              <Package className="h-3.5 w-3.5 text-muted-foreground" />
+                            </div>
+                          )}
+                          <span className="truncate max-w-[180px]">{c.combina_con}</span>
+                        </div>
+                      </td>
                       <td className="px-3 py-2 text-right tabular-nums">{nf(c.veces_juntos, 0)}</td>
-                      <td className="px-3 py-2 text-right tabular-nums font-medium text-sky-700">{nf(c.lift, 2)}</td>
+                      <td className="px-3 py-2 text-right">
+                        <div className="tabular-nums font-medium text-sky-700">{nf(c.de_cada_10, 1)}</div>
+                        <div className={`text-[10px] font-medium ${String(c.fuerza).toLowerCase() === "alta" ? "text-emerald-600" : String(c.fuerza).toLowerCase() === "media" ? "text-amber-600" : "text-muted-foreground"}`}>
+                          {c.fuerza ?? "—"}
+                        </div>
+                        {c.frase && <div className="text-[10px] text-muted-foreground max-w-[220px] whitespace-normal">{c.frase}</div>}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
