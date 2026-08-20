@@ -400,7 +400,98 @@ export default function GestionComercialPage() {
               <EmptyState message={`Sin presupuestos configurados para ${MESES[mes - 1]} ${anio}`} />
             )}
 
+            {/* ── Nivel 1: tarjetas de red ── */}
             {!loading && visibles.length > 0 && (
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                <CardRed
+                  titulo="Cumplimiento del mes"
+                  valor={`${nf(resumen.pctMes, 0)}%`}
+                  detalle={resumen.dt && resumen.dm ? `día ${resumen.dt} de ${resumen.dm}` : money(resumen.venta)}
+                  tono="neutral"
+                  icon={Receipt}
+                />
+                <CardRed
+                  titulo="Cierre probable"
+                  valor={money(resumen.cierre)}
+                  detalle={
+                    resumen.brechaCierre < 0
+                      ? <span className="text-rose-600 font-medium">Faltan {money(Math.abs(resumen.brechaCierre))}</span>
+                      : <span className="text-emerald-600 font-medium">+{money(resumen.brechaCierre)} sobre meta</span>
+                  }
+                  tono={resumen.brechaCierre < 0 ? "rose" : "emerald"}
+                  icon={ShoppingBag}
+                />
+                <CardRed
+                  titulo="En riesgo"
+                  valor={String(resumen.enRiesgo)}
+                  detalle="entidades bajo 80% de cierre"
+                  tono="amber"
+                  icon={AlertTriangle}
+                />
+                <CardRed
+                  titulo="Referentes"
+                  valor={String(referentes)}
+                  detalle="vendedores sobre el ticket promedio"
+                  tono="emerald"
+                  icon={Users}
+                />
+              </div>
+            )}
+
+            {/* ── Nivel 2: tarjetas de entidades en riesgo ── */}
+            {!loading && enRiesgo.length > 0 && (
+              <div>
+                <h2 className="text-sm font-semibold mb-2">Entidades en riesgo</h2>
+                <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                  {enRiesgo.map((f) => (
+                    <button
+                      key={f.clave}
+                      onClick={() => setSel(f)}
+                      className="text-left rounded-xl border bg-card p-4 hover:shadow-md transition-shadow"
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <TipoIcon tipo={f.tipo} />
+                          <span className="font-medium truncate">{f.nombre}</span>
+                        </div>
+                        <span className={`text-2xl font-semibold tabular-nums ${colorPct(f.pct_cierre)}`}>
+                          {nf(f.pct_cierre, 0)}%
+                        </span>
+                      </div>
+                      <div className="mt-2">
+                        <CurvaAcumulado serie={series[f.nombre] ?? series[f.clave] ?? []} />
+                      </div>
+                      <div className="mt-2 grid grid-cols-3 gap-2 text-[11px]">
+                        <div>
+                          <div className="text-muted-foreground">Interanual</div>
+                          <div className={`tabular-nums font-medium ${f.crecimiento_yoy < 0 ? "text-rose-600" : "text-emerald-600"}`}>
+                            {pct(f.crecimiento_yoy, 0)}
+                          </div>
+                        </div>
+                        <div>
+                          <div className="text-muted-foreground">Tend. 7d</div>
+                          <div className={`tabular-nums font-medium ${f.tendencia_7d < 0 ? "text-rose-600" : "text-emerald-600"}`}>
+                            {pct(f.tendencia_7d, 0)}
+                          </div>
+                        </div>
+                        <div>
+                          <div className="text-muted-foreground">Esfuerzo</div>
+                          <div className="tabular-nums font-medium">
+                            {f.esfuerzo_requerido > 0 ? `+${nf(f.esfuerzo_requerido, 0)}%` : "Alcanzable"}
+                          </div>
+                        </div>
+                      </div>
+                      {f.accionable && (
+                        <p className="mt-3 pt-2 border-t text-xs text-muted-foreground">{f.accionable}</p>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* ── Nivel 3: tabla con el resto ── */}
+            {!loading && resto.length > 0 && (
               <div className="rounded-xl border bg-card overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
