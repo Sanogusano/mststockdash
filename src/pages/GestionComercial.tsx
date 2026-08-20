@@ -512,60 +512,97 @@ export default function GestionComercialPage() {
               </div>
             )}
 
-            {/* ── Nivel 2: tarjetas de entidades en riesgo ── */}
-            {!loading && enRiesgo.length > 0 && (
+            {/* ── Nivel 2: tarjetas de todas las entidades ── */}
+            {!loading && visibles.length > 0 && (
               <div>
-                <h2 className="text-sm font-semibold mb-2">Entidades en riesgo</h2>
+                <h2 className="text-sm font-semibold mb-2">Entidades</h2>
                 <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-                  {enRiesgo.map((f) => (
-                    <button
-                      key={f.clave}
-                      onClick={() => setSel(f)}
-                      className="text-left rounded-xl border bg-card p-4 hover:shadow-md transition-shadow"
-                    >
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="flex items-center gap-2 min-w-0">
-                          <TipoIcon tipo={f.tipo} />
-                          <span className="font-medium truncate">{f.nombre}</span>
+                  {visibles.map((f) => {
+                    const pctMesEnt = f.presupuesto > 0 ? (f.venta_mtd / f.presupuesto) * 100 : 0;
+                    const marca = f.dias_mes ? ((f.dias_transcurridos ?? 0) / f.dias_mes) * 100 : null;
+                    const varMom = mom[f.nombre];
+                    return (
+                      <button
+                        key={f.clave}
+                        onClick={() => setSel(f)}
+                        className={`text-left rounded-xl border p-4 hover:shadow-md transition-shadow ${tonoCumpl(f.pct_cierre)}`}
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <TipoIcon tipo={f.tipo} />
+                            <span className="font-medium truncate">{f.nombre}</span>
+                          </div>
+                          <span className={`flex items-center gap-1 text-2xl font-semibold tabular-nums ${colorPct(f.pct_cierre)}`}>
+                            <span className="text-base">{iconoCumpl(f.pct_cierre)}</span>
+                            {nf(f.pct_cierre, 0)}%
+                          </span>
                         </div>
-                        <span className={`text-2xl font-semibold tabular-nums ${colorPct(f.pct_cierre)}`}>
-                          {nf(f.pct_cierre, 0)}%
-                        </span>
-                      </div>
-                      <div className="mt-2">
-                        <CurvaAcumulado serie={series[f.nombre] ?? series[f.clave] ?? []} />
-                      </div>
-                      <div className="mt-2 grid grid-cols-3 gap-2 text-[11px]">
-                        <div>
-                          <div className="text-muted-foreground">Interanual</div>
-                          <div className={`tabular-nums font-medium ${f.crecimiento_yoy < 0 ? "text-rose-600" : "text-emerald-600"}`}>
-                            {pct(f.crecimiento_yoy, 0)}
+
+                        <div className="mt-3">
+                          <BarraMes pctv={pctMesEnt} marca={marca} />
+                          <div className="mt-1 flex justify-between text-[10px] text-muted-foreground">
+                            <span>{nf(pctMesEnt, 0)}% del mes</span>
+                            <span>{f.dias_transcurridos ?? "—"}/{f.dias_mes ?? "—"} días</span>
                           </div>
                         </div>
-                        <div>
-                          <div className="text-muted-foreground">Tend. 7d</div>
-                          <div className={`tabular-nums font-medium ${f.tendencia_7d < 0 ? "text-rose-600" : "text-emerald-600"}`}>
-                            {pct(f.tendencia_7d, 0)}
+
+                        <div className="mt-3 grid grid-cols-2 gap-2 text-[11px]">
+                          <div>
+                            <div className="text-muted-foreground">Intermensual</div>
+                            <div className={`tabular-nums font-medium ${Number(varMom ?? 0) < 0 ? "text-rose-600" : "text-emerald-600"}`}>
+                              {varMom == null ? "—" : pct(varMom, 0)}
+                            </div>
+                          </div>
+                          <div>
+                            <div className="text-muted-foreground">Interanual</div>
+                            <div className={`tabular-nums font-medium ${f.crecimiento_yoy < 0 ? "text-rose-600" : "text-emerald-600"}`}>
+                              {pct(f.crecimiento_yoy, 0)}
+                            </div>
+                          </div>
+                          <div>
+                            <div className="text-muted-foreground">Ticket</div>
+                            <div className="tabular-nums font-medium">{money((f as any).ticket)}</div>
+                          </div>
+                          <div>
+                            <div className="text-muted-foreground">UPT</div>
+                            <div className="tabular-nums font-medium">{nf((f as any).upt, 2)}</div>
                           </div>
                         </div>
-                        <div>
-                          <div className="text-muted-foreground">Esfuerzo</div>
-                          <div className="tabular-nums font-medium">
-                            {f.esfuerzo_requerido > 0 ? `+${nf(f.esfuerzo_requerido, 0)}%` : "Alcanzable"}
-                          </div>
+
+                        <div className="mt-3">
+                          <BarraCalidad c={calidad[f.nombre]} />
                         </div>
-                      </div>
-                      {f.accionable && (
-                        <p className="mt-3 pt-2 border-t text-xs text-muted-foreground">{f.accionable}</p>
-                      )}
-                    </button>
-                  ))}
+
+                        <div className="mt-3 flex items-center gap-4 text-[11px]">
+                          <span className="text-muted-foreground">
+                            Tend. 7d{" "}
+                            <span className={`tabular-nums font-medium ${f.tendencia_7d < 0 ? "text-rose-600" : "text-emerald-600"}`}>
+                              {pct(f.tendencia_7d, 0)}
+                            </span>
+                          </span>
+                          <span className="text-muted-foreground">
+                            Esfuerzo{" "}
+                            <span className="tabular-nums font-medium text-foreground">
+                              {f.esfuerzo_requerido > 0 ? `+${nf(f.esfuerzo_requerido, 0)}%` : "Alcanzable"}
+                            </span>
+                          </span>
+                        </div>
+
+                        {f.accionable && (
+                          <div className="mt-3 flex gap-2 rounded-lg bg-white/70 border p-2 text-xs text-muted-foreground">
+                            <Lightbulb className="h-3.5 w-3.5 shrink-0 mt-0.5 text-amber-500" />
+                            <span>{f.accionable}</span>
+                          </div>
+                        )}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             )}
 
-            {/* ── Nivel 3: tabla con el resto ── */}
-            {!loading && resto.length > 0 && (
+            {/* ── Nivel 3: tabla comparativa ── */}
+            {!loading && visibles.length > 0 && (
               <div className="rounded-xl border bg-card overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
