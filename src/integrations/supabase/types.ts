@@ -3882,6 +3882,29 @@ export type Database = {
         }[]
       }
       get_user_scope: { Args: { p_user_id?: string }; Returns: string[] }
+      incentivo_detalle: {
+        Args: {
+          p_incentivo_id: string
+          p_location_id?: string
+          p_vendedor_id?: string
+        }
+        Returns: {
+          categoria: string
+          cuenta: boolean
+          descuento: number
+          fecha: string
+          monto: number
+          pedido: string
+          precio: number
+          producto: string
+          sku: string
+          tienda: string
+          tipo_venta: string
+          unidades: number
+          vendedor: string
+          venta_neta: number
+        }[]
+      }
       lineas_tienda: {
         Args: { p_clave: string; p_dias?: number }
         Returns: {

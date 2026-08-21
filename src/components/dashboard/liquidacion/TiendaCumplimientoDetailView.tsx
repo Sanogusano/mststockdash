@@ -1,11 +1,11 @@
 import { useMemo, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { CheckCircle2, ChevronDown, ChevronRight, Download, Loader2, XCircle } from "lucide-react";
 import { exportToCSV } from "@/lib/csv-export";
+import { IncentivoDetalleTable, fetchIncentivoDetalle, motivoNoCuenta } from "./IncentivoDetalleTable";
 import type { CampanaResumen, LiquidacionRow } from "./types";
 
 interface Props {
@@ -17,7 +17,6 @@ interface Props {
 const fmtCOP = (n: number) => "$ " + Math.round(n || 0).toLocaleString("es-CO");
 const fmtInt = (n: number) => Math.round(n || 0).toLocaleString("es-CO");
 const fmtDec = (n: number, d = 2) => (Number(n) || 0).toFixed(d);
-const fmtDate = (d: string) => new Date(d).toLocaleDateString("es-CO", { day: "2-digit", month: "short", year: "2-digit" });
 
 const CANAL_ORDER = ["Tiendas", "Outlets", "Tienda Online", "Personal Shopper"];
 
@@ -27,64 +26,6 @@ const especieLabel = (t: string) => {
   if (t === "ropa") return "Bono Ropa";
   return t;
 };
-
-interface PedidoDetalle {
-  order_number: string;
-  shopify_order_id: string;
-  created_at: string;
-  total_price: number;
-  unidades: number;
-}
-
-async function fetchPedidosTienda(
-  locationId: string,
-  canal: string,
-  desde: string,
-  hasta: string
-): Promise<PedidoDetalle[]> {
-  let q = supabase
-    .from("orders")
-    .select("shopify_order_id, order_number, created_at, total_price, source_name")
-    .eq("location_id", locationId)
-    .gte("created_at", desde)
-    .lte("created_at", hasta + "T23:59:59")
-    .in("financial_status", ["paid", "partially_refunded", "partially_paid"])
-    .order("created_at", { ascending: false })
-    .limit(5000);
-
-  if (canal === "Personal Shopper") q = q.eq("source_name", "shopify_draft_order");
-  else if (canal === "Tienda Online") q = q.neq("source_name", "shopify_draft_order");
-
-  const { data: orders, error } = await q;
-  if (error || !orders || orders.length === 0) return [];
-
-  const ids = orders.map((o) => o.shopify_order_id).filter(Boolean);
-  const unitsById = new Map<string, number>();
-  // Chunk in 200s to avoid URI length errors
-  for (let i = 0; i < ids.length; i += 200) {
-    const chunk = ids.slice(i, i + 200);
-    const { data: items } = await supabase
-      .from("order_items")
-      .select("shopify_order_id, quantity, category")
-      .in("shopify_order_id", chunk);
-    (items ?? []).forEach((it) => {
-      const cat = (it.category ?? "").toUpperCase();
-      if (cat === "BOLSA" || cat === "INSUMOS") return;
-      unitsById.set(
-        it.shopify_order_id,
-        (unitsById.get(it.shopify_order_id) ?? 0) + (it.quantity ?? 0)
-      );
-    });
-  }
-
-  return orders.map((o) => ({
-    order_number: o.order_number ?? "—",
-    shopify_order_id: o.shopify_order_id,
-    created_at: o.created_at,
-    total_price: Number(o.total_price) || 0,
-    unidades: unitsById.get(o.shopify_order_id) ?? 0,
-  }));
-}
 
 export function TiendaCumplimientoDetailView({ campana, rows, locMap }: Props) {
   const grouped = useMemo(() => {
@@ -119,33 +60,15 @@ export function TiendaCumplimientoDetailView({ campana, rows, locMap }: Props) {
 
   const [exporting, setExporting] = useState(false);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
-  const [pedidosCache, setPedidosCache] = useState<Map<string, PedidoDetalle[]>>(new Map());
-  const [loadingRow, setLoadingRow] = useState<Set<string>>(new Set());
 
-  const toggleExpand = async (rowId: string, locationId: string | null, canal: string) => {
+  const toggleExpand = (rowId: string, locationId: string | null, _canal: string) => {
     if (!locationId) return;
-    const isOpen = expanded.has(rowId);
-    const next = new Set(expanded);
-    if (isOpen) {
-      next.delete(rowId);
-      setExpanded(next);
-      return;
-    }
-    next.add(rowId);
-    setExpanded(next);
-    if (!pedidosCache.has(rowId)) {
-      setLoadingRow((s) => new Set(s).add(rowId));
-      try {
-        const pedidos = await fetchPedidosTienda(locationId, canal, campana.fecha_inicio, campana.fecha_fin);
-        setPedidosCache((m) => new Map(m).set(rowId, pedidos));
-      } finally {
-        setLoadingRow((s) => {
-          const n = new Set(s);
-          n.delete(rowId);
-          return n;
-        });
-      }
-    }
+    setExpanded((prev) => {
+      const next = new Set(prev);
+      if (next.has(rowId)) next.delete(rowId);
+      else next.add(rowId);
+      return next;
+    });
   };
 
   const buildExportRows = () => {
@@ -180,20 +103,26 @@ export function TiendaCumplimientoDetailView({ campana, rows, locMap }: Props) {
   const buildPedidosExport = async () => {
     const detalle: Record<string, unknown>[] = [];
     for (const canal of canales) {
-      const rowsCanal = grouped.get(canal)!.filter((r) => r.cumple_meta && r.location_id);
+      const rowsCanal = grouped.get(canal)!.filter((r) => r.location_id);
       for (const r of rowsCanal) {
         const tienda = locMap.get(r.location_id ?? "") ?? r.location_id ?? "—";
-        const cached = pedidosCache.get(r.id);
-        const pedidos = cached ?? (await fetchPedidosTienda(r.location_id!, canal, campana.fecha_inicio, campana.fecha_fin));
-        if (!cached) setPedidosCache((m) => new Map(m).set(r.id, pedidos));
-        pedidos.forEach((p) => {
+        const lineas = await fetchIncentivoDetalle(campana.incentivo_id, null, r.location_id);
+        lineas.forEach((l) => {
           detalle.push({
             Canal: canal,
             Tienda: tienda,
-            Pedido: p.order_number,
-            Fecha: fmtDate(p.created_at),
-            Unidades: p.unidades,
-            Valor: Math.round(p.total_price),
+            Pedido: l.pedido,
+            Fecha: l.fecha,
+            Vendedor: l.vendedor,
+            SKU: l.sku,
+            Producto: l.producto,
+            Categoría: l.categoria,
+            Unidades: l.unidades,
+            "Venta Neta": Math.round(Number(l.venta_neta) || 0),
+            "Tipo Venta": l.tipo_venta,
+            "¿Cuenta?": l.cuenta ? "Sí" : "No",
+            Motivo: motivoNoCuenta(l),
+            Monto: Math.round(Number(l.monto) || 0),
           });
         });
       }
@@ -213,7 +142,7 @@ export function TiendaCumplimientoDetailView({ campana, rows, locMap }: Props) {
       const XLSX = await import("xlsx");
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(resumen), "Resumen");
-      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(pedidos), "Pedidos (Cumplen)");
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(pedidos), "Detalle líneas");
       XLSX.writeFile(wb, `liquidacion_${campana.nombre}.xlsx`);
     } finally {
       setExporting(false);
@@ -291,16 +220,12 @@ export function TiendaCumplimientoDetailView({ campana, rows, locMap }: Props) {
                         const tienda = locMap.get(r.location_id ?? "") ?? r.location_id ?? "—";
                         const isEspecie = tipoPago === "bono_especie";
                         const isOpen = expanded.has(r.id);
-                        const pedidos = pedidosCache.get(r.id);
-                        const loading = loadingRow.has(r.id);
                         return (
                           <>
-                            <TableRow key={r.id} className={r.cumple_meta ? "cursor-pointer hover:bg-muted/40" : ""}
-                              onClick={() => r.cumple_meta && toggleExpand(r.id, r.location_id, canal)}>
+                            <TableRow key={r.id} className="cursor-pointer hover:bg-muted/40"
+                              onClick={() => toggleExpand(r.id, r.location_id, canal)}>
                               <TableCell className="w-8">
-                                {r.cumple_meta ? (
-                                  isOpen ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                                ) : null}
+                                {isOpen ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
                               </TableCell>
                               <TableCell className="font-medium">{tienda}</TableCell>
                               <TableCell className="text-right tabular-nums">
@@ -346,48 +271,11 @@ export function TiendaCumplimientoDetailView({ campana, rows, locMap }: Props) {
                             </TableRow>
                             {isOpen && (
                               <TableRow key={r.id + "-detail"} className="bg-muted/20">
-                                <TableCell colSpan={10} className="p-0">
-                                  <div className="p-3">
-                                    {loading ? (
-                                      <div className="flex items-center gap-2 text-sm text-muted-foreground py-4 justify-center">
-                                        <Loader2 className="h-4 w-4 animate-spin" /> Cargando pedidos...
-                                      </div>
-                                    ) : !pedidos || pedidos.length === 0 ? (
-                                      <p className="text-xs text-muted-foreground text-center py-3">
-                                        Sin pedidos en el rango.
-                                      </p>
-                                    ) : (
-                                      <div>
-                                        <p className="text-xs font-medium text-muted-foreground mb-2">
-                                          Pedidos de {tienda} · {pedidos.length} pedidos ·{" "}
-                                          {pedidos.reduce((s, x) => s + x.unidades, 0)} unidades ·{" "}
-                                          {fmtCOP(pedidos.reduce((s, x) => s + x.total_price, 0))}
-                                        </p>
-                                        <div className="border rounded bg-background max-h-80 overflow-y-auto">
-                                          <Table>
-                                            <TableHeader>
-                                              <TableRow>
-                                                <TableHead>Pedido</TableHead>
-                                                <TableHead>Fecha</TableHead>
-                                                <TableHead className="text-right">Unidades</TableHead>
-                                                <TableHead className="text-right">Valor</TableHead>
-                                              </TableRow>
-                                            </TableHeader>
-                                            <TableBody>
-                                              {pedidos.map((pd) => (
-                                                <TableRow key={pd.shopify_order_id}>
-                                                  <TableCell className="font-mono text-xs">#{pd.order_number}</TableCell>
-                                                  <TableCell className="text-xs">{fmtDate(pd.created_at)}</TableCell>
-                                                  <TableCell className="text-right tabular-nums">{fmtInt(pd.unidades)}</TableCell>
-                                                  <TableCell className="text-right tabular-nums">{fmtCOP(pd.total_price)}</TableCell>
-                                                </TableRow>
-                                              ))}
-                                            </TableBody>
-                                          </Table>
-                                        </div>
-                                      </div>
-                                    )}
-                                  </div>
+                                <TableCell colSpan={10} className="p-3">
+                                  <IncentivoDetalleTable
+                                    incentivoId={campana.incentivo_id}
+                                    locationId={r.location_id}
+                                  />
                                 </TableCell>
                               </TableRow>
                             )}

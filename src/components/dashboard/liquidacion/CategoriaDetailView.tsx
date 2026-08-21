@@ -1,4 +1,5 @@
-import { useMemo, useState } from "react";
+import { Fragment, useMemo, useState } from "react";
+import { IncentivoDetalleTable } from "./IncentivoDetalleTable";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -28,6 +29,7 @@ const pct = (l: number, m: number) => (m > 0 ? Math.min((l / m) * 100, 100) : 0)
 export function CategoriaDetailView({ campana, rows, vendedorMap }: Props) {
   const [exporting, setExporting] = useState(false);
   const [filterCumple, setFilterCumple] = useState<FilterCumple>("todos");
+  const [expanded, setExpanded] = useState<string | null>(null);
 
   const categorias = Array.isArray(campana.parametros?.categorias)
     ? campana.parametros.categorias.join(", ")
@@ -219,8 +221,10 @@ export function CategoriaDetailView({ campana, rows, vendedorMap }: Props) {
           <TableBody>
             {vendedores.map((v, i) => {
               const avance = pct(v.unidades, v.meta);
+              const isOpen = expanded === v.id;
               return (
-                <TableRow key={v.id}>
+                <Fragment key={v.id}>
+                <TableRow className="cursor-pointer hover:bg-muted/40" onClick={() => setExpanded(isOpen ? null : v.id)}>
                   <TableCell className="text-sm font-medium tabular-nums">{i + 1}</TableCell>
                   <TableCell className="text-sm">{v.nombre}</TableCell>
                   <TableCell className="text-center tabular-nums font-medium">{v.unidades}</TableCell>
@@ -252,6 +256,14 @@ export function CategoriaDetailView({ campana, rows, vendedorMap }: Props) {
                     {fmt(v.monto_ganado)}
                   </TableCell>
                 </TableRow>
+                {isOpen && (
+                  <TableRow>
+                    <TableCell colSpan={7} className="bg-muted/20">
+                      <IncentivoDetalleTable incentivoId={campana.incentivo_id} vendedorId={v.vendedor_id || null} />
+                    </TableCell>
+                  </TableRow>
+                )}
+                </Fragment>
               );
             })}
           </TableBody>
