@@ -44,6 +44,9 @@ export const FIXED_ALCANCE: Record<string, string> = {
 
 /** Tipo de pago options per rule type */
 export function getTipoPagoOptions(tipoRegla: string): { value: string; label: string }[] {
+  if (tipoRegla === "presupuesto_semanal") {
+    return [{ value: "monto_fijo", label: "Monto Fijo (por semana cumplida)" }];
+  }
   if (tipoRegla === "presupuesto_semanal_dual") {
     return [
       { value: "monto_fijo", label: "Monto Fijo" },
