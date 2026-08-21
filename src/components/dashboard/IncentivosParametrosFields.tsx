@@ -2,6 +2,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { SkuSearchPicker } from "./SkuSearchPicker";
+import { CategoriaMultiSelect } from "./CategoriaMultiSelect";
 
 interface Props {
   tipoRegla: string;
@@ -70,9 +71,7 @@ const RULE_FIELDS: Record<string, FieldDef[]> = {
     { label: "Semanas del mes", key: "semanas_mes", type: "number", placeholder: "Ej: 3" },
     { label: "Ticket Meta", key: "ticket_meta", type: "number", placeholder: "Ej: 700000" },
   ],
-  venta_categoria: [
-    { label: "Categorías (separadas por coma)", key: "categorias", type: "text", placeholder: "Ej: SUNGLASSES, ACCESORIOS" },
-  ],
+  venta_categoria: [],
   venta_sku: [
     { label: "SKUs (separados por coma)", key: "skus", type: "text", placeholder: "Ej: SKU001, SKU002" },
   ],
@@ -96,9 +95,10 @@ export function IncentivosParametrosFields({ tipoRegla, params, onChange }: Prop
   const fields = RULE_FIELDS[normalizedTipo];
   const showTipoVenta = RULES_WITH_TIPO_VENTA.includes(normalizedTipo);
   const isSkuRule = normalizedTipo === "venta_sku";
+  const isCategoriaRule = normalizedTipo === "venta_categoria";
   const isTiendaCumplimiento = normalizedTipo === "tienda_cumplimiento";
 
-  if ((!fields || fields.length === 0) && !showTipoVenta && !isSkuRule && !isTiendaCumplimiento) return null;
+  if ((!fields || fields.length === 0) && !showTipoVenta && !isSkuRule && !isCategoriaRule && !isTiendaCumplimiento) return null;
 
   // ---- Cumplimiento de Tienda helpers ----
   const cond = (params.condiciones as Record<string, { activa?: boolean; min?: number }>) || {};
@@ -126,6 +126,12 @@ export function IncentivosParametrosFields({ tipoRegla, params, onChange }: Prop
     ? (params.skus as unknown[]).map(String)
     : typeof params.skus === "string" && params.skus
       ? (params.skus as string).split(",").map((s) => s.trim()).filter(Boolean)
+      : [];
+
+  const categoriasSelected: string[] = Array.isArray(params.categorias)
+    ? (params.categorias as unknown[]).map(String)
+    : typeof params.categorias === "string" && params.categorias
+      ? (params.categorias as string).split(",").map((s) => s.trim()).filter(Boolean)
       : [];
 
   const tipoTicketValue = (params.tipo_ticket as string) || "minimo_real";
@@ -192,6 +198,12 @@ export function IncentivosParametrosFields({ tipoRegla, params, onChange }: Prop
           label="SKUs incluidos"
           selected={skusSelected}
           onChange={(skus) => onChange({ ...params, skus })}
+        />
+      )}
+      {isCategoriaRule && (
+        <CategoriaMultiSelect
+          selected={categoriasSelected}
+          onChange={(categorias) => onChange({ ...params, categorias })}
         />
       )}
       {!isSkuRule && fields?.map((field) => (

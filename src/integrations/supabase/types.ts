@@ -3505,6 +3505,16 @@ export type Database = {
           venta_full: number
         }[]
       }
+      categorias_disponibles: {
+        Args: { p_dias?: number }
+        Returns: {
+          categoria: string
+          categoria_padre: string
+          productos: number
+          tiene_venta: boolean
+          uds_periodo: number
+        }[]
+      }
       crear_ubicacion_completa: {
         Args: {
           p_capacidad?: number
@@ -3875,8 +3885,13 @@ export type Database = {
       lineas_tienda: {
         Args: { p_clave: string; p_dias?: number }
         Returns: {
+          candidata_estancada: boolean
+          cobertura_semanas: number
+          estado: string
           linea: string
           participacion: number
+          productos_en_stock: number
+          sin_ventas: boolean
           stock_tienda: number
           uds_por_semana: number
           unidades: number
