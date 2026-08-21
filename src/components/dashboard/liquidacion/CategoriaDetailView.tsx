@@ -220,8 +220,10 @@ export function CategoriaDetailView({ campana, rows, vendedorMap }: Props) {
           <TableBody>
             {vendedores.map((v, i) => {
               const avance = pct(v.unidades, v.meta);
+              const isOpen = expanded === v.id;
               return (
-                <TableRow key={v.id}>
+                <Fragment key={v.id}>
+                <TableRow className="cursor-pointer hover:bg-muted/40" onClick={() => setExpanded(isOpen ? null : v.id)}>
                   <TableCell className="text-sm font-medium tabular-nums">{i + 1}</TableCell>
                   <TableCell className="text-sm">{v.nombre}</TableCell>
                   <TableCell className="text-center tabular-nums font-medium">{v.unidades}</TableCell>
