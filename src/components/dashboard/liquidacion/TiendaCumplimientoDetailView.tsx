@@ -346,48 +346,11 @@ export function TiendaCumplimientoDetailView({ campana, rows, locMap }: Props) {
                             </TableRow>
                             {isOpen && (
                               <TableRow key={r.id + "-detail"} className="bg-muted/20">
-                                <TableCell colSpan={10} className="p-0">
-                                  <div className="p-3">
-                                    {loading ? (
-                                      <div className="flex items-center gap-2 text-sm text-muted-foreground py-4 justify-center">
-                                        <Loader2 className="h-4 w-4 animate-spin" /> Cargando pedidos...
-                                      </div>
-                                    ) : !pedidos || pedidos.length === 0 ? (
-                                      <p className="text-xs text-muted-foreground text-center py-3">
-                                        Sin pedidos en el rango.
-                                      </p>
-                                    ) : (
-                                      <div>
-                                        <p className="text-xs font-medium text-muted-foreground mb-2">
-                                          Pedidos de {tienda} · {pedidos.length} pedidos ·{" "}
-                                          {pedidos.reduce((s, x) => s + x.unidades, 0)} unidades ·{" "}
-                                          {fmtCOP(pedidos.reduce((s, x) => s + x.total_price, 0))}
-                                        </p>
-                                        <div className="border rounded bg-background max-h-80 overflow-y-auto">
-                                          <Table>
-                                            <TableHeader>
-                                              <TableRow>
-                                                <TableHead>Pedido</TableHead>
-                                                <TableHead>Fecha</TableHead>
-                                                <TableHead className="text-right">Unidades</TableHead>
-                                                <TableHead className="text-right">Valor</TableHead>
-                                              </TableRow>
-                                            </TableHeader>
-                                            <TableBody>
-                                              {pedidos.map((pd) => (
-                                                <TableRow key={pd.shopify_order_id}>
-                                                  <TableCell className="font-mono text-xs">#{pd.order_number}</TableCell>
-                                                  <TableCell className="text-xs">{fmtDate(pd.created_at)}</TableCell>
-                                                  <TableCell className="text-right tabular-nums">{fmtInt(pd.unidades)}</TableCell>
-                                                  <TableCell className="text-right tabular-nums">{fmtCOP(pd.total_price)}</TableCell>
-                                                </TableRow>
-                                              ))}
-                                            </TableBody>
-                                          </Table>
-                                        </div>
-                                      </div>
-                                    )}
-                                  </div>
+                                <TableCell colSpan={10} className="p-3">
+                                  <IncentivoDetalleTable
+                                    incentivoId={campana.incentivo_id}
+                                    locationId={r.location_id}
+                                  />
                                 </TableCell>
                               </TableRow>
                             )}
