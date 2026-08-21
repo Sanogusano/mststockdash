@@ -29,64 +29,6 @@ const especieLabel = (t: string) => {
   return t;
 };
 
-interface PedidoDetalle {
-  order_number: string;
-  shopify_order_id: string;
-  created_at: string;
-  total_price: number;
-  unidades: number;
-}
-
-async function fetchPedidosTienda(
-  locationId: string,
-  canal: string,
-  desde: string,
-  hasta: string
-): Promise<PedidoDetalle[]> {
-  let q = supabase
-    .from("orders")
-    .select("shopify_order_id, order_number, created_at, total_price, source_name")
-    .eq("location_id", locationId)
-    .gte("created_at", desde)
-    .lte("created_at", hasta + "T23:59:59")
-    .in("financial_status", ["paid", "partially_refunded", "partially_paid"])
-    .order("created_at", { ascending: false })
-    .limit(5000);
-
-  if (canal === "Personal Shopper") q = q.eq("source_name", "shopify_draft_order");
-  else if (canal === "Tienda Online") q = q.neq("source_name", "shopify_draft_order");
-
-  const { data: orders, error } = await q;
-  if (error || !orders || orders.length === 0) return [];
-
-  const ids = orders.map((o) => o.shopify_order_id).filter(Boolean);
-  const unitsById = new Map<string, number>();
-  // Chunk in 200s to avoid URI length errors
-  for (let i = 0; i < ids.length; i += 200) {
-    const chunk = ids.slice(i, i + 200);
-    const { data: items } = await supabase
-      .from("order_items")
-      .select("shopify_order_id, quantity, category")
-      .in("shopify_order_id", chunk);
-    (items ?? []).forEach((it) => {
-      const cat = (it.category ?? "").toUpperCase();
-      if (cat === "BOLSA" || cat === "INSUMOS") return;
-      unitsById.set(
-        it.shopify_order_id,
-        (unitsById.get(it.shopify_order_id) ?? 0) + (it.quantity ?? 0)
-      );
-    });
-  }
-
-  return orders.map((o) => ({
-    order_number: o.order_number ?? "—",
-    shopify_order_id: o.shopify_order_id,
-    created_at: o.created_at,
-    total_price: Number(o.total_price) || 0,
-    unidades: unitsById.get(o.shopify_order_id) ?? 0,
-  }));
-}
-
 export function TiendaCumplimientoDetailView({ campana, rows, locMap }: Props) {
   const grouped = useMemo(() => {
     const g = new Map<string, LiquidacionRow[]>();
@@ -280,8 +222,6 @@ export function TiendaCumplimientoDetailView({ campana, rows, locMap }: Props) {
                         const tienda = locMap.get(r.location_id ?? "") ?? r.location_id ?? "—";
                         const isEspecie = tipoPago === "bono_especie";
                         const isOpen = expanded.has(r.id);
-                        const pedidos = pedidosCache.get(r.id);
-                        const loading = loadingRow.has(r.id);
                         return (
                           <>
                             <TableRow key={r.id} className="cursor-pointer hover:bg-muted/40"
