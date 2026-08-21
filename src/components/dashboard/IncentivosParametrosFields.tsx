@@ -110,8 +110,17 @@ export function IncentivosParametrosFields({ tipoRegla, params, onChange }: Prop
   const isSkuRule = normalizedTipo === "venta_sku";
   const isCategoriaRule = normalizedTipo === "venta_categoria";
   const isTiendaCumplimiento = normalizedTipo === "tienda_cumplimiento";
+  const isPresupuestoSemanalEntidad = normalizedTipo === "presupuesto_semanal";
 
-  if ((!fields || fields.length === 0) && !showTipoVenta && !isSkuRule && !isCategoriaRule && !isTiendaCumplimiento) return null;
+  if ((!fields || fields.length === 0) && !showTipoVenta && !isSkuRule && !isCategoriaRule && !isTiendaCumplimiento && !isPresupuestoSemanalEntidad) return null;
+
+  const entidadesSelected: string[] = Array.isArray(params.entidades) ? (params.entidades as unknown[]).map(String) : [];
+  const toggleEntidad = (value: string, checked: boolean) => {
+    const next = checked
+      ? [...new Set([...entidadesSelected, value])]
+      : entidadesSelected.filter((e) => e !== value);
+    onChange({ ...params, entidades: next });
+  };
 
   // ---- Cumplimiento de Tienda helpers ----
   const cond = (params.condiciones as Record<string, { activa?: boolean; min?: number }>) || {};
