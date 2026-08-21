@@ -196,8 +196,10 @@ export function SkuDetailView({ campana, rows, vendedorMap, locMap }: Props) {
           <TableBody>
             {participantes.map((v, i) => {
               const avance = pct(v.unidades, v.meta);
+              const isOpen = expanded === v.id;
               return (
-                <TableRow key={v.id}>
+                <Fragment key={v.id}>
+                <TableRow className="cursor-pointer hover:bg-muted/40" onClick={() => setExpanded(isOpen ? null : v.id)}>
                   <TableCell className="text-sm font-medium tabular-nums">{i + 1}</TableCell>
                   <TableCell className="text-sm">{v.nombre}</TableCell>
                   <TableCell className="text-center tabular-nums font-medium">{v.unidades}</TableCell>
@@ -215,11 +217,24 @@ export function SkuDetailView({ campana, rows, vendedorMap, locMap }: Props) {
                   </TableCell>
                   <TableCell className="text-right tabular-nums font-medium text-sm">{fmt(v.monto_ganado)}</TableCell>
                 </TableRow>
+                {isOpen && (
+                  <TableRow>
+                    <TableCell colSpan={7} className="bg-muted/20">
+                      <IncentivoDetalleTable
+                        incentivoId={campana.incentivo_id}
+                        vendedorId={isAsesor ? v.refId : null}
+                        locationId={isAsesor ? null : v.refId}
+                      />
+                    </TableCell>
+                  </TableRow>
+                )}
+                </Fragment>
               );
             })}
           </TableBody>
         </Table>
       </div>
+
     </div>
   );
 }
