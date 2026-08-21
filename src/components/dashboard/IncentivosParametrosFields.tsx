@@ -35,6 +35,7 @@ export const TIPO_REGLA_OPTIONS: { value: string; label: string; description?: s
 
 /** Rules with a fixed (non-selectable) alcance */
 export const FIXED_ALCANCE: Record<string, string> = {
+  presupuesto_semanal: "tienda",
   presupuesto_semanal_dual: "tienda",
   tienda_cumplimiento: "tienda",
   venta_categoria: "asesor",
