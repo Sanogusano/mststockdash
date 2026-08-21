@@ -29,6 +29,7 @@ const pct = (l: number, m: number) => (m > 0 ? Math.min((l / m) * 100, 100) : 0)
 export function CategoriaDetailView({ campana, rows, vendedorMap }: Props) {
   const [exporting, setExporting] = useState(false);
   const [filterCumple, setFilterCumple] = useState<FilterCumple>("todos");
+  const [expanded, setExpanded] = useState<string | null>(null);
 
   const categorias = Array.isArray(campana.parametros?.categorias)
     ? campana.parametros.categorias.join(", ")
