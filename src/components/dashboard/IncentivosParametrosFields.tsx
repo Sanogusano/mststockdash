@@ -2,6 +2,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { SkuSearchPicker } from "./SkuSearchPicker";
+import { CategoriaMultiSelect } from "./CategoriaMultiSelect";
 
 interface Props {
   tipoRegla: string;
@@ -94,6 +95,7 @@ export function IncentivosParametrosFields({ tipoRegla, params, onChange }: Prop
   const fields = RULE_FIELDS[normalizedTipo];
   const showTipoVenta = RULES_WITH_TIPO_VENTA.includes(normalizedTipo);
   const isSkuRule = normalizedTipo === "venta_sku";
+  const isCategoriaRule = normalizedTipo === "venta_categoria";
   const isTiendaCumplimiento = normalizedTipo === "tienda_cumplimiento";
 
   if ((!fields || fields.length === 0) && !showTipoVenta && !isSkuRule && !isTiendaCumplimiento) return null;
