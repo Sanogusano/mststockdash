@@ -41,6 +41,8 @@ export function SkuDetailView({ campana, rows, vendedorMap, locMap }: Props) {
     : [];
   const metaUnidades = campana.valor_objetivo;
   const recompensa = campana.recompensa;
+  const soloFullPrice = rows.some((r) => (r.progreso_actual as any)?.solo_full_price)
+    || (!rows.some((r) => (r.progreso_actual as any)?.solo_full_price === false) && !!campana.parametros?.solo_full_price);
   const isAsesor = campana.alcance === "vendedor" || campana.alcance === "asesor";
 
   const participantesAll = rows
@@ -145,9 +147,10 @@ export function SkuDetailView({ campana, rows, vendedorMap, locMap }: Props) {
   return (
     <div className="space-y-4">
       <div className="border rounded-lg p-4 bg-muted/30">
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-3 text-xs">
+        <div className="grid grid-cols-2 md:grid-cols-6 gap-3 text-xs">
           <div><p className="text-muted-foreground">SKUs</p><p className="font-semibold text-foreground truncate" title={skus}>{skus}</p></div>
           <div><p className="text-muted-foreground">Tipo de Venta</p><p className="font-semibold">{tipoVenta}</p></div>
+          <div><p className="text-muted-foreground">Criterio</p><p className="font-semibold">{soloFullPrice ? "Solo precio pleno" : "Cualquier venta"}</p></div>
           <div><p className="text-muted-foreground">Meta</p><p className="font-semibold">{metaUnidades} unidades</p></div>
           <div><p className="text-muted-foreground">Pago</p><p className="font-semibold">{recompensaLabel}</p></div>
           <div><p className="text-muted-foreground">Periodo</p><p className="font-semibold">{fmtDate(campana.fecha_inicio)} – {fmtDate(campana.fecha_fin)}</p></div>

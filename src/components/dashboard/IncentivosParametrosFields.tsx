@@ -1,6 +1,7 @@
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { SkuSearchPicker } from "./SkuSearchPicker";
 import { CategoriaMultiSelect } from "./CategoriaMultiSelect";
 
@@ -205,6 +206,20 @@ export function IncentivosParametrosFields({ tipoRegla, params, onChange }: Prop
           selected={categoriasSelected}
           onChange={(categorias) => onChange({ ...params, categorias })}
         />
+      )}
+      {(isSkuRule || isCategoriaRule) && (
+        <div className="rounded-md border p-3 space-y-1.5">
+          <div className="flex items-center justify-between gap-3">
+            <Label className="text-sm">Solo venta a precio pleno</Label>
+            <Switch
+              checked={!!params.solo_full_price}
+              onCheckedChange={(v) => onChange({ ...params, solo_full_price: v })}
+            />
+          </div>
+          <p className="text-[11px] text-muted-foreground leading-snug">
+            Excluye unidades vendidas con descuento manual o rebaja de catálogo.
+          </p>
+        </div>
       )}
       {!isSkuRule && fields?.map((field) => (
         <div key={field.key}>

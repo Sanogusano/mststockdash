@@ -34,6 +34,8 @@ export function CategoriaDetailView({ campana, rows, vendedorMap }: Props) {
     : campana.parametros?.categorias ?? "—";
   const metaUnidades = campana.valor_objetivo;
   const recompensa = campana.recompensa;
+  const soloFullPrice = rows.some((r) => (r.progreso_actual as any)?.solo_full_price)
+    || (!rows.some((r) => (r.progreso_actual as any)?.solo_full_price === false) && !!campana.parametros?.solo_full_price);
 
   const vendedoresAll = rows
     .map((r) => {
@@ -139,10 +141,14 @@ export function CategoriaDetailView({ campana, rows, vendedorMap }: Props) {
     <div className="space-y-4">
       {/* Header de campaña */}
       <div className="border rounded-lg p-4 bg-muted/30 space-y-2">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-3 text-xs">
           <div>
             <p className="text-muted-foreground">Categoría</p>
             <p className="font-semibold text-foreground">{categorias}</p>
+          </div>
+          <div>
+            <p className="text-muted-foreground">Criterio</p>
+            <p className="font-semibold text-foreground">{soloFullPrice ? "Solo precio pleno" : "Cualquier venta"}</p>
           </div>
           <div>
             <p className="text-muted-foreground">Meta por asesor</p>
