@@ -255,6 +255,14 @@ export function CategoriaDetailView({ campana, rows, vendedorMap }: Props) {
                     {fmt(v.monto_ganado)}
                   </TableCell>
                 </TableRow>
+                {isOpen && (
+                  <TableRow>
+                    <TableCell colSpan={7} className="bg-muted/20">
+                      <IncentivoDetalleTable incentivoId={campana.incentivo_id} vendedorId={v.vendedor_id || null} />
+                    </TableCell>
+                  </TableRow>
+                )}
+                </Fragment>
               );
             })}
           </TableBody>
