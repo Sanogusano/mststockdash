@@ -1,5 +1,4 @@
 import { useMemo, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -18,7 +17,6 @@ interface Props {
 const fmtCOP = (n: number) => "$ " + Math.round(n || 0).toLocaleString("es-CO");
 const fmtInt = (n: number) => Math.round(n || 0).toLocaleString("es-CO");
 const fmtDec = (n: number, d = 2) => (Number(n) || 0).toFixed(d);
-const fmtDate = (d: string) => new Date(d).toLocaleDateString("es-CO", { day: "2-digit", month: "short", year: "2-digit" });
 
 const CANAL_ORDER = ["Tiendas", "Outlets", "Tienda Online", "Personal Shopper"];
 
