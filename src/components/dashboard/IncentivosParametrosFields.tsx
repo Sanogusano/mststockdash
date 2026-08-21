@@ -70,9 +70,7 @@ const RULE_FIELDS: Record<string, FieldDef[]> = {
     { label: "Semanas del mes", key: "semanas_mes", type: "number", placeholder: "Ej: 3" },
     { label: "Ticket Meta", key: "ticket_meta", type: "number", placeholder: "Ej: 700000" },
   ],
-  venta_categoria: [
-    { label: "Categorías (separadas por coma)", key: "categorias", type: "text", placeholder: "Ej: SUNGLASSES, ACCESORIOS" },
-  ],
+  venta_categoria: [],
   venta_sku: [
     { label: "SKUs (separados por coma)", key: "skus", type: "text", placeholder: "Ej: SKU001, SKU002" },
   ],
