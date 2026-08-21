@@ -12,10 +12,18 @@ interface Props {
 }
 
 /** Rule types that calculate valor_objetivo automatically — hide the field */
-export const RULES_WITHOUT_VALOR_OBJETIVO = ["tienda_cumplimiento"];
+export const RULES_WITHOUT_VALOR_OBJETIVO = ["tienda_cumplimiento", "presupuesto_semanal"];
+
+/** Entity options for presupuesto_semanal */
+export const ENTIDAD_OPTIONS = [
+  { value: "tiendas", label: "Tiendas físicas" },
+  { value: "online", label: "Tienda Online" },
+  { value: "personal_shopper", label: "Personal Shopper" },
+] as const;
 
 /** Canonical list of rule types shown in selects */
 export const TIPO_REGLA_OPTIONS: { value: string; label: string; description?: string }[] = [
+  { value: "presupuesto_semanal", label: "Presupuesto Semanal (por entidad)", description: "Meta semanal tomada del presupuesto configurado" },
   { value: "presupuesto_semanal_dual", label: "Presupuesto Semanal", description: "Cumplimiento de presupuesto por semana con transacciones" },
   { value: "tienda_cumplimiento", label: "Cumplimiento de Tienda", description: "UPT, % Full Price y/o Ticket Promedio con operador AND/OR, por canal" },
   { value: "venta_categoria", label: "Venta por Categoría", description: "Unidades vendidas de una o varias categorías" },
