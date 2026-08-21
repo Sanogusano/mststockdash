@@ -30,6 +30,7 @@ const pct = (l: number, m: number) => (m > 0 ? Math.min((l / m) * 100, 100) : 0)
 export function SkuDetailView({ campana, rows, vendedorMap, locMap }: Props) {
   const [exporting, setExporting] = useState(false);
   const [filterCumple, setFilterCumple] = useState<FilterCumple>("todos");
+  const [expanded, setExpanded] = useState<string | null>(null);
 
   const skus = Array.isArray(campana.parametros?.skus)
     ? campana.parametros.skus.join(", ")
