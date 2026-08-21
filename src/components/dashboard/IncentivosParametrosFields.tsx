@@ -98,7 +98,7 @@ export function IncentivosParametrosFields({ tipoRegla, params, onChange }: Prop
   const isCategoriaRule = normalizedTipo === "venta_categoria";
   const isTiendaCumplimiento = normalizedTipo === "tienda_cumplimiento";
 
-  if ((!fields || fields.length === 0) && !showTipoVenta && !isSkuRule && !isTiendaCumplimiento) return null;
+  if ((!fields || fields.length === 0) && !showTipoVenta && !isSkuRule && !isCategoriaRule && !isTiendaCumplimiento) return null;
 
   // ---- Cumplimiento de Tienda helpers ----
   const cond = (params.condiciones as Record<string, { activa?: boolean; min?: number }>) || {};
@@ -126,6 +126,12 @@ export function IncentivosParametrosFields({ tipoRegla, params, onChange }: Prop
     ? (params.skus as unknown[]).map(String)
     : typeof params.skus === "string" && params.skus
       ? (params.skus as string).split(",").map((s) => s.trim()).filter(Boolean)
+      : [];
+
+  const categoriasSelected: string[] = Array.isArray(params.categorias)
+    ? (params.categorias as unknown[]).map(String)
+    : typeof params.categorias === "string" && params.categorias
+      ? (params.categorias as string).split(",").map((s) => s.trim()).filter(Boolean)
       : [];
 
   const tipoTicketValue = (params.tipo_ticket as string) || "minimo_real";
