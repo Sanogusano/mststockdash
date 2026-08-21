@@ -24,6 +24,11 @@ const toNumber = (value: unknown) => {
   return Number.isFinite(parsed) ? parsed : 0;
 };
 
+const esLunes = (fecha: string) => {
+  if (!fecha) return true;
+  return new Date(fecha + "T12:00:00").getDay() === 1;
+};
+
 const toStringArray = (value: unknown) => {
   if (Array.isArray(value)) {
     return value.map((item) => String(item).trim()).filter(Boolean);
@@ -86,6 +91,8 @@ export function IncentivosWizard({ open, onOpenChange, onCreated }: Props) {
 
   const buildParametrosPayload = (): Json => {
     switch (tipoRegla) {
+      case "presupuesto_semanal":
+        return { entidades: toStringArray(parametros.entidades) };
       case "presupuesto_semanal_dual":
         return {
           semanas_mes: toNumber(parametros.semanas_mes),
@@ -132,6 +139,11 @@ export function IncentivosWizard({ open, onOpenChange, onCreated }: Props) {
 
     if (requiresValorObjetivo && !valorObjetivo) {
       toast.error("Completa el valor objetivo");
+      return false;
+    }
+
+    if (tipoRegla === "presupuesto_semanal" && toStringArray(parametros.entidades).length === 0) {
+      toast.error("Selecciona al menos una entidad");
       return false;
     }
 
@@ -355,6 +367,7 @@ export function IncentivosWizard({ open, onOpenChange, onCreated }: Props) {
                   setTipoRegla(v);
                   const fixed = FIXED_ALCANCE[v];
                   if (fixed) setAlcance(fixed);
+                  if (v === "presupuesto_semanal") setTipoPago("monto_fijo");
                 }}
               >
                 <SelectTrigger><SelectValue placeholder="Seleccionar..." /></SelectTrigger>
@@ -376,6 +389,12 @@ export function IncentivosWizard({ open, onOpenChange, onCreated }: Props) {
               params={parametros}
               onChange={setParametros}
             />
+            {tipoRegla === "presupuesto_semanal" && !esLunes(fechaInicio) && (
+              <div className="rounded-md border border-[hsl(var(--warning))]/40 bg-[hsl(var(--warning))]/10 p-3 text-xs text-foreground">
+                La fecha de inicio no cae en lunes: la primera semana será parcial y su meta se ajustará
+                proporcionalmente a los días incluidos.
+              </div>
+            )}
             <div className="flex gap-2">
               <Button variant="outline" className="flex-1" onClick={() => setStep(0)} disabled={saving}>
                 Atrás
