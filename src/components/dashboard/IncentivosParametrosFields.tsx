@@ -200,6 +200,12 @@ export function IncentivosParametrosFields({ tipoRegla, params, onChange }: Prop
           onChange={(skus) => onChange({ ...params, skus })}
         />
       )}
+      {isCategoriaRule && (
+        <CategoriaMultiSelect
+          selected={categoriasSelected}
+          onChange={(categorias) => onChange({ ...params, categorias })}
+        />
+      )}
       {!isSkuRule && fields?.map((field) => (
         <div key={field.key}>
           <Label>{field.label}</Label>
