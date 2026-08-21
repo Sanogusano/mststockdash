@@ -162,6 +162,25 @@ export function IncentivosParametrosFields({ tipoRegla, params, onChange }: Prop
   return (
     <div className="space-y-3">
       <p className="text-xs text-muted-foreground">Parámetros específicos</p>
+      {isPresupuestoSemanalEntidad && (
+        <div className="space-y-2 rounded-md border p-3">
+          <Label className="text-xs">Entidades incluidas</Label>
+          {ENTIDAD_OPTIONS.map((o) => (
+            <label key={o.value} className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                className="h-4 w-4"
+                checked={entidadesSelected.includes(o.value)}
+                onChange={(e) => toggleEntidad(o.value, e.target.checked)}
+              />
+              {o.label}
+            </label>
+          ))}
+          <p className="text-[11px] text-muted-foreground leading-snug">
+            No hay más parámetros: la meta de cada semana sale del presupuesto configurado, prorrateado por los días de la semana.
+          </p>
+        </div>
+      )}
       {isTiendaCumplimiento && (
         <div className="space-y-3 rounded-md border p-3">
           <div>
