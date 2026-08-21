@@ -6,6 +6,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ArrowLeft } from "lucide-react";
 import { CampanasListView } from "./liquidacion/CampanasListView";
 import { SemanalDetailView } from "./liquidacion/SemanalDetailView";
+import { PresupuestoSemanalDetailView } from "./liquidacion/PresupuestoSemanalDetailView";
 import { CategoriaDetailView } from "./liquidacion/CategoriaDetailView";
 import { SkuDetailView } from "./liquidacion/SkuDetailView";
 import { TransaccionesDetailView } from "./liquidacion/TransaccionesDetailView";
@@ -80,13 +81,17 @@ export function LiquidacionPanel() {
         let totalSemanas: number | undefined;
         let semanasCumplidas: number | undefined;
 
-        if (tipo_regla === "presupuesto_semanal_dual") {
-          const stores = new Set(rows.map((r) => r.location_id));
+        if (tipo_regla === "presupuesto_semanal" || tipo_regla === "presupuesto_semanal_dual") {
+          const stores = new Set(
+            rows.map((r) => ((r.progreso_actual as any)?.nombre as string) ?? r.location_id)
+          );
           totalParticipantes = stores.size;
           totalSemanas = rows.length;
           semanasCumplidas = rows.filter((r) => r.cumple_meta).length;
           // Stores que cumplieron al menos una semana
-          const cumplenSet = new Set(rows.filter((r) => r.cumple_meta).map((r) => r.location_id));
+          const cumplenSet = new Set(
+            rows.filter((r) => r.cumple_meta).map((r) => ((r.progreso_actual as any)?.nombre as string) ?? r.location_id)
+          );
           cumplenMeta = cumplenSet.size;
         } else {
           totalParticipantes = rows.length;
@@ -147,6 +152,8 @@ export function LiquidacionPanel() {
           </div>
         ) : !selected ? (
           <CampanasListView campanas={campanas} onSelect={setSelectedId} />
+        ) : selected.tipo_regla === "presupuesto_semanal" ? (
+          <PresupuestoSemanalDetailView campana={selected} rows={selectedRows} locMap={locMap} />
         ) : selected.tipo_regla === "presupuesto_semanal_dual" ? (
           <SemanalDetailView campana={selected} rows={selectedRows} locMap={locMap} />
         ) : selected.tipo_regla === "tienda_cumplimiento" ? (

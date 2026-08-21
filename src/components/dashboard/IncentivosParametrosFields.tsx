@@ -12,10 +12,18 @@ interface Props {
 }
 
 /** Rule types that calculate valor_objetivo automatically — hide the field */
-export const RULES_WITHOUT_VALOR_OBJETIVO = ["tienda_cumplimiento"];
+export const RULES_WITHOUT_VALOR_OBJETIVO = ["tienda_cumplimiento", "presupuesto_semanal"];
+
+/** Entity options for presupuesto_semanal */
+export const ENTIDAD_OPTIONS = [
+  { value: "tiendas", label: "Tiendas físicas" },
+  { value: "online", label: "Tienda Online" },
+  { value: "personal_shopper", label: "Personal Shopper" },
+] as const;
 
 /** Canonical list of rule types shown in selects */
 export const TIPO_REGLA_OPTIONS: { value: string; label: string; description?: string }[] = [
+  { value: "presupuesto_semanal", label: "Presupuesto Semanal (por entidad)", description: "Meta semanal tomada del presupuesto configurado" },
   { value: "presupuesto_semanal_dual", label: "Presupuesto Semanal", description: "Cumplimiento de presupuesto por semana con transacciones" },
   { value: "tienda_cumplimiento", label: "Cumplimiento de Tienda", description: "UPT, % Full Price y/o Ticket Promedio con operador AND/OR, por canal" },
   { value: "venta_categoria", label: "Venta por Categoría", description: "Unidades vendidas de una o varias categorías" },
@@ -27,6 +35,7 @@ export const TIPO_REGLA_OPTIONS: { value: string; label: string; description?: s
 
 /** Rules with a fixed (non-selectable) alcance */
 export const FIXED_ALCANCE: Record<string, string> = {
+  presupuesto_semanal: "tienda",
   presupuesto_semanal_dual: "tienda",
   tienda_cumplimiento: "tienda",
   venta_categoria: "asesor",
@@ -35,6 +44,9 @@ export const FIXED_ALCANCE: Record<string, string> = {
 
 /** Tipo de pago options per rule type */
 export function getTipoPagoOptions(tipoRegla: string): { value: string; label: string }[] {
+  if (tipoRegla === "presupuesto_semanal") {
+    return [{ value: "monto_fijo", label: "Monto Fijo (por semana cumplida)" }];
+  }
   if (tipoRegla === "presupuesto_semanal_dual") {
     return [
       { value: "monto_fijo", label: "Monto Fijo" },
@@ -98,8 +110,17 @@ export function IncentivosParametrosFields({ tipoRegla, params, onChange }: Prop
   const isSkuRule = normalizedTipo === "venta_sku";
   const isCategoriaRule = normalizedTipo === "venta_categoria";
   const isTiendaCumplimiento = normalizedTipo === "tienda_cumplimiento";
+  const isPresupuestoSemanalEntidad = normalizedTipo === "presupuesto_semanal";
 
-  if ((!fields || fields.length === 0) && !showTipoVenta && !isSkuRule && !isCategoriaRule && !isTiendaCumplimiento) return null;
+  if ((!fields || fields.length === 0) && !showTipoVenta && !isSkuRule && !isCategoriaRule && !isTiendaCumplimiento && !isPresupuestoSemanalEntidad) return null;
+
+  const entidadesSelected: string[] = Array.isArray(params.entidades) ? (params.entidades as unknown[]).map(String) : [];
+  const toggleEntidad = (value: string, checked: boolean) => {
+    const next = checked
+      ? [...new Set([...entidadesSelected, value])]
+      : entidadesSelected.filter((e) => e !== value);
+    onChange({ ...params, entidades: next });
+  };
 
   // ---- Cumplimiento de Tienda helpers ----
   const cond = (params.condiciones as Record<string, { activa?: boolean; min?: number }>) || {};
@@ -141,6 +162,25 @@ export function IncentivosParametrosFields({ tipoRegla, params, onChange }: Prop
   return (
     <div className="space-y-3">
       <p className="text-xs text-muted-foreground">Parámetros específicos</p>
+      {isPresupuestoSemanalEntidad && (
+        <div className="space-y-2 rounded-md border p-3">
+          <Label className="text-xs">Entidades incluidas</Label>
+          {ENTIDAD_OPTIONS.map((o) => (
+            <label key={o.value} className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                className="h-4 w-4"
+                checked={entidadesSelected.includes(o.value)}
+                onChange={(e) => toggleEntidad(o.value, e.target.checked)}
+              />
+              {o.label}
+            </label>
+          ))}
+          <p className="text-[11px] text-muted-foreground leading-snug">
+            No hay más parámetros: la meta de cada semana sale del presupuesto configurado, prorrateado por los días de la semana.
+          </p>
+        </div>
+      )}
       {isTiendaCumplimiento && (
         <div className="space-y-3 rounded-md border p-3">
           <div>
