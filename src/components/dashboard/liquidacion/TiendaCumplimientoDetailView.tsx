@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { CheckCircle2, ChevronDown, ChevronRight, Download, Loader2, XCircle } from "lucide-react";
 import { exportToCSV } from "@/lib/csv-export";
+import { IncentivoDetalleTable, fetchIncentivoDetalle, motivoNoCuenta } from "./IncentivoDetalleTable";
 import type { CampanaResumen, LiquidacionRow } from "./types";
 
 interface Props {
@@ -295,12 +296,10 @@ export function TiendaCumplimientoDetailView({ campana, rows, locMap }: Props) {
                         const loading = loadingRow.has(r.id);
                         return (
                           <>
-                            <TableRow key={r.id} className={r.cumple_meta ? "cursor-pointer hover:bg-muted/40" : ""}
-                              onClick={() => r.cumple_meta && toggleExpand(r.id, r.location_id, canal)}>
+                            <TableRow key={r.id} className="cursor-pointer hover:bg-muted/40"
+                              onClick={() => toggleExpand(r.id, r.location_id, canal)}>
                               <TableCell className="w-8">
-                                {r.cumple_meta ? (
-                                  isOpen ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                                ) : null}
+                                {isOpen ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
                               </TableCell>
                               <TableCell className="font-medium">{tienda}</TableCell>
                               <TableCell className="text-right tabular-nums">
