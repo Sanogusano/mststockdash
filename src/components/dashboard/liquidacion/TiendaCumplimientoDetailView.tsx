@@ -120,33 +120,15 @@ export function TiendaCumplimientoDetailView({ campana, rows, locMap }: Props) {
 
   const [exporting, setExporting] = useState(false);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
-  const [pedidosCache, setPedidosCache] = useState<Map<string, PedidoDetalle[]>>(new Map());
-  const [loadingRow, setLoadingRow] = useState<Set<string>>(new Set());
 
-  const toggleExpand = async (rowId: string, locationId: string | null, canal: string) => {
+  const toggleExpand = (rowId: string, locationId: string | null, _canal: string) => {
     if (!locationId) return;
-    const isOpen = expanded.has(rowId);
-    const next = new Set(expanded);
-    if (isOpen) {
-      next.delete(rowId);
-      setExpanded(next);
-      return;
-    }
-    next.add(rowId);
-    setExpanded(next);
-    if (!pedidosCache.has(rowId)) {
-      setLoadingRow((s) => new Set(s).add(rowId));
-      try {
-        const pedidos = await fetchPedidosTienda(locationId, canal, campana.fecha_inicio, campana.fecha_fin);
-        setPedidosCache((m) => new Map(m).set(rowId, pedidos));
-      } finally {
-        setLoadingRow((s) => {
-          const n = new Set(s);
-          n.delete(rowId);
-          return n;
-        });
-      }
-    }
+    setExpanded((prev) => {
+      const next = new Set(prev);
+      if (next.has(rowId)) next.delete(rowId);
+      else next.add(rowId);
+      return next;
+    });
   };
 
   const buildExportRows = () => {
@@ -181,20 +163,26 @@ export function TiendaCumplimientoDetailView({ campana, rows, locMap }: Props) {
   const buildPedidosExport = async () => {
     const detalle: Record<string, unknown>[] = [];
     for (const canal of canales) {
-      const rowsCanal = grouped.get(canal)!.filter((r) => r.cumple_meta && r.location_id);
+      const rowsCanal = grouped.get(canal)!.filter((r) => r.location_id);
       for (const r of rowsCanal) {
         const tienda = locMap.get(r.location_id ?? "") ?? r.location_id ?? "—";
-        const cached = pedidosCache.get(r.id);
-        const pedidos = cached ?? (await fetchPedidosTienda(r.location_id!, canal, campana.fecha_inicio, campana.fecha_fin));
-        if (!cached) setPedidosCache((m) => new Map(m).set(r.id, pedidos));
-        pedidos.forEach((p) => {
+        const lineas = await fetchIncentivoDetalle(campana.incentivo_id, null, r.location_id);
+        lineas.forEach((l) => {
           detalle.push({
             Canal: canal,
             Tienda: tienda,
-            Pedido: p.order_number,
-            Fecha: fmtDate(p.created_at),
-            Unidades: p.unidades,
-            Valor: Math.round(p.total_price),
+            Pedido: l.pedido,
+            Fecha: l.fecha,
+            Vendedor: l.vendedor,
+            SKU: l.sku,
+            Producto: l.producto,
+            Categoría: l.categoria,
+            Unidades: l.unidades,
+            "Venta Neta": Math.round(Number(l.venta_neta) || 0),
+            "Tipo Venta": l.tipo_venta,
+            "¿Cuenta?": l.cuenta ? "Sí" : "No",
+            Motivo: motivoNoCuenta(l),
+            Monto: Math.round(Number(l.monto) || 0),
           });
         });
       }
@@ -214,7 +202,7 @@ export function TiendaCumplimientoDetailView({ campana, rows, locMap }: Props) {
       const XLSX = await import("xlsx");
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(resumen), "Resumen");
-      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(pedidos), "Pedidos (Cumplen)");
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(pedidos), "Detalle líneas");
       XLSX.writeFile(wb, `liquidacion_${campana.nombre}.xlsx`);
     } finally {
       setExporting(false);
