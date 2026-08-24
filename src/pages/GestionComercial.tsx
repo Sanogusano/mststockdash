@@ -704,6 +704,53 @@ function DetalleTienda({ fila, anio, mes }: { fila: Fila; anio: number; mes: num
   }, [fila.clave, esTienda, anio, mes]);
 
 
+  const [pal, setPal] = useState<any | null>(null);
+  useEffect(() => {
+    let cancel = false;
+    (async () => {
+      const clave = fila.clave ?? fila.nombre;
+      const { data } = await supabase.rpc("crisis_room_palancas" as any, { p_clave: clave, p_fecha: fechaCorte } as any);
+      if (!cancel) setPal(((data as any[]) ?? [])[0] ?? null);
+    })();
+    return () => { cancel = true; };
+  }, [fila.clave, fila.nombre, fechaCorte]);
+
+  const filasPalancas = useMemo(() => {
+    if (!pal) return [] as { key: string; label: string; tienda: string; grupo: string; valor: number; icon: any }[];
+    const kCOP = (v: number) => "$" + Math.round(Number(v ?? 0) / 1000).toLocaleString("es-CO") + "K";
+    return [
+      {
+        key: "trafico",
+        label: "Transacciones/día",
+        tienda: nf(pal.tx_dia, 1),
+        grupo: nf(pal.tx_dia_grupo, 1),
+        valor: Number(pal.valor_trafico ?? 0),
+        icon: Users,
+      },
+      {
+        key: "ticket",
+        label: "Ticket",
+        tienda: kCOP(pal.ticket),
+        grupo: kCOP(pal.ticket_grupo),
+        valor: Number(pal.valor_ticket ?? 0),
+        icon: Receipt,
+      },
+      {
+        key: "upt",
+        label: "UPT",
+        tienda: nf(pal.upt, 2),
+        grupo: nf(pal.upt_grupo, 2),
+        valor: Number(pal.valor_upt ?? 0),
+        icon: ShoppingBag,
+      },
+    ];
+  }, [pal]);
+
+  const mayorPalanca = useMemo(() => {
+    const pos = filasPalancas.filter((f) => f.valor > 0).sort((a, b) => b.valor - a.valor);
+    return pos[0] ?? null;
+  }, [filasPalancas]);
+
   const palancas = useMemo(() => {
     if (!diag) return [];
     return [
@@ -712,6 +759,7 @@ function DetalleTienda({ fila, anio, mes }: { fila: Fila; anio: number; mes: num
       { key: "upt", label: "UPT", valor: Number(diag.gap_por_upt ?? 0), titulo: "Se lleva menos unidades por compra", icon: ShoppingBag },
     ];
   }, [diag]);
+
 
   const equipoOrdenado = useMemo(() => {
     return [...equipo].sort((a, b) => Number(b.ticket) - Number(a.ticket));
