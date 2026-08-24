@@ -3546,6 +3546,30 @@ export type Database = {
           zona: string
         }[]
       }
+      crisis_room_palancas: {
+        Args: { p_clave: string; p_fecha?: string; p_umbral?: number }
+        Returns: {
+          dias: number
+          entidad: string
+          lectura: string
+          palanca_principal: string
+          ticket: number
+          ticket_grupo: number
+          ticket_umbral: number
+          tiendas_en_grupo: number
+          tipo_tienda: string
+          transacciones: number
+          tx_dia: number
+          tx_dia_grupo: number
+          tx_dia_umbral: number
+          upt: number
+          upt_grupo: number
+          upt_umbral: number
+          valor_ticket: number
+          valor_trafico: number
+          valor_upt: number
+        }[]
+      }
       crisis_room_productos: {
         Args: { p_clave: string; p_limite?: number }
         Returns: {
