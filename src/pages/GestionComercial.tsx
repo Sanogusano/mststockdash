@@ -790,40 +790,47 @@ function DetalleTienda({ fila, anio, mes }: { fila: Fila; anio: number; mes: num
 
       {/* 3 — Palancas */}
       <section className="rounded-xl border bg-card p-4">
-        <div className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground mb-1">Descomposición vs. la red</div>
-        {dominanteNegativa ? (
-          <p className="text-sm font-medium mb-3">
-            Palanca a trabajar: <span className="text-rose-600">{dominanteNegativa.label}</span> · cuesta {money(Math.abs(dominanteNegativa.valor))}
-          </p>
-        ) : palancas.length > 0 ? (
-          <p className="text-sm font-medium mb-3 text-emerald-700">Todas las palancas aportan vs. la red</p>
+        <div className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground mb-1">
+          {pal
+            ? `Comparación con tiendas tipo ${pal.tipo_tienda ?? "—"} (${Number(pal.tiendas_en_grupo ?? 0)} tiendas)`
+            : "Comparación con tiendas del mismo tipo"}
+        </div>
+        {pal && filasPalancas.every((f) => f.valor <= 0) ? (
+          <p className="text-sm font-medium mb-3 text-emerald-700">{pal.lectura ?? "Las tres palancas están en línea con su grupo."}</p>
         ) : null}
         <div className="space-y-2">
-          {palancas.map((p) => {
-            const esPalancaATrabajar = dominanteNegativa?.key === p.key;
-            const positivo = p.valor >= 0;
-            const efecto = `${p.label}: ${positivo ? "aporta" : "cuesta"} ${money(Math.abs(p.valor))}`;
+          {filasPalancas.map((f) => {
+            const destacada = mayorPalanca?.key === f.key && f.valor > 0;
             return (
-              <div key={p.key} className={`flex items-center gap-3 rounded-lg px-2 py-2 ${esPalancaATrabajar ? "bg-rose-50" : ""}`}>
-                <div className="w-36 shrink-0 flex items-center gap-2 text-xs">
-                  <p.icon className="h-3.5 w-3.5 text-muted-foreground" />
-                  <span className={esPalancaATrabajar ? "font-semibold text-rose-700" : "text-muted-foreground"}>{efecto}</span>
+              <div key={f.key} className={`flex items-center gap-3 rounded-lg px-2 py-2 ${destacada ? "bg-amber-50" : ""}`}>
+                <div className="w-40 shrink-0 flex items-center gap-2 text-xs">
+                  <f.icon className="h-3.5 w-3.5 text-muted-foreground" />
+                  <span className={destacada ? "font-semibold text-amber-800" : "text-muted-foreground"}>{f.label}</span>
                 </div>
-                <div className="flex-1 h-3 rounded-full bg-muted overflow-hidden">
-                  <div
-                    className={`h-full rounded-full ${positivo ? "bg-emerald-500" : esPalancaATrabajar ? "bg-rose-600" : "bg-rose-400"}`}
-                    style={{ width: `${Math.max(2, (Math.abs(p.valor) / maxPalanca) * 100)}%` }}
-                  />
+                <div className="flex-1 text-sm tabular-nums">
+                  {f.tienda} <span className="text-muted-foreground">vs</span> {f.grupo}
                 </div>
-                <div className={`w-20 text-right text-sm font-medium tabular-nums ${positivo ? "text-emerald-600" : "text-rose-600"}`}>
-                  {money(Math.abs(p.valor))}
+                <div className="w-28 text-right text-sm font-medium tabular-nums">
+                  {f.valor > 0 ? (
+                    <span className="text-rose-600">vale {money(f.valor)}</span>
+                  ) : (
+                    <span className="text-emerald-600">en línea</span>
+                  )}
                 </div>
+                {destacada && (
+                  <span className="shrink-0 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-800">
+                    Mayor oportunidad
+                  </span>
+                )}
               </div>
             );
           })}
         </div>
-        <p className="mt-2 text-xs text-muted-foreground">Positivo significa que la tienda está por encima del promedio de la red en esa palanca.</p>
+        <p className="mt-2 text-xs text-muted-foreground">
+          Valor de llevar cada palanca al 90% del promedio de su tipo de tienda, con las transacciones actuales. No son sumables.
+        </p>
       </section>
+
 
       {/* 4 — Contexto */}
       <section className="rounded-xl border bg-card p-4">
