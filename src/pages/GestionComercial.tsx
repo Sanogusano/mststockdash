@@ -725,7 +725,8 @@ function DetalleTienda({ fila, anio, mes }: { fila: Fila; anio: number; mes: num
   );
 
   const maxPalanca = Math.max(1, ...palancas.map((p) => Math.abs(p.valor)));
-  const dominante = palancas.length ? palancas.reduce((a, b) => (Math.abs(b.valor) > Math.abs(a.valor) ? b : a)) : null;
+  const negativas = useMemo(() => [...palancas].filter((p) => p.valor < 0).sort((a, b) => Math.abs(b.valor) - Math.abs(a.valor)), [palancas]);
+  const dominanteNegativa = negativas[0] ?? null;
   const maxRitmo = diag ? Math.max(1, Number(diag.ritmo_actual_dia ?? 0), Number(diag.ritmo_necesario_dia ?? 0)) : 1;
   const saltoAlto = diag ? Number(diag.salto_requerido_pct ?? 0) > 150 : false;
 
