@@ -725,7 +725,8 @@ function DetalleTienda({ fila, anio, mes }: { fila: Fila; anio: number; mes: num
   );
 
   const maxPalanca = Math.max(1, ...palancas.map((p) => Math.abs(p.valor)));
-  const dominante = palancas.length ? palancas.reduce((a, b) => (Math.abs(b.valor) > Math.abs(a.valor) ? b : a)) : null;
+  const negativas = useMemo(() => [...palancas].filter((p) => p.valor < 0).sort((a, b) => Math.abs(b.valor) - Math.abs(a.valor)), [palancas]);
+  const dominanteNegativa = negativas[0] ?? null;
   const maxRitmo = diag ? Math.max(1, Number(diag.ritmo_actual_dia ?? 0), Number(diag.ritmo_necesario_dia ?? 0)) : 1;
   const saltoAlto = diag ? Number(diag.salto_requerido_pct ?? 0) > 150 : false;
 
@@ -789,32 +790,39 @@ function DetalleTienda({ fila, anio, mes }: { fila: Fila; anio: number; mes: num
 
       {/* 3 — Palancas */}
       <section className="rounded-xl border bg-card p-4">
-        <div className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground mb-1">Por dónde se está perdiendo</div>
-        {dominante && <p className="text-sm font-medium mb-3">{dominante.titulo}</p>}
+        <div className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground mb-1">Descomposición vs. la red</div>
+        {dominanteNegativa ? (
+          <p className="text-sm font-medium mb-3">
+            Palanca a trabajar: <span className="text-rose-600">{dominanteNegativa.label}</span> · cuesta {money(Math.abs(dominanteNegativa.valor))}
+          </p>
+        ) : palancas.length > 0 ? (
+          <p className="text-sm font-medium mb-3 text-emerald-700">Todas las palancas aportan vs. la red</p>
+        ) : null}
         <div className="space-y-2">
           {palancas.map((p) => {
-            const esDominante = dominante?.key === p.key;
-            const negativo = p.valor < 0;
+            const esPalancaATrabajar = dominanteNegativa?.key === p.key;
+            const positivo = p.valor >= 0;
+            const efecto = `${p.label}: ${positivo ? "aporta" : "cuesta"} ${money(Math.abs(p.valor))}`;
             return (
-              <div key={p.key} className={`flex items-center gap-3 rounded-lg px-2 py-2 ${esDominante ? "bg-muted/60" : ""}`}>
-                <div className="w-28 shrink-0 flex items-center gap-2 text-xs">
+              <div key={p.key} className={`flex items-center gap-3 rounded-lg px-2 py-2 ${esPalancaATrabajar ? "bg-rose-50" : ""}`}>
+                <div className="w-36 shrink-0 flex items-center gap-2 text-xs">
                   <p.icon className="h-3.5 w-3.5 text-muted-foreground" />
-                  <span className={esDominante ? "font-semibold" : "text-muted-foreground"}>{p.label}</span>
+                  <span className={esPalancaATrabajar ? "font-semibold text-rose-700" : "text-muted-foreground"}>{efecto}</span>
                 </div>
                 <div className="flex-1 h-3 rounded-full bg-muted overflow-hidden">
                   <div
-                    className={`h-full rounded-full ${negativo ? "bg-emerald-500" : esDominante ? "bg-rose-600" : "bg-rose-300"}`}
+                    className={`h-full rounded-full ${positivo ? "bg-emerald-500" : esPalancaATrabajar ? "bg-rose-600" : "bg-rose-400"}`}
                     style={{ width: `${Math.max(2, (Math.abs(p.valor) / maxPalanca) * 100)}%` }}
                   />
                 </div>
-                <div className={`w-20 text-right text-sm font-medium tabular-nums ${negativo ? "text-emerald-600" : "text-rose-600"}`}>
-                  {money(p.valor)}
+                <div className={`w-20 text-right text-sm font-medium tabular-nums ${positivo ? "text-emerald-600" : "text-rose-600"}`}>
+                  {money(Math.abs(p.valor))}
                 </div>
               </div>
             );
           })}
         </div>
-        <p className="mt-2 text-xs text-muted-foreground">En verde, la palanca está por encima del promedio de la red.</p>
+        <p className="mt-2 text-xs text-muted-foreground">Positivo significa que la tienda está por encima del promedio de la red en esa palanca.</p>
       </section>
 
       {/* 4 — Contexto */}
