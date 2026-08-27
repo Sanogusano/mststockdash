@@ -1,6 +1,20 @@
 import { useEffect, useState } from "react";
+import { useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { AlertCircle, AlertTriangle } from "lucide-react";
+
+const RUTAS_INVENTARIO = [
+  "/inventarios",
+  "/baja-rotacion",
+  "/bundle-construction",
+  "/logistica",
+  "/logistica-traslados",
+  "/insumos",
+  "/proyeccion-demanda",
+  "/cierre-coleccion",
+  "/configuracion/netsuite-upload",
+  "/configuracion/sync-inventario",
+];
 
 interface FrescuraRow {
   semaforo: string | null;
@@ -23,8 +37,11 @@ function formatBogota(ts: string | null) {
 }
 
 export function BannerFrescuraInventario() {
+  const { pathname } = useLocation();
   const [row, setRow] = useState<FrescuraRow | null>(null);
   const [loading, setLoading] = useState(true);
+
+  if (!RUTAS_INVENTARIO.includes(pathname)) return null;
 
   useEffect(() => {
     let cancelled = false;
