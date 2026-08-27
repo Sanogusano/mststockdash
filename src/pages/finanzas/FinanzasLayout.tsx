@@ -1,7 +1,6 @@
 import { ReactNode } from "react";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
-import { BannerFrescuraInventario } from "@/components/dashboard/BannerFrescuraInventario";
 
 export function FinanzasLayout({ title, children }: { title: string; children: ReactNode }) {
   return (
