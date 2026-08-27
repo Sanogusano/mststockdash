@@ -361,6 +361,11 @@ export default function DesempenoProductosPage() {
           </div>
         </main>
       </div>
+      <ProductDetailDrawer
+        product={selectedProduct}
+        days={resolveDays(days)}
+        onClose={() => setSelectedProduct(null)}
+      />
     </SidebarProvider>
   );
 }
