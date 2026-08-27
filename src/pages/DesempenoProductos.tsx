@@ -286,13 +286,10 @@ export default function DesempenoProductosPage() {
                         <TableHead className="min-w-[240px]">Producto</TableHead>
                         <TableHead className="min-w-[100px]">Categoría</TableHead>
                         <TableHead className="min-w-[100px]">Colección</TableHead>
-                        <TableHead className="text-right">Tiendas</TableHead>
-                        <TableHead className="text-right">Outlets</TableHead>
-                        <TableHead className="text-right">Digital</TableHead>
-                        <TableHead className="text-right font-semibold">Total Uds</TableHead>
+                        <TableHead className="text-right min-w-[140px]">Ventas</TableHead>
                         <TableHead className="min-w-[140px]">Mezcla de Precios</TableHead>
                         <TableHead className="min-w-[130px]">Clasificación</TableHead>
-                        <TableHead className="text-right">Inventario</TableHead>
+                        <TableHead className="text-right min-w-[140px]">Inventario</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
