@@ -7,7 +7,7 @@ import { TimeFilter, THIS_MONTH_SENTINEL, resolveDays, buildRpcDateParams } from
 import { LoadingState, EmptyState } from "@/components/dashboard/LoadingState";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Download, FileText, Search, ArrowLeft } from "lucide-react";
+import { Download, FileText, Search, ArrowLeft, Store, Globe, Pause } from "lucide-react";
 import { CollectionBadge } from "@/components/dashboard/CollectionBadge";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
@@ -18,6 +18,7 @@ import {
 import { exportDesempenoPDF } from "@/lib/desempeno-pdf-export";
 import { exportToCSV } from "@/lib/csv-export";
 import { ProductImageThumb } from "@/components/dashboard/ProductImageThumb";
+import { ProductDetailDrawer } from "@/components/dashboard/ProductDetailDrawer";
 
 
 interface ProductRow {
@@ -35,6 +36,9 @@ interface ProductRow {
   clasificacion: string;
   coleccion: string;
   stock_venta_directa: number;
+  stock_tiendas: number;
+  stock_online: number;
+  stock_standby: number;
 }
 
 const CANAL_OPTIONS = [
@@ -89,6 +93,7 @@ export default function DesempenoProductosPage() {
   const [data, setData] = useState<ProductRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [selectedProduct, setSelectedProduct] = useState<{ foto: string; producto: string; sku: string; categoria: string } | null>(null);
 
   useEffect(() => {
     async function fetch() {
