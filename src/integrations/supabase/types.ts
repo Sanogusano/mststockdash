@@ -5071,6 +5071,9 @@ export type Database = {
           pct_rebajas: number
           producto: string
           sku: string
+          stock_online: number
+          stock_standby: number
+          stock_tiendas: number
           stock_venta_directa: number
           tiendas: number
           und_digital: number
