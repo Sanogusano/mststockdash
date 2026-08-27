@@ -37,8 +37,11 @@ function formatBogota(ts: string | null) {
 }
 
 export function BannerFrescuraInventario() {
+  const { pathname } = useLocation();
   const [row, setRow] = useState<FrescuraRow | null>(null);
   const [loading, setLoading] = useState(true);
+
+  if (!RUTAS_INVENTARIO.includes(pathname)) return null;
 
   useEffect(() => {
     let cancelled = false;
