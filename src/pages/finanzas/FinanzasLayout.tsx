@@ -8,7 +8,6 @@ export function FinanzasLayout({ title, children }: { title: string; children: R
       <div className="flex min-h-screen w-full bg-background">
         <AppSidebar />
         <main className="flex-1 min-w-0 overflow-auto">
-          <BannerFrescuraInventario />
           <header className="flex items-center gap-3 px-4 sm:px-6 py-3 border-b border-border sticky top-0 bg-background/95 backdrop-blur-sm z-10 md:hidden">
             <SidebarTrigger className="text-muted-foreground hover:text-foreground" />
             <h2 className="text-base font-semibold text-foreground">{title}</h2>
