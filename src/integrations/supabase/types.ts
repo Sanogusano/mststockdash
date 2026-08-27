@@ -10,7 +10,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.1"
+    PostgrestVersion: "14.17"
   }
   public: {
     Tables: {
@@ -1626,6 +1626,27 @@ export type Database = {
         }
         Relationships: []
       }
+      proceso_ejecucion_log: {
+        Row: {
+          detalle: Json | null
+          duracion_ms: number | null
+          proceso: string
+          ultima_ejecucion: string
+        }
+        Insert: {
+          detalle?: Json | null
+          duracion_ms?: number | null
+          proceso: string
+          ultima_ejecucion?: string
+        }
+        Update: {
+          detalle?: Json | null
+          duracion_ms?: number | null
+          proceso?: string
+          ultima_ejecucion?: string
+        }
+        Relationships: []
+      }
       product_catalog: {
         Row: {
           categoria_padre: string | null
@@ -2646,6 +2667,28 @@ export type Database = {
           variant_id: string | null
           variant_id_actual: string | null
           venta_neta: number | null
+        }
+        Relationships: []
+      }
+      estado_frescura_inventario: {
+        Row: {
+          conciliacion_ejecutada_bog: string | null
+          conciliacion_estado: string | null
+          conciliacion_fecha: string | null
+          fecha_hoy: string | null
+          mv_estado: string | null
+          mv_refrescada_bog: string | null
+          netsuite_dias_antiguedad: number | null
+          netsuite_fecha: string | null
+          semaforo: string | null
+          snapshot_estado: string | null
+          snapshot_fecha: string | null
+          snapshot_filas: number | null
+          snapshot_filas_tipicas: number | null
+          snapshot_pct: number | null
+          snapshot_ubic_tipicas: number | null
+          snapshot_ubicaciones: number | null
+          snapshot_variantes: number | null
         }
         Relationships: []
       }
