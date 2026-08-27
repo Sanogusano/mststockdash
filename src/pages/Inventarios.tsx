@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
-import { AppSidebar } from "@/components/AppSidebar";
+import { SidebarTrigger } from "@/components/ui/sidebar";
+import { MainLayout } from "@/components/layout/MainLayout";
 import { differenceInCalendarDays } from "date-fns";
 import { TimeFilter } from "@/components/dashboard/TimeFilter";
 import { InventoryHealth } from "@/components/dashboard/InventoryHealth";
