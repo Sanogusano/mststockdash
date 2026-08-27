@@ -7,7 +7,7 @@ import { TimeFilter, THIS_MONTH_SENTINEL, resolveDays, buildRpcDateParams } from
 import { LoadingState, EmptyState } from "@/components/dashboard/LoadingState";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Download, FileText, Search, ArrowLeft, Store, Globe, Pause } from "lucide-react";
+import { Download, FileText, Search, ArrowLeft, Store, Globe, Pause, Tag } from "lucide-react";
 import { CollectionBadge } from "@/components/dashboard/CollectionBadge";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
@@ -286,13 +286,10 @@ export default function DesempenoProductosPage() {
                         <TableHead className="min-w-[240px]">Producto</TableHead>
                         <TableHead className="min-w-[100px]">Categoría</TableHead>
                         <TableHead className="min-w-[100px]">Colección</TableHead>
-                        <TableHead className="text-right">Tiendas</TableHead>
-                        <TableHead className="text-right">Outlets</TableHead>
-                        <TableHead className="text-right">Digital</TableHead>
-                        <TableHead className="text-right font-semibold">Total Uds</TableHead>
+                        <TableHead className="text-right min-w-[140px]">Ventas</TableHead>
                         <TableHead className="min-w-[140px]">Mezcla de Precios</TableHead>
                         <TableHead className="min-w-[130px]">Clasificación</TableHead>
-                        <TableHead className="text-right">Inventario</TableHead>
+                        <TableHead className="text-right min-w-[140px]">Inventario</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -317,10 +314,22 @@ export default function DesempenoProductosPage() {
                           </TableCell>
                           <TableCell className="text-xs text-muted-foreground">{row.categoria}</TableCell>
                           <TableCell><CollectionBadge coleccion={row.coleccion} /></TableCell>
-                          <TableCell className="text-right text-sm tabular-nums">{(row.und_tiendas ?? 0).toLocaleString()}</TableCell>
-                          <TableCell className="text-right text-sm tabular-nums">{(row.und_outlets ?? 0).toLocaleString()}</TableCell>
-                          <TableCell className="text-right text-sm tabular-nums">{(row.und_digital ?? 0).toLocaleString()}</TableCell>
-                          <TableCell className="text-right text-sm font-bold tabular-nums">{(row.und_total ?? 0).toLocaleString()}</TableCell>
+                          <TableCell className="text-right whitespace-nowrap">
+                            <div className="font-semibold tabular-nums">
+                              {(row.und_total ?? 0).toLocaleString()}
+                            </div>
+                            <div className="flex items-center justify-end gap-2 text-[11px] text-muted-foreground mt-0.5">
+                              <span className="flex items-center gap-0.5" title="Tiendas físicas">
+                                <Store className="h-3 w-3" />{(row.und_tiendas ?? 0).toLocaleString()}
+                              </span>
+                              <span className="flex items-center gap-0.5" title="Outlets">
+                                <Tag className="h-3 w-3" />{(row.und_outlets ?? 0).toLocaleString()}
+                              </span>
+                              <span className="flex items-center gap-0.5" title="Digital">
+                                <Globe className="h-3 w-3" />{(row.und_digital ?? 0).toLocaleString()}
+                              </span>
+                            </div>
+                          </TableCell>
                           <TableCell>
                             <PriceTypeBars fp={row.pct_full_price ?? 0} reb={row.pct_rebajas ?? 0} promo={row.pct_descuento ?? 0} />
                           </TableCell>
@@ -335,20 +344,20 @@ export default function DesempenoProductosPage() {
                               {cleanClasificacion(row.clasificacion)}
                             </span>
                           </TableCell>
-                          <TableCell className="text-right">
-                            <div className="flex flex-col items-end gap-1">
-                              <div className="flex items-center gap-1.5 text-xs tabular-nums text-foreground">
-                                <Store className="h-3.5 w-3.5 text-muted-foreground" />
-                                {(row.stock_tiendas ?? 0).toLocaleString()}
-                              </div>
-                              <div className="flex items-center gap-1.5 text-xs tabular-nums text-foreground">
-                                <Globe className="h-3.5 w-3.5 text-muted-foreground" />
-                                {(row.stock_online ?? 0).toLocaleString()}
-                              </div>
-                              <div className="flex items-center gap-1.5 text-xs tabular-nums text-foreground">
-                                <Pause className="h-3.5 w-3.5 text-muted-foreground" />
-                                {(row.stock_standby ?? 0).toLocaleString()}
-                              </div>
+                          <TableCell className="text-right whitespace-nowrap">
+                            <div className="font-semibold tabular-nums">
+                              {(row.stock_venta_directa ?? 0).toLocaleString()}
+                            </div>
+                            <div className="flex items-center justify-end gap-2 text-[11px] text-muted-foreground mt-0.5">
+                              <span className="flex items-center gap-0.5" title="Tiendas físicas">
+                                <Store className="h-3 w-3" />{(row.stock_tiendas ?? 0).toLocaleString()}
+                              </span>
+                              <span className="flex items-center gap-0.5" title="Online">
+                                <Globe className="h-3 w-3" />{(row.stock_online ?? 0).toLocaleString()}
+                              </span>
+                              <span className="flex items-center gap-0.5" title="Stand by">
+                                <Pause className="h-3 w-3" />{(row.stock_standby ?? 0).toLocaleString()}
+                              </span>
                             </div>
                           </TableCell>
                         </TableRow>
