@@ -158,6 +158,9 @@ export default function DesempenoProductosPage() {
         "Desc Promo %": r.pct_descuento,
         Clasificacion: cleanClasificacion(r.clasificacion),
         "Stock Venta Directa": r.stock_venta_directa ?? 0,
+        "Stock Tiendas": r.stock_tiendas ?? 0,
+        "Stock Online": r.stock_online ?? 0,
+        "Stock Stand By": r.stock_standby ?? 0,
       })),
       `desempeno_productos_${new Date().toISOString().slice(0, 10)}`
     );
@@ -289,12 +292,18 @@ export default function DesempenoProductosPage() {
                         <TableHead className="text-right font-semibold">Total Uds</TableHead>
                         <TableHead className="min-w-[140px]">Mezcla de Precios</TableHead>
                         <TableHead className="min-w-[130px]">Clasificación</TableHead>
-                        <TableHead className="text-right">Stock VD</TableHead>
+                        <TableHead className="text-right">Inventario</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {filtered.map((row, i) => (
-                        <TableRow key={`${row.producto}-${i}`} className="hover:bg-muted/20">
+                        <TableRow
+                          key={`${row.producto}-${i}`}
+                          className="cursor-pointer hover:bg-muted/40"
+                          onClick={() => setSelectedProduct({
+                            foto: row.foto, producto: row.producto, sku: row.sku, categoria: row.categoria,
+                          })}
+                        >
                           <TableCell className="text-center text-sm font-bold text-muted-foreground">{i + 1}</TableCell>
                           <TableCell>
                             <div className="flex items-center gap-3">
@@ -326,8 +335,21 @@ export default function DesempenoProductosPage() {
                               {cleanClasificacion(row.clasificacion)}
                             </span>
                           </TableCell>
-                          <TableCell className="text-right text-sm font-semibold tabular-nums">
-                            {(row.stock_venta_directa ?? 0).toLocaleString()}
+                          <TableCell className="text-right">
+                            <div className="flex flex-col items-end gap-1">
+                              <div className="flex items-center gap-1.5 text-xs tabular-nums text-foreground">
+                                <Store className="h-3.5 w-3.5 text-muted-foreground" />
+                                {(row.stock_tiendas ?? 0).toLocaleString()}
+                              </div>
+                              <div className="flex items-center gap-1.5 text-xs tabular-nums text-foreground">
+                                <Globe className="h-3.5 w-3.5 text-muted-foreground" />
+                                {(row.stock_online ?? 0).toLocaleString()}
+                              </div>
+                              <div className="flex items-center gap-1.5 text-xs tabular-nums text-foreground">
+                                <Pause className="h-3.5 w-3.5 text-muted-foreground" />
+                                {(row.stock_standby ?? 0).toLocaleString()}
+                              </div>
+                            </div>
                           </TableCell>
                         </TableRow>
                       ))}
