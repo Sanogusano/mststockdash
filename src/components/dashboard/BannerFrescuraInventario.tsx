@@ -1,6 +1,20 @@
 import { useEffect, useState } from "react";
+import { useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { AlertCircle, AlertTriangle } from "lucide-react";
+
+const RUTAS_INVENTARIO = [
+  "/inventarios",
+  "/baja-rotacion",
+  "/bundle-construction",
+  "/logistica",
+  "/logistica-traslados",
+  "/insumos",
+  "/proyeccion-demanda",
+  "/cierre-coleccion",
+  "/configuracion/netsuite-upload",
+  "/configuracion/sync-inventario",
+];
 
 interface FrescuraRow {
   semaforo: string | null;
