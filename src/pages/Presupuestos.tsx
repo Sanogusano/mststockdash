@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
-import { AppSidebar } from "@/components/AppSidebar";
+import { SidebarTrigger } from "@/components/ui/sidebar";
+import { MainLayout } from "@/components/layout/MainLayout";
 import { useUserRole } from "@/hooks/useUserRole";
 import { PresupuestosWizard } from "@/components/dashboard/PresupuestosWizard";
 import { CumplimientoDashboard } from "@/components/dashboard/CumplimientoDashboard";
