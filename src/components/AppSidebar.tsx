@@ -492,7 +492,7 @@ export function AppSidebar() {
           <span>Cerrar sesión</span>
         </button>
         <p className="text-[10px] text-sidebar-foreground/30 text-center tracking-wide pt-1">
-          Monastery BI © 2025
+          MST-Retail Intelligence · powered by Selliq © 2026
         </p>
       </SidebarFooter>
     </Sidebar>
