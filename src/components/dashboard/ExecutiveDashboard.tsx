@@ -522,29 +522,33 @@ function ParetoChart({ days, canal, locationId, customFrom, customTo }: { days: 
       if (!isValidDays(days)) return;
       setLoading(true);
       const { dias_atras: effectiveDays, p_hasta: hastaParam } = buildRpcDateParams(days, customFrom, customTo);
-      const { data: rows } = await supabase.rpc("reporte_pareto_categorias" as any, {
+      const { data: rows } = await supabase.rpc("reporte_desempeno_por_linea" as any, {
         dias_atras: effectiveDays,
         p_canal: canal || null,
         p_location_id: locationId || null,
         p_hasta: hastaParam,
       });
       if (rows) {
-        const normalized = (rows as any[]).map((r) => ({
-          categoria: r.categoria ?? "—",
-          unidades: toNumber(r.unidades),
-          ingresos: toNumber(r.ingresos),
-          pct_participacion: toNumber(r.pct_participacion),
-        })) as ParetoRow[];
+        // Unidades y % salen SIEMPRE de la misma fila de la RPC
+        const normalized = (rows as any[])
+          .map((r) => ({
+            categoria: r.categoria ?? "—",
+            unidades: toNumber(r.und_total),
+            ingresos: 0,
+            pct_participacion: toNumber(r.pct_participacion),
+          }))
+          .filter((r) => r.unidades > 0)
+          .sort((a, b) => b.unidades - a.unidades) as ParetoRow[];
 
+        const totalUnidades = normalized.reduce((s, r) => s + (r.unidades ?? 0), 0);
         const pctTotal = normalized.reduce((s, r) => s + (r.pct_participacion ?? 0), 0);
-        const totalIngresos = normalized.reduce((s, r) => s + (r.ingresos ?? 0), 0);
 
         setData(
-          pctTotal > 0 || totalIngresos === 0
+          pctTotal > 0 || totalUnidades === 0
             ? normalized
             : normalized.map((r) => ({
                 ...r,
-                pct_participacion: ((r.ingresos ?? 0) / totalIngresos) * 100,
+                pct_participacion: ((r.unidades ?? 0) / totalUnidades) * 100,
               })),
         );
       }
@@ -556,19 +560,20 @@ function ParetoChart({ days, canal, locationId, customFrom, customTo }: { days: 
   if (loading) return <LoadingState rows={3} />;
   if (!data.length) return null;
 
-  const top10 = data.slice(0, 10);
-  const rest = data.slice(10);
+  const top = data.slice(0, 9);
+  const rest = data.slice(9);
   const othersPct = rest.reduce((s, r) => s + (r.pct_participacion ?? 0), 0);
   const othersUnits = rest.reduce((s, r) => s + (r.unidades ?? 0), 0);
 
-  const chartItems = top10.map((r) => ({
+  const chartItems = top.map((r) => ({
     name: r.categoria ?? "—",
     value: Number(r.pct_participacion ?? 0),
     units: Number(r.unidades ?? 0),
   }));
-  if (othersPct > 0) {
-    chartItems.push({ name: "Otros", value: Number(othersPct.toFixed(1)), units: othersUnits });
+  if (othersUnits > 0) {
+    chartItems.push({ name: "Otros", value: othersPct, units: othersUnits });
   }
+
 
   return (
     <div className="glass-card p-5">
