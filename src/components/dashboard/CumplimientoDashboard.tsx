@@ -580,7 +580,7 @@ export function CumplimientoDashboard() {
       {/* ── Master KPI ── */}
       <div data-pdf-section className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Cumplimiento Mes */}
-        <Card>
+        <Card className="min-w-0 overflow-hidden">
           <CardContent className="py-6">
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
@@ -590,7 +590,7 @@ export function CumplimientoDashboard() {
               </div>
               <span className={`text-3xl font-bold ${pctColor(globalPct)}`}>{globalPct.toFixed(1)}%</span>
             </div>
-            <div className="relative mt-6">
+            <div className="relative mt-6 min-w-0">
               <Progress
                 value={Math.min(globalPct, 100)}
                 className="h-3"
@@ -602,7 +602,7 @@ export function CumplimientoDashboard() {
                 const PaceIcon = diff >= 10 ? Rocket : diff >= 0 ? Rabbit : Turtle;
                 const paceColor = diff >= 10 ? "text-[hsl(var(--success))]" : diff >= 0 ? "text-[hsl(var(--warning))]" : "text-[hsl(var(--danger))]";
                 const paceLabel = diff >= 0 ? `+${diff.toFixed(1)}%` : `${diff.toFixed(1)}%`;
-                const position = Math.min(Math.max(globalPct, 5), 95);
+                const position = Math.min(Math.max(globalPct, 8), 92);
                 return (
                   <div className="absolute flex flex-col items-center" style={{ left: `${position}%`, bottom: '100%', transform: 'translateX(-50%)' }}>
                     <PaceIcon className={`h-5 w-5 ${paceColor}`} />
@@ -619,7 +619,7 @@ export function CumplimientoDashboard() {
         </Card>
 
         {/* Cumplimiento a la Fecha */}
-        <Card>
+        <Card className="min-w-0 overflow-hidden">
           <CardContent className="py-6">
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
@@ -643,14 +643,14 @@ export function CumplimientoDashboard() {
 
       {/* Secondary KPIs */}
       <div data-pdf-section className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <Card>
-          <CardContent className="py-4 text-center">
+        <Card className="min-w-0 overflow-hidden">
+          <CardContent className="py-4 text-center min-w-0">
             <p className="text-xs text-muted-foreground mb-1">Unidades Vendidas</p>
             <p className="text-xl font-bold text-foreground">{totalUnidades.toLocaleString("es-CO")}</p>
           </CardContent>
         </Card>
-        <Card>
-          <CardContent className="py-4 text-center">
+        <Card className="min-w-0 overflow-hidden">
+          <CardContent className="py-4 text-center min-w-0">
             <p className="text-xs text-muted-foreground mb-1">Ticket Promedio</p>
             <p className="text-xl font-bold text-foreground whitespace-normal break-words tabular-nums">
               <span className="sm:hidden">{fmtCOPCompact(ticketPromedio)}</span>
@@ -661,7 +661,7 @@ export function CumplimientoDashboard() {
       </div>
 
       {/* ── Daily Gamified History ── */}
-      <Card data-pdf-section>
+      <Card data-pdf-section className="min-w-0 overflow-hidden">
         <CardHeader className="pb-2">
           <div className="flex items-center justify-between">
             <CardTitle className="text-base flex items-center gap-2">
@@ -682,7 +682,7 @@ export function CumplimientoDashboard() {
           </p>
         </CardHeader>
         <CardContent>
-          <div className="flex items-end gap-[2px] h-40">
+          <div className="flex items-end gap-[2px] h-40 min-w-0">
             {dailyData.slice(0, currentDay).map((d) => {
               const heightPct = maxDailyValue > 0 ? (d.ventaNeta / maxDailyValue) * 100 : 0;
               const level = getCumplimientoLevel(d.pct);
@@ -700,7 +700,7 @@ export function CumplimientoDashboard() {
               return (
                 <div
                   key={d.day}
-                  className="group relative flex-1 flex flex-col items-center justify-end h-full"
+                  className="group relative flex-1 min-w-0 flex flex-col items-center justify-end h-full"
                 >
                   <div
                     className={`w-full rounded-t-sm ${barColor} transition-all min-h-[2px]`}
@@ -716,10 +716,16 @@ export function CumplimientoDashboard() {
             })}
           </div>
           {/* Day legend below */}
-          <div className="flex gap-[2px] mt-1">
+          <div className="flex gap-[2px] mt-1 min-w-0">
             {dailyData.slice(0, currentDay).map((d) => (
-              <div key={d.day} className="flex-1 text-center">
-                <span className="text-[8px] text-muted-foreground">{d.day}</span>
+              <div key={d.day} className="flex-1 min-w-0 text-center">
+                <span
+                  className={`text-[8px] text-muted-foreground ${
+                    d.day % 5 === 0 || d.day === 1 ? "" : "hidden sm:inline"
+                  }`}
+                >
+                  {d.day}
+                </span>
               </div>
             ))}
           </div>
@@ -727,7 +733,7 @@ export function CumplimientoDashboard() {
       </Card>
 
       {/* ── Hierarchical Compliance Table ── */}
-      <Card data-pdf-section>
+      <Card data-pdf-section className="min-w-0 overflow-hidden">
         <CardHeader>
           <CardTitle className="text-base flex items-center gap-2">
             <Store className="h-4 w-4" /> Tabla de Cumplimiento
