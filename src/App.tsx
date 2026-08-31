@@ -30,7 +30,7 @@ import VentaM2Page from "./pages/VentaM2";
 import PresupuestosPage from "./pages/Presupuestos";
 import IncentivosPage from "./pages/Incentivos";
 import CierreColeccionPage from "./pages/CierreColeccion";
-import ProyeccionDemandaPage from "./pages/ProyeccionDemanda";
+// Módulo en depuración — descomentar para retomar: import ProyeccionDemandaPage from "./pages/ProyeccionDemanda";
 import RendimientoVendedoresPage from "./pages/RendimientoVendedores";
 import ComisionesPage from "./pages/Comisiones";
 import VendedoresPage from "./pages/Vendedores";
@@ -104,7 +104,8 @@ const App = () => (
           <Route path="/presupuestos" element={<Guard module="dashboards.presupuestos" action="view"><PresupuestosPage /></Guard>} />
           <Route path="/incentivos" element={<Guard module="incentivos" action="view"><IncentivosPage /></Guard>} />
           <Route path="/cierre-coleccion" element={<Guard module="dashboards.cierre_colecciones" action="view"><CierreColeccionPage /></Guard>} />
-          <Route path="/proyeccion-demanda" element={<ProtectedRoute><ProyeccionDemandaPage /></ProtectedRoute>} />
+          {/* Módulo en depuración — descomentar para retomar:
+          <Route path="/proyeccion-demanda" element={<ProtectedRoute><ProyeccionDemandaPage /></ProtectedRoute>} /> */}
           <Route path="/rendimiento-vendedores" element={<Guard module="dashboards.rendimiento_vendedores" action="view"><RendimientoVendedoresPage /></Guard>} />
           <Route path="/comisiones" element={<Guard module="comisiones" action="view"><ComisionesPage /></Guard>} />
           <Route path="/vendedores" element={<Guard module="vendedores" action="view"><VendedoresPage /></Guard>} />
