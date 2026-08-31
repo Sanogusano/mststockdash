@@ -42,7 +42,8 @@ export default function PresupuestosPage() {
         </p>
         {isAdmin ? (
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="mb-6 bg-muted/50 p-1">
+            <div className="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0">
+            <TabsList className="mb-6 bg-muted/50 p-1 w-max">
               <TabsTrigger value="cumplimiento" className="gap-1.5 data-[state=active]:bg-emerald-600 data-[state=active]:text-white">
                 <BarChart3 className="h-4 w-4" /> Cumplimiento
               </TabsTrigger>
@@ -59,6 +60,7 @@ export default function PresupuestosPage() {
                 <PlusCircle className="h-4 w-4" /> Crear Presupuesto
               </TabsTrigger>
             </TabsList>
+            </div>
             <TabsContent value="cumplimiento">
               <CumplimientoDashboard key={refreshKey} />
             </TabsContent>
@@ -84,7 +86,8 @@ export default function PresupuestosPage() {
           </Tabs>
         ) : (
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="mb-6 bg-muted/50 p-1">
+            <div className="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0">
+            <TabsList className="mb-6 bg-muted/50 p-1 w-max">
               <TabsTrigger value="cumplimiento" className="gap-1.5 data-[state=active]:bg-emerald-600 data-[state=active]:text-white">
                 <BarChart3 className="h-4 w-4" /> Cumplimiento
               </TabsTrigger>
@@ -95,6 +98,7 @@ export default function PresupuestosPage() {
                 <CalendarRange className="h-4 w-4" /> Año Completo
               </TabsTrigger>
             </TabsList>
+            </div>
             <TabsContent value="cumplimiento">
               <CumplimientoDashboard />
             </TabsContent>
