@@ -30,7 +30,7 @@ import VentaM2Page from "./pages/VentaM2";
 import PresupuestosPage from "./pages/Presupuestos";
 import IncentivosPage from "./pages/Incentivos";
 import CierreColeccionPage from "./pages/CierreColeccion";
-// Módulo en depuración — descomentar para retomar: import ProyeccionDemandaPage from "./pages/ProyeccionDemanda";
+
 import RendimientoVendedoresPage from "./pages/RendimientoVendedores";
 import ComisionesPage from "./pages/Comisiones";
 import VendedoresPage from "./pages/Vendedores";
