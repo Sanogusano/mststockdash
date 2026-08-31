@@ -10,7 +10,7 @@ const RUTAS_INVENTARIO = [
   "/logistica",
   "/logistica-traslados",
   "/insumos",
-  "/proyeccion-demanda",
+  
   "/cierre-coleccion",
   "/configuracion/netsuite-upload",
   "/configuracion/sync-inventario",
