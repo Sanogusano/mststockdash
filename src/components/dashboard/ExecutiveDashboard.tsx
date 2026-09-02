@@ -1365,7 +1365,10 @@ function ChannelPanel({ days, canal, showLocationFilter, locationFilter, compari
         <ParetoChart days={days} canal={canal} locationId={locParam} customFrom={customFrom} customTo={customTo} />
       </div>
 
+      <ParticipacionGeneroCard days={days} canal={canal} />
+
       <CollectionCompositionCard days={days} canal={canal} locationId={locParam} customFrom={customFrom} customTo={customTo} />
+
 
       <WorstLinesRecommendation days={days} canal={canal} locationId={locParam} customFrom={customFrom} customTo={customTo} />
 
