@@ -289,6 +289,10 @@ export function CierreColeccionDashboard({ days, customFrom, customTo }: Props) 
             <KpiCard title="Stock Remanente" value={fmtNum(kpis?.stock_remanente ?? 0)} subtitle="unidades" icon={<Package className="h-4 w-4" />} />
           </div>
 
+          {/* Calidad de Venta */}
+          <CalidadVentaColeccion canal={canal === "Digital" ? "Online" : canal === "Tiendas" ? "TIENDA" : null} />
+
+
           {/* Unidades & Participación en Venta + Inventario por Colección */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             {/* Gráfico 1: Unidades vendidas por colección (con filtro de fecha) */}
