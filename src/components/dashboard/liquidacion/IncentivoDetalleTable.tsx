@@ -52,6 +52,46 @@ export async function fetchIncentivoDetalle(
   return (data ?? []) as unknown as DetalleLinea[];
 }
 
+/** Convierte líneas del RPC en filas para la hoja "Pedidos" del export. */
+export function detalleToSheetRows(lineas: DetalleLinea[]): Record<string, unknown>[] {
+  return lineas.map((l) => ({
+    Fecha: l.fecha,
+    Pedido: l.pedido,
+    Vendedor: l.vendedor,
+    Tienda: l.tienda,
+    Producto: l.producto,
+    SKU: l.sku,
+    Categoría: l.categoria,
+    Unidades: Number(l.unidades) || 0,
+    Precio: Number(l.precio) || 0,
+    Descuento: Number(l.descuento) || 0,
+    "Venta Neta": Number(l.venta_neta) || 0,
+    "Tipo Venta": l.tipo_venta,
+    "¿Cuenta?": l.cuenta ? "Sí" : "No",
+    Motivo: l.cuenta ? "" : motivoNoCuenta(l),
+    Monto: Number(l.monto) || 0,
+  }));
+}
+
+/** Trae el detalle del incentivo para varios participantes y lo aplana. */
+export async function fetchDetalleSheetRows(
+  incentivoId: string,
+  refs: { refId: string; isAsesor: boolean }[]
+): Promise<Record<string, unknown>[]> {
+  const results = await Promise.all(
+    refs
+      .filter((r) => r.refId)
+      .map((r) =>
+        fetchIncentivoDetalle(
+          incentivoId,
+          r.isAsesor ? r.refId : null,
+          r.isAsesor ? null : r.refId
+        ).catch(() => [] as DetalleLinea[])
+      )
+  );
+  return detalleToSheetRows(results.flat());
+}
+
 const tipoBadge = (t: string) => {
   if (t === "FULL") return <Badge className="bg-[hsl(var(--success))]/15 text-[hsl(var(--success))]">FULL</Badge>;
   if (t === "PROMO") return <Badge className="bg-[hsl(var(--warning))]/15 text-[hsl(var(--warning))]">PROMO</Badge>;
