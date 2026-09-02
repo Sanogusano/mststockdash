@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { fetchDetalleSheetRows } from "./IncentivoDetalleTable";
 import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
@@ -126,28 +126,13 @@ export function TransaccionesDetailView({ campana, rows, vendedorMap, locMap }: 
         "Monto Ganado": v.monto_ganado,
       }));
 
-      // Pedidos del periodo de los participantes filtrados
-      let orderRows: Record<string, unknown>[] = [];
+      // Detalle real del incentivo (aplica condiciones de la regla)
       const refIds = [...new Set(participantes.map((p) => p.refId).filter(Boolean))];
-      if (refIds.length > 0) {
-        const q = supabase
-          .from("orders")
-          .select("order_number, created_at, total_price, location_id, user_id, financial_status")
-          .gte("created_at", campana.fecha_inicio)
-          .lte("created_at", campana.fecha_fin + "T23:59:59")
-          .in("financial_status", ["paid", "partially_refunded", "partially_paid"])
-          .order("created_at", { ascending: false })
-          .limit(10000);
-        const res = isAsesor ? await q.in("user_id", refIds) : await q.in("location_id", refIds);
-        const nameMap = new Map(participantes.map((p) => [p.refId, p.nombre]));
-        orderRows = (res.data ?? []).map((o) => ({
-          [isAsesor ? "Vendedor" : "Tienda"]:
-            nameMap.get((isAsesor ? o.user_id : o.location_id) ?? "") ?? "—",
-          Pedido: o.order_number,
-          Fecha: new Date(o.created_at).toLocaleDateString("es-CO"),
-          Valor: o.total_price,
-        }));
-      }
+      const orderRows = await fetchDetalleSheetRows(
+        campana.incentivo_id,
+        refIds.map((refId) => ({ refId, isAsesor }))
+      );
+
 
       const XLSX = await import("xlsx");
       const wb = XLSX.utils.book_new();

@@ -1,6 +1,5 @@
 import { Fragment, useMemo, useState } from "react";
-import { IncentivoDetalleTable } from "./IncentivoDetalleTable";
-import { supabase } from "@/integrations/supabase/client";
+import { IncentivoDetalleTable, fetchDetalleSheetRows } from "./IncentivoDetalleTable";
 import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";

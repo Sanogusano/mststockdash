@@ -1,6 +1,5 @@
 import { Fragment, useMemo, useState } from "react";
-import { IncentivoDetalleTable } from "./IncentivoDetalleTable";
-import { supabase } from "@/integrations/supabase/client";
+import { IncentivoDetalleTable, fetchDetalleSheetRows } from "./IncentivoDetalleTable";
 import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
@@ -96,44 +95,13 @@ export function SkuDetailView({ campana, rows, vendedorMap, locMap }: Props) {
         "Monto Ganado": v.monto_ganado,
       }));
 
-      // Pedidos asociados a los SKUs vendidos por participantes filtrados
-      let orderRows: Record<string, unknown>[] = [];
+      // Detalle real del incentivo (aplica SKUs y solo full price)
       const refIds = [...new Set(participantes.map((p) => p.refId).filter(Boolean))];
-      if (refIds.length > 0 && skusList.length > 0) {
-        const ordersQuery = supabase
-          .from("orders")
-          .select("order_number, created_at, total_price, location_id, user_id, financial_status")
-          .gte("created_at", campana.fecha_inicio)
-          .lte("created_at", campana.fecha_fin + "T23:59:59")
-          .in("financial_status", ["paid", "partially_refunded", "partially_paid"])
-          .order("created_at", { ascending: false })
-          .limit(10000);
+      const orderRows = await fetchDetalleSheetRows(
+        campana.incentivo_id,
+        refIds.map((refId) => ({ refId, isAsesor }))
+      );
 
-        const filtered = isAsesor
-          ? await ordersQuery.in("user_id", refIds)
-          : await ordersQuery.in("location_id", refIds);
-        const ordersData = filtered.data ?? [];
-
-        // Filtrar por items con SKUs configurados
-        const orderIds = ordersData.map((o) => o.order_number);
-        if (orderIds.length > 0) {
-          const { data: items } = await supabase
-            .from("order_items")
-            .select("shopify_order_id, sku, quantity, price")
-            .in("sku", skusList);
-          const validOrderIds = new Set((items ?? []).map((i) => i.shopify_order_id));
-          const nameMap = new Map(participantes.map((p) => [p.refId, p.nombre]));
-          orderRows = ordersData
-            .filter((o) => validOrderIds.has(o.order_number))
-            .map((o) => ({
-              [isAsesor ? "Vendedor" : "Tienda"]:
-                nameMap.get((isAsesor ? o.user_id : o.location_id) ?? "") ?? "—",
-              Pedido: o.order_number,
-              Fecha: new Date(o.created_at).toLocaleDateString("es-CO"),
-              Valor: o.total_price,
-            }));
-        }
-      }
 
       const XLSX = await import("xlsx");
       const wb = XLSX.utils.book_new();
