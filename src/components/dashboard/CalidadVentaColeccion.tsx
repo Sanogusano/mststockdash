@@ -224,7 +224,8 @@ export function CalidadVentaColeccion({ canal }: { canal: string | null }) {
   const [loading, setLoading] = useState(true);
   const [detalle, setDetalle] = useState<CalidadVentaRow[]>([]);
   const [loadingDetalle, setLoadingDetalle] = useState(false);
-  const [openCol, setOpenCol] = useState<string | null>(null);
+  const [openRow, setOpenRow] = useState<CalidadVentaRow | null>(null);
+  const openCol = openRow?.grupo ?? null;
 
   const fetchRows = useCallback(async (coleccion: string | null) => {
     const { data, error } = await supabase.rpc("reporte_calidad_venta_coleccion" as any, {
