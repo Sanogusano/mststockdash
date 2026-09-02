@@ -5,6 +5,20 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Loader2, Gauge } from "lucide-react";
 import { cn } from "@/lib/utils";
+import {
+  ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip as RTooltip,
+  ResponsiveContainer, ReferenceLine, Cell, Legend,
+} from "recharts";
+
+interface CurvaRow {
+  semana: number;
+  dia_desde: number;
+  uds_semana: number;
+  uds_acumuladas: number;
+  pct_acumulado: number;
+  producido_total: number;
+  productos_activos: number;
+}
 
 export interface CalidadVentaRow {
   grupo: string;
