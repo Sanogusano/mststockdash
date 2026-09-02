@@ -66,7 +66,7 @@ export function detalleToSheetRows(lineas: DetalleLinea[]): Record<string, unkno
     Precio: Number(l.precio) || 0,
     Descuento: Number(l.descuento) || 0,
     "Venta Neta": Number(l.venta_neta) || 0,
-    "Tipo Venta": l.tipo_venta,
+    "Tipo de Venta": l.tipo_venta,
     "¿Cuenta?": l.cuenta ? "Sí" : "No",
     Motivo: l.cuenta ? "" : motivoNoCuenta(l),
     Monto: Number(l.monto) || 0,
