@@ -110,6 +110,115 @@ function CalidadTable({ rows, loading, onRowClick }: { rows: CalidadVentaRow[]; 
   );
 }
 
+const HITOS = [
+  { semana: 13, label: "90d" },
+  { semana: 17, label: "120d" },
+  { semana: 21, label: "150d" },
+];
+
+function HistogramaEvacuacion({ coleccion, canal, totalProductos }: { coleccion: string; canal: string | null; totalProductos: number }) {
+  const [data, setData] = useState<(CurvaRow & { label: string; parcial: boolean })[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let active = true;
+    setLoading(true);
+    supabase
+      .rpc("reporte_curva_evacuacion_coleccion" as any, {
+        p_coleccion: coleccion,
+        p_canal: canal,
+        p_linea: null,
+        p_semanas: 52,
+      })
+      .then(({ data, error }) => {
+        if (!active) return;
+        if (error) { setData([]); setLoading(false); return; }
+        const raw = ((data ?? []) as unknown as CurvaRow[]).map(r => ({
+          ...r,
+          semana: Number(r.semana),
+          uds_semana: Number(r.uds_semana || 0),
+          uds_acumuladas: Number(r.uds_acumuladas || 0),
+          pct_acumulado: Number(r.pct_acumulado || 0),
+          productos_activos: Number(r.productos_activos || 0),
+        })).sort((a, b) => a.semana - b.semana);
+
+        const base = raw.filter(r => r.semana <= 52);
+        const resto = raw.filter(r => r.semana > 52);
+        if (resto.length) {
+          const ult = base[base.length - 1];
+          const acumUds = resto.reduce((s, r) => s + r.uds_semana, 0);
+          const last = resto[resto.length - 1];
+          if (ult && ult.semana === 52) {
+            ult.uds_semana += acumUds;
+            ult.uds_acumuladas = last.uds_acumuladas;
+            ult.pct_acumulado = last.pct_acumulado;
+            ult.productos_activos = Math.min(ult.productos_activos, last.productos_activos);
+          } else {
+            base.push({ ...last, semana: 52, uds_semana: acumUds });
+          }
+        }
+        const total = totalProductos || Math.max(...base.map(r => r.productos_activos), 0);
+        setData(base.map(r => ({
+          ...r,
+          label: r.semana >= 52 ? "52+" : String(r.semana),
+          parcial: r.productos_activos < total,
+        })));
+        setLoading(false);
+      });
+    return () => { active = false; };
+  }, [coleccion, canal, totalProductos]);
+
+  if (loading) {
+    return <div className="flex items-center justify-center py-10"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>;
+  }
+  if (!data.length) {
+    return <p className="text-sm text-muted-foreground py-8 text-center">Sin curva de evacuación para esta colección.</p>;
+  }
+
+  const hayParcial = data.some(d => d.parcial);
+
+  return (
+    <div>
+      <div className="h-[280px] w-full">
+        <ResponsiveContainer width="100%" height="100%">
+          <ComposedChart data={data} margin={{ top: 16, right: 8, left: 0, bottom: 0 }}>
+            <CartesianGrid strokeDasharray="3 3" className="stroke-muted" vertical={false} />
+            <XAxis dataKey="label" tick={{ fontSize: 10 }} interval={3} />
+            <YAxis yAxisId="left" tick={{ fontSize: 10 }} width={48} tickFormatter={(v) => fmtNum(v)} />
+            <YAxis yAxisId="right" orientation="right" domain={[0, 100]} tick={{ fontSize: 10 }} width={40} tickFormatter={(v) => `${v}%`} />
+            <RTooltip
+              formatter={(value: any, name: any) =>
+                name === "% acumulado" ? [`${Number(value).toFixed(1)}%`, name] : [fmtNum(Number(value)), name]
+              }
+              labelFormatter={(l) => `Semana ${l}`}
+            />
+            <Legend wrapperStyle={{ fontSize: 11 }} />
+            {HITOS.map(h => (
+              <ReferenceLine
+                key={h.semana}
+                yAxisId="left"
+                x={String(h.semana)}
+                stroke="hsl(var(--muted-foreground))"
+                strokeDasharray="4 4"
+                label={{ value: h.label, position: "top", fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
+              />
+            ))}
+            <Bar yAxisId="left" dataKey="uds_semana" name="Uds semana" fill="hsl(var(--primary))" radius={[2, 2, 0, 0]}>
+              {data.map((d, i) => <Cell key={i} fillOpacity={d.parcial ? 0.3 : 0.85} />)}
+            </Bar>
+            <Line yAxisId="right" type="monotone" dataKey="pct_acumulado" name="% acumulado" stroke="hsl(var(--chart-2, var(--foreground)))" strokeWidth={2} dot={false} />
+          </ComposedChart>
+        </ResponsiveContainer>
+      </div>
+      {hayParcial && (
+        <p className="text-[10px] text-muted-foreground mt-2">
+          Las semanas atenuadas aún no las alcanzan todos los productos de la colección: ese dato va a crecer.
+        </p>
+      )}
+    </div>
+  );
+}
+
 export function CalidadVentaColeccion({ canal }: { canal: string | null }) {
   const [rows, setRows] = useState<CalidadVentaRow[]>([]);
   const [loading, setLoading] = useState(true);
