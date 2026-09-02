@@ -273,14 +273,23 @@ export function CalidadVentaColeccion({ canal }: { canal: string | null }) {
         </CardContent>
       </Card>
 
-      <Sheet open={!!openCol} onOpenChange={(o) => { if (!o) setOpenCol(null); }}>
+      <Sheet open={!!openRow} onOpenChange={(o) => { if (!o) setOpenRow(null); }}>
         <SheetContent side="right" className="w-full sm:max-w-3xl overflow-y-auto">
           <SheetHeader>
-            <SheetTitle>Calidad de venta por línea · {openCol}</SheetTitle>
+            <SheetTitle>Calidad de venta · {openCol}</SheetTitle>
           </SheetHeader>
-          <div className="mt-4">
-            <CalidadTable rows={detalle} loading={loadingDetalle} />
-            <p className="text-[10px] text-muted-foreground mt-3">{NOTA}</p>
+          <div className="mt-4 space-y-6">
+            {openRow && (
+              <section>
+                <h3 className="text-sm font-semibold mb-2">Curva de evacuación (52 semanas)</h3>
+                <HistogramaEvacuacion coleccion={openRow.grupo} canal={canal} totalProductos={Number(openRow.productos || 0)} />
+              </section>
+            )}
+            <section>
+              <h3 className="text-sm font-semibold mb-2">Desglose por línea</h3>
+              <CalidadTable rows={detalle} loading={loadingDetalle} />
+              <p className="text-[10px] text-muted-foreground mt-3">{NOTA}</p>
+            </section>
           </div>
         </SheetContent>
       </Sheet>
