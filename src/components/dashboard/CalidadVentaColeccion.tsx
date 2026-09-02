@@ -82,9 +82,9 @@ function CalidadTable({ rows, loading, onRowClick }: { rows: CalidadVentaRow[]; 
               <TableCell className="text-right text-sm tabular-nums">{fmtNum(r.producido)}</TableCell>
               <TableCell>
                 <div className="space-y-1">
-                  <EvacuacionBar label="90d" pct={r.pct_90} cerrada={r.cerrada_90} productos={r.productos} />
-                  <EvacuacionBar label="120d" pct={r.pct_120} cerrada={r.cerrada_120} productos={r.productos} />
-                  <EvacuacionBar label="150d" pct={r.pct_150} cerrada={r.cerrada_150} productos={r.productos} />
+                  <EvacuacionBar label="90d" pct={r.pct_90} cerrada={r.cerrada_90} productos={r.productos} vendido={r.vendido_90} />
+                  <EvacuacionBar label="120d" pct={r.pct_120} cerrada={r.cerrada_120} productos={r.productos} vendido={r.vendido_120} />
+                  <EvacuacionBar label="150d" pct={r.pct_150} cerrada={r.cerrada_150} productos={r.productos} vendido={r.vendido_150} />
                 </div>
               </TableCell>
               <TableCell className="text-right text-sm font-semibold tabular-nums">{Number(r.pct_total || 0).toFixed(1)}%</TableCell>
