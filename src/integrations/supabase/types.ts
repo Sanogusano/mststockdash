@@ -4972,6 +4972,20 @@ export type Database = {
           unidades: number
         }[]
       }
+      reporte_participacion_genero: {
+        Args: { p_canal?: string; p_dias?: number }
+        Returns: {
+          brecha_pp: number
+          genero: string
+          pct_stock: number
+          pct_venta_uds: number
+          pct_venta_valor: number
+          sell_through: number
+          stock: number
+          uds_vendidas: number
+          venta_neta: number
+        }[]
+      }
       reporte_pct_ventas_por_tipo: {
         Args: {
           dias_atras: number
