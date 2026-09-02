@@ -66,7 +66,7 @@ export function detalleToSheetRows(lineas: DetalleLinea[]): Record<string, unkno
     Precio: Number(l.precio) || 0,
     Descuento: Number(l.descuento) || 0,
     "Venta Neta": Number(l.venta_neta) || 0,
-    "Tipo Venta": l.tipo_venta,
+    "Tipo de Venta": l.tipo_venta,
     "¿Cuenta?": l.cuenta ? "Sí" : "No",
     Motivo: l.cuenta ? "" : motivoNoCuenta(l),
     Monto: Number(l.monto) || 0,
@@ -86,10 +86,21 @@ export async function fetchDetalleSheetRows(
           incentivoId,
           r.isAsesor ? r.refId : null,
           r.isAsesor ? null : r.refId
-        ).catch(() => [] as DetalleLinea[])
+        )
       )
   );
-  return detalleToSheetRows(results.flat());
+  const rows = detalleToSheetRows(results.flat());
+  if (rows.length > 0) return rows;
+  // Hoja vacía: mantener encabezados esperados
+  return [
+    detalleToSheetRows([
+      {
+        fecha: "", pedido: "", vendedor: "", tienda: "", producto: "", sku: "",
+        categoria: "", unidades: 0, precio: 0, descuento: 0, venta_neta: 0,
+        tipo_venta: "", cuenta: false, monto: 0,
+      },
+    ])[0],
+  ].map((r) => Object.fromEntries(Object.keys(r).map((k) => [k, ""])));
 }
 
 const tipoBadge = (t: string) => {
