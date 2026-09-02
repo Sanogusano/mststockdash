@@ -86,10 +86,21 @@ export async function fetchDetalleSheetRows(
           incentivoId,
           r.isAsesor ? r.refId : null,
           r.isAsesor ? null : r.refId
-        ).catch(() => [] as DetalleLinea[])
+        )
       )
   );
-  return detalleToSheetRows(results.flat());
+  const rows = detalleToSheetRows(results.flat());
+  if (rows.length > 0) return rows;
+  // Hoja vacía: mantener encabezados esperados
+  return [
+    detalleToSheetRows([
+      {
+        fecha: "", pedido: "", vendedor: "", tienda: "", producto: "", sku: "",
+        categoria: "", unidades: 0, precio: 0, descuento: 0, venta_neta: 0,
+        tipo_venta: "", cuenta: false, monto: 0,
+      },
+    ])[0],
+  ].map((r) => Object.fromEntries(Object.keys(r).map((k) => [k, ""])));
 }
 
 const tipoBadge = (t: string) => {
