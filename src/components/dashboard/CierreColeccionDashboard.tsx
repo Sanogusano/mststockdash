@@ -116,7 +116,7 @@ export function CierreColeccionDashboard({ days, customFrom, customTo }: Props) 
         supabase.from("product_catalog").select("category").not("category", "is", null),
       ]);
       setColecciones([...new Set((colRes.data || []).map(r => r.collection_season).filter(Boolean))] as string[]);
-      setGeneros([...new Set((genRes.data || []).map(r => r.target_gender).filter(Boolean))] as string[]);
+      setGeneros([...new Set((genRes.data || []).map(r => r.genero_norm).filter(Boolean))].sort() as string[]);
       setZonas([...new Set((zonRes.data || []).map(r => r.zona).filter(Boolean))] as string[]);
       setTiendas((tieRes.data || []).map(r => ({ id: r.location_id, name: r.name })));
       setCategorias([...new Set((catRes.data || []).map(r => r.category).filter(Boolean))].sort() as string[]);
