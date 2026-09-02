@@ -238,44 +238,60 @@ export function CierreColeccionDashboard({ days, customFrom, customTo }: Props) 
   return (
     <div className="space-y-6">
       {/* Filters */}
-      <div className="flex flex-wrap gap-3">
-        <Select value={coleccion || "__all__"} onValueChange={v => setColeccion(v === "__all__" ? null : v)}>
-          <SelectTrigger className="w-[180px]"><SelectValue placeholder="Colección" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="__all__">Todas las colecciones</SelectItem>
-            {colecciones.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
-          </SelectContent>
-        </Select>
-        <Select value={genero || "__all__"} onValueChange={v => setGenero(v === "__all__" ? null : v)}>
-          <SelectTrigger className="w-[150px]"><SelectValue placeholder="Género" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="__all__">Todos</SelectItem>
-            {generos.map(g => <SelectItem key={g} value={g}>{g}</SelectItem>)}
-          </SelectContent>
-        </Select>
-        <Select value={canal || "__all__"} onValueChange={v => setCanal(v === "__all__" ? null : v)}>
-          <SelectTrigger className="w-[140px]"><SelectValue placeholder="Canal" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="__all__">Todos</SelectItem>
-            <SelectItem value="Tiendas">Tiendas</SelectItem>
-            <SelectItem value="Digital">Digital</SelectItem>
-          </SelectContent>
-        </Select>
-        <Select value={zona || "__all__"} onValueChange={v => setZona(v === "__all__" ? null : v)}>
-          <SelectTrigger className="w-[140px]"><SelectValue placeholder="Zona" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="__all__">Todas</SelectItem>
-            {zonas.map(z => <SelectItem key={z} value={z}>{z}</SelectItem>)}
-          </SelectContent>
-        </Select>
-        <Select value={locationId || "__all__"} onValueChange={v => setLocationId(v === "__all__" ? null : v)}>
-          <SelectTrigger className="w-[200px]"><SelectValue placeholder="Tienda" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="__all__">Todas</SelectItem>
-            {tiendas.map(t => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}
-          </SelectContent>
-        </Select>
+      <div className="flex flex-wrap items-end gap-3">
+        <div className="flex flex-col gap-1 min-w-0">
+          <span className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">Colección</span>
+          <Select value={coleccion || "__all__"} onValueChange={v => setColeccion(v === "__all__" ? null : v)}>
+            <SelectTrigger className="w-[180px] max-w-full"><SelectValue placeholder="Colección" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__all__">Todas las colecciones</SelectItem>
+              {colecciones.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="flex flex-col gap-1 min-w-0">
+          <span className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">Género</span>
+          <Select value={genero || "__all__"} onValueChange={v => setGenero(v === "__all__" ? null : v)}>
+            <SelectTrigger className="w-[150px] max-w-full"><SelectValue placeholder="Género" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__all__">Todos</SelectItem>
+              {generos.map(g => <SelectItem key={g} value={g}>{g}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="flex flex-col gap-1 min-w-0">
+          <span className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">Canal</span>
+          <Select value={canal || "__all__"} onValueChange={v => setCanal(v === "__all__" ? null : v)}>
+            <SelectTrigger className="w-[140px] max-w-full"><SelectValue placeholder="Canal" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__all__">Todos</SelectItem>
+              <SelectItem value="Tiendas">Tiendas</SelectItem>
+              <SelectItem value="Digital">Digital</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="flex flex-col gap-1 min-w-0">
+          <span className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">Zona</span>
+          <Select value={zona || "__all__"} onValueChange={v => setZona(v === "__all__" ? null : v)}>
+            <SelectTrigger className="w-[140px] max-w-full"><SelectValue placeholder="Zona" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__all__">Todas</SelectItem>
+              {zonas.map(z => <SelectItem key={z} value={z}>{z}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="flex flex-col gap-1 min-w-0">
+          <span className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">Tienda</span>
+          <Select value={locationId || "__all__"} onValueChange={v => setLocationId(v === "__all__" ? null : v)}>
+            <SelectTrigger className="w-[200px] max-w-full"><SelectValue placeholder="Tienda" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__all__">Todas</SelectItem>
+              {tiendas.map(t => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
       </div>
+
 
       {loading ? (
         <div className="flex items-center justify-center py-20">
