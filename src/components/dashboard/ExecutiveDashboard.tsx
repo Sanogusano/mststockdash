@@ -15,6 +15,8 @@ import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis
 import { StoreLeaderboard } from "./StoreLeaderboard";
 import { CollectionBadge } from "./CollectionBadge";
 import { CollectionCompositionCard } from "./CollectionCompositionCard";
+import { ParticipacionGeneroCard } from "./ParticipacionGeneroCard";
+
 import { MultiSelectFilter } from "./MultiSelectFilter";
 
 /* ── Constants ── */
