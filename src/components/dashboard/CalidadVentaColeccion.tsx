@@ -26,7 +26,7 @@ function barColor(pct: number) {
   return "bg-emerald-500";
 }
 
-function EvacuacionBar({ label, pct, cerrada, productos }: { label: string; pct: number; cerrada: number; productos: number }) {
+function EvacuacionBar({ label, pct, cerrada, productos, vendido }: { label: string; pct: number; cerrada: number; productos: number; vendido: number }) {
   const value = Math.max(0, Math.min(Number(pct || 0), 100));
   const parcial = Number(cerrada || 0) < Number(productos || 0);
   return (
@@ -40,6 +40,12 @@ function EvacuacionBar({ label, pct, cerrada, productos }: { label: string; pct:
       </div>
       <span className={cn("text-[10px] font-semibold w-10 text-right tabular-nums", parcial && "text-muted-foreground")}>
         {value.toFixed(1)}%
+      </span>
+      <span className="hidden md:inline text-[10px] text-muted-foreground w-16 text-right tabular-nums">
+        {fmtNum(vendido)} uds
+      </span>
+      <span className="hidden sm:inline text-[10px] text-muted-foreground/70 w-14 text-right tabular-nums shrink-0">
+        {fmtNum(cerrada)}/{fmtNum(productos)}
       </span>
     </div>
   );
