@@ -248,7 +248,7 @@ export function CalidadVentaColeccion({ canal }: { canal: string | null }) {
   }, [fetchRows]);
 
   const openDetalle = async (row: CalidadVentaRow) => {
-    setOpenCol(row.grupo);
+    setOpenRow(row);
     setLoadingDetalle(true);
     try {
       setDetalle(await fetchRows(row.grupo));
