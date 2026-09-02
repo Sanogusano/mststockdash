@@ -105,28 +105,12 @@ export function CategoriaDetailView({ campana, rows, vendedorMap }: Props) {
         "Monto Ganado": v.monto_ganado,
       }));
 
-      // Pedidos de los vendedores filtrados
+      // Detalle real del incentivo (aplica categoría y solo full price)
       const vendedorIds = [...new Set(vendedores.map((v) => v.vendedor_id).filter(Boolean))];
-      let orderRows: Record<string, unknown>[] = [];
-      if (vendedorIds.length > 0) {
-        const { data: orders } = await supabase
-          .from("orders")
-          .select("order_number, created_at, total_price, user_id, location_id, financial_status")
-          .in("user_id", vendedorIds)
-          .gte("created_at", campana.fecha_inicio)
-          .lte("created_at", campana.fecha_fin + "T23:59:59")
-          .in("financial_status", ["paid", "partially_refunded", "partially_paid"])
-          .order("created_at", { ascending: false })
-          .limit(10000);
-
-        const vendedorNombre = new Map(vendedores.map((v) => [v.vendedor_id, v.nombre]));
-        orderRows = (orders ?? []).map((o) => ({
-          Vendedor: vendedorNombre.get(o.user_id ?? "") ?? o.user_id ?? "—",
-          Pedido: o.order_number,
-          Fecha: new Date(o.created_at).toLocaleDateString("es-CO"),
-          Valor: o.total_price,
-        }));
-      }
+      const orderRows = await fetchDetalleSheetRows(
+        campana.incentivo_id,
+        vendedorIds.map((refId) => ({ refId, isAsesor: true }))
+      );
 
       const XLSX = await import("xlsx");
       const wb = XLSX.utils.book_new();
