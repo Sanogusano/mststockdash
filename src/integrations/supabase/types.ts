@@ -4588,6 +4588,23 @@ export type Database = {
         Args: { p_fecha?: string }
         Returns: Json
       }
+      reporte_curva_evacuacion_coleccion: {
+        Args: {
+          p_canal?: string
+          p_coleccion: string
+          p_linea?: string
+          p_semanas?: number
+        }
+        Returns: {
+          dia_desde: number
+          pct_acumulado: number
+          producido_total: number
+          productos_activos: number
+          semana: number
+          uds_acumuladas: number
+          uds_semana: number
+        }[]
+      }
       reporte_curva_linea: {
         Args: {
           p_coleccion?: string
