@@ -26,7 +26,7 @@ function barColor(pct: number) {
   return "bg-emerald-500";
 }
 
-function EvacuacionBar({ label, pct, cerrada, productos }: { label: string; pct: number; cerrada: number; productos: number }) {
+function EvacuacionBar({ label, pct, cerrada, productos, vendido }: { label: string; pct: number; cerrada: number; productos: number; vendido: number }) {
   const value = Math.max(0, Math.min(Number(pct || 0), 100));
   const parcial = Number(cerrada || 0) < Number(productos || 0);
   return (
@@ -40,6 +40,12 @@ function EvacuacionBar({ label, pct, cerrada, productos }: { label: string; pct:
       </div>
       <span className={cn("text-[10px] font-semibold w-10 text-right tabular-nums", parcial && "text-muted-foreground")}>
         {value.toFixed(1)}%
+      </span>
+      <span className="hidden md:inline text-[10px] text-muted-foreground w-16 text-right tabular-nums">
+        {fmtNum(vendido)} uds
+      </span>
+      <span className="hidden sm:inline text-[10px] text-muted-foreground/70 w-14 text-right tabular-nums shrink-0">
+        {fmtNum(cerrada)}/{fmtNum(productos)}
       </span>
     </div>
   );
@@ -76,9 +82,9 @@ function CalidadTable({ rows, loading, onRowClick }: { rows: CalidadVentaRow[]; 
               <TableCell className="text-right text-sm tabular-nums">{fmtNum(r.producido)}</TableCell>
               <TableCell>
                 <div className="space-y-1">
-                  <EvacuacionBar label="90d" pct={r.pct_90} cerrada={r.cerrada_90} productos={r.productos} />
-                  <EvacuacionBar label="120d" pct={r.pct_120} cerrada={r.cerrada_120} productos={r.productos} />
-                  <EvacuacionBar label="150d" pct={r.pct_150} cerrada={r.cerrada_150} productos={r.productos} />
+                  <EvacuacionBar label="90d" pct={r.pct_90} cerrada={r.cerrada_90} productos={r.productos} vendido={r.vendido_90} />
+                  <EvacuacionBar label="120d" pct={r.pct_120} cerrada={r.cerrada_120} productos={r.productos} vendido={r.vendido_120} />
+                  <EvacuacionBar label="150d" pct={r.pct_150} cerrada={r.cerrada_150} productos={r.productos} vendido={r.vendido_150} />
                 </div>
               </TableCell>
               <TableCell className="text-right text-sm font-semibold tabular-nums">{Number(r.pct_total || 0).toFixed(1)}%</TableCell>
