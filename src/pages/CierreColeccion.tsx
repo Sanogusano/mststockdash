@@ -33,7 +33,7 @@ export default function CierreColeccionPage() {
             <div className="flex items-center gap-3">
               <SidebarTrigger className="text-muted-foreground hover:text-foreground" />
               <div>
-                <h2 className="font-display text-base sm:text-lg font-semibold text-foreground">Comportamiento de Colección</h2>
+                <h2 className="font-display text-base sm:text-lg font-semibold text-foreground">Comportamiento de Colecciones</h2>
                 <p className="text-[10px] sm:text-xs text-muted-foreground mt-0.5">Análisis de desempeño por colección & gestión de remanentes</p>
               </div>
             </div>
