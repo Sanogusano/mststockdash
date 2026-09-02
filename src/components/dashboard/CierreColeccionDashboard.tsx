@@ -8,6 +8,8 @@ import { Loader2, TrendingUp, Award, DollarSign, Package, Truck, ShoppingBag, Pa
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Treemap } from "recharts";
 import { toast } from "sonner";
 import { buildRpcDateParams } from "./TimeFilter";
+import { CalidadVentaColeccion } from "./CalidadVentaColeccion";
+
 
 // Strip common category words from extracted color names
 const CATEGORY_WORDS = new Set([
@@ -288,6 +290,10 @@ export function CierreColeccionDashboard({ days, customFrom, customTo }: Props) 
             <KpiCard title="Ingreso Total" value={fmt(kpis?.ingreso_total ?? 0)} mobileValue={fmtCompact(kpis?.ingreso_total ?? 0)} icon={<DollarSign className="h-4 w-4" />} />
             <KpiCard title="Stock Remanente" value={fmtNum(kpis?.stock_remanente ?? 0)} subtitle="unidades" icon={<Package className="h-4 w-4" />} />
           </div>
+
+          {/* Calidad de Venta */}
+          <CalidadVentaColeccion canal={canal === "Digital" ? "Online" : canal === "Tiendas" ? "TIENDA" : null} />
+
 
           {/* Unidades & Participación en Venta + Inventario por Colección */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">

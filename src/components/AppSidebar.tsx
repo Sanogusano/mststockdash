@@ -34,7 +34,7 @@ const presupuestoItem: NavItem = { title: "Presupuesto", url: "/presupuestos", i
 const rendimientoTiendasItem: NavItem = { title: "Rendimiento Tiendas", url: "/rendimiento-red", icon: Store, description: "Same-store, maduración y eficiencia", module: "dashboards.rendimiento_red", action: "view" };
 const saludProductoItem: NavItem = { title: "Salud de Producto", url: "/producto", icon: Tag, description: "Sell-through & WOS", module: "dashboards.salud_producto", action: "view" };
 const desempenoLineaItem: NavItem = { title: "Desempeño por Línea", url: "/lineas", icon: Layers, description: "Categorías & canales", module: "dashboards.desempeno_linea", action: "view" };
-const cierreColeccionItem: NavItem = { title: "Cierre de Colecciones", url: "/cierre-coleccion", icon: Archive, description: "Desempeño por colección & remanentes", module: "dashboards.cierre_colecciones", action: "view" };
+const cierreColeccionItem: NavItem = { title: "Comportamiento de Colecciones", url: "/cierre-coleccion", icon: Archive, description: "Desempeño por colección & remanentes", module: "dashboards.cierre_colecciones", action: "view" };
 
 
 // Items adicionales (no listados explícitamente, se mantienen visibles al final del bloque de análisis)

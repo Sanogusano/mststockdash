@@ -4122,6 +4122,11 @@ export type Database = {
           venta_promedio_dia: number
         }[]
       }
+      normalizar_lote_nombres: {
+        Args: { p_nombres: string[] }
+        Returns: string[]
+      }
+      normalizar_nombre: { Args: { p_nombre: string }; Returns: string }
       obtener_siguiente_consecutivo: {
         Args: { p_origen_netsuite_id: number }
         Returns: number
@@ -4223,6 +4228,25 @@ export type Database = {
           r_unidades_a_mover: number
           r_ventas_ventana: number
           r_wos_actual: number
+        }[]
+      }
+      reporte_calidad_venta_coleccion: {
+        Args: { p_agrupar_por?: string; p_canal?: string; p_coleccion?: string }
+        Returns: {
+          cerrada_120: number
+          cerrada_150: number
+          cerrada_90: number
+          grupo: string
+          pct_120: number
+          pct_150: number
+          pct_90: number
+          pct_total: number
+          producido: number
+          productos: number
+          vendido_120: number
+          vendido_150: number
+          vendido_90: number
+          vendido_total: number
         }[]
       }
       reporte_cierre_coleccion_categoria_coleccion: {
