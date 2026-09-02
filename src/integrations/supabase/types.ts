@@ -864,6 +864,30 @@ export type Database = {
         }
         Relationships: []
       }
+      fuente_de_verdad: {
+        Row: {
+          campo: string
+          columna: string
+          fuente: string
+          motivo: string
+          tabla: string
+        }
+        Insert: {
+          campo: string
+          columna: string
+          fuente: string
+          motivo: string
+          tabla: string
+        }
+        Update: {
+          campo?: string
+          columna?: string
+          fuente?: string
+          motivo?: string
+          tabla?: string
+        }
+        Relationships: []
+      }
       incentivo_liquidaciones: {
         Row: {
           cumple_meta: boolean | null
@@ -1345,6 +1369,102 @@ export type Database = {
             referencedColumns: ["user_id"]
           },
         ]
+      }
+      netsuite_items: {
+        Row: {
+          coleccion: string | null
+          coleccion_sku: string | null
+          coleccion_temporada: string | null
+          color: string | null
+          composicion: string | null
+          costo: number | null
+          costo_promedio: number | null
+          creado_en_ns: string | null
+          es_inactivo: boolean | null
+          fecha_ingreso: string | null
+          genero: string | null
+          item_id: string
+          item_type: string | null
+          linea: string | null
+          modificado_en_ns: string | null
+          nombre: string | null
+          nombre_mostrar: string | null
+          parent_id: string | null
+          proveedor: string | null
+          referencia: string | null
+          sincronizado_en: string
+          sku: string | null
+          sku_raw: string | null
+          sub_tipo: string | null
+          talla: string | null
+          talla_mx: string | null
+          tipo: string | null
+          ultimo_precio_compra: number | null
+          upc: string | null
+        }
+        Insert: {
+          coleccion?: string | null
+          coleccion_sku?: string | null
+          coleccion_temporada?: string | null
+          color?: string | null
+          composicion?: string | null
+          costo?: number | null
+          costo_promedio?: number | null
+          creado_en_ns?: string | null
+          es_inactivo?: boolean | null
+          fecha_ingreso?: string | null
+          genero?: string | null
+          item_id: string
+          item_type?: string | null
+          linea?: string | null
+          modificado_en_ns?: string | null
+          nombre?: string | null
+          nombre_mostrar?: string | null
+          parent_id?: string | null
+          proveedor?: string | null
+          referencia?: string | null
+          sincronizado_en?: string
+          sku?: string | null
+          sku_raw?: string | null
+          sub_tipo?: string | null
+          talla?: string | null
+          talla_mx?: string | null
+          tipo?: string | null
+          ultimo_precio_compra?: number | null
+          upc?: string | null
+        }
+        Update: {
+          coleccion?: string | null
+          coleccion_sku?: string | null
+          coleccion_temporada?: string | null
+          color?: string | null
+          composicion?: string | null
+          costo?: number | null
+          costo_promedio?: number | null
+          creado_en_ns?: string | null
+          es_inactivo?: boolean | null
+          fecha_ingreso?: string | null
+          genero?: string | null
+          item_id?: string
+          item_type?: string | null
+          linea?: string | null
+          modificado_en_ns?: string | null
+          nombre?: string | null
+          nombre_mostrar?: string | null
+          parent_id?: string | null
+          proveedor?: string | null
+          referencia?: string | null
+          sincronizado_en?: string
+          sku?: string | null
+          sku_raw?: string | null
+          sub_tipo?: string | null
+          talla?: string | null
+          talla_mx?: string | null
+          tipo?: string | null
+          ultimo_precio_compra?: number | null
+          upc?: string | null
+        }
+        Relationships: []
       }
       netsuite_location_mapping: {
         Row: {
@@ -5428,12 +5548,12 @@ export type Tables<
   DefaultSchemaTableNameOrOptions extends
     | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
         DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -5457,11 +5577,11 @@ export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -5482,11 +5602,11 @@ export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -5507,11 +5627,11 @@ export type Enums<
   DefaultSchemaEnumNameOrOptions extends
     | keyof DefaultSchema["Enums"]
     | { schema: keyof DatabaseWithoutInternals },
-  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+  EnumName extends (DefaultSchemaEnumNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaEnumNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -5524,11 +5644,11 @@ export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
     | keyof DefaultSchema["CompositeTypes"]
     | { schema: keyof DatabaseWithoutInternals },
-  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+  CompositeTypeName extends (PublicCompositeTypeNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
-    : never = never,
+    : never) = never,
 > = PublicCompositeTypeNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
