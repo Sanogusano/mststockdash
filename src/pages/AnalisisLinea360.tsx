@@ -319,7 +319,7 @@ export default function AnalisisLinea360Page() {
         <SheetContent className="!max-w-5xl w-full overflow-y-auto p-0" side="right">
           <SheetHeader className="p-6 pb-4 border-b border-border">
             <SheetTitle className="text-base font-semibold">
-              {detail?.linea} · {detail?.coleccion}
+              {detail?.linea}{detail?.coleccion ? ` · ${detail.coleccion}` : ""}
             </SheetTitle>
             <p className="text-xs text-muted-foreground">Detalle por producto</p>
           </SheetHeader>
