@@ -166,7 +166,12 @@ function EvacuacionCell({ r }: { r: Row }) {
           Total 150 d: {int(u1 + u2 + u3)} uds · {pct(total)} prom.
         </div>
         <div className="text-muted-foreground">
-          {int(maduros)}/{int(totalProd)} productos con 150 días cumplidos
+          {totalProd > 0 && (
+            <>
+              {int(maduros)} de {int(totalProd)} productos con 150+ días (
+              {(totalProd > 0 ? (maduros / totalProd) * 100 : 0).toFixed(1).replace(".", ",")}%)
+            </>
+          )}
         </div>
       </TooltipContent>
     </Tooltip>
