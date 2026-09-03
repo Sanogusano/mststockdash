@@ -418,12 +418,17 @@ export default function AnalisisLinea360Page() {
         setError(error.message);
         setRows([]);
       } else {
-        setRows((data ?? []) as unknown as Row[]);
+        const list = (data ?? []) as unknown as Row[];
+        setRows(list);
+        if (!lineasSel.length) {
+          setLineaOptions([...new Set(list.map((r) => r.linea).filter(Boolean))].sort());
+        }
       }
       setLoading(false);
     })();
     return () => { cancelled = true; };
-  }, [dias, coleccion, canalParam]);
+  }, [dias, coleccion, canalParam, lineasSel]);
+
 
 
   useEffect(() => {
