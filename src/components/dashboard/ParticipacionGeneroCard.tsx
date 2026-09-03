@@ -98,7 +98,7 @@ function GeneroBlock({ r, i }: { r: GeneroRow; i: number }) {
         <span className="text-xs font-bold uppercase tracking-wide text-foreground">
           {r.genero}
         </span>
-多为      </div>
+      </div>
       <BarRow label="Venta" pct={r.pct_venta_valor} uds={r.uds_vendidas} color={color} />
       <BarRow label="Stock" pct={r.pct_stock} uds={r.stock} color={color} dim />
       <p
@@ -133,7 +133,7 @@ export function ParticipacionGeneroCard({
 }) {
   const [rows, setRows] = useState<GeneroRow[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(nulllogg);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
