@@ -122,7 +122,7 @@ const HEAD_METRICS = (
 );
 
 export default function AnalisisLinea360Page() {
-  const [days, setDays] = useState<number>(THIS_MONTH_SENTINEL);
+  const [days, setDays] = useState<number>(90);
   const [customFrom, setCustomFrom] = useState<Date | undefined>();
   const [customTo, setCustomTo] = useState<Date | undefined>();
   const [coleccion, setColeccion] = useState("all");
