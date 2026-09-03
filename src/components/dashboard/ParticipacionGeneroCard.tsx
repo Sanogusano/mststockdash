@@ -123,11 +123,17 @@ function GeneroBlock({ r, i }: { r: GeneroRow; i: number }) {
 export function ParticipacionGeneroCard({
   days,
   canal,
+  zona,
+  locationId,
+  ambito,
   customFrom,
   customTo,
 }: {
   days: number;
   canal?: string | null;
+  zona?: string | null;
+  locationId?: string | null;
+  ambito?: string | null;
   customFrom?: Date;
   customTo?: Date;
 }) {
@@ -151,6 +157,8 @@ export function ParticipacionGeneroCard({
       const { data, error: err } = await supabase.rpc("reporte_participacion_genero" as any, {
         p_dias: resolveDays(days),
         p_canal: canalParam,
+        p_zona: zona ?? null,
+        p_tienda: locationId ?? null,
       });
       if (cancelled) return;
       if (err) {
@@ -180,7 +188,7 @@ export function ParticipacionGeneroCard({
     }
     fetchData();
     return () => { cancelled = true; };
-  }, [days, canal]);
+  }, [days, canal, zona, locationId]);
 
   if (loading) return <LoadingState rows={2} />;
   if (error) return <EmptyState message={`Error: ${error}`} />;
@@ -194,9 +202,10 @@ export function ParticipacionGeneroCard({
           <h3 className="text-sm font-bold text-foreground">Participación por Género</h3>
         </div>
         <span className="text-[11px] text-muted-foreground">
-          {fmtRango(days, customFrom, customTo)}
+          {ambito ? `${ambito} · ` : ""}{fmtRango(days, customFrom, customTo)}
         </span>
       </div>
+
 
       <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
         {rows.map((r, i) => (
