@@ -564,10 +564,10 @@ export default function AnalisisLinea360Page() {
             ) : (
               <div className="border border-border rounded-lg overflow-hidden">
                 <div className="overflow-x-auto">
-                  <Table className="min-w-[1500px]">
+                  <Table className="min-w-[1100px]">
                     <TableHeader>
                       <TableRow className="bg-muted/30">
-                        <TableHead className="min-w-[180px]">Línea</TableHead>
+                        <TableHead className="min-w-[180px] sticky left-0 z-20 bg-background">Línea</TableHead>
                         <HeadMetrics canal={canal} />
                         <TableHead className="w-8" />
                       </TableRow>
@@ -579,7 +579,7 @@ export default function AnalisisLinea360Page() {
                           className="cursor-pointer hover:bg-primary/5"
                           onClick={() => setDetail({ coleccion: coleccion === "all" ? null : coleccion, linea: r.linea })}
                         >
-                          <TableCell className="text-sm font-medium whitespace-nowrap">{r.linea}</TableCell>
+                          <TableCell className="text-sm font-medium whitespace-nowrap sticky left-0 z-10 bg-background">{r.linea}</TableCell>
                           <MetricCells r={r} />
                           <TableCell><ChevronRight className="h-4 w-4 text-muted-foreground" /></TableCell>
                         </TableRow>
@@ -617,7 +617,7 @@ export default function AnalisisLinea360Page() {
               <div className="border border-border rounded-lg overflow-hidden">
                 <div className="overflow-auto max-h-[65vh]">
 
-                  <Table className="min-w-[1500px]">
+                  <Table className="min-w-[1200px]">
                     <TableHeader className="sticky top-0 z-20 bg-background">
                       <TableRow className="bg-muted/30">
                         <TableHead className="min-w-[220px] sticky left-0 z-30 bg-background">Producto</TableHead>
