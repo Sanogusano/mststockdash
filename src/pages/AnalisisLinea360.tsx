@@ -64,7 +64,7 @@ const CANAL_OPTIONS = [
 ];
 
 const NOTA_PIE =
-  "PVP = precio de lista (compare_at_price, o price si no tiene rebaja). Precio promedio = efectivamente cobrado en el período. Stock = tiendas + online + bodega (requiere conciliación NetSuite del día). Evacuación = tramos incrementales sobre lo producido.";
+  "PVP = precio de lista del catálogo (compare_at_price, o price si está vacío). Precio promedio = efectivamente cobrado, ponderado por unidades vendidas. Stock = tiendas + online + bodega (requiere conciliación NetSuite del día). Evacuación = tramos incrementales sobre lo producido.";
 
 const money = (n: number | null | undefined) =>
   "$ " + Math.round(Number(n ?? 0)).toLocaleString("es-CO");
