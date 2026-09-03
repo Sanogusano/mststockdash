@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from "react";
+import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
@@ -175,18 +176,25 @@ function EvacuacionCell({ r }: { r: Row }) {
   );
 }
 
+const NoData = () => <span className="text-muted-foreground">—</span>;
+
 function MetricCells({ r }: { r: Row }) {
+  const sinVentas = Number(r.und_vendidas ?? 0) === 0;
   return (
     <>
-      <TableCell className="text-right text-sm whitespace-nowrap tabular-nums">{money(r.pvp_promedio)}</TableCell>
-      <TableCell className="text-right text-sm whitespace-nowrap tabular-nums">{money(r.precio_promedio)}</TableCell>
+      <TableCell className="text-right text-sm whitespace-nowrap tabular-nums">
+        {sinVentas ? <NoData /> : money(r.pvp_promedio)}
+      </TableCell>
+      <TableCell className="text-right text-sm whitespace-nowrap tabular-nums">
+        {sinVentas ? <NoData /> : money(r.precio_promedio)}
+      </TableCell>
       <TableCell
         className={cn(
           "text-right text-sm font-medium",
-          Number(r.pct_descuento_prom) > 50 ? "text-destructive" : "text-foreground",
+          !sinVentas && Number(r.pct_descuento_prom) > 50 ? "text-destructive" : "text-foreground",
         )}
       >
-        {pct(r.pct_descuento_prom)}
+        {sinVentas ? <NoData /> : pct(r.pct_descuento_prom)}
       </TableCell>
       <TableCell className="text-right"><UnidadesCell r={r} /></TableCell>
       <TableCell className="text-right"><StockCell r={r} /></TableCell>
@@ -199,7 +207,10 @@ function MetricCells({ r }: { r: Row }) {
         />
       </TableCell>
       <TableCell><EvacuacionCell r={r} /></TableCell>
-      <TableCell className="text-right text-sm">{Number(r.rdv_semanal ?? 0).toFixed(1)}</TableCell>
+      <TableCell className="text-right text-sm">
+        {sinVentas ? <NoData /> : Number(r.rdv_semanal ?? 0).toFixed(1)}
+      </TableCell>
+
       <TableCell className="text-right text-sm">{pct(r.sell_through_pct)}</TableCell>
       <TableCell className={cn("text-right text-sm font-medium", wosColor(Number(r.wos ?? 0)))}>
         {Number(r.wos ?? 0) >= 999 ? "∞" : `${Number(r.wos ?? 0).toFixed(1)}w`}
@@ -249,11 +260,14 @@ function Convenciones() {
 }
 
 export default function AnalisisLinea360Page() {
-  const [days, setDays] = useState<number>(90);
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  const [days, setDays] = useState<number>(() => Number(searchParams.get("dias") ?? 90) || 90);
   const [customFrom, setCustomFrom] = useState<Date | undefined>();
   const [customTo, setCustomTo] = useState<Date | undefined>();
-  const [coleccion, setColeccion] = useState("all");
-  const [canal, setCanal] = useState("all");
+  const [coleccion, setColeccion] = useState(() => searchParams.get("coleccion") ?? "all");
+  const [canal, setCanal] = useState(() => searchParams.get("canal") ?? "all");
+  const [soloSinVentas, setSoloSinVentas] = useState(() => searchParams.get("sinventas") === "1");
 
   const [rows, setRows] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
@@ -269,6 +283,16 @@ export default function AnalisisLinea360Page() {
   const dias = resolveDays(days);
   const canalParam = canal === "all" ? null : canal;
 
+  // Sincronizar filtros con la URL para que sobrevivan y se puedan compartir.
+  useEffect(() => {
+    const next = new URLSearchParams();
+    next.set("dias", String(days));
+    if (coleccion !== "all") next.set("coleccion", coleccion);
+    if (canal !== "all") next.set("canal", canal);
+    if (soloSinVentas) next.set("sinventas", "1");
+    setSearchParams(next, { replace: true });
+  }, [days, coleccion, canal, soloSinVentas, setSearchParams]);
+
   const handleDaysChange = (d: number) => {
     setCustomFrom(undefined);
     setCustomTo(undefined);
@@ -279,6 +303,7 @@ export default function AnalisisLinea360Page() {
     setCustomTo(to);
     setDays(Math.max(differenceInCalendarDays(to, from), 0));
   };
+
 
   useEffect(() => {
     if (colOptionsLoaded.current) return;
@@ -339,9 +364,21 @@ export default function AnalisisLinea360Page() {
   }, [detail, dias, canalParam]);
 
   const lineas = useMemo(
-    () => [...rows].sort((a, b) => Number(b.und_vendidas ?? 0) - Number(a.und_vendidas ?? 0)),
-    [rows],
+    () =>
+      [...rows]
+        .filter((r) => (soloSinVentas ? Number(r.und_vendidas ?? 0) === 0 : true))
+        .sort((a, b) => Number(b.und_vendidas ?? 0) - Number(a.und_vendidas ?? 0)),
+    [rows, soloSinVentas],
   );
+
+  const detalle = useMemo(
+    () =>
+      [...detailRows]
+        .filter((r) => (soloSinVentas ? Number(r.und_vendidas ?? 0) === 0 : true))
+        .sort((a, b) => Number(b.und_vendidas ?? 0) - Number(a.und_vendidas ?? 0)),
+    [detailRows, soloSinVentas],
+  );
+
 
   return (
     <TooltipProvider delayDuration={100}>
@@ -400,7 +437,25 @@ export default function AnalisisLinea360Page() {
                   </SelectContent>
                 </Select>
               </div>
+              <div className="min-w-0">
+                <label className="block text-[10px] font-semibold uppercase tracking-wide text-muted-foreground mb-1">
+                  Filtro rápido
+                </label>
+                <button
+                  type="button"
+                  onClick={() => setSoloSinVentas((v) => !v)}
+                  className={cn(
+                    "h-9 px-3 rounded-md border text-xs font-medium transition-colors",
+                    soloSinVentas
+                      ? "bg-destructive/10 border-destructive/40 text-destructive"
+                      : "bg-background border-border text-muted-foreground hover:bg-muted/50",
+                  )}
+                >
+                  Sin ventas en el período
+                </button>
+              </div>
             </div>
+
 
             {/* Tabla */}
             {loading ? (
@@ -457,24 +512,23 @@ export default function AnalisisLinea360Page() {
               <LoadingState rows={6} />
             ) : detailError ? (
               <EmptyState message={`Error: ${detailError}`} />
-            ) : !detailRows.length ? (
+            ) : !detalle.length ? (
               <EmptyState message="Sin productos con datos." />
             ) : (
               <div className="border border-border rounded-lg overflow-hidden">
-                <div className="overflow-x-auto">
+                <div className="overflow-auto max-h-[70vh]">
                   <Table className="min-w-[1500px]">
-                    <TableHeader>
+                    <TableHeader className="sticky top-0 z-20 bg-background">
                       <TableRow className="bg-muted/30">
-                        <TableHead className="min-w-[220px]">Producto</TableHead>
+                        <TableHead className="min-w-[220px] sticky left-0 z-30 bg-background">Producto</TableHead>
                         <HeadMetrics canal={canal} />
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {[...detailRows]
-                        .sort((a, b) => Number(b.und_vendidas ?? 0) - Number(a.und_vendidas ?? 0))
-                        .map((r) => (
+                      {detalle.map((r) => (
                           <TableRow key={r.producto_id ?? r.producto ?? Math.random()}>
-                            <TableCell>
+                            <TableCell className="sticky left-0 z-10 bg-background">
+
                               <div className="flex items-center gap-2">
                                 {r.foto ? (
                                   <img src={r.foto} alt={r.producto ?? ""} className="h-9 w-9 rounded object-cover border border-border shrink-0" />
