@@ -1,9 +1,9 @@
-import { Fragment, useState, useEffect, useMemo, useRef } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { differenceInCalendarDays } from "date-fns";
-import { TimeFilter, THIS_MONTH_SENTINEL, resolveDays } from "@/components/dashboard/TimeFilter";
+import { TimeFilter, resolveDays } from "@/components/dashboard/TimeFilter";
 import { LoadingState, EmptyState } from "@/components/dashboard/LoadingState";
 import { StatusBadge } from "@/components/dashboard/StatusBadge";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
@@ -79,8 +79,8 @@ function ClasifBadge({ value }: { value: string }) {
 function MetricCells({ r }: { r: Row }) {
   return (
     <>
-      <TableCell className="text-right text-sm">{money(r.pvp_promedio)}</TableCell>
-      <TableCell className="text-right text-sm">{money(r.precio_promedio)}</TableCell>
+      <TableCell className="text-right text-sm whitespace-nowrap tabular-nums">{money(r.pvp_promedio)}</TableCell>
+      <TableCell className="text-right text-sm whitespace-nowrap tabular-nums">{money(r.precio_promedio)}</TableCell>
       <TableCell
         className={cn(
           "text-right text-sm font-medium",
@@ -122,7 +122,7 @@ const HEAD_METRICS = (
 );
 
 export default function AnalisisLinea360Page() {
-  const [days, setDays] = useState<number>(THIS_MONTH_SENTINEL);
+  const [days, setDays] = useState<number>(90);
   const [customFrom, setCustomFrom] = useState<Date | undefined>();
   const [customTo, setCustomTo] = useState<Date | undefined>();
   const [coleccion, setColeccion] = useState("all");
@@ -134,7 +134,7 @@ export default function AnalisisLinea360Page() {
   const [colOptions, setColOptions] = useState<string[]>([]);
   const colOptionsLoaded = useRef(false);
 
-  const [detail, setDetail] = useState<{ coleccion: string; linea: string } | null>(null);
+  const [detail, setDetail] = useState<{ coleccion: string | null; linea: string } | null>(null);
   const [detailRows, setDetailRows] = useState<Row[]>([]);
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailError, setDetailError] = useState<string | null>(null);
@@ -154,6 +154,20 @@ export default function AnalisisLinea360Page() {
   };
 
   useEffect(() => {
+    if (colOptionsLoaded.current) return;
+    colOptionsLoaded.current = true;
+    (async () => {
+      const { data } = await supabase
+        .from("product_catalog")
+        .select("collection_season")
+        .not("collection_season", "is", null);
+      setColOptions(
+        [...new Set((data ?? []).map((r: any) => r.collection_season).filter(Boolean))].sort() as string[],
+      );
+    })();
+  }, []);
+
+  useEffect(() => {
     let cancelled = false;
     (async () => {
       setLoading(true);
@@ -169,17 +183,13 @@ export default function AnalisisLinea360Page() {
         setError(error.message);
         setRows([]);
       } else {
-        const list = (data ?? []) as unknown as Row[];
-        setRows(list);
-        if (!colOptionsLoaded.current && coleccion === "all") {
-          colOptionsLoaded.current = true;
-          setColOptions([...new Set(list.map((r) => r.coleccion).filter(Boolean))].sort());
-        }
+        setRows((data ?? []) as unknown as Row[]);
       }
       setLoading(false);
     })();
     return () => { cancelled = true; };
   }, [dias, coleccion, canalParam]);
+
 
   useEffect(() => {
     if (!detail) return;
@@ -189,7 +199,7 @@ export default function AnalisisLinea360Page() {
       setDetailError(null);
       const { data, error } = await supabase.rpc("reporte_analisis_linea_coleccion", {
         p_dias: dias,
-        p_coleccion: detail.coleccion,
+        p_coleccion: detail.coleccion ?? undefined,
         p_linea: detail.linea,
         p_canal: canalParam ?? undefined,
       });
@@ -201,19 +211,10 @@ export default function AnalisisLinea360Page() {
     return () => { cancelled = true; };
   }, [detail, dias, canalParam]);
 
-  const grupos = useMemo(() => {
-    const map = new Map<string, Row[]>();
-    for (const r of rows) {
-      const key = r.coleccion ?? "(sin colección)";
-      if (!map.has(key)) map.set(key, []);
-      map.get(key)!.push(r);
-    }
-    return [...map.entries()].map(([col, lineas]) => ({
-      col,
-      lineas: [...lineas].sort((a, b) => Number(b.und_vendidas ?? 0) - Number(a.und_vendidas ?? 0)),
-      uds: lineas.reduce((s, r) => s + Number(r.und_vendidas ?? 0), 0),
-    })).sort((a, b) => b.uds - a.uds);
-  }, [rows]);
+  const lineas = useMemo(
+    () => [...rows].sort((a, b) => Number(b.und_vendidas ?? 0) - Number(a.und_vendidas ?? 0)),
+    [rows],
+  );
 
   return (
     <SidebarProvider>
@@ -278,7 +279,7 @@ export default function AnalisisLinea360Page() {
               <LoadingState rows={8} />
             ) : error ? (
               <EmptyState message={`Error: ${error}`} />
-            ) : !grupos.length ? (
+            ) : !lineas.length ? (
               <EmptyState message="Sin datos para los filtros seleccionados." />
             ) : (
               <div className="border border-border rounded-lg overflow-hidden">
@@ -286,31 +287,22 @@ export default function AnalisisLinea360Page() {
                   <Table className="min-w-[1200px]">
                     <TableHeader>
                       <TableRow className="bg-muted/30">
-                        <TableHead className="min-w-[180px]">Colección · Línea</TableHead>
+                        <TableHead className="min-w-[180px]">Línea</TableHead>
                         {HEAD_METRICS}
                         <TableHead className="w-8" />
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {grupos.map((g) => (
-                        <Fragment key={`g-${g.col}`}>
-                          <TableRow className="bg-muted/50 hover:bg-muted/50">
-                            <TableCell colSpan={14} className="text-xs font-semibold uppercase tracking-wide text-foreground">
-                              {g.col} · {int(g.uds)} uds
-                            </TableCell>
-                          </TableRow>
-                          {g.lineas.map((r) => (
-                            <TableRow
-                              key={`${g.col}-${r.linea}`}
-                              className="cursor-pointer hover:bg-primary/5"
-                              onClick={() => setDetail({ coleccion: g.col, linea: r.linea })}
-                            >
-                              <TableCell className="text-sm font-medium pl-6">{r.linea}</TableCell>
-                              <MetricCells r={r} />
-                              <TableCell><ChevronRight className="h-4 w-4 text-muted-foreground" /></TableCell>
-                            </TableRow>
-                          ))}
-                        </Fragment>
+                      {lineas.map((r) => (
+                        <TableRow
+                          key={r.linea}
+                          className="cursor-pointer hover:bg-primary/5"
+                          onClick={() => setDetail({ coleccion: coleccion === "all" ? null : coleccion, linea: r.linea })}
+                        >
+                          <TableCell className="text-sm font-medium whitespace-nowrap">{r.linea}</TableCell>
+                          <MetricCells r={r} />
+                          <TableCell><ChevronRight className="h-4 w-4 text-muted-foreground" /></TableCell>
+                        </TableRow>
                       ))}
                     </TableBody>
                   </Table>
@@ -327,7 +319,7 @@ export default function AnalisisLinea360Page() {
         <SheetContent className="!max-w-5xl w-full overflow-y-auto p-0" side="right">
           <SheetHeader className="p-6 pb-4 border-b border-border">
             <SheetTitle className="text-base font-semibold">
-              {detail?.linea} · {detail?.coleccion}
+              {detail?.linea}{detail?.coleccion ? ` · ${detail.coleccion}` : ""}
             </SheetTitle>
             <p className="text-xs text-muted-foreground">Detalle por producto</p>
           </SheetHeader>
