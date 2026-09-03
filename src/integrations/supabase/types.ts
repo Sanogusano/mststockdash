@@ -4234,9 +4234,15 @@ export type Database = {
           stock_online: number
           stock_tiendas: number
           stock_total: number
+          uds_evac_0_90: number
+          uds_evac_120_150: number
+          uds_evac_90_120: number
           und_full: number
+          und_online: number
+          und_outlet: number
           und_promo: number
           und_rebajas: number
+          und_tiendas: number
           und_vendidas: number
           wos: number
         }[]
