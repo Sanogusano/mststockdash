@@ -341,6 +341,12 @@ export default function AnalisisLinea360Page() {
   const [coleccion, setColeccion] = useState(() => searchParams.get("coleccion") ?? "all");
   const [canal, setCanal] = useState(() => searchParams.get("canal") ?? "all");
   const [soloSinVentas, setSoloSinVentas] = useState(() => searchParams.get("sinventas") === "1");
+  const [lineasSel, setLineasSel] = useState<string[]>(() => {
+    const raw = searchParams.get("lineas");
+    return raw ? raw.split("|").filter(Boolean) : [];
+  });
+  const [lineaOptions, setLineaOptions] = useState<string[]>([]);
+
 
   const [rows, setRows] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
