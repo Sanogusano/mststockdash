@@ -357,6 +357,11 @@ export default function AnalisisLinea360Page() {
   const [detailRows, setDetailRows] = useState<Row[]>([]);
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailError, setDetailError] = useState<string | null>(null);
+  // Filtros propios del drawer
+  const [detColeccion, setDetColeccion] = useState<string>("all");
+  const [detBusqueda, setDetBusqueda] = useState("");
+  const [detStockOp, setDetStockOp] = useState<"gt" | "lt">("gt");
+  const [detStockVal, setDetStockVal] = useState("");
 
   const dias = resolveDays(days);
   const canalParam = canal === "all" ? null : canal;
