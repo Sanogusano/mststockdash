@@ -1367,7 +1367,17 @@ function ChannelPanel({ days, canal, showLocationFilter, locationFilter, compari
         <ParetoChart days={days} canal={canal} locationId={locParam} customFrom={customFrom} customTo={customTo} />
       </div>
 
-      <ParticipacionGeneroCard days={days} canal={canal} customFrom={customFrom} customTo={customTo} />
+      <ParticipacionGeneroCard
+        days={days}
+        canal={locParam ? null : canal}
+        locationId={locParam}
+        ambito={locParam
+          ? (locations.find(l => l.location_id === locParam)?.name ?? "Tienda")
+          : canal === "digital" ? "Digital" : canal === "outlets" ? "Outlets" : "Tiendas de línea"}
+        customFrom={customFrom}
+        customTo={customTo}
+      />
+
 
       <CollectionCompositionCard days={days} canal={canal} locationId={locParam} customFrom={customFrom} customTo={customTo} />
 
@@ -2140,7 +2150,20 @@ function ZonePanel({ days, locationFilter, comparisonPeriod = "previous", custom
         <ParetoChart days={days} canal={canal} locationId={locParam} customFrom={customFrom} customTo={customTo} />
       </div>
 
+      <ParticipacionGeneroCard
+        days={days}
+        canal={null}
+        zona={locParam ? null : zonaParam}
+        locationId={locParam}
+        ambito={locParam
+          ? (locations.find(l => l.location_id === locParam)?.name ?? "Tienda")
+          : zonaParam ? `Zona ${zonaParam}` : "Todas las zonas"}
+        customFrom={customFrom}
+        customTo={customTo}
+      />
+
       <CollectionCompositionCard days={days} canal={canal} locationId={locParam} zona={zonaParam} customFrom={customFrom} customTo={customTo} />
+
 
       {/* Top/Bottom Products */}
       <ProductTable data={topProducts} title="Top 20 — Más Vendidos" exportFilename={`top20_zona_${canal}_${days}d`}

@@ -4973,7 +4973,12 @@ export type Database = {
         }[]
       }
       reporte_participacion_genero: {
-        Args: { p_canal?: string; p_dias?: number }
+        Args: {
+          p_canal?: string
+          p_dias?: number
+          p_tienda?: string
+          p_zona?: string
+        }
         Returns: {
           brecha_pp: number
           genero: string
