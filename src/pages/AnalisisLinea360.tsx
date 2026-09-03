@@ -115,24 +115,8 @@ function EvacuacionCell({ r }: { r: Row }) {
   const incompleta = totalProd > 0 && maduros < totalProd;
   const clamp = (v: number) => Math.max(0, Math.min(100, v));
 
-  const seg = (w: number, uds: number, color: string, dark = false) =>
-    w <= 0 ? null : (
-      <div
-        className={cn("h-full flex items-center justify-center overflow-hidden", color)}
-        style={{ width: `${clamp(w)}%` }}
-      >
-        {w >= 10 && (
-          <span
-            className={cn(
-              "text-[9px] font-semibold tabular-nums whitespace-nowrap px-0.5",
-              dark ? "text-foreground/80" : "text-white",
-            )}
-          >
-            {w >= 22 ? `${pct(w)} · ${int(uds)}` : pct(w)}
-          </span>
-        )}
-      </div>
-    );
+  const seg = (w: number, color: string) =>
+    w <= 0 ? null : <div className={cn("h-full", color)} style={{ width: `${clamp(w)}%` }} />;
 
   return (
     <Tooltip>
@@ -140,14 +124,14 @@ function EvacuacionCell({ r }: { r: Row }) {
         <div className="flex items-center gap-2 min-w-[210px] cursor-help">
           <div
             className={cn(
-              "relative h-3 flex-1 rounded-full bg-muted overflow-hidden",
+              "relative h-3 min-w-[120px] flex-1 rounded-full bg-muted overflow-hidden",
               incompleta && "opacity-60",
             )}
           >
             <div className="absolute inset-0 flex">
-              {seg(t1, u1, "bg-emerald-500")}
-              {seg(t2, u2, "bg-amber-500")}
-              {seg(t3, u3, "bg-amber-300", true)}
+              {seg(t1, "bg-emerald-500")}
+              {seg(t2, "bg-amber-500")}
+              {seg(t3, "bg-amber-300")}
             </div>
 
             {[t1, t1 + t2].map((m, i) =>
@@ -160,9 +144,13 @@ function EvacuacionCell({ r }: { r: Row }) {
               ) : null,
             )}
           </div>
-          <span className="text-xs font-medium tabular-nums w-16 text-right">{pct(total)} prom.</span>
+          <div className="text-right whitespace-nowrap">
+            <div className="text-xs font-medium tabular-nums">{pct(total)} prom.</div>
+            <div className="text-[10px] text-muted-foreground tabular-nums">{int(u1 + u2 + u3)} uds</div>
+          </div>
         </div>
       </TooltipTrigger>
+
       <TooltipContent side="left" className="text-xs space-y-0.5">
         <div className="flex items-center gap-1.5">
           <span className="h-2 w-2 rounded-full bg-emerald-500" /> 0–90 d: {int(u1)} uds · {pct(t1)}
