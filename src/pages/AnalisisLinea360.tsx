@@ -6,7 +6,6 @@ import { AppSidebar } from "@/components/AppSidebar";
 import { differenceInCalendarDays } from "date-fns";
 import { TimeFilter, resolveDays } from "@/components/dashboard/TimeFilter";
 import { LoadingState, EmptyState } from "@/components/dashboard/LoadingState";
-import { StatusBadge } from "@/components/dashboard/StatusBadge";
 import { SalesBreakdownBars } from "@/pages/LineasProducto";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import {
@@ -121,9 +120,14 @@ function EvacuacionCell({ r }: { r: Row }) {
         className={cn("h-full flex items-center justify-center overflow-hidden", color)}
         style={{ width: `${clamp(w)}%` }}
       >
-        {w >= 12 && (
-          <span className={cn("text-[9px] font-semibold tabular-nums", dark ? "text-foreground/70" : "text-white")}>
-            {int(uds)}
+        {w >= 10 && (
+          <span
+            className={cn(
+              "text-[9px] font-semibold tabular-nums whitespace-nowrap px-0.5",
+              dark ? "text-foreground/80" : "text-white",
+            )}
+          >
+            {w >= 22 ? `${pct(w)} · ${int(uds)}` : pct(w)}
           </span>
         )}
       </div>
@@ -135,8 +139,8 @@ function EvacuacionCell({ r }: { r: Row }) {
         <div className="flex items-center gap-2 min-w-[210px] cursor-help">
           <div
             className={cn(
-              "relative h-4 flex-1 rounded-full bg-muted overflow-hidden",
-              incompleta && "opacity-40",
+              "relative h-3 flex-1 rounded-full bg-muted overflow-hidden",
+              incompleta && "opacity-60",
             )}
           >
             <div className="absolute inset-0 flex">
@@ -144,6 +148,7 @@ function EvacuacionCell({ r }: { r: Row }) {
               {seg(t2, u2, "bg-amber-500")}
               {seg(t3, u3, "bg-amber-300", true)}
             </div>
+
             {[t1, t1 + t2].map((m, i) =>
               m > 0 && m < 100 ? (
                 <div
@@ -223,18 +228,17 @@ function MetricCells({ r, enDetalle = false }: { r: Row; enDetalle?: boolean }) 
           total={Number(r.und_vendidas ?? 0)}
         />
       </TableCell>
-      <TableCell><EvacuacionCell r={r} /></TableCell>
       <TableCell className="text-right text-sm">
         {sinVentas || r.rdv_semanal == null ? <NoData /> : Number(r.rdv_semanal).toFixed(1)}
       </TableCell>
-
+      <TableCell><EvacuacionCell r={r} /></TableCell>
       <TableCell className="text-right text-sm">
         {sinVentas || r.sell_through_pct == null ? <NoData /> : pct(r.sell_through_pct)}
       </TableCell>
       <TableCell className={cn("text-right text-sm font-medium", wosColor(Number(r.wos ?? 0)))}>
         {Number(r.wos ?? 0) >= 999 ? "∞" : `${Number(r.wos ?? 0).toFixed(1)}w`}
       </TableCell>
-      <TableCell><StatusBadge label={r.estado_salud ?? "—"} /></TableCell>
+
     </>
   );
 }
@@ -248,16 +252,16 @@ function HeadMetrics({ canal }: { canal: string }) {
       <TableHead className="text-right">Unidades Vendidas</TableHead>
       <TableHead className="text-right">Stock</TableHead>
       <TableHead className="min-w-[150px]">Calidad de Venta</TableHead>
-      <TableHead className="min-w-[230px]">Evacuación promedio</TableHead>
       <TableHead className="text-right">
         RDV
         <span className="block text-[9px] font-normal normal-case text-muted-foreground">
           {canal === "Online" ? "uds/semana" : "uds/tienda/semana"}
         </span>
       </TableHead>
+      <TableHead className="min-w-[230px]">Evacuación promedio</TableHead>
       <TableHead className="text-right">Sell-through</TableHead>
       <TableHead className="text-right">WOS</TableHead>
-      <TableHead>Salud</TableHead>
+
     </>
   );
 }
