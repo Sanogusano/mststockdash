@@ -121,9 +121,14 @@ function EvacuacionCell({ r }: { r: Row }) {
         className={cn("h-full flex items-center justify-center overflow-hidden", color)}
         style={{ width: `${clamp(w)}%` }}
       >
-        {w >= 12 && (
-          <span className={cn("text-[9px] font-semibold tabular-nums", dark ? "text-foreground/70" : "text-white")}>
-            {int(uds)}
+        {w >= 10 && (
+          <span
+            className={cn(
+              "text-[9px] font-semibold tabular-nums whitespace-nowrap px-0.5",
+              dark ? "text-foreground/80" : "text-white",
+            )}
+          >
+            {w >= 22 ? `${pct(w)} · ${int(uds)}` : pct(w)}
           </span>
         )}
       </div>
@@ -135,8 +140,8 @@ function EvacuacionCell({ r }: { r: Row }) {
         <div className="flex items-center gap-2 min-w-[210px] cursor-help">
           <div
             className={cn(
-              "relative h-4 flex-1 rounded-full bg-muted overflow-hidden",
-              incompleta && "opacity-40",
+              "relative h-3 flex-1 rounded-full bg-muted overflow-hidden",
+              incompleta && "opacity-60",
             )}
           >
             <div className="absolute inset-0 flex">
@@ -144,6 +149,7 @@ function EvacuacionCell({ r }: { r: Row }) {
               {seg(t2, u2, "bg-amber-500")}
               {seg(t3, u3, "bg-amber-300", true)}
             </div>
+
             {[t1, t1 + t2].map((m, i) =>
               m > 0 && m < 100 ? (
                 <div
