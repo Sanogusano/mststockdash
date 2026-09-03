@@ -4209,6 +4209,7 @@ export type Database = {
           p_coleccion?: string
           p_dias?: number
           p_linea?: string
+          p_lineas?: string[]
         }
         Returns: {
           coleccion: string
