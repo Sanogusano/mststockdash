@@ -1778,8 +1778,10 @@ function BrandOverviewPanel({ days, comparisonPeriod = "previous", customFrom, c
         {/* Channel Contribution Chart */}
         <ChannelContributionChart channelData={filteredChannelData} />
       </div>
+      <ParticipacionGeneroCard days={days} canal={singleCanal ?? null} />
       <CollectionCompositionCard days={days} canal={singleCanal ?? undefined} customFrom={customFrom} customTo={customTo} />
       <BrandTopBottomProducts days={days} customFrom={customFrom} customTo={customTo} />
+
     </div>
   );
 }
