@@ -112,7 +112,8 @@ function EvacuacionCell({ r }: { r: Row }) {
   const total = Number(r.pct_evac_150 ?? t1 + t2 + t3);
   const maduros = Number(r.productos_maduros ?? 0);
   const totalProd = Number(r.productos_total ?? 0);
-  const incompleta = totalProd > 0 && maduros < totalProd;
+  // Señal visual solo cuando MENOS de la mitad de los productos cumplió la ventana de 150 días.
+  const incompleta = totalProd > 0 && maduros / totalProd < 0.5;
   const clamp = (v: number) => Math.max(0, Math.min(100, v));
 
   const seg = (w: number, color: string) =>
