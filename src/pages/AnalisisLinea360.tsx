@@ -242,8 +242,8 @@ function MetricCells({ r, enDetalle = false }: { r: Row; enDetalle?: boolean }) 
 function HeadMetrics({ canal }: { canal: string }) {
   return (
     <>
-      <TableHead className="text-right">PVP</TableHead>
-      <TableHead className="text-right">Precio prom.</TableHead>
+      <TableHead className="text-right">Precio de Lista</TableHead>
+      <TableHead className="text-right">Precio de Venta</TableHead>
       <TableHead className="text-right">Descuento Promedio</TableHead>
       <TableHead className="text-right">Unidades Vendidas</TableHead>
       <TableHead className="text-right">Stock</TableHead>
@@ -557,7 +557,7 @@ export default function AnalisisLinea360Page() {
                                 <span className="text-sm font-medium line-clamp-2">{r.producto ?? "—"}</span>
                               </div>
                             </TableCell>
-                            <MetricCells r={r} />
+                            <MetricCells r={r} enDetalle />
                           </TableRow>
                         ))}
                     </TableBody>
