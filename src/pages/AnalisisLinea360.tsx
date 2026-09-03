@@ -7,6 +7,7 @@ import { differenceInCalendarDays } from "date-fns";
 import { TimeFilter, resolveDays } from "@/components/dashboard/TimeFilter";
 import { LoadingState, EmptyState } from "@/components/dashboard/LoadingState";
 import { SalesBreakdownBars } from "@/pages/LineasProducto";
+import { MultiSelectFilter } from "@/components/dashboard/MultiSelectFilter";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
@@ -397,6 +398,10 @@ export default function AnalisisLinea360Page() {
       setColOptions(
         [...new Set((data ?? []).map((r: any) => r.collection_season).filter(Boolean))].sort() as string[],
       );
+      const { data: mapRows } = await supabase.from("categoria_padre_map").select("categoria_padre");
+      const lineas = [...new Set(((mapRows ?? []) as { categoria_padre: string }[])
+        .map((r) => r.categoria_padre).filter(Boolean))].sort();
+      if (lineas.length) setLineaOptions((prev) => (prev.length ? prev : lineas));
     })();
   }, []);
 
