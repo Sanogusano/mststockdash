@@ -1,20 +1,17 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { isValidDays } from "@/lib/validation";
-import { resolveDays } from "@/components/dashboard/TimeFilter";
+import { resolveDays, getDateRange } from "@/components/dashboard/TimeFilter";
 import { LoadingState, EmptyState } from "./LoadingState";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Users } from "lucide-react";
 
 interface GeneroRow {
   genero: string;
   uds_vendidas: number;
-  pct_venta_uds: number;
   venta_neta: number;
   pct_venta_valor: number;
   stock: number;
   pct_stock: number;
-  sell_through: number;
   brecha_pp: number;
 }
 
@@ -30,68 +27,113 @@ const GENERO_COLORS: Record<string, string> = {
 const colorFor = (g: string, i: number) =>
   GENERO_COLORS[g?.toUpperCase()] ?? `hsl(var(--chart-${(i % 5) + 1}))`;
 
-const fmtPct = (n: number) => `${n.toFixed(1).replace(".", ",")}%`;
-const fmtPp = (n: number) =>
-  `${n > 0 ? "+" : n < 0 ? "−" : ""}${Math.abs(n).toFixed(1).replace(".", ",")} pp`;
-const fmtCOP = (n: number) =>
-  `$ ${Math.round(n).toLocaleString("es-CO")}`;
+const fmtPct = (n: number) => `${Math.min(n, 999).toFixed(1).replace(".", ",")}%`;
+const fmtCOP = (n: number) => `$ ${Math.round(n).toLocaleString("es-CO")}`;
 
-function StackedBar({
+const fmtRango = (days: number, customFrom?: Date, customTo?: Date) => {
+  const { from, to } = getDateRange(days, customFrom, customTo);
+  const f = (d: Date) =>
+    d.toLocaleDateString("es-CO", { day: "numeric", month: "short" });
+  return `Del ${f(from)} al ${f(to)} de ${to.getFullYear()}`;
+};
+
+/** Barra horizontal de escala fija 0–100%, arrancando en cero. */
+function BarRow({
   label,
-  rows,
-  pctKey,
+  pct,
+  uds,
+  color,
+  dim,
 }: {
   label: string;
-  rows: GeneroRow[];
-  pctKey: "pct_venta_valor" | "pct_stock";
+  pct: number;
+  uds: number;
+  color: string;
+  dim?: boolean;
 }) {
-  const total = rows.reduce((a, r) => a + r[pctKey], 0);
+  const w = Math.max(0, Math.min(pct, 100));
   return (
-    <div className="min-w-0">
-      <div className="flex items-baseline justify-between mb-1">
-        <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">{label}</span>
+    <div className="flex items-center gap-2 min-w-0">
+      <span className="w-12 shrink-0 text-[11px] uppercase tracking-wide text-muted-foreground">
+        {label}
+      </span>
+      <div className="relative h-4 flex-1 min-w-0 overflow-hidden rounded bg-muted">
+        <div
+          className="absolute inset-y-0 left-0 rounded"
+          style={{
+            width: `${w}%`,
+            backgroundColor: color,
+            opacity: dim ? 0.45 : 1,
+          }}
+        />
+        {dim && w > 0 && (
+          <div
+            className="absolute inset-y-0 left-0 rounded"
+            style={{
+              width: `${w}%`,
+              backgroundImage:
+                "repeating-linear-gradient(45deg, rgba(255,255,255,0.35) 0 3px, transparent 3px 6px)",
+            }}
+          />
+        )}
       </div>
-      <div className="flex h-6 w-full overflow-hidden rounded-md bg-muted">
-        {rows.map((r, i) => {
-          const w = total > 0 ? (r[pctKey] / total) * 100 : 0;
-          if (w <= 0) return null;
-          return (
-            <Tooltip key={r.genero}>
-              <TooltipTrigger asChild>
-                <div
-                  className="h-full transition-opacity hover:opacity-80 cursor-default"
-                  style={{ width: `${w}%`, backgroundColor: colorFor(r.genero, i) }}
-                />
-              </TooltipTrigger>
-              <TooltipContent>
-                <div className="text-xs space-y-0.5">
-                  <div className="font-semibold">{r.genero}</div>
-                  <div>Unidades: {r.uds_vendidas.toLocaleString("es-CO")}</div>
-                  <div>Venta neta: {fmtCOP(r.venta_neta)}</div>
-                  <div>Sell-through: {fmtPct(r.sell_through)}</div>
-                  <div>Stock: {r.stock.toLocaleString("es-CO")} uds</div>
-                </div>
-              </TooltipContent>
-            </Tooltip>
-          );
-        })}
-      </div>
-      <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
-        {rows.map((r, i) => (
-          <span key={r.genero} className="inline-flex items-center gap-1">
-            <span className="h-2 w-2 rounded-full" style={{ backgroundColor: colorFor(r.genero, i) }} />
-            {r.genero} {fmtPct(r[pctKey])}
-          </span>
-        ))}
-      </div>
+      <span className="w-14 shrink-0 text-right text-xs font-semibold tabular-nums text-foreground">
+        {fmtPct(pct)}
+      </span>
+      <span className="w-20 shrink-0 text-right text-[11px] tabular-nums text-muted-foreground">
+        {uds.toLocaleString("es-CO")} uds
+      </span>
     </div>
   );
 }
 
-export function ParticipacionGeneroCard({ days, canal }: { days: number; canal?: string | null }) {
+function GeneroBlock({ r, i }: { r: GeneroRow; i: number }) {
+  const color = colorFor(r.genero, i);
+  const sobre = r.brecha_pp > 0;
+  const neutro = Math.abs(r.brecha_pp) < 0.05;
+  return (
+    <div className="space-y-1.5">
+      <div className="flex items-center gap-2">
+        <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: color }} />
+        <span className="text-xs font-bold uppercase tracking-wide text-foreground">
+          {r.genero}
+        </span>
+多为      </div>
+      <BarRow label="Venta" pct={r.pct_venta_valor} uds={r.uds_vendidas} color={color} />
+      <BarRow label="Stock" pct={r.pct_stock} uds={r.stock} color={color} dim />
+      <p
+        className={
+          neutro
+            ? "text-[11px] text-muted-foreground"
+            : sobre
+              ? "text-[11px] font-medium text-destructive"
+              : "text-[11px] font-medium text-emerald-600"
+        }
+      >
+        {neutro
+          ? "En línea: el stock acompaña a la venta"
+          : `${Math.abs(r.brecha_pp).toFixed(1).replace(".", ",")} pp ${
+              sobre ? "más" : "menos"
+            } stock del que su venta justifica`}
+      </p>
+    </div>
+  );
+}
+
+export function ParticipacionGeneroCard({
+  days,
+  canal,
+  customFrom,
+  customTo,
+}: {
+  days: number;
+  canal?: string | null;
+  customFrom?: Date;
+  customTo?: Date;
+}) {
   const [rows, setRows] = useState<GeneroRow[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(nulllogg);
 
   useEffect(() => {
     let cancelled = false;
@@ -118,12 +160,10 @@ export function ParticipacionGeneroCard({ days, canal }: { days: number; canal?:
         const parsed: GeneroRow[] = ((data as any[]) ?? []).map((r) => ({
           genero: String(r.genero ?? "SIN GENERO"),
           uds_vendidas: toNumber(r.uds_vendidas),
-          pct_venta_uds: toNumber(r.pct_venta_uds),
           venta_neta: toNumber(r.venta_neta),
           pct_venta_valor: toNumber(r.pct_venta_valor),
           stock: toNumber(r.stock),
           pct_stock: toNumber(r.pct_stock),
-          sell_through: toNumber(r.sell_through),
           brecha_pp: toNumber(r.brecha_pp),
         }));
         // Omitir SIN GENERO cuando es marginal (< 1% en venta y en stock)
@@ -147,50 +187,27 @@ export function ParticipacionGeneroCard({ days, canal }: { days: number; canal?:
   if (rows.length === 0) return <EmptyState message="Sin datos de participación por género" />;
 
   return (
-    <TooltipProvider delayDuration={100}>
-      <div className="bg-card rounded-lg border border-border p-4 sm:p-5 space-y-4 min-w-0 overflow-hidden">
+    <div className="bg-card rounded-lg border border-border p-4 sm:p-5 space-y-4 min-w-0 overflow-hidden">
+      <div className="flex items-baseline justify-between gap-2 flex-wrap">
         <div className="flex items-center gap-2">
           <Users className="h-4 w-4 text-muted-foreground" />
           <h3 className="text-sm font-bold text-foreground">Participación por Género</h3>
         </div>
-
-        <div className="space-y-4">
-          <StackedBar label="Venta" rows={rows} pctKey="pct_venta_valor" />
-          <StackedBar label="Stock" rows={rows} pctKey="pct_stock" />
-        </div>
-
-        <div className="border-t border-border pt-3 space-y-1">
-          {rows.map((r, i) => {
-            const sobre = r.brecha_pp > 0;
-            const neutro = Math.abs(r.brecha_pp) < 0.05;
-            return (
-              <div key={r.genero} className="flex items-center justify-between text-xs">
-                <span className="inline-flex items-center gap-1.5 min-w-0">
-                  <span className="h-2 w-2 rounded-full shrink-0" style={{ backgroundColor: colorFor(r.genero, i) }} />
-                  <span className="truncate font-medium text-foreground">{r.genero}</span>
-                </span>
-                <span
-                  className={
-                    neutro
-                      ? "text-muted-foreground"
-                      : sobre
-                        ? "text-destructive font-semibold"
-                        : "text-emerald-600 font-semibold"
-                  }
-                >
-                  {fmtPp(r.brecha_pp)}{" "}
-                  <span className="font-normal">
-                    {neutro ? "en línea" : sobre ? "sobreinvertido" : "subinvertido"}
-                  </span>
-                </span>
-              </div>
-            );
-          })}
-        </div>
-        <p className="text-[11px] text-muted-foreground">
-          Brecha = participación en stock menos participación en venta. Positiva significa más inventario del que la venta justifica.
-        </p>
+        <span className="text-[11px] text-muted-foreground">
+          {fmtRango(days, customFrom, customTo)}
+        </span>
       </div>
-    </TooltipProvider>
+
+      <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        {rows.map((r, i) => (
+          <GeneroBlock key={r.genero} r={r} i={i} />
+        ))}
+      </div>
+
+      <p className="text-[11px] text-muted-foreground border-t border-border pt-2">
+        Barras sobre escala fija de 0 a 100% para comparar géneros. La barra de Stock va atenuada.
+        Brecha = participación en stock menos participación en venta.
+      </p>
+    </div>
   );
 }
