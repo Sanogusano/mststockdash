@@ -573,7 +573,7 @@ export default function AnalisisLinea360Page() {
       </div>
 
       <Sheet open={!!detail} onOpenChange={(o) => { if (!o) setDetail(null); }}>
-        <SheetContent className="!max-w-5xl w-full overflow-y-auto p-0" side="right">
+        <SheetContent className="!max-w-full w-full overflow-y-auto p-0" side="right">
           <SheetHeader className="p-6 pb-4 border-b border-border">
             <SheetTitle className="text-base font-semibold">
               {detail?.linea}{detail?.coleccion ? ` · ${detail.coleccion}` : ""}
