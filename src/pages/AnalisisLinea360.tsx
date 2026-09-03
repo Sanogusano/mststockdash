@@ -588,8 +588,11 @@ export default function AnalisisLinea360Page() {
             ) : !detalle.length ? (
               <EmptyState message="Sin productos con datos." />
             ) : (
+              <>
+              <ResumenCards rows={detalle} />
               <div className="border border-border rounded-lg overflow-hidden">
-                <div className="overflow-auto max-h-[70vh]">
+                <div className="overflow-auto max-h-[65vh]">
+
                   <Table className="min-w-[1500px]">
                     <TableHeader className="sticky top-0 z-20 bg-background">
                       <TableRow className="bg-muted/30">
