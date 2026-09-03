@@ -6,7 +6,6 @@ import { AppSidebar } from "@/components/AppSidebar";
 import { differenceInCalendarDays } from "date-fns";
 import { TimeFilter, resolveDays } from "@/components/dashboard/TimeFilter";
 import { LoadingState, EmptyState } from "@/components/dashboard/LoadingState";
-import { StatusBadge } from "@/components/dashboard/StatusBadge";
 import { SalesBreakdownBars } from "@/pages/LineasProducto";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import {
