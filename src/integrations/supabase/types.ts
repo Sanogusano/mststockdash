@@ -4203,37 +4203,6 @@ export type Database = {
           user_id: string
         }[]
       }
-      reporte_analisis_linea_coleccion: {
-        Args: {
-          p_canal?: string
-          p_coleccion?: string
-          p_dias?: number
-          p_linea?: string
-        }
-        Returns: {
-          clasificacion: string
-          coleccion: string
-          estado_salud: string
-          foto: string
-          linea: string
-          nivel: string
-          pct_descuento_prom: number
-          precio_promedio: number
-          producto: string
-          producto_id: string
-          pvp_promedio: number
-          rdv_semanal: number
-          sell_through_pct: number
-          stock_bodega: number
-          stock_online: number
-          stock_tiendas: number
-          und_full: number
-          und_promo: number
-          und_rebajas: number
-          und_vendidas: number
-          wos: number
-        }[]
-      }
       reporte_baja_rotacion_outlet: {
         Args: {
           p_sell_through_umbral?: number
