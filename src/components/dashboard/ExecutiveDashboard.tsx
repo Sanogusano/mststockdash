@@ -2319,6 +2319,7 @@ export function ExecutiveDashboard({ days, comparisonPeriod = "previous", custom
       <TabsContent value="venta-directa">
         <BrandOverviewPanel days={days} comparisonPeriod={comparisonPeriod} customFrom={customFrom} customTo={customTo} />
         <BrandParetoPreview days={days} customFrom={customFrom} customTo={customTo} />
+        <ParticipacionGeneroCard days={days} canal={null} customFrom={customFrom} customTo={customTo} />
       </TabsContent>
 
       <TabsContent value="por-zona">
