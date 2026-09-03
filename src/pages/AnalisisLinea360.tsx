@@ -634,11 +634,71 @@ export default function AnalisisLinea360Page() {
         <SheetContent className="!max-w-full w-full overflow-y-auto p-0" side="right">
           <SheetHeader className="p-6 pb-4 border-b border-border">
             <SheetTitle className="text-base font-semibold">
-              {detail?.linea}{detail?.coleccion ? ` · ${detail.coleccion}` : ""}
+              {detail?.linea}{detColeccion !== "all" ? ` · ${detColeccion}` : ""}
             </SheetTitle>
             <p className="text-xs text-muted-foreground">Detalle por producto</p>
           </SheetHeader>
           <div className="p-6 space-y-4">
+            {/* Filtros del detalle */}
+            <div className="flex flex-wrap items-end gap-3">
+              <div className="min-w-0">
+                <label className="block text-[10px] font-semibold uppercase tracking-wide text-muted-foreground mb-1">
+                  Colección
+                </label>
+                <Select value={detColeccion} onValueChange={setDetColeccion}>
+                  <SelectTrigger className="h-9 w-[200px] text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todas las colecciones</SelectItem>
+                    {colOptions.map((c) => (
+                      <SelectItem key={c} value={c}>{c}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="min-w-0">
+                <label className="block text-[10px] font-semibold uppercase tracking-wide text-muted-foreground mb-1">
+                  Buscar producto
+                </label>
+                <div className="flex items-center gap-2">
+                  <Input
+                    value={detBusqueda}
+                    onChange={(e) => setDetBusqueda(e.target.value)}
+                    placeholder="Nombre del producto..."
+                    className="h-9 w-[240px] text-xs"
+                  />
+                  <span className="text-[11px] text-muted-foreground whitespace-nowrap">
+                    {detalle.length} de {detalleBase.length} productos
+                  </span>
+                </div>
+              </div>
+              <div className="min-w-0">
+                <label className="block text-[10px] font-semibold uppercase tracking-wide text-muted-foreground mb-1">
+                  Stock
+                </label>
+                <div className="flex items-center gap-2">
+                  <Select value={detStockOp} onValueChange={(v) => setDetStockOp(v as "gt" | "lt")}>
+                    <SelectTrigger className="h-9 w-[130px] text-xs">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="gt">mayor que</SelectItem>
+                      <SelectItem value="lt">menor que</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Input
+                    type="number"
+                    inputMode="numeric"
+                    value={detStockVal}
+                    onChange={(e) => setDetStockVal(e.target.value)}
+                    placeholder="—"
+                    className="h-9 w-[100px] text-xs"
+                  />
+                </div>
+              </div>
+            </div>
+
             {detailLoading ? (
               <LoadingState rows={6} />
             ) : detailError ? (
