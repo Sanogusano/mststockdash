@@ -369,8 +369,10 @@ export default function AnalisisLinea360Page() {
     if (coleccion !== "all") next.set("coleccion", coleccion);
     if (canal !== "all") next.set("canal", canal);
     if (soloSinVentas) next.set("sinventas", "1");
+    if (lineasSel.length) next.set("lineas", lineasSel.join("|"));
     setSearchParams(next, { replace: true });
-  }, [days, coleccion, canal, soloSinVentas, setSearchParams]);
+  }, [days, coleccion, canal, soloSinVentas, lineasSel, setSearchParams]);
+
 
   const handleDaysChange = (d: number) => {
     setCustomFrom(undefined);
