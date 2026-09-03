@@ -26,7 +26,9 @@ interface Row {
   producto_id: string | null;
   producto: string | null;
   foto: string | null;
-  pvp_promedio: number;
+  pvp_mediana: number;
+  pvp_min: number;
+  pvp_max: number;
   precio_promedio: number | null;
   pct_descuento_prom: number | null;
   und_vendidas: number;
@@ -64,7 +66,7 @@ const CANAL_OPTIONS = [
 ];
 
 const NOTA_PIE =
-  "PVP = precio de lista del catálogo (compare_at_price, o price si está vacío). Precio promedio = efectivamente cobrado, ponderado por unidades vendidas. Stock = tiendas + online + bodega (requiere conciliación NetSuite del día). Evacuación = tramos incrementales sobre lo producido.";
+  "Precio de Lista = compare_at_price del catálogo, o price si está vacío. Se muestra la mediana de la línea y su rango. Precio de Venta = efectivamente cobrado, ponderado por unidades vendidas. Stock = tiendas + online + bodega (requiere conciliación NetSuite del día). Evacuación = tramos incrementales sobre lo producido.";
 
 const money = (n: number | null | undefined) =>
   "$ " + Math.round(Number(n ?? 0)).toLocaleString("es-CO");
@@ -178,15 +180,27 @@ function EvacuacionCell({ r }: { r: Row }) {
 
 const NoData = () => <span className="text-muted-foreground">—</span>;
 
-function MetricCells({ r }: { r: Row }) {
+function MetricCells({ r, enDetalle = false }: { r: Row; enDetalle?: boolean }) {
   const sinVentas = Number(r.und_vendidas ?? 0) === 0;
   const precioProm = r.precio_promedio == null ? null : Number(r.precio_promedio);
   const dtoProm = r.pct_descuento_prom == null ? null : Number(r.pct_descuento_prom);
+  const pvp = r.pvp_mediana == null ? null : Number(r.pvp_mediana);
   return (
     <>
-      {/* PVP: precio de lista real, independiente de las ventas */}
-      <TableCell className="text-right text-sm whitespace-nowrap tabular-nums">
-        {r.pvp_promedio == null ? <NoData /> : money(r.pvp_promedio)}
+      {/* Precio de Lista: mediana como valor principal, rango debajo (solo nivel línea) */}
+      <TableCell className="text-right whitespace-nowrap tabular-nums">
+        {pvp == null ? (
+          <NoData />
+        ) : enDetalle ? (
+          <span className="text-sm">{money(pvp)}</span>
+        ) : (
+          <div>
+            <div className="text-sm font-semibold">{money(pvp)}</div>
+            <div className="text-[10px] text-muted-foreground">
+              {money(r.pvp_min)} – {money(r.pvp_max)}
+            </div>
+          </div>
+        )}
       </TableCell>
       <TableCell className="text-right text-sm whitespace-nowrap tabular-nums">
         {precioProm == null ? <NoData /> : money(precioProm)}
@@ -228,8 +242,8 @@ function MetricCells({ r }: { r: Row }) {
 function HeadMetrics({ canal }: { canal: string }) {
   return (
     <>
-      <TableHead className="text-right">PVP</TableHead>
-      <TableHead className="text-right">Precio prom.</TableHead>
+      <TableHead className="text-right">Precio de Lista</TableHead>
+      <TableHead className="text-right">Precio de Venta</TableHead>
       <TableHead className="text-right">Descuento Promedio</TableHead>
       <TableHead className="text-right">Unidades Vendidas</TableHead>
       <TableHead className="text-right">Stock</TableHead>
@@ -543,7 +557,7 @@ export default function AnalisisLinea360Page() {
                                 <span className="text-sm font-medium line-clamp-2">{r.producto ?? "—"}</span>
                               </div>
                             </TableCell>
-                            <MetricCells r={r} />
+                            <MetricCells r={r} enDetalle />
                           </TableRow>
                         ))}
                     </TableBody>
