@@ -7,6 +7,7 @@ import { differenceInCalendarDays } from "date-fns";
 import { TimeFilter, resolveDays } from "@/components/dashboard/TimeFilter";
 import { LoadingState, EmptyState } from "@/components/dashboard/LoadingState";
 import { SalesBreakdownBars } from "@/pages/LineasProducto";
+import { MultiSelectFilter } from "@/components/dashboard/MultiSelectFilter";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
@@ -341,6 +342,12 @@ export default function AnalisisLinea360Page() {
   const [coleccion, setColeccion] = useState(() => searchParams.get("coleccion") ?? "all");
   const [canal, setCanal] = useState(() => searchParams.get("canal") ?? "all");
   const [soloSinVentas, setSoloSinVentas] = useState(() => searchParams.get("sinventas") === "1");
+  const [lineasSel, setLineasSel] = useState<string[]>(() => {
+    const raw = searchParams.get("lineas");
+    return raw ? raw.split("|").filter(Boolean) : [];
+  });
+  const [lineaOptions, setLineaOptions] = useState<string[]>([]);
+
 
   const [rows, setRows] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
@@ -363,8 +370,10 @@ export default function AnalisisLinea360Page() {
     if (coleccion !== "all") next.set("coleccion", coleccion);
     if (canal !== "all") next.set("canal", canal);
     if (soloSinVentas) next.set("sinventas", "1");
+    if (lineasSel.length) next.set("lineas", lineasSel.join("|"));
     setSearchParams(next, { replace: true });
-  }, [days, coleccion, canal, soloSinVentas, setSearchParams]);
+  }, [days, coleccion, canal, soloSinVentas, lineasSel, setSearchParams]);
+
 
   const handleDaysChange = (d: number) => {
     setCustomFrom(undefined);
@@ -389,6 +398,10 @@ export default function AnalisisLinea360Page() {
       setColOptions(
         [...new Set((data ?? []).map((r: any) => r.collection_season).filter(Boolean))].sort() as string[],
       );
+      const { data: mapRows } = await supabase.from("categoria_padre_map").select("categoria_padre");
+      const lineas = [...new Set(((mapRows ?? []) as { categoria_padre: string }[])
+        .map((r) => r.categoria_padre).filter(Boolean))].sort();
+      if (lineas.length) setLineaOptions((prev) => (prev.length ? prev : lineas));
     })();
   }, []);
 
@@ -402,18 +415,25 @@ export default function AnalisisLinea360Page() {
         p_coleccion: coleccion === "all" ? undefined : coleccion,
         p_linea: undefined,
         p_canal: canalParam ?? undefined,
-      });
+        p_lineas: lineasSel.length ? lineasSel : undefined,
+      } as never);
       if (cancelled) return;
+
       if (error) {
         setError(error.message);
         setRows([]);
       } else {
-        setRows((data ?? []) as unknown as Row[]);
+        const list = (data ?? []) as unknown as Row[];
+        setRows(list);
+        if (!lineasSel.length) {
+          setLineaOptions([...new Set(list.map((r) => r.linea).filter(Boolean))].sort());
+        }
       }
       setLoading(false);
     })();
     return () => { cancelled = true; };
-  }, [dias, coleccion, canalParam]);
+  }, [dias, coleccion, canalParam, lineasSel]);
+
 
 
   useEffect(() => {
@@ -510,6 +530,19 @@ export default function AnalisisLinea360Page() {
                   </SelectContent>
                 </Select>
               </div>
+              <div className="min-w-0">
+                <label className="block text-[10px] font-semibold uppercase tracking-wide text-muted-foreground mb-1">
+                  Línea
+                </label>
+                <MultiSelectFilter
+                  label="Línea"
+                  options={lineaOptions}
+                  selected={lineasSel}
+                  onChange={(v) => setLineasSel(v.length === lineaOptions.length ? [] : v)}
+                  className="[&>button]:h-9"
+                />
+              </div>
+
               <div className="min-w-0">
                 <label className="block text-[10px] font-semibold uppercase tracking-wide text-muted-foreground mb-1">
                   Filtro rápido
