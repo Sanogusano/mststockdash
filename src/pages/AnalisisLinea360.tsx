@@ -175,18 +175,25 @@ function EvacuacionCell({ r }: { r: Row }) {
   );
 }
 
+const NoData = () => <span className="text-muted-foreground">—</span>;
+
 function MetricCells({ r }: { r: Row }) {
+  const sinVentas = Number(r.und_vendidas ?? 0) === 0;
   return (
     <>
-      <TableCell className="text-right text-sm whitespace-nowrap tabular-nums">{money(r.pvp_promedio)}</TableCell>
-      <TableCell className="text-right text-sm whitespace-nowrap tabular-nums">{money(r.precio_promedio)}</TableCell>
+      <TableCell className="text-right text-sm whitespace-nowrap tabular-nums">
+        {sinVentas ? <NoData /> : money(r.pvp_promedio)}
+      </TableCell>
+      <TableCell className="text-right text-sm whitespace-nowrap tabular-nums">
+        {sinVentas ? <NoData /> : money(r.precio_promedio)}
+      </TableCell>
       <TableCell
         className={cn(
           "text-right text-sm font-medium",
-          Number(r.pct_descuento_prom) > 50 ? "text-destructive" : "text-foreground",
+          !sinVentas && Number(r.pct_descuento_prom) > 50 ? "text-destructive" : "text-foreground",
         )}
       >
-        {pct(r.pct_descuento_prom)}
+        {sinVentas ? <NoData /> : pct(r.pct_descuento_prom)}
       </TableCell>
       <TableCell className="text-right"><UnidadesCell r={r} /></TableCell>
       <TableCell className="text-right"><StockCell r={r} /></TableCell>
@@ -199,7 +206,10 @@ function MetricCells({ r }: { r: Row }) {
         />
       </TableCell>
       <TableCell><EvacuacionCell r={r} /></TableCell>
-      <TableCell className="text-right text-sm">{Number(r.rdv_semanal ?? 0).toFixed(1)}</TableCell>
+      <TableCell className="text-right text-sm">
+        {sinVentas ? <NoData /> : Number(r.rdv_semanal ?? 0).toFixed(1)}
+      </TableCell>
+
       <TableCell className="text-right text-sm">{pct(r.sell_through_pct)}</TableCell>
       <TableCell className={cn("text-right text-sm font-medium", wosColor(Number(r.wos ?? 0)))}>
         {Number(r.wos ?? 0) >= 999 ? "∞" : `${Number(r.wos ?? 0).toFixed(1)}w`}
