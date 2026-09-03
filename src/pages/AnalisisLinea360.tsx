@@ -27,8 +27,8 @@ interface Row {
   producto: string | null;
   foto: string | null;
   pvp_promedio: number;
-  precio_promedio: number;
-  pct_descuento_prom: number;
+  precio_promedio: number | null;
+  pct_descuento_prom: number | null;
   und_vendidas: number;
   und_tiendas: number;
   und_online: number;
@@ -64,7 +64,7 @@ const CANAL_OPTIONS = [
 ];
 
 const NOTA_PIE =
-  "PVP = precio de lista ponderado por unidades. Precio promedio = efectivamente cobrado. Stock = tiendas + online + bodega (requiere conciliación NetSuite del día). Evacuación = tramos incrementales sobre lo producido.";
+  "PVP = precio de lista (compare_at_price, o price si no tiene rebaja). Precio promedio = efectivamente cobrado en el período. Stock = tiendas + online + bodega (requiere conciliación NetSuite del día). Evacuación = tramos incrementales sobre lo producido.";
 
 const money = (n: number | null | undefined) =>
   "$ " + Math.round(Number(n ?? 0)).toLocaleString("es-CO");
@@ -180,21 +180,24 @@ const NoData = () => <span className="text-muted-foreground">—</span>;
 
 function MetricCells({ r }: { r: Row }) {
   const sinVentas = Number(r.und_vendidas ?? 0) === 0;
+  const precioProm = r.precio_promedio == null ? null : Number(r.precio_promedio);
+  const dtoProm = r.pct_descuento_prom == null ? null : Number(r.pct_descuento_prom);
   return (
     <>
+      {/* PVP: precio de lista real, independiente de las ventas */}
       <TableCell className="text-right text-sm whitespace-nowrap tabular-nums">
-        {sinVentas ? <NoData /> : money(r.pvp_promedio)}
+        {r.pvp_promedio == null ? <NoData /> : money(r.pvp_promedio)}
       </TableCell>
       <TableCell className="text-right text-sm whitespace-nowrap tabular-nums">
-        {sinVentas ? <NoData /> : money(r.precio_promedio)}
+        {precioProm == null ? <NoData /> : money(precioProm)}
       </TableCell>
       <TableCell
         className={cn(
           "text-right text-sm font-medium",
-          !sinVentas && Number(r.pct_descuento_prom) > 50 ? "text-destructive" : "text-foreground",
+          dtoProm != null && dtoProm > 50 ? "text-destructive" : "text-foreground",
         )}
       >
-        {sinVentas ? <NoData /> : pct(r.pct_descuento_prom)}
+        {dtoProm == null ? <NoData /> : pct(dtoProm)}
       </TableCell>
       <TableCell className="text-right"><UnidadesCell r={r} /></TableCell>
       <TableCell className="text-right"><StockCell r={r} /></TableCell>
@@ -208,10 +211,12 @@ function MetricCells({ r }: { r: Row }) {
       </TableCell>
       <TableCell><EvacuacionCell r={r} /></TableCell>
       <TableCell className="text-right text-sm">
-        {sinVentas ? <NoData /> : Number(r.rdv_semanal ?? 0).toFixed(1)}
+        {sinVentas || r.rdv_semanal == null ? <NoData /> : Number(r.rdv_semanal).toFixed(1)}
       </TableCell>
 
-      <TableCell className="text-right text-sm">{pct(r.sell_through_pct)}</TableCell>
+      <TableCell className="text-right text-sm">
+        {sinVentas || r.sell_through_pct == null ? <NoData /> : pct(r.sell_through_pct)}
+      </TableCell>
       <TableCell className={cn("text-right text-sm font-medium", wosColor(Number(r.wos ?? 0)))}>
         {Number(r.wos ?? 0) >= 999 ? "∞" : `${Number(r.wos ?? 0).toFixed(1)}w`}
       </TableCell>
