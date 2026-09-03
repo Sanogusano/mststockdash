@@ -436,7 +436,25 @@ export default function AnalisisLinea360Page() {
                   </SelectContent>
                 </Select>
               </div>
+              <div className="min-w-0">
+                <label className="block text-[10px] font-semibold uppercase tracking-wide text-muted-foreground mb-1">
+                  Filtro rápido
+                </label>
+                <button
+                  type="button"
+                  onClick={() => setSoloSinVentas((v) => !v)}
+                  className={cn(
+                    "h-9 px-3 rounded-md border text-xs font-medium transition-colors",
+                    soloSinVentas
+                      ? "bg-destructive/10 border-destructive/40 text-destructive"
+                      : "bg-background border-border text-muted-foreground hover:bg-muted/50",
+                  )}
+                >
+                  Sin ventas en el período
+                </button>
+              </div>
             </div>
+
 
             {/* Tabla */}
             {loading ? (
