@@ -63,7 +63,7 @@ const CANAL_OPTIONS = [
 ];
 
 /* ── Sales Breakdown Bars ── */
-function SalesBreakdownBars({ full, rebajas, promo, total }: { full: number; rebajas: number; promo: number; total: number }) {
+export function SalesBreakdownBars({ full, rebajas, promo, total }: { full: number; rebajas: number; promo: number; total: number }) {
   if (total === 0) return <span className="text-xs text-muted-foreground">Sin ventas</span>;
   const max = Math.max(full, rebajas, promo, 1);
   const bars = [
