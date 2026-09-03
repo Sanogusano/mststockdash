@@ -211,19 +211,10 @@ export default function AnalisisLinea360Page() {
     return () => { cancelled = true; };
   }, [detail, dias, canalParam]);
 
-  const grupos = useMemo(() => {
-    const map = new Map<string, Row[]>();
-    for (const r of rows) {
-      const key = r.coleccion ?? "(sin colección)";
-      if (!map.has(key)) map.set(key, []);
-      map.get(key)!.push(r);
-    }
-    return [...map.entries()].map(([col, lineas]) => ({
-      col,
-      lineas: [...lineas].sort((a, b) => Number(b.und_vendidas ?? 0) - Number(a.und_vendidas ?? 0)),
-      uds: lineas.reduce((s, r) => s + Number(r.und_vendidas ?? 0), 0),
-    })).sort((a, b) => b.uds - a.uds);
-  }, [rows]);
+  const lineas = useMemo(
+    () => [...rows].sort((a, b) => Number(b.und_vendidas ?? 0) - Number(a.und_vendidas ?? 0)),
+    [rows],
+  );
 
   return (
     <SidebarProvider>
