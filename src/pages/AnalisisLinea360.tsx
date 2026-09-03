@@ -180,15 +180,27 @@ function EvacuacionCell({ r }: { r: Row }) {
 
 const NoData = () => <span className="text-muted-foreground">—</span>;
 
-function MetricCells({ r }: { r: Row }) {
+function MetricCells({ r, enDetalle = false }: { r: Row; enDetalle?: boolean }) {
   const sinVentas = Number(r.und_vendidas ?? 0) === 0;
   const precioProm = r.precio_promedio == null ? null : Number(r.precio_promedio);
   const dtoProm = r.pct_descuento_prom == null ? null : Number(r.pct_descuento_prom);
+  const pvp = r.pvp_mediana == null ? null : Number(r.pvp_mediana);
   return (
     <>
-      {/* PVP: precio de lista real, independiente de las ventas */}
-      <TableCell className="text-right text-sm whitespace-nowrap tabular-nums">
-        {r.pvp_promedio == null ? <NoData /> : money(r.pvp_promedio)}
+      {/* Precio de Lista: mediana como valor principal, rango debajo (solo nivel línea) */}
+      <TableCell className="text-right whitespace-nowrap tabular-nums">
+        {pvp == null ? (
+          <NoData />
+        ) : enDetalle ? (
+          <span className="text-sm">{money(pvp)}</span>
+        ) : (
+          <div>
+            <div className="text-sm font-semibold">{money(pvp)}</div>
+            <div className="text-[10px] text-muted-foreground">
+              {money(r.pvp_min)} – {money(r.pvp_max)}
+            </div>
+          </div>
+        )}
       </TableCell>
       <TableCell className="text-right text-sm whitespace-nowrap tabular-nums">
         {precioProm == null ? <NoData /> : money(precioProm)}
