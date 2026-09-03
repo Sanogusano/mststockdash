@@ -181,31 +181,25 @@ function MetricCells({ r, enDetalle = false }: { r: Row; enDetalle?: boolean }) 
   const pvp = r.pvp_mediana == null ? null : Number(r.pvp_mediana);
   return (
     <>
-      {/* Precio de Lista: mediana como valor principal, rango debajo (solo nivel línea) */}
+      {/* Precios: lista arriba; venta y descuento debajo en gris */}
       <TableCell className="text-right whitespace-nowrap tabular-nums">
         {pvp == null ? (
           <NoData />
-        ) : enDetalle ? (
-          <span className="text-sm">{money(pvp)}</span>
         ) : (
-          <div>
-            <div className="text-sm font-semibold">{money(pvp)}</div>
-            <div className="text-[10px] text-muted-foreground">
-              {money(r.pvp_min)} – {money(r.pvp_max)}
-            </div>
+          <div className="text-sm font-semibold">{money(pvp)}</div>
+        )}
+        {!enDetalle && pvp != null && (
+          <div className="text-[10px] text-muted-foreground">
+            {money(r.pvp_min)} – {money(r.pvp_max)}
           </div>
         )}
-      </TableCell>
-      <TableCell className="text-right text-sm whitespace-nowrap tabular-nums">
-        {precioProm == null ? <NoData /> : money(precioProm)}
-      </TableCell>
-      <TableCell
-        className={cn(
-          "text-right text-sm font-medium",
-          dtoProm != null && dtoProm > 50 ? "text-destructive" : "text-foreground",
-        )}
-      >
-        {dtoProm == null ? <NoData /> : pct(dtoProm)}
+        <div className="text-[10px] text-muted-foreground mt-0.5">
+          {precioProm == null ? "—" : money(precioProm)}
+          {" · "}
+          <span className={cn(dtoProm != null && dtoProm > 50 && "text-destructive font-medium")}>
+            {dtoProm == null ? "—" : pct(dtoProm)} dto.
+          </span>
+        </div>
       </TableCell>
       <TableCell className="text-right"><UnidadesCell r={r} /></TableCell>
       <TableCell className="text-right"><StockCell r={r} /></TableCell>
@@ -221,13 +215,15 @@ function MetricCells({ r, enDetalle = false }: { r: Row; enDetalle?: boolean }) 
         {sinVentas || r.rdv_semanal == null ? <NoData /> : Number(r.rdv_semanal).toFixed(1)}
       </TableCell>
       <TableCell><EvacuacionCell r={r} /></TableCell>
-      <TableCell className="text-right text-sm">
-        {sinVentas || r.sell_through_pct == null ? <NoData /> : pct(r.sell_through_pct)}
+      {/* Rotación: sell-through arriba, WOS debajo */}
+      <TableCell className="text-right whitespace-nowrap">
+        <div className="text-sm font-semibold tabular-nums">
+          {sinVentas || r.sell_through_pct == null ? <NoData /> : pct(r.sell_through_pct)}
+        </div>
+        <div className={cn("text-[10px] font-medium tabular-nums", wosColor(Number(r.wos ?? 0)))}>
+          {Number(r.wos ?? 0) >= 999 ? "∞" : `${Number(r.wos ?? 0).toFixed(1)}w`} WOS
+        </div>
       </TableCell>
-      <TableCell className={cn("text-right text-sm font-medium", wosColor(Number(r.wos ?? 0)))}>
-        {Number(r.wos ?? 0) >= 999 ? "∞" : `${Number(r.wos ?? 0).toFixed(1)}w`}
-      </TableCell>
-
     </>
   );
 }
@@ -235,9 +231,12 @@ function MetricCells({ r, enDetalle = false }: { r: Row; enDetalle?: boolean }) 
 function HeadMetrics({ canal }: { canal: string }) {
   return (
     <>
-      <TableHead className="text-right">Precio de Lista</TableHead>
-      <TableHead className="text-right">Precio de Venta</TableHead>
-      <TableHead className="text-right">Descuento Promedio</TableHead>
+      <TableHead className="text-right">
+        Precios
+        <span className="block text-[9px] font-normal normal-case text-muted-foreground">
+          lista · venta · dto.
+        </span>
+      </TableHead>
       <TableHead className="text-right">Unidades Vendidas</TableHead>
       <TableHead className="text-right">Stock</TableHead>
       <TableHead className="min-w-[150px]">Calidad de Venta</TableHead>
@@ -248,12 +247,16 @@ function HeadMetrics({ canal }: { canal: string }) {
         </span>
       </TableHead>
       <TableHead className="min-w-[230px]">Evacuación promedio</TableHead>
-      <TableHead className="text-right">Sell-through</TableHead>
-      <TableHead className="text-right">WOS</TableHead>
-
+      <TableHead className="text-right">
+        Rotación
+        <span className="block text-[9px] font-normal normal-case text-muted-foreground">
+          sell-through · WOS
+        </span>
+      </TableHead>
     </>
   );
 }
+
 
 function Convenciones() {
   return (
