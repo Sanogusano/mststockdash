@@ -275,7 +275,7 @@ function Convenciones() {
       <span className="inline-flex items-center gap-1"><span className="h-2 w-4 rounded-sm bg-emerald-500" /> Evacuación 0–90 días</span>
       <span className="inline-flex items-center gap-1"><span className="h-2 w-4 rounded-sm bg-amber-500" /> 90–120 días</span>
       <span className="inline-flex items-center gap-1"><span className="h-2 w-4 rounded-sm bg-amber-300" /> 120–150 días</span>
-      <span>Barra atenuada = aún hay productos sin cumplir 150 días.</span>
+      <span>Barra atenuada = menos de la mitad de los productos con 150+ días cumplidos.</span>
     </div>
   );
 }
