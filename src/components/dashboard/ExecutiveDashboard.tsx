@@ -1778,7 +1778,6 @@ function BrandOverviewPanel({ days, comparisonPeriod = "previous", customFrom, c
         {/* Channel Contribution Chart */}
         <ChannelContributionChart channelData={filteredChannelData} />
       </div>
-      <ParticipacionGeneroCard days={days} canal={singleCanal ?? null} customFrom={customFrom} customTo={customTo} />
       <CollectionCompositionCard days={days} canal={singleCanal ?? undefined} customFrom={customFrom} customTo={customTo} />
       <BrandTopBottomProducts days={days} customFrom={customFrom} customTo={customTo} />
 
@@ -2320,6 +2319,7 @@ export function ExecutiveDashboard({ days, comparisonPeriod = "previous", custom
       <TabsContent value="venta-directa">
         <BrandOverviewPanel days={days} comparisonPeriod={comparisonPeriod} customFrom={customFrom} customTo={customTo} />
         <BrandParetoPreview days={days} customFrom={customFrom} customTo={customTo} />
+        <ParticipacionGeneroCard days={days} canal={null} customFrom={customFrom} customTo={customTo} />
       </TabsContent>
 
       <TabsContent value="por-zona">
