@@ -1,9 +1,9 @@
-import { Fragment, useState, useEffect, useMemo, useRef } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { differenceInCalendarDays } from "date-fns";
-import { TimeFilter, THIS_MONTH_SENTINEL, resolveDays } from "@/components/dashboard/TimeFilter";
+import { TimeFilter, resolveDays } from "@/components/dashboard/TimeFilter";
 import { LoadingState, EmptyState } from "@/components/dashboard/LoadingState";
 import { StatusBadge } from "@/components/dashboard/StatusBadge";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
