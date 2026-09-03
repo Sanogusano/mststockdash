@@ -527,6 +527,19 @@ export default function AnalisisLinea360Page() {
               </div>
               <div className="min-w-0">
                 <label className="block text-[10px] font-semibold uppercase tracking-wide text-muted-foreground mb-1">
+                  Línea
+                </label>
+                <MultiSelectFilter
+                  label="Línea"
+                  options={lineaOptions}
+                  selected={lineasSel}
+                  onChange={(v) => setLineasSel(v.length === lineaOptions.length ? [] : v)}
+                  className="[&>button]:h-9"
+                />
+              </div>
+
+              <div className="min-w-0">
+                <label className="block text-[10px] font-semibold uppercase tracking-wide text-muted-foreground mb-1">
                   Filtro rápido
                 </label>
                 <button
