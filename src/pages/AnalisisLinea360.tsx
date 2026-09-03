@@ -276,6 +276,7 @@ export default function AnalisisLinea360Page() {
   );
 
   return (
+    <TooltipProvider delayDuration={100}>
     <SidebarProvider>
       <div className="min-h-screen flex w-full bg-background">
         <AppSidebar />
@@ -343,7 +344,7 @@ export default function AnalisisLinea360Page() {
             ) : (
               <div className="border border-border rounded-lg overflow-hidden">
                 <div className="overflow-x-auto">
-                  <Table className="min-w-[1200px]">
+                  <Table className="min-w-[1100px]">
                     <TableHeader>
                       <TableRow className="bg-muted/30">
                         <TableHead className="min-w-[180px]">Línea</TableHead>
@@ -392,7 +393,7 @@ export default function AnalisisLinea360Page() {
             ) : (
               <div className="border border-border rounded-lg overflow-hidden">
                 <div className="overflow-x-auto">
-                  <Table className="min-w-[1200px]">
+                  <Table className="min-w-[1100px]">
                     <TableHeader>
                       <TableRow className="bg-muted/30">
                         <TableHead className="min-w-[220px]">Producto</TableHead>
@@ -427,5 +428,6 @@ export default function AnalisisLinea360Page() {
         </SheetContent>
       </Sheet>
     </SidebarProvider>
+    </TooltipProvider>
   );
 }
