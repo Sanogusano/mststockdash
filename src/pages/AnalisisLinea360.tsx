@@ -511,24 +511,23 @@ export default function AnalisisLinea360Page() {
               <LoadingState rows={6} />
             ) : detailError ? (
               <EmptyState message={`Error: ${detailError}`} />
-            ) : !detailRows.length ? (
+            ) : !detalle.length ? (
               <EmptyState message="Sin productos con datos." />
             ) : (
               <div className="border border-border rounded-lg overflow-hidden">
-                <div className="overflow-x-auto">
+                <div className="overflow-auto max-h-[70vh]">
                   <Table className="min-w-[1500px]">
-                    <TableHeader>
+                    <TableHeader className="sticky top-0 z-20 bg-background">
                       <TableRow className="bg-muted/30">
-                        <TableHead className="min-w-[220px]">Producto</TableHead>
+                        <TableHead className="min-w-[220px] sticky left-0 z-30 bg-background">Producto</TableHead>
                         <HeadMetrics canal={canal} />
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {[...detailRows]
-                        .sort((a, b) => Number(b.und_vendidas ?? 0) - Number(a.und_vendidas ?? 0))
-                        .map((r) => (
+                      {detalle.map((r) => (
                           <TableRow key={r.producto_id ?? r.producto ?? Math.random()}>
-                            <TableCell>
+                            <TableCell className="sticky left-0 z-10 bg-background">
+
                               <div className="flex items-center gap-2">
                                 {r.foto ? (
                                   <img src={r.foto} alt={r.producto ?? ""} className="h-9 w-9 rounded object-cover border border-border shrink-0" />
