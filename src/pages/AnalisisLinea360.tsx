@@ -279,7 +279,7 @@ export default function AnalisisLinea360Page() {
               <LoadingState rows={8} />
             ) : error ? (
               <EmptyState message={`Error: ${error}`} />
-            ) : !grupos.length ? (
+            ) : !lineas.length ? (
               <EmptyState message="Sin datos para los filtros seleccionados." />
             ) : (
               <div className="border border-border rounded-lg overflow-hidden">
@@ -287,31 +287,22 @@ export default function AnalisisLinea360Page() {
                   <Table className="min-w-[1200px]">
                     <TableHeader>
                       <TableRow className="bg-muted/30">
-                        <TableHead className="min-w-[180px]">Colección · Línea</TableHead>
+                        <TableHead className="min-w-[180px]">Línea</TableHead>
                         {HEAD_METRICS}
                         <TableHead className="w-8" />
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {grupos.map((g) => (
-                        <Fragment key={`g-${g.col}`}>
-                          <TableRow className="bg-muted/50 hover:bg-muted/50">
-                            <TableCell colSpan={14} className="text-xs font-semibold uppercase tracking-wide text-foreground">
-                              {g.col} · {int(g.uds)} uds
-                            </TableCell>
-                          </TableRow>
-                          {g.lineas.map((r) => (
-                            <TableRow
-                              key={`${g.col}-${r.linea}`}
-                              className="cursor-pointer hover:bg-primary/5"
-                              onClick={() => setDetail({ coleccion: g.col, linea: r.linea })}
-                            >
-                              <TableCell className="text-sm font-medium pl-6">{r.linea}</TableCell>
-                              <MetricCells r={r} />
-                              <TableCell><ChevronRight className="h-4 w-4 text-muted-foreground" /></TableCell>
-                            </TableRow>
-                          ))}
-                        </Fragment>
+                      {lineas.map((r) => (
+                        <TableRow
+                          key={r.linea}
+                          className="cursor-pointer hover:bg-primary/5"
+                          onClick={() => setDetail({ coleccion: coleccion === "all" ? null : coleccion, linea: r.linea })}
+                        >
+                          <TableCell className="text-sm font-medium whitespace-nowrap">{r.linea}</TableCell>
+                          <MetricCells r={r} />
+                          <TableCell><ChevronRight className="h-4 w-4 text-muted-foreground" /></TableCell>
+                        </TableRow>
                       ))}
                     </TableBody>
                   </Table>
