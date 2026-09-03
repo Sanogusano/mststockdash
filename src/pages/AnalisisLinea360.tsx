@@ -79,8 +79,8 @@ function ClasifBadge({ value }: { value: string }) {
 function MetricCells({ r }: { r: Row }) {
   return (
     <>
-      <TableCell className="text-right text-sm">{money(r.pvp_promedio)}</TableCell>
-      <TableCell className="text-right text-sm">{money(r.precio_promedio)}</TableCell>
+      <TableCell className="text-right text-sm whitespace-nowrap tabular-nums">{money(r.pvp_promedio)}</TableCell>
+      <TableCell className="text-right text-sm whitespace-nowrap tabular-nums">{money(r.precio_promedio)}</TableCell>
       <TableCell
         className={cn(
           "text-right text-sm font-medium",
