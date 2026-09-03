@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef } from "react";
+import { Fragment, useState, useEffect, useMemo, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
@@ -293,8 +293,8 @@ export default function AnalisisLinea360Page() {
                     </TableHeader>
                     <TableBody>
                       {grupos.map((g) => (
-                        <>
-                          <TableRow key={`g-${g.col}`} className="bg-muted/50 hover:bg-muted/50">
+                        <Fragment key={`g-${g.col}`}>
+                          <TableRow className="bg-muted/50 hover:bg-muted/50">
                             <TableCell colSpan={14} className="text-xs font-semibold uppercase tracking-wide text-foreground">
                               {g.col} · {int(g.uds)} uds
                             </TableCell>
@@ -310,7 +310,7 @@ export default function AnalisisLinea360Page() {
                               <TableCell><ChevronRight className="h-4 w-4 text-muted-foreground" /></TableCell>
                             </TableRow>
                           ))}
-                        </>
+                        </Fragment>
                       ))}
                     </TableBody>
                   </Table>
