@@ -4227,7 +4227,9 @@ export type Database = {
           producto_id: string
           productos_maduros: number
           productos_total: number
-          pvp_promedio: number
+          pvp_max: number
+          pvp_mediana: number
+          pvp_min: number
           rdv_semanal: number
           sell_through_pct: number
           stock_bodega: number
