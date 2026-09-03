@@ -282,7 +282,57 @@ function Convenciones() {
   );
 }
 
+function ResumenCards({ rows }: { rows: Row[] }) {
+  const s = (k: keyof Row) => rows.reduce((a, r) => a + Number((r[k] as number) ?? 0), 0);
+  const undTotal = s("und_vendidas");
+  const stockTotal = s("stock_total");
+  const full = s("und_full"), reb = s("und_rebajas"), promo = s("und_promo");
+  const calTotal = full + reb + promo;
+  const share = (n: number, t: number) => (t > 0 ? `${((n / t) * 100).toFixed(1)}%` : "—");
+
+  const Item = ({ icon, label, value, extra }: { icon?: React.ReactNode; label: string; value: number; extra?: string }) => (
+    <div className="flex items-center justify-between text-xs">
+      <span className="inline-flex items-center gap-1.5 text-muted-foreground">{icon}{label}</span>
+      <span className="tabular-nums font-medium">
+        {int(value)}
+        {extra ? <span className="text-muted-foreground font-normal ml-1.5">{extra}</span> : null}
+      </span>
+    </div>
+  );
+
+  const Card = ({ title, total, children }: { title: string; total: number; children: React.ReactNode }) => (
+    <div className="rounded-lg border border-border p-3 space-y-2 min-w-0">
+      <div className="flex items-baseline justify-between gap-2">
+        <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">{title}</span>
+        <span className="text-lg font-semibold tabular-nums">{int(total)}</span>
+      </div>
+      <div className="space-y-1">{children}</div>
+    </div>
+  );
+
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+      <Card title="Unidades vendidas por canal" total={undTotal}>
+        <Item icon={<Store className="h-3 w-3" />} label="Tiendas" value={s("und_tiendas")} extra={share(s("und_tiendas"), undTotal)} />
+        <Item icon={<Globe className="h-3 w-3" />} label="Online" value={s("und_online")} extra={share(s("und_online"), undTotal)} />
+        <Item icon={<Tag className="h-3 w-3" />} label="Outlet" value={s("und_outlet")} extra={share(s("und_outlet"), undTotal)} />
+      </Card>
+      <Card title="Inventario por ubicación" total={stockTotal}>
+        <Item icon={<Store className="h-3 w-3" />} label="Tiendas" value={s("stock_tiendas")} extra={share(s("stock_tiendas"), stockTotal)} />
+        <Item icon={<Globe className="h-3 w-3" />} label="Online" value={s("stock_online")} extra={share(s("stock_online"), stockTotal)} />
+        <Item icon={<Pause className="h-3 w-3" />} label="Bodega" value={s("stock_bodega")} extra={share(s("stock_bodega"), stockTotal)} />
+      </Card>
+      <Card title="Calidad de venta" total={calTotal}>
+        <Item icon={<span className="h-2 w-2 rounded-full bg-emerald-500" />} label="Full price" value={full} extra={share(full, calTotal)} />
+        <Item icon={<span className="h-2 w-2 rounded-full bg-amber-500" />} label="Rebajas" value={reb} extra={share(reb, calTotal)} />
+        <Item icon={<span className="h-2 w-2 rounded-full bg-sky-500" />} label="Promo" value={promo} extra={share(promo, calTotal)} />
+      </Card>
+    </div>
+  );
+}
+
 export default function AnalisisLinea360Page() {
+
   const [searchParams, setSearchParams] = useSearchParams();
 
   const [days, setDays] = useState<number>(() => Number(searchParams.get("dias") ?? 90) || 90);
