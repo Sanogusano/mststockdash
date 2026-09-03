@@ -13,6 +13,7 @@ import {
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { ChevronRight } from "lucide-react";
 
@@ -30,10 +31,17 @@ interface Row {
   und_full: number;
   und_rebajas: number;
   und_promo: number;
-  clasificacion: string;
+  clasificacion?: string;
   stock_tiendas: number;
   stock_online: number;
   stock_bodega: number;
+  stock_total: number;
+  pct_evac_0_90: number;
+  pct_evac_90_120: number;
+  pct_evac_120_150: number;
+  pct_evac_150: number;
+  productos_maduros: number;
+  productos_total: number;
   rdv_semanal: number;
   sell_through_pct: number;
   wos: number;
@@ -48,7 +56,7 @@ const CANAL_OPTIONS = [
 ];
 
 const NOTA_PIE =
-  "PVP = precio de lista ponderado por unidades. Precio promedio = efectivamente cobrado. Stock Bodega requiere conciliación NetSuite del día.";
+  "PVP = precio de lista ponderado por unidades. Precio promedio = efectivamente cobrado. Stock = tiendas + online + bodega (requiere conciliación NetSuite del día). Evacuación = tramos incrementales sobre lo producido.";
 
 const money = (n: number | null | undefined) =>
   "$ " + Math.round(Number(n ?? 0)).toLocaleString("es-CO");
@@ -58,21 +66,75 @@ const pct = (n: number | null | undefined, d = 1) => `${Number(n ?? 0).toFixed(d
 const wosColor = (w: number) =>
   w > 12 ? "text-destructive" : w < 4 ? "text-amber-600" : "text-emerald-600";
 
-function ClasifBadge({ value }: { value: string }) {
-  if (!value) return <span className="text-xs text-muted-foreground">—</span>;
-  const v = value.toUpperCase();
-  const full = v.includes("FULL");
+function StockCell({ r }: { r: Row }) {
   return (
-    <span
-      className={cn(
-        "inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border",
-        full
-          ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-          : "bg-amber-50 text-amber-700 border-amber-200",
-      )}
-    >
-      {value}
-    </span>
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <span className="text-sm font-medium tabular-nums cursor-help">{int(r.stock_total)}</span>
+      </TooltipTrigger>
+      <TooltipContent side="left" className="text-xs">
+        <div>Tiendas: {int(r.stock_tiendas)}</div>
+        <div>Online: {int(r.stock_online)}</div>
+        <div>Bodega: {int(r.stock_bodega)}</div>
+      </TooltipContent>
+    </Tooltip>
+  );
+}
+
+function EvacuacionCell({ r }: { r: Row }) {
+  const t1 = Math.max(0, Number(r.pct_evac_0_90 ?? 0));
+  const t2 = Math.max(0, Number(r.pct_evac_90_120 ?? 0));
+  const t3 = Math.max(0, Number(r.pct_evac_120_150 ?? 0));
+  const total = Number(r.pct_evac_150 ?? t1 + t2 + t3);
+  const maduros = Number(r.productos_maduros ?? 0);
+  const totalProd = Number(r.productos_total ?? 0);
+  const incompleta = totalProd > 0 && maduros < totalProd;
+  const clamp = (v: number) => Math.max(0, Math.min(100, v));
+
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <div className="flex items-center gap-2 min-w-[170px] cursor-help">
+          <div
+            className={cn(
+              "relative h-2.5 flex-1 rounded-full bg-muted overflow-hidden",
+              incompleta && "opacity-40",
+            )}
+          >
+            <div className="absolute inset-0 flex">
+              <div className="bg-emerald-500 h-full" style={{ width: `${clamp(t1)}%` }} />
+              <div className="bg-amber-500 h-full" style={{ width: `${clamp(t2)}%` }} />
+              <div className="bg-amber-300 h-full" style={{ width: `${clamp(t3)}%` }} />
+            </div>
+            {[t1, t1 + t2].map((m, i) =>
+              m > 0 && m < 100 ? (
+                <div
+                  key={i}
+                  className="absolute top-0 h-full w-px bg-background/80"
+                  style={{ left: `${clamp(m)}%` }}
+                />
+              ) : null,
+            )}
+          </div>
+          <span className="text-xs font-medium tabular-nums w-12 text-right">{pct(total)}</span>
+        </div>
+      </TooltipTrigger>
+      <TooltipContent side="left" className="text-xs space-y-0.5">
+        <div className="flex items-center gap-1.5">
+          <span className="h-2 w-2 rounded-full bg-emerald-500" /> 0–90 d: {pct(t1)}
+        </div>
+        <div className="flex items-center gap-1.5">
+          <span className="h-2 w-2 rounded-full bg-amber-500" /> 90–120 d: {pct(t2)}
+        </div>
+        <div className="flex items-center gap-1.5">
+          <span className="h-2 w-2 rounded-full bg-amber-300" /> 120–150 d: {pct(t3)}
+        </div>
+        <div className="pt-1 border-t border-border/50">Total 150 d: {pct(total)}</div>
+        <div className="text-muted-foreground">
+          {int(maduros)}/{int(totalProd)} productos con 150 días cumplidos
+        </div>
+      </TooltipContent>
+    </Tooltip>
   );
 }
 
@@ -90,10 +152,8 @@ function MetricCells({ r }: { r: Row }) {
         {pct(r.pct_descuento_prom)}
       </TableCell>
       <TableCell className="text-right text-sm font-semibold">{int(r.und_vendidas)}</TableCell>
-      <TableCell><ClasifBadge value={r.clasificacion} /></TableCell>
-      <TableCell className="text-right text-sm">{int(r.stock_tiendas)}</TableCell>
-      <TableCell className="text-right text-sm">{int(r.stock_online)}</TableCell>
-      <TableCell className="text-right text-sm">{int(r.stock_bodega)}</TableCell>
+      <TableCell className="text-right"><StockCell r={r} /></TableCell>
+      <TableCell><EvacuacionCell r={r} /></TableCell>
       <TableCell className="text-right text-sm">{Number(r.rdv_semanal ?? 0).toFixed(1)}</TableCell>
       <TableCell className="text-right text-sm">{pct(r.sell_through_pct)}</TableCell>
       <TableCell className={cn("text-right text-sm font-medium", wosColor(Number(r.wos ?? 0)))}>
@@ -110,16 +170,15 @@ const HEAD_METRICS = (
     <TableHead className="text-right">Precio prom.</TableHead>
     <TableHead className="text-right">% Dto</TableHead>
     <TableHead className="text-right">Unidades</TableHead>
-    <TableHead>Clasificación</TableHead>
-    <TableHead className="text-right">Stock Tiendas</TableHead>
-    <TableHead className="text-right">Stock Online</TableHead>
-    <TableHead className="text-right">Stock Bodega</TableHead>
+    <TableHead className="text-right">Stock</TableHead>
+    <TableHead className="min-w-[190px]">Evacuación</TableHead>
     <TableHead className="text-right">RDV</TableHead>
     <TableHead className="text-right">Sell-through</TableHead>
     <TableHead className="text-right">WOS</TableHead>
     <TableHead>Salud</TableHead>
   </>
 );
+
 
 export default function AnalisisLinea360Page() {
   const [days, setDays] = useState<number>(90);
@@ -217,6 +276,7 @@ export default function AnalisisLinea360Page() {
   );
 
   return (
+    <TooltipProvider delayDuration={100}>
     <SidebarProvider>
       <div className="min-h-screen flex w-full bg-background">
         <AppSidebar />
@@ -284,7 +344,7 @@ export default function AnalisisLinea360Page() {
             ) : (
               <div className="border border-border rounded-lg overflow-hidden">
                 <div className="overflow-x-auto">
-                  <Table className="min-w-[1200px]">
+                  <Table className="min-w-[1100px]">
                     <TableHeader>
                       <TableRow className="bg-muted/30">
                         <TableHead className="min-w-[180px]">Línea</TableHead>
@@ -333,7 +393,7 @@ export default function AnalisisLinea360Page() {
             ) : (
               <div className="border border-border rounded-lg overflow-hidden">
                 <div className="overflow-x-auto">
-                  <Table className="min-w-[1200px]">
+                  <Table className="min-w-[1100px]">
                     <TableHeader>
                       <TableRow className="bg-muted/30">
                         <TableHead className="min-w-[220px]">Producto</TableHead>
@@ -368,5 +428,6 @@ export default function AnalisisLinea360Page() {
         </SheetContent>
       </Sheet>
     </SidebarProvider>
+    </TooltipProvider>
   );
 }

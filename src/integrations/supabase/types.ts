@@ -4211,22 +4211,29 @@ export type Database = {
           p_linea?: string
         }
         Returns: {
-          clasificacion: string
           coleccion: string
           estado_salud: string
           foto: string
           linea: string
           nivel: string
           pct_descuento_prom: number
+          pct_evac_0_90: number
+          pct_evac_120_150: number
+          pct_evac_150: number
+          pct_evac_90_120: number
           precio_promedio: number
+          producido: number
           producto: string
           producto_id: string
+          productos_maduros: number
+          productos_total: number
           pvp_promedio: number
           rdv_semanal: number
           sell_through_pct: number
           stock_bodega: number
           stock_online: number
           stock_tiendas: number
+          stock_total: number
           und_full: number
           und_promo: number
           und_rebajas: number
