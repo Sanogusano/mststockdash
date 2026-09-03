@@ -112,7 +112,8 @@ function EvacuacionCell({ r }: { r: Row }) {
   const total = Number(r.pct_evac_150 ?? t1 + t2 + t3);
   const maduros = Number(r.productos_maduros ?? 0);
   const totalProd = Number(r.productos_total ?? 0);
-  const incompleta = totalProd > 0 && maduros < totalProd;
+  // Señal visual solo cuando MENOS de la mitad de los productos cumplió la ventana de 150 días.
+  const incompleta = totalProd > 0 && maduros / totalProd < 0.5;
   const clamp = (v: number) => Math.max(0, Math.min(100, v));
 
   const seg = (w: number, color: string) =>
@@ -165,7 +166,12 @@ function EvacuacionCell({ r }: { r: Row }) {
           Total 150 d: {int(u1 + u2 + u3)} uds · {pct(total)} prom.
         </div>
         <div className="text-muted-foreground">
-          {int(maduros)}/{int(totalProd)} productos con 150 días cumplidos
+          {totalProd > 0 && (
+            <>
+              {int(maduros)} de {int(totalProd)} productos con 150+ días (
+              {(totalProd > 0 ? (maduros / totalProd) * 100 : 0).toFixed(1).replace(".", ",")}%)
+            </>
+          )}
         </div>
       </TooltipContent>
     </Tooltip>
@@ -269,7 +275,7 @@ function Convenciones() {
       <span className="inline-flex items-center gap-1"><span className="h-2 w-4 rounded-sm bg-emerald-500" /> Evacuación 0–90 días</span>
       <span className="inline-flex items-center gap-1"><span className="h-2 w-4 rounded-sm bg-amber-500" /> 90–120 días</span>
       <span className="inline-flex items-center gap-1"><span className="h-2 w-4 rounded-sm bg-amber-300" /> 120–150 días</span>
-      <span>Barra atenuada = aún hay productos sin cumplir 150 días.</span>
+      <span>Barra atenuada = menos de la mitad de los productos con 150+ días cumplidos.</span>
     </div>
   );
 }
