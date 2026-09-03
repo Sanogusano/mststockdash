@@ -330,6 +330,9 @@ function ResumenCards({ rows }: { rows: Row[] }) {
   );
 }
 
+const normalizar = (s: string) =>
+  (s ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+
 export default function AnalisisLinea360Page() {
 
   const [searchParams, setSearchParams] = useSearchParams();
