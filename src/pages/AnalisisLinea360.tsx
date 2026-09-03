@@ -26,7 +26,9 @@ interface Row {
   producto_id: string | null;
   producto: string | null;
   foto: string | null;
-  pvp_promedio: number;
+  pvp_mediana: number;
+  pvp_min: number;
+  pvp_max: number;
   precio_promedio: number | null;
   pct_descuento_prom: number | null;
   und_vendidas: number;
@@ -64,7 +66,7 @@ const CANAL_OPTIONS = [
 ];
 
 const NOTA_PIE =
-  "PVP = precio de lista del catálogo (compare_at_price, o price si está vacío). Precio promedio = efectivamente cobrado, ponderado por unidades vendidas. Stock = tiendas + online + bodega (requiere conciliación NetSuite del día). Evacuación = tramos incrementales sobre lo producido.";
+  "Precio de Lista = compare_at_price del catálogo, o price si está vacío. Se muestra la mediana de la línea y su rango. Precio de Venta = efectivamente cobrado, ponderado por unidades vendidas. Stock = tiendas + online + bodega (requiere conciliación NetSuite del día). Evacuación = tramos incrementales sobre lo producido.";
 
 const money = (n: number | null | undefined) =>
   "$ " + Math.round(Number(n ?? 0)).toLocaleString("es-CO");
