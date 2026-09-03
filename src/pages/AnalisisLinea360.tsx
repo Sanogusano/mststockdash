@@ -154,6 +154,20 @@ export default function AnalisisLinea360Page() {
   };
 
   useEffect(() => {
+    if (colOptionsLoaded.current) return;
+    colOptionsLoaded.current = true;
+    (async () => {
+      const { data } = await supabase
+        .from("product_catalog")
+        .select("collection_season")
+        .not("collection_season", "is", null);
+      setColOptions(
+        [...new Set((data ?? []).map((r: any) => r.collection_season).filter(Boolean))].sort() as string[],
+      );
+    })();
+  }, []);
+
+  useEffect(() => {
     let cancelled = false;
     (async () => {
       setLoading(true);
@@ -169,17 +183,13 @@ export default function AnalisisLinea360Page() {
         setError(error.message);
         setRows([]);
       } else {
-        const list = (data ?? []) as unknown as Row[];
-        setRows(list);
-        if (!colOptionsLoaded.current && coleccion === "all") {
-          colOptionsLoaded.current = true;
-          setColOptions([...new Set(list.map((r) => r.coleccion).filter(Boolean))].sort());
-        }
+        setRows((data ?? []) as unknown as Row[]);
       }
       setLoading(false);
     })();
     return () => { cancelled = true; };
   }, [dias, coleccion, canalParam]);
+
 
   useEffect(() => {
     if (!detail) return;
