@@ -199,7 +199,7 @@ export default function AnalisisLinea360Page() {
       setDetailError(null);
       const { data, error } = await supabase.rpc("reporte_analisis_linea_coleccion", {
         p_dias: dias,
-        p_coleccion: detail.coleccion,
+        p_coleccion: detail.coleccion ?? undefined,
         p_linea: detail.linea,
         p_canal: canalParam ?? undefined,
       });
