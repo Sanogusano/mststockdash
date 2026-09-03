@@ -605,7 +605,13 @@ export default function AnalisisLinea360Page() {
                         <TableRow
                           key={r.linea}
                           className="cursor-pointer hover:bg-primary/5"
-                          onClick={() => setDetail({ coleccion: coleccion === "all" ? null : coleccion, linea: r.linea })}
+                          onClick={() => {
+                            setDetColeccion(coleccion);
+                            setDetBusqueda("");
+                            setDetStockVal("");
+                            setDetStockOp("gt");
+                            setDetail({ coleccion: coleccion === "all" ? null : coleccion, linea: r.linea });
+                          }}
                         >
                           <TableCell className="text-sm font-medium whitespace-nowrap sticky left-0 z-10 bg-background">{r.linea}</TableCell>
                           <MetricCells r={r} />
