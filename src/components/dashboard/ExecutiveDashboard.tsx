@@ -1367,7 +1367,7 @@ function ChannelPanel({ days, canal, showLocationFilter, locationFilter, compari
         <ParetoChart days={days} canal={canal} locationId={locParam} customFrom={customFrom} customTo={customTo} />
       </div>
 
-      <ParticipacionGeneroCard days={days} canal={canal} />
+      <ParticipacionGeneroCard days={days} canal={canal} customFrom={customFrom} customTo={customTo} />
 
       <CollectionCompositionCard days={days} canal={canal} locationId={locParam} customFrom={customFrom} customTo={customTo} />
 
@@ -1778,7 +1778,7 @@ function BrandOverviewPanel({ days, comparisonPeriod = "previous", customFrom, c
         {/* Channel Contribution Chart */}
         <ChannelContributionChart channelData={filteredChannelData} />
       </div>
-      <ParticipacionGeneroCard days={days} canal={singleCanal ?? null} />
+      <ParticipacionGeneroCard days={days} canal={singleCanal ?? null} customFrom={customFrom} customTo={customTo} />
       <CollectionCompositionCard days={days} canal={singleCanal ?? undefined} customFrom={customFrom} customTo={customTo} />
       <BrandTopBottomProducts days={days} customFrom={customFrom} customTo={customTo} />
 
