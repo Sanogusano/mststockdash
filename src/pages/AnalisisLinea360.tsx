@@ -447,7 +447,7 @@ export default function AnalisisLinea360Page() {
       setDetailError(null);
       const { data, error } = await supabase.rpc("reporte_analisis_linea_coleccion", {
         p_dias: dias,
-        p_coleccion: detail.coleccion ?? undefined,
+        p_coleccion: detColeccion === "all" ? undefined : detColeccion,
         p_linea: detail.linea,
         p_canal: canalParam ?? undefined,
       });
@@ -457,7 +457,7 @@ export default function AnalisisLinea360Page() {
       setDetailLoading(false);
     })();
     return () => { cancelled = true; };
-  }, [detail, dias, canalParam]);
+  }, [detail, dias, canalParam, detColeccion]);
 
   const lineas = useMemo(
     () =>
@@ -467,13 +467,26 @@ export default function AnalisisLinea360Page() {
     [rows, soloSinVentas],
   );
 
-  const detalle = useMemo(
+  const detalleBase = useMemo(
     () =>
       [...detailRows]
         .filter((r) => (soloSinVentas ? Number(r.und_vendidas ?? 0) === 0 : true))
         .sort((a, b) => Number(b.und_vendidas ?? 0) - Number(a.und_vendidas ?? 0)),
     [detailRows, soloSinVentas],
   );
+
+  const detalle = useMemo(() => {
+    const q = normalizar(detBusqueda);
+    const umbral = detStockVal.trim() === "" ? null : Number(detStockVal);
+    return detalleBase.filter((r) => {
+      if (q && !normalizar(r.producto ?? "").includes(q)) return false;
+      if (umbral !== null && Number.isFinite(umbral)) {
+        const stock = Number(r.stock_total ?? 0);
+        if (detStockOp === "gt" ? !(stock > umbral) : !(stock < umbral)) return false;
+      }
+      return true;
+    });
+  }, [detalleBase, detBusqueda, detStockOp, detStockVal]);
 
 
   return (
