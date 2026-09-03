@@ -1367,7 +1367,17 @@ function ChannelPanel({ days, canal, showLocationFilter, locationFilter, compari
         <ParetoChart days={days} canal={canal} locationId={locParam} customFrom={customFrom} customTo={customTo} />
       </div>
 
-      <ParticipacionGeneroCard days={days} canal={canal} customFrom={customFrom} customTo={customTo} />
+      <ParticipacionGeneroCard
+        days={days}
+        canal={locParam ? null : canal}
+        locationId={locParam}
+        ambito={locParam
+          ? (locations.find(l => l.location_id === locParam)?.name ?? "Tienda")
+          : canal === "digital" ? "Digital" : canal === "outlets" ? "Outlets" : "Tiendas de línea"}
+        customFrom={customFrom}
+        customTo={customTo}
+      />
+
 
       <CollectionCompositionCard days={days} canal={canal} locationId={locParam} customFrom={customFrom} customTo={customTo} />
 
