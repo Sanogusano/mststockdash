@@ -621,7 +621,9 @@ export default function AnalisisLinea360Page() {
                   </Table>
                 </div>
               </div>
+              </>
             )}
+
             <Convenciones />
             <p className="text-[11px] text-muted-foreground">{NOTA_PIE}</p>
           </div>
