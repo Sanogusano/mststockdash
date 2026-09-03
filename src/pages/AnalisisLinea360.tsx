@@ -134,7 +134,7 @@ export default function AnalisisLinea360Page() {
   const [colOptions, setColOptions] = useState<string[]>([]);
   const colOptionsLoaded = useRef(false);
 
-  const [detail, setDetail] = useState<{ coleccion: string; linea: string } | null>(null);
+  const [detail, setDetail] = useState<{ coleccion: string | null; linea: string } | null>(null);
   const [detailRows, setDetailRows] = useState<Row[]>([]);
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailError, setDetailError] = useState<string | null>(null);
