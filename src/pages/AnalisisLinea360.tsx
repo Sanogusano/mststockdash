@@ -16,6 +16,7 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { ChevronRight, Store, Globe, Tag, Pause } from "lucide-react";
 
@@ -329,6 +330,9 @@ function ResumenCards({ rows }: { rows: Row[] }) {
   );
 }
 
+const normalizar = (s: string) =>
+  (s ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+
 export default function AnalisisLinea360Page() {
 
   const [searchParams, setSearchParams] = useSearchParams();
@@ -356,6 +360,11 @@ export default function AnalisisLinea360Page() {
   const [detailRows, setDetailRows] = useState<Row[]>([]);
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailError, setDetailError] = useState<string | null>(null);
+  // Filtros propios del drawer
+  const [detColeccion, setDetColeccion] = useState<string>("all");
+  const [detBusqueda, setDetBusqueda] = useState("");
+  const [detStockOp, setDetStockOp] = useState<"gt" | "lt">("gt");
+  const [detStockVal, setDetStockVal] = useState("");
 
   const dias = resolveDays(days);
   const canalParam = canal === "all" ? null : canal;
@@ -441,7 +450,7 @@ export default function AnalisisLinea360Page() {
       setDetailError(null);
       const { data, error } = await supabase.rpc("reporte_analisis_linea_coleccion", {
         p_dias: dias,
-        p_coleccion: detail.coleccion ?? undefined,
+        p_coleccion: detColeccion === "all" ? undefined : detColeccion,
         p_linea: detail.linea,
         p_canal: canalParam ?? undefined,
       });
@@ -451,7 +460,7 @@ export default function AnalisisLinea360Page() {
       setDetailLoading(false);
     })();
     return () => { cancelled = true; };
-  }, [detail, dias, canalParam]);
+  }, [detail, dias, canalParam, detColeccion]);
 
   const lineas = useMemo(
     () =>
@@ -461,13 +470,26 @@ export default function AnalisisLinea360Page() {
     [rows, soloSinVentas],
   );
 
-  const detalle = useMemo(
+  const detalleBase = useMemo(
     () =>
       [...detailRows]
         .filter((r) => (soloSinVentas ? Number(r.und_vendidas ?? 0) === 0 : true))
         .sort((a, b) => Number(b.und_vendidas ?? 0) - Number(a.und_vendidas ?? 0)),
     [detailRows, soloSinVentas],
   );
+
+  const detalle = useMemo(() => {
+    const q = normalizar(detBusqueda);
+    const umbral = detStockVal.trim() === "" ? null : Number(detStockVal);
+    return detalleBase.filter((r) => {
+      if (q && !normalizar(r.producto ?? "").includes(q)) return false;
+      if (umbral !== null && Number.isFinite(umbral)) {
+        const stock = Number(r.stock_total ?? 0);
+        if (detStockOp === "gt" ? !(stock > umbral) : !(stock < umbral)) return false;
+      }
+      return true;
+    });
+  }, [detalleBase, detBusqueda, detStockOp, detStockVal]);
 
 
   return (
@@ -583,7 +605,13 @@ export default function AnalisisLinea360Page() {
                         <TableRow
                           key={r.linea}
                           className="cursor-pointer hover:bg-primary/5"
-                          onClick={() => setDetail({ coleccion: coleccion === "all" ? null : coleccion, linea: r.linea })}
+                          onClick={() => {
+                            setDetColeccion(coleccion);
+                            setDetBusqueda("");
+                            setDetStockVal("");
+                            setDetStockOp("gt");
+                            setDetail({ coleccion: coleccion === "all" ? null : coleccion, linea: r.linea });
+                          }}
                         >
                           <TableCell className="text-sm font-medium whitespace-nowrap sticky left-0 z-10 bg-background">{r.linea}</TableCell>
                           <MetricCells r={r} />
@@ -606,11 +634,71 @@ export default function AnalisisLinea360Page() {
         <SheetContent className="!max-w-full w-full overflow-y-auto p-0" side="right">
           <SheetHeader className="p-6 pb-4 border-b border-border">
             <SheetTitle className="text-base font-semibold">
-              {detail?.linea}{detail?.coleccion ? ` · ${detail.coleccion}` : ""}
+              {detail?.linea}{detColeccion !== "all" ? ` · ${detColeccion}` : ""}
             </SheetTitle>
             <p className="text-xs text-muted-foreground">Detalle por producto</p>
           </SheetHeader>
           <div className="p-6 space-y-4">
+            {/* Filtros del detalle */}
+            <div className="flex flex-wrap items-end gap-3">
+              <div className="min-w-0">
+                <label className="block text-[10px] font-semibold uppercase tracking-wide text-muted-foreground mb-1">
+                  Colección
+                </label>
+                <Select value={detColeccion} onValueChange={setDetColeccion}>
+                  <SelectTrigger className="h-9 w-[200px] text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todas las colecciones</SelectItem>
+                    {colOptions.map((c) => (
+                      <SelectItem key={c} value={c}>{c}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="min-w-0">
+                <label className="block text-[10px] font-semibold uppercase tracking-wide text-muted-foreground mb-1">
+                  Buscar producto
+                </label>
+                <div className="flex items-center gap-2">
+                  <Input
+                    value={detBusqueda}
+                    onChange={(e) => setDetBusqueda(e.target.value)}
+                    placeholder="Nombre del producto..."
+                    className="h-9 w-[240px] text-xs"
+                  />
+                  <span className="text-[11px] text-muted-foreground whitespace-nowrap">
+                    {detalle.length} de {detalleBase.length} productos
+                  </span>
+                </div>
+              </div>
+              <div className="min-w-0">
+                <label className="block text-[10px] font-semibold uppercase tracking-wide text-muted-foreground mb-1">
+                  Stock
+                </label>
+                <div className="flex items-center gap-2">
+                  <Select value={detStockOp} onValueChange={(v) => setDetStockOp(v as "gt" | "lt")}>
+                    <SelectTrigger className="h-9 w-[130px] text-xs">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="gt">mayor que</SelectItem>
+                      <SelectItem value="lt">menor que</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Input
+                    type="number"
+                    inputMode="numeric"
+                    value={detStockVal}
+                    onChange={(e) => setDetStockVal(e.target.value)}
+                    placeholder="—"
+                    className="h-9 w-[100px] text-xs"
+                  />
+                </div>
+              </div>
+            </div>
+
             {detailLoading ? (
               <LoadingState rows={6} />
             ) : detailError ? (
