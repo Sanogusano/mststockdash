@@ -259,11 +259,14 @@ function Convenciones() {
 }
 
 export default function AnalisisLinea360Page() {
-  const [days, setDays] = useState<number>(90);
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  const [days, setDays] = useState<number>(() => Number(searchParams.get("dias") ?? 90) || 90);
   const [customFrom, setCustomFrom] = useState<Date | undefined>();
   const [customTo, setCustomTo] = useState<Date | undefined>();
-  const [coleccion, setColeccion] = useState("all");
-  const [canal, setCanal] = useState("all");
+  const [coleccion, setColeccion] = useState(() => searchParams.get("coleccion") ?? "all");
+  const [canal, setCanal] = useState(() => searchParams.get("canal") ?? "all");
+  const [soloSinVentas, setSoloSinVentas] = useState(() => searchParams.get("sinventas") === "1");
 
   const [rows, setRows] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
@@ -279,6 +282,16 @@ export default function AnalisisLinea360Page() {
   const dias = resolveDays(days);
   const canalParam = canal === "all" ? null : canal;
 
+  // Sincronizar filtros con la URL para que sobrevivan y se puedan compartir.
+  useEffect(() => {
+    const next = new URLSearchParams();
+    next.set("dias", String(days));
+    if (coleccion !== "all") next.set("coleccion", coleccion);
+    if (canal !== "all") next.set("canal", canal);
+    if (soloSinVentas) next.set("sinventas", "1");
+    setSearchParams(next, { replace: true });
+  }, [days, coleccion, canal, soloSinVentas, setSearchParams]);
+
   const handleDaysChange = (d: number) => {
     setCustomFrom(undefined);
     setCustomTo(undefined);
@@ -289,6 +302,7 @@ export default function AnalisisLinea360Page() {
     setCustomTo(to);
     setDays(Math.max(differenceInCalendarDays(to, from), 0));
   };
+
 
   useEffect(() => {
     if (colOptionsLoaded.current) return;
