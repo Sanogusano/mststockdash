@@ -229,18 +229,17 @@ function MetricCells({ r, enDetalle = false }: { r: Row; enDetalle?: boolean }) 
           total={Number(r.und_vendidas ?? 0)}
         />
       </TableCell>
-      <TableCell><EvacuacionCell r={r} /></TableCell>
       <TableCell className="text-right text-sm">
         {sinVentas || r.rdv_semanal == null ? <NoData /> : Number(r.rdv_semanal).toFixed(1)}
       </TableCell>
-
+      <TableCell><EvacuacionCell r={r} /></TableCell>
       <TableCell className="text-right text-sm">
         {sinVentas || r.sell_through_pct == null ? <NoData /> : pct(r.sell_through_pct)}
       </TableCell>
       <TableCell className={cn("text-right text-sm font-medium", wosColor(Number(r.wos ?? 0)))}>
         {Number(r.wos ?? 0) >= 999 ? "∞" : `${Number(r.wos ?? 0).toFixed(1)}w`}
       </TableCell>
-      <TableCell><StatusBadge label={r.estado_salud ?? "—"} /></TableCell>
+
     </>
   );
 }
