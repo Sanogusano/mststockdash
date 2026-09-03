@@ -6,6 +6,7 @@ import { differenceInCalendarDays } from "date-fns";
 import { TimeFilter, resolveDays } from "@/components/dashboard/TimeFilter";
 import { LoadingState, EmptyState } from "@/components/dashboard/LoadingState";
 import { StatusBadge } from "@/components/dashboard/StatusBadge";
+import { SalesBreakdownBars } from "@/pages/LineasProducto";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
@@ -15,7 +16,7 @@ import {
 } from "@/components/ui/table";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, Store, Globe, Tag, Pause } from "lucide-react";
 
 interface Row {
   nivel: string;
@@ -28,6 +29,9 @@ interface Row {
   precio_promedio: number;
   pct_descuento_prom: number;
   und_vendidas: number;
+  und_tiendas: number;
+  und_online: number;
+  und_outlet: number;
   und_full: number;
   und_rebajas: number;
   und_promo: number;
@@ -40,6 +44,9 @@ interface Row {
   pct_evac_90_120: number;
   pct_evac_120_150: number;
   pct_evac_150: number;
+  uds_evac_0_90: number;
+  uds_evac_90_120: number;
+  uds_evac_120_150: number;
   productos_maduros: number;
   productos_total: number;
   rdv_semanal: number;
@@ -66,18 +73,29 @@ const pct = (n: number | null | undefined, d = 1) => `${Number(n ?? 0).toFixed(d
 const wosColor = (w: number) =>
   w > 12 ? "text-destructive" : w < 4 ? "text-amber-600" : "text-emerald-600";
 
+function UnidadesCell({ r }: { r: Row }) {
+  return (
+    <div className="text-right">
+      <div className="text-sm font-semibold tabular-nums">{int(r.und_vendidas)}</div>
+      <div className="flex items-center justify-end gap-2 text-[10px] text-muted-foreground tabular-nums mt-0.5">
+        <span className="inline-flex items-center gap-0.5"><Store className="h-3 w-3" />{int(r.und_tiendas)}</span>
+        <span className="inline-flex items-center gap-0.5"><Globe className="h-3 w-3" />{int(r.und_online)}</span>
+        <span className="inline-flex items-center gap-0.5"><Tag className="h-3 w-3" />{int(r.und_outlet)}</span>
+      </div>
+    </div>
+  );
+}
+
 function StockCell({ r }: { r: Row }) {
   return (
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <span className="text-sm font-medium tabular-nums cursor-help">{int(r.stock_total)}</span>
-      </TooltipTrigger>
-      <TooltipContent side="left" className="text-xs">
-        <div>Tiendas: {int(r.stock_tiendas)}</div>
-        <div>Online: {int(r.stock_online)}</div>
-        <div>Bodega: {int(r.stock_bodega)}</div>
-      </TooltipContent>
-    </Tooltip>
+    <div className="text-right">
+      <div className="text-sm font-semibold tabular-nums">{int(r.stock_total)}</div>
+      <div className="flex items-center justify-end gap-2 text-[10px] text-muted-foreground tabular-nums mt-0.5">
+        <span className="inline-flex items-center gap-0.5"><Store className="h-3 w-3" />{int(r.stock_tiendas)}</span>
+        <span className="inline-flex items-center gap-0.5"><Globe className="h-3 w-3" />{int(r.stock_online)}</span>
+        <span className="inline-flex items-center gap-0.5"><Pause className="h-3 w-3" />{int(r.stock_bodega)}</span>
+      </div>
+    </div>
   );
 }
 
@@ -85,26 +103,43 @@ function EvacuacionCell({ r }: { r: Row }) {
   const t1 = Math.max(0, Number(r.pct_evac_0_90 ?? 0));
   const t2 = Math.max(0, Number(r.pct_evac_90_120 ?? 0));
   const t3 = Math.max(0, Number(r.pct_evac_120_150 ?? 0));
+  const u1 = Number(r.uds_evac_0_90 ?? 0);
+  const u2 = Number(r.uds_evac_90_120 ?? 0);
+  const u3 = Number(r.uds_evac_120_150 ?? 0);
   const total = Number(r.pct_evac_150 ?? t1 + t2 + t3);
   const maduros = Number(r.productos_maduros ?? 0);
   const totalProd = Number(r.productos_total ?? 0);
   const incompleta = totalProd > 0 && maduros < totalProd;
   const clamp = (v: number) => Math.max(0, Math.min(100, v));
 
+  const seg = (w: number, uds: number, color: string, dark = false) =>
+    w <= 0 ? null : (
+      <div
+        className={cn("h-full flex items-center justify-center overflow-hidden", color)}
+        style={{ width: `${clamp(w)}%` }}
+      >
+        {w >= 12 && (
+          <span className={cn("text-[9px] font-semibold tabular-nums", dark ? "text-foreground/70" : "text-white")}>
+            {int(uds)}
+          </span>
+        )}
+      </div>
+    );
+
   return (
     <Tooltip>
       <TooltipTrigger asChild>
-        <div className="flex items-center gap-2 min-w-[170px] cursor-help">
+        <div className="flex items-center gap-2 min-w-[210px] cursor-help">
           <div
             className={cn(
-              "relative h-2.5 flex-1 rounded-full bg-muted overflow-hidden",
+              "relative h-4 flex-1 rounded-full bg-muted overflow-hidden",
               incompleta && "opacity-40",
             )}
           >
             <div className="absolute inset-0 flex">
-              <div className="bg-emerald-500 h-full" style={{ width: `${clamp(t1)}%` }} />
-              <div className="bg-amber-500 h-full" style={{ width: `${clamp(t2)}%` }} />
-              <div className="bg-amber-300 h-full" style={{ width: `${clamp(t3)}%` }} />
+              {seg(t1, u1, "bg-emerald-500")}
+              {seg(t2, u2, "bg-amber-500")}
+              {seg(t3, u3, "bg-amber-300", true)}
             </div>
             {[t1, t1 + t2].map((m, i) =>
               m > 0 && m < 100 ? (
@@ -116,20 +151,22 @@ function EvacuacionCell({ r }: { r: Row }) {
               ) : null,
             )}
           </div>
-          <span className="text-xs font-medium tabular-nums w-12 text-right">{pct(total)}</span>
+          <span className="text-xs font-medium tabular-nums w-16 text-right">{pct(total)} prom.</span>
         </div>
       </TooltipTrigger>
       <TooltipContent side="left" className="text-xs space-y-0.5">
         <div className="flex items-center gap-1.5">
-          <span className="h-2 w-2 rounded-full bg-emerald-500" /> 0–90 d: {pct(t1)}
+          <span className="h-2 w-2 rounded-full bg-emerald-500" /> 0–90 d: {int(u1)} uds · {pct(t1)}
         </div>
         <div className="flex items-center gap-1.5">
-          <span className="h-2 w-2 rounded-full bg-amber-500" /> 90–120 d: {pct(t2)}
+          <span className="h-2 w-2 rounded-full bg-amber-500" /> 90–120 d: {int(u2)} uds · {pct(t2)}
         </div>
         <div className="flex items-center gap-1.5">
-          <span className="h-2 w-2 rounded-full bg-amber-300" /> 120–150 d: {pct(t3)}
+          <span className="h-2 w-2 rounded-full bg-amber-300" /> 120–150 d: {int(u3)} uds · {pct(t3)}
         </div>
-        <div className="pt-1 border-t border-border/50">Total 150 d: {pct(total)}</div>
+        <div className="pt-1 border-t border-border/50">
+          Total 150 d: {int(u1 + u2 + u3)} uds · {pct(total)} prom.
+        </div>
         <div className="text-muted-foreground">
           {int(maduros)}/{int(totalProd)} productos con 150 días cumplidos
         </div>
@@ -151,8 +188,16 @@ function MetricCells({ r }: { r: Row }) {
       >
         {pct(r.pct_descuento_prom)}
       </TableCell>
-      <TableCell className="text-right text-sm font-semibold">{int(r.und_vendidas)}</TableCell>
+      <TableCell className="text-right"><UnidadesCell r={r} /></TableCell>
       <TableCell className="text-right"><StockCell r={r} /></TableCell>
+      <TableCell>
+        <SalesBreakdownBars
+          full={Number(r.und_full ?? 0)}
+          rebajas={Number(r.und_rebajas ?? 0)}
+          promo={Number(r.und_promo ?? 0)}
+          total={Number(r.und_vendidas ?? 0)}
+        />
+      </TableCell>
       <TableCell><EvacuacionCell r={r} /></TableCell>
       <TableCell className="text-right text-sm">{Number(r.rdv_semanal ?? 0).toFixed(1)}</TableCell>
       <TableCell className="text-right text-sm">{pct(r.sell_through_pct)}</TableCell>
@@ -164,21 +209,44 @@ function MetricCells({ r }: { r: Row }) {
   );
 }
 
-const HEAD_METRICS = (
-  <>
-    <TableHead className="text-right">PVP</TableHead>
-    <TableHead className="text-right">Precio prom.</TableHead>
-    <TableHead className="text-right">% Dto</TableHead>
-    <TableHead className="text-right">Unidades</TableHead>
-    <TableHead className="text-right">Stock</TableHead>
-    <TableHead className="min-w-[190px]">Evacuación</TableHead>
-    <TableHead className="text-right">RDV</TableHead>
-    <TableHead className="text-right">Sell-through</TableHead>
-    <TableHead className="text-right">WOS</TableHead>
-    <TableHead>Salud</TableHead>
-  </>
-);
+function HeadMetrics({ canal }: { canal: string }) {
+  return (
+    <>
+      <TableHead className="text-right">PVP</TableHead>
+      <TableHead className="text-right">Precio prom.</TableHead>
+      <TableHead className="text-right">Descuento Promedio</TableHead>
+      <TableHead className="text-right">Unidades Vendidas</TableHead>
+      <TableHead className="text-right">Stock</TableHead>
+      <TableHead className="min-w-[150px]">Calidad de Venta</TableHead>
+      <TableHead className="min-w-[230px]">Evacuación promedio</TableHead>
+      <TableHead className="text-right">
+        RDV
+        <span className="block text-[9px] font-normal normal-case text-muted-foreground">
+          {canal === "Online" ? "uds/semana" : "uds/tienda/semana"}
+        </span>
+      </TableHead>
+      <TableHead className="text-right">Sell-through</TableHead>
+      <TableHead className="text-right">WOS</TableHead>
+      <TableHead>Salud</TableHead>
+    </>
+  );
+}
 
+function Convenciones() {
+  return (
+    <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-[11px] text-muted-foreground border border-border rounded-lg px-3 py-2">
+      <span className="font-semibold text-foreground">Convenciones:</span>
+      <span className="inline-flex items-center gap-1"><Store className="h-3 w-3" /> Tiendas</span>
+      <span className="inline-flex items-center gap-1"><Globe className="h-3 w-3" /> Online</span>
+      <span className="inline-flex items-center gap-1"><Tag className="h-3 w-3" /> Outlet (ventas)</span>
+      <span className="inline-flex items-center gap-1"><Pause className="h-3 w-3" /> Bodega / stand by (stock)</span>
+      <span className="inline-flex items-center gap-1"><span className="h-2 w-4 rounded-sm bg-emerald-500" /> Evacuación 0–90 días</span>
+      <span className="inline-flex items-center gap-1"><span className="h-2 w-4 rounded-sm bg-amber-500" /> 90–120 días</span>
+      <span className="inline-flex items-center gap-1"><span className="h-2 w-4 rounded-sm bg-amber-300" /> 120–150 días</span>
+      <span>Barra atenuada = aún hay productos sin cumplir 150 días.</span>
+    </div>
+  );
+}
 
 export default function AnalisisLinea360Page() {
   const [days, setDays] = useState<number>(90);
@@ -344,11 +412,11 @@ export default function AnalisisLinea360Page() {
             ) : (
               <div className="border border-border rounded-lg overflow-hidden">
                 <div className="overflow-x-auto">
-                  <Table className="min-w-[1100px]">
+                  <Table className="min-w-[1500px]">
                     <TableHeader>
                       <TableRow className="bg-muted/30">
                         <TableHead className="min-w-[180px]">Línea</TableHead>
-                        {HEAD_METRICS}
+                        <HeadMetrics canal={canal} />
                         <TableHead className="w-8" />
                       </TableRow>
                     </TableHeader>
@@ -370,6 +438,7 @@ export default function AnalisisLinea360Page() {
               </div>
             )}
 
+            <Convenciones />
             <p className="text-[11px] text-muted-foreground">{NOTA_PIE}</p>
           </main>
         </div>
@@ -393,11 +462,11 @@ export default function AnalisisLinea360Page() {
             ) : (
               <div className="border border-border rounded-lg overflow-hidden">
                 <div className="overflow-x-auto">
-                  <Table className="min-w-[1100px]">
+                  <Table className="min-w-[1500px]">
                     <TableHeader>
                       <TableRow className="bg-muted/30">
                         <TableHead className="min-w-[220px]">Producto</TableHead>
-                        {HEAD_METRICS}
+                        <HeadMetrics canal={canal} />
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -423,6 +492,7 @@ export default function AnalisisLinea360Page() {
                 </div>
               </div>
             )}
+            <Convenciones />
             <p className="text-[11px] text-muted-foreground">{NOTA_PIE}</p>
           </div>
         </SheetContent>
