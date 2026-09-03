@@ -363,9 +363,21 @@ export default function AnalisisLinea360Page() {
   }, [detail, dias, canalParam]);
 
   const lineas = useMemo(
-    () => [...rows].sort((a, b) => Number(b.und_vendidas ?? 0) - Number(a.und_vendidas ?? 0)),
-    [rows],
+    () =>
+      [...rows]
+        .filter((r) => (soloSinVentas ? Number(r.und_vendidas ?? 0) === 0 : true))
+        .sort((a, b) => Number(b.und_vendidas ?? 0) - Number(a.und_vendidas ?? 0)),
+    [rows, soloSinVentas],
   );
+
+  const detalle = useMemo(
+    () =>
+      [...detailRows]
+        .filter((r) => (soloSinVentas ? Number(r.und_vendidas ?? 0) === 0 : true))
+        .sort((a, b) => Number(b.und_vendidas ?? 0) - Number(a.und_vendidas ?? 0)),
+    [detailRows, soloSinVentas],
+  );
+
 
   return (
     <TooltipProvider delayDuration={100}>
