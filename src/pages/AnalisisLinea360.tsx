@@ -115,24 +115,8 @@ function EvacuacionCell({ r }: { r: Row }) {
   const incompleta = totalProd > 0 && maduros < totalProd;
   const clamp = (v: number) => Math.max(0, Math.min(100, v));
 
-  const seg = (w: number, uds: number, color: string, dark = false) =>
-    w <= 0 ? null : (
-      <div
-        className={cn("h-full flex items-center justify-center overflow-hidden", color)}
-        style={{ width: `${clamp(w)}%` }}
-      >
-        {w >= 10 && (
-          <span
-            className={cn(
-              "text-[9px] font-semibold tabular-nums whitespace-nowrap px-0.5",
-              dark ? "text-foreground/80" : "text-white",
-            )}
-          >
-            {w >= 22 ? `${pct(w)} · ${int(uds)}` : pct(w)}
-          </span>
-        )}
-      </div>
-    );
+  const seg = (w: number, color: string) =>
+    w <= 0 ? null : <div className={cn("h-full", color)} style={{ width: `${clamp(w)}%` }} />;
 
   return (
     <Tooltip>
@@ -140,14 +124,14 @@ function EvacuacionCell({ r }: { r: Row }) {
         <div className="flex items-center gap-2 min-w-[210px] cursor-help">
           <div
             className={cn(
-              "relative h-3 flex-1 rounded-full bg-muted overflow-hidden",
+              "relative h-3 min-w-[120px] flex-1 rounded-full bg-muted overflow-hidden",
               incompleta && "opacity-60",
             )}
           >
             <div className="absolute inset-0 flex">
-              {seg(t1, u1, "bg-emerald-500")}
-              {seg(t2, u2, "bg-amber-500")}
-              {seg(t3, u3, "bg-amber-300", true)}
+              {seg(t1, "bg-emerald-500")}
+              {seg(t2, "bg-amber-500")}
+              {seg(t3, "bg-amber-300")}
             </div>
 
             {[t1, t1 + t2].map((m, i) =>
@@ -160,9 +144,13 @@ function EvacuacionCell({ r }: { r: Row }) {
               ) : null,
             )}
           </div>
-          <span className="text-xs font-medium tabular-nums w-16 text-right">{pct(total)} prom.</span>
+          <div className="text-right whitespace-nowrap">
+            <div className="text-xs font-medium tabular-nums">{pct(total)} prom.</div>
+            <div className="text-[10px] text-muted-foreground tabular-nums">{int(u1 + u2 + u3)} uds</div>
+          </div>
         </div>
       </TooltipTrigger>
+
       <TooltipContent side="left" className="text-xs space-y-0.5">
         <div className="flex items-center gap-1.5">
           <span className="h-2 w-2 rounded-full bg-emerald-500" /> 0–90 d: {int(u1)} uds · {pct(t1)}
@@ -193,31 +181,25 @@ function MetricCells({ r, enDetalle = false }: { r: Row; enDetalle?: boolean }) 
   const pvp = r.pvp_mediana == null ? null : Number(r.pvp_mediana);
   return (
     <>
-      {/* Precio de Lista: mediana como valor principal, rango debajo (solo nivel línea) */}
+      {/* Precios: lista arriba; venta y descuento debajo en gris */}
       <TableCell className="text-right whitespace-nowrap tabular-nums">
         {pvp == null ? (
           <NoData />
-        ) : enDetalle ? (
-          <span className="text-sm">{money(pvp)}</span>
         ) : (
-          <div>
-            <div className="text-sm font-semibold">{money(pvp)}</div>
-            <div className="text-[10px] text-muted-foreground">
-              {money(r.pvp_min)} – {money(r.pvp_max)}
-            </div>
+          <div className="text-sm font-semibold">{money(pvp)}</div>
+        )}
+        {!enDetalle && pvp != null && (
+          <div className="text-[10px] text-muted-foreground">
+            {money(r.pvp_min)} – {money(r.pvp_max)}
           </div>
         )}
-      </TableCell>
-      <TableCell className="text-right text-sm whitespace-nowrap tabular-nums">
-        {precioProm == null ? <NoData /> : money(precioProm)}
-      </TableCell>
-      <TableCell
-        className={cn(
-          "text-right text-sm font-medium",
-          dtoProm != null && dtoProm > 50 ? "text-destructive" : "text-foreground",
-        )}
-      >
-        {dtoProm == null ? <NoData /> : pct(dtoProm)}
+        <div className="text-[10px] text-muted-foreground mt-0.5">
+          {precioProm == null ? "—" : money(precioProm)}
+          {" · "}
+          <span className={cn(dtoProm != null && dtoProm > 50 && "text-destructive font-medium")}>
+            {dtoProm == null ? "—" : pct(dtoProm)} dto.
+          </span>
+        </div>
       </TableCell>
       <TableCell className="text-right"><UnidadesCell r={r} /></TableCell>
       <TableCell className="text-right"><StockCell r={r} /></TableCell>
@@ -233,13 +215,15 @@ function MetricCells({ r, enDetalle = false }: { r: Row; enDetalle?: boolean }) 
         {sinVentas || r.rdv_semanal == null ? <NoData /> : Number(r.rdv_semanal).toFixed(1)}
       </TableCell>
       <TableCell><EvacuacionCell r={r} /></TableCell>
-      <TableCell className="text-right text-sm">
-        {sinVentas || r.sell_through_pct == null ? <NoData /> : pct(r.sell_through_pct)}
+      {/* Rotación: sell-through arriba, WOS debajo */}
+      <TableCell className="text-right whitespace-nowrap">
+        <div className="text-sm font-semibold tabular-nums">
+          {sinVentas || r.sell_through_pct == null ? <NoData /> : pct(r.sell_through_pct)}
+        </div>
+        <div className={cn("text-[10px] font-medium tabular-nums", wosColor(Number(r.wos ?? 0)))}>
+          {Number(r.wos ?? 0) >= 999 ? "∞" : `${Number(r.wos ?? 0).toFixed(1)}w`} WOS
+        </div>
       </TableCell>
-      <TableCell className={cn("text-right text-sm font-medium", wosColor(Number(r.wos ?? 0)))}>
-        {Number(r.wos ?? 0) >= 999 ? "∞" : `${Number(r.wos ?? 0).toFixed(1)}w`}
-      </TableCell>
-
     </>
   );
 }
@@ -247,9 +231,12 @@ function MetricCells({ r, enDetalle = false }: { r: Row; enDetalle?: boolean }) 
 function HeadMetrics({ canal }: { canal: string }) {
   return (
     <>
-      <TableHead className="text-right">Precio de Lista</TableHead>
-      <TableHead className="text-right">Precio de Venta</TableHead>
-      <TableHead className="text-right">Descuento Promedio</TableHead>
+      <TableHead className="text-right">
+        Precios
+        <span className="block text-[9px] font-normal normal-case text-muted-foreground">
+          lista · venta · dto.
+        </span>
+      </TableHead>
       <TableHead className="text-right">Unidades Vendidas</TableHead>
       <TableHead className="text-right">Stock</TableHead>
       <TableHead className="min-w-[150px]">Calidad de Venta</TableHead>
@@ -260,12 +247,16 @@ function HeadMetrics({ canal }: { canal: string }) {
         </span>
       </TableHead>
       <TableHead className="min-w-[230px]">Evacuación promedio</TableHead>
-      <TableHead className="text-right">Sell-through</TableHead>
-      <TableHead className="text-right">WOS</TableHead>
-
+      <TableHead className="text-right">
+        Rotación
+        <span className="block text-[9px] font-normal normal-case text-muted-foreground">
+          sell-through · WOS
+        </span>
+      </TableHead>
     </>
   );
 }
+
 
 function Convenciones() {
   return (
@@ -573,10 +564,10 @@ export default function AnalisisLinea360Page() {
             ) : (
               <div className="border border-border rounded-lg overflow-hidden">
                 <div className="overflow-x-auto">
-                  <Table className="min-w-[1500px]">
+                  <Table className="min-w-[1100px]">
                     <TableHeader>
                       <TableRow className="bg-muted/30">
-                        <TableHead className="min-w-[180px]">Línea</TableHead>
+                        <TableHead className="min-w-[180px] sticky left-0 z-20 bg-background">Línea</TableHead>
                         <HeadMetrics canal={canal} />
                         <TableHead className="w-8" />
                       </TableRow>
@@ -588,7 +579,7 @@ export default function AnalisisLinea360Page() {
                           className="cursor-pointer hover:bg-primary/5"
                           onClick={() => setDetail({ coleccion: coleccion === "all" ? null : coleccion, linea: r.linea })}
                         >
-                          <TableCell className="text-sm font-medium whitespace-nowrap">{r.linea}</TableCell>
+                          <TableCell className="text-sm font-medium whitespace-nowrap sticky left-0 z-10 bg-background">{r.linea}</TableCell>
                           <MetricCells r={r} />
                           <TableCell><ChevronRight className="h-4 w-4 text-muted-foreground" /></TableCell>
                         </TableRow>
@@ -626,7 +617,7 @@ export default function AnalisisLinea360Page() {
               <div className="border border-border rounded-lg overflow-hidden">
                 <div className="overflow-auto max-h-[65vh]">
 
-                  <Table className="min-w-[1500px]">
+                  <Table className="min-w-[1200px]">
                     <TableHeader className="sticky top-0 z-20 bg-background">
                       <TableRow className="bg-muted/30">
                         <TableHead className="min-w-[220px] sticky left-0 z-30 bg-background">Producto</TableHead>
