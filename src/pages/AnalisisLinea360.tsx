@@ -410,8 +410,10 @@ export default function AnalisisLinea360Page() {
         p_coleccion: coleccion === "all" ? undefined : coleccion,
         p_linea: undefined,
         p_canal: canalParam ?? undefined,
-      });
+        p_lineas: lineasSel.length ? lineasSel : undefined,
+      } as never);
       if (cancelled) return;
+
       if (error) {
         setError(error.message);
         setRows([]);
