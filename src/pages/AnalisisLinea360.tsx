@@ -489,16 +489,11 @@ export default function AnalisisLinea360Page() {
   const [lineaOptions, setLineaOptions] = useState<string[]>([]);
 
 
-  const [rows, setRows] = useState<Row[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [colOptions, setColOptions] = useState<string[]>([]);
   const colOptionsLoaded = useRef(false);
 
   const [detail, setDetail] = useState<{ coleccion: string | null; linea: string } | null>(null);
-  const [detailRows, setDetailRows] = useState<Row[]>([]);
-  const [detailLoading, setDetailLoading] = useState(false);
-  const [detailError, setDetailError] = useState<string | null>(null);
+
   // Filtros propios del drawer
   const [detColeccion, setDetColeccion] = useState<string>("all");
   const [detBusqueda, setDetBusqueda] = useState("");
