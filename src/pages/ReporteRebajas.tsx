@@ -284,8 +284,20 @@ export default function ReporteRebajasPage() {
       cell.alignment = { horizontal: "center", vertical: "middle" };
     });
 
-    filtradas.forEach((item, index) => {
+    grupos.forEach((grupo) => {
+      const gRow = ws.addRow([
+        `${grupo.linea}  ·  ${fmtInt(grupo.items.length)} productos`,
+      ]);
+      ws.mergeCells(gRow.number, 1, gRow.number, EXCEL_HEAD.length);
+      gRow.height = 20;
+      gRow.getCell(1).font = { bold: true, color: { argb: "FF1E293B" } };
+      gRow.getCell(1).fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFE2E8F0" } };
+      gRow.getCell(1).alignment = { vertical: "middle" };
+
+      grupo.items.forEach((item, i) => {
+      const index = grupo.startIndex + i;
       const row = ws.addRow([
+
         "",
         item.producto ?? "",
         item.sku ?? "",
