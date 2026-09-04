@@ -95,6 +95,16 @@ const pctCol = (n: number | null | undefined, d = 1) =>
 
 const fechaCorta = (fecha: string | Date | null | undefined) => {
   if (!fecha) return "";
+  // Las fechas 'YYYY-MM-DD' de la RPC son fechas calendario: no aplicar zona horaria
+  if (typeof fecha === "string") {
+    const m = fecha.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (m) {
+      const d = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+      return d
+        .toLocaleDateString("es-CO", { day: "numeric", month: "short" })
+        .replace(/\.$/, "");
+    }
+  }
   const d = new Date(fecha);
   return d
     .toLocaleDateString("es-CO", {
@@ -104,6 +114,7 @@ const fechaCorta = (fecha: string | Date | null | undefined) => {
     })
     .replace(/\.$/, "");
 };
+
 
 const wosColor = (w: number) =>
   w > 12 ? "text-destructive" : w < 4 ? "text-amber-600" : "text-emerald-600";
@@ -174,10 +185,11 @@ function FrescuraBadge({ rows, conciliadoEn }: { rows: Row[]; conciliadoEn?: str
     return (
       <span className="text-xs text-muted-foreground">
         Inventario al {fechaStock}
-        {hora ? ` · ${bodegaTxt}` : ""}
+        {` · Bodega conciliada hoy${hora ? `, ${hora}` : ""}`}
       </span>
     );
   }
+
   if (dias <= 2) {
     return (
       <span className="text-xs font-medium text-amber-600">
@@ -619,6 +631,7 @@ export default function AnalisisLinea360Page() {
   const mainQ = useQuery({
     queryKey: ["linea360", dias, coleccion, canalParam, generoParam, lineasSel.join("|")],
     staleTime: 5 * 60 * 1000,
+    refetchOnMount: true,
     queryFn: async () => {
       const { data, error } = await supabase.rpc("reporte_analisis_linea_coleccion", {
         p_dias: dias,
@@ -645,7 +658,8 @@ export default function AnalisisLinea360Page() {
   // Fecha y hora de la última conciliación NetSuite (para el indicador de frescura)
   const conciliacionQ = useQuery({
     queryKey: ["conciliacion-ultima-ejecucion"],
-    staleTime: 5 * 60 * 1000,
+    staleTime: 30 * 1000,
+    refetchOnMount: true,
     queryFn: async () => {
       const { data } = await supabase
         .from("proceso_ejecucion_log")
