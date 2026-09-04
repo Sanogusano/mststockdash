@@ -5183,32 +5183,60 @@ export type Database = {
           ventas_totales: number
         }[]
       }
-      reporte_rebajas_activas: {
-        Args: {
-          p_coleccion?: string
-          p_dias_venta?: number
-          p_genero?: string
-          p_linea?: string
-        }
-        Returns: {
-          coleccion: string
-          fecha_inicio: string
-          foto: string
-          genero: string
-          linea: string
-          pct_descuento: number
-          precio_actual: number
-          product_id: string
-          producto: string
-          pvp: number
-          semanas_vida: number
-          sku: string
-          stock_total: number
-          und_desde_rebaja: number
-          und_vendidas: number
-          variantes: number
-        }[]
-      }
+      reporte_rebajas_activas:
+        | {
+            Args: {
+              p_coleccion?: string
+              p_dias_venta?: number
+              p_genero?: string
+              p_linea?: string
+            }
+            Returns: {
+              coleccion: string
+              fecha_inicio: string
+              foto: string
+              genero: string
+              linea: string
+              pct_descuento: number
+              precio_actual: number
+              product_id: string
+              producto: string
+              pvp: number
+              semanas_vida: number
+              sku: string
+              stock_total: number
+              und_desde_rebaja: number
+              und_vendidas: number
+              variantes: number
+            }[]
+          }
+        | {
+            Args: {
+              p_coleccion?: string
+              p_dias_venta?: number
+              p_genero?: string
+              p_linea?: string
+              p_solo_con_stock?: boolean
+            }
+            Returns: {
+              coleccion: string
+              fecha_inicio: string
+              foto: string
+              genero: string
+              linea: string
+              pct_descuento: number
+              precio_actual: number
+              product_id: string
+              producto: string
+              pvp: number
+              semanas_vida: number
+              sku: string
+              stock_total: number
+              und_desde_rebaja: number
+              und_vendidas: number
+              variantes: number
+            }[]
+          }
       reporte_rendimiento_red: {
         Args: {
           p_fecha_desde_actual?: string
