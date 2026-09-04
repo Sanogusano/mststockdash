@@ -84,6 +84,14 @@ const GENERO_OPTIONS = [
   { value: "SIN GENERO", label: "Sin género" },
 ];
 
+const SORT_OPTIONS = [
+  { value: "ventas", label: "Más vendidos" },
+  { value: "inventario", label: "Mayor inventario" },
+  { value: "cobertura", label: "Mayor cobertura" },
+  { value: "rdv", label: "Menor RDV" },
+  { value: "nombre", label: "Nombre A-Z" },
+];
+
 const NOTA_PIE =
   "Precio de Venta = efectivamente cobrado, ponderado por unidades vendidas. Precio de Lista = compare_at_price del catálogo, o price si está vacío; en líneas se muestra el rango de precios. Stock = tiendas + online + bodega. El stock de bodega proviene de la última conciliación con NetSuite, que puede ser anterior al día de hoy. Las bodegas internas solo se actualizan al conciliar. Evacuación = tramos incrementales sobre lo producido.";
 
