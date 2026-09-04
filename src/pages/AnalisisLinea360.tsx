@@ -358,7 +358,7 @@ function GeneroCell({ r, enDetalle }: { r: Row; enDetalle: boolean }) {
     };
     return (
       <span className={cn(
-        "inline-flex h-5 items-center rounded-sm border px-1.5 text-xs font-medium whitespace-nowrap",
+        "inline-flex h-5 items-center rounded border px-1.5 text-xs font-medium whitespace-nowrap",
         conf.className,
       )}>
         {conf.label}
@@ -389,7 +389,7 @@ function GeneroCell({ r, enDetalle }: { r: Row; enDetalle: boolean }) {
       {visible.map((i) => (
         <div key={i.key} className="flex items-center gap-1.5">
           <span className={cn(
-            "inline-flex items-center rounded-sm border px-1.5 py-0.5 text-xs font-medium whitespace-nowrap",
+            "inline-flex items-center rounded border px-1.5 py-0.5 text-xs font-medium whitespace-nowrap",
             i.boxClass,
           )}>
             {i.key}
