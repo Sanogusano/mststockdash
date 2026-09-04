@@ -42,6 +42,7 @@ interface Row {
   und_hombre?: number;
   und_mujer?: number;
   und_unisex?: number;
+  und_sin_genero?: number;
   genero?: string | null;
   und_full: number;
   und_rebajas: number;
@@ -369,14 +370,17 @@ function GeneroCell({ r, enDetalle }: { r: Row; enDetalle: boolean }) {
   const h = Math.max(0, Number(r.und_hombre ?? 0));
   const m = Math.max(0, Number(r.und_mujer ?? 0));
   const u = Math.max(0, Number(r.und_unisex ?? 0));
-  const base = Math.max(Number(r.und_vendidas ?? 0), h + m + u);
-  if (base === 0) return <NoData />;
+  const sg = Math.max(0, Number(r.und_sin_genero ?? 0));
+  const suma = h + m + u + sg;
+  const base = Math.max(Number(r.und_vendidas ?? 0), suma);
+  if (suma === 0 || base === 0) return <NoData />;
   const p = (n: number) => (n / base) * 100;
 
   const items = [
     { key: "HOMBRE", uds: h, boxClass: "border-sky-500/40 bg-sky-500/10 text-sky-700" },
     { key: "MUJER", uds: m, boxClass: "border-pink-500/40 bg-pink-500/10 text-pink-700" },
     { key: "UNISEX", uds: u, boxClass: "border-violet-500/40 bg-violet-500/10 text-violet-700" },
+    { key: "SIN GÉNERO", uds: sg, boxClass: "border-border bg-muted/50 text-muted-foreground" },
   ]
     .filter((i) => i.uds > 0)
     .sort((a, b) => b.uds - a.uds);
@@ -598,6 +602,7 @@ const generosConUnidades = (r: Row) =>
     { g: "HOMBRE", v: Number(r.und_hombre ?? 0) },
     { g: "MUJER", v: Number(r.und_mujer ?? 0) },
     { g: "UNISEX", v: Number(r.und_unisex ?? 0) },
+    { g: "SIN GENERO", v: Number(r.und_sin_genero ?? 0) },
   ].filter((i) => i.v > 0).map((i) => i.g);
 
 const normalizar = (s: string) =>
