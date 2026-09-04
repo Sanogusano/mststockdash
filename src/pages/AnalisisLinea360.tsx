@@ -172,20 +172,36 @@ const horaConciliacion = (ts: string | null | undefined) => {
     .replace(/\s?p\.?\s?m\.?/i, " p.m.");
 };
 
-function FrescuraBadge({ rows, conciliadoEn }: { rows: Row[]; conciliadoEn?: string | null }) {
-  const r = rows[0];
-  if (!r || !r.fecha_stock) return null;
-  const dias = Number(r.dias_desde_conciliacion ?? 0);
-  const fechaStock = fechaCorta(r.fecha_stock);
-  const fechaBodega = fechaCorta(r.fecha_bodega);
+// Fuente única: proceso_ejecucion_log.ultima_ejecucion (America/Bogota)
+const bogotaYMD = (d: Date) =>
+  new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Bogota",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(d);
+
+function FrescuraBadge({ conciliadoEn }: { conciliadoEn?: string | null }) {
+  if (!conciliadoEn) return null;
+  const ts = new Date(conciliadoEn);
+  if (Number.isNaN(ts.getTime())) return null;
+
+  const hoyYMD = bogotaYMD(new Date());
+  const conYMD = bogotaYMD(ts);
+  const dias = Math.max(
+    0,
+    Math.round((Date.parse(`${hoyYMD}T00:00:00Z`) - Date.parse(`${conYMD}T00:00:00Z`)) / 86400000),
+  );
+
+  const fecha = fechaCorta(conYMD);
   const hora = horaConciliacion(conciliadoEn);
-  const bodegaTxt = `Bodega conciliada el ${fechaBodega}${hora ? `, ${hora}` : ""}`;
+  const cuando = dias === 0 ? "hoy" : `el ${fecha}`;
+  const bodegaTxt = `Bodega conciliada ${cuando}${hora ? `, ${hora}` : ""}`;
 
   if (dias === 0) {
     return (
       <span className="text-xs text-muted-foreground">
-        Inventario al {fechaStock}
-        {` · Bodega conciliada hoy${hora ? `, ${hora}` : ""}`}
+        Inventario al {fecha} · {bodegaTxt}
       </span>
     );
   }
@@ -204,6 +220,7 @@ function FrescuraBadge({ rows, conciliadoEn }: { rows: Row[]; conciliadoEn?: str
     </span>
   );
 }
+
 
 function TableSkeleton({ rows = 8, cols = 8 }: { rows?: number; cols?: number }) {
   return (
