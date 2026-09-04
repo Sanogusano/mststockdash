@@ -480,6 +480,7 @@ export default function AnalisisLinea360Page() {
   const [customTo, setCustomTo] = useState<Date | undefined>();
   const [coleccion, setColeccion] = useState(() => searchParams.get("coleccion") ?? "all");
   const [canal, setCanal] = useState(() => searchParams.get("canal") ?? "all");
+  const [genero, setGenero] = useState(() => searchParams.get("genero") ?? "all");
   const [soloSinVentas, setSoloSinVentas] = useState(() => searchParams.get("sinventas") === "1");
   const [lineasSel, setLineasSel] = useState<string[]>(() => {
     const raw = searchParams.get("lineas");
@@ -513,6 +514,7 @@ export default function AnalisisLinea360Page() {
     next.set("dias", String(days));
     if (coleccion !== "all") next.set("coleccion", coleccion);
     if (canal !== "all") next.set("canal", canal);
+    if (genero !== "all") next.set("genero", genero);
     if (soloSinVentas) next.set("sinventas", "1");
     if (lineasSel.length) next.set("lineas", lineasSel.join("|"));
     setSearchParams(next, { replace: true });
@@ -560,6 +562,7 @@ export default function AnalisisLinea360Page() {
         p_linea: undefined,
         p_canal: canalParam ?? undefined,
         p_lineas: lineasSel.length ? lineasSel : undefined,
+        p_genero: generoParam ?? undefined,
       } as never);
       if (cancelled) return;
 
@@ -591,7 +594,8 @@ export default function AnalisisLinea360Page() {
         p_coleccion: detColeccion === "all" ? undefined : detColeccion,
         p_linea: detail.linea,
         p_canal: canalParam ?? undefined,
-      });
+        p_genero: generoParam ?? undefined,
+      } as never);
       if (cancelled) return;
       if (error) { setDetailError(error.message); setDetailRows([]); }
       else setDetailRows((data ?? []) as unknown as Row[]);
