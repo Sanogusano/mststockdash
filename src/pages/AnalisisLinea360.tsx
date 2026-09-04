@@ -1146,13 +1146,20 @@ export default function AnalisisLinea360Page() {
                           >
                             <TableCell className="sticky left-0 z-10 bg-background">
 
-                              <div className="flex items-center gap-2">
-                                {r.foto ? (
-                                  <img src={r.foto} alt={r.producto ?? ""} className="h-9 w-9 rounded object-cover border border-border shrink-0" />
-                                ) : (
-                                  <div className="h-9 w-9 rounded bg-muted/50 shrink-0" />
-                                )}
-                                <span className="text-sm font-medium line-clamp-2">{r.producto ?? "—"}</span>
+                              <div className="flex items-start gap-2">
+                                <div className="flex flex-col items-center gap-0.5 shrink-0 w-9">
+                                  {r.foto ? (
+                                    <img src={r.foto} alt={r.producto ?? ""} className="h-9 w-9 rounded object-cover border border-border" />
+                                  ) : (
+                                    <div className="h-9 w-9 rounded bg-muted/50" />
+                                  )}
+                                  {detColeccion === "all" && r.coleccion && (
+                                    <span className="text-[10px] leading-none text-muted-foreground text-center w-full line-clamp-1">
+                                      {r.coleccion}
+                                    </span>
+                                  )}
+                                </div>
+                                <span className="text-sm font-medium line-clamp-2 pt-0.5">{r.producto ?? "—"}</span>
                               </div>
                             </TableCell>
                             <MetricCells r={r} enDetalle />
