@@ -285,9 +285,8 @@ function EvacuacionCell({ r }: { r: Row }) {
               ) : null,
             )}
           </div>
-          <div className="text-right whitespace-nowrap">
-            <div className="text-xs font-medium tabular-nums">{pct(total)} prom.</div>
-            <div className="text-[10px] text-muted-foreground tabular-nums">{int(u1 + u2 + u3)} uds</div>
+          <div className="text-[11px] font-medium tabular-nums whitespace-nowrap">
+            {pctCol(total)} <span className="text-muted-foreground">· {int(u1 + u2 + u3)} uds</span>
           </div>
         </div>
       </TooltipTrigger>
@@ -326,6 +325,12 @@ const GENERO_BADGE: Record<string, { label: string; className: string }> = {
   UNISEX: { label: "UNISEX", className: "border-violet-500/50 bg-violet-500/10 text-violet-700" },
 };
 
+const GENERO_TEXT: Record<string, string> = {
+  HOMBRE: "text-sky-700",
+  MUJER: "text-pink-700",
+  UNISEX: "text-violet-700",
+};
+
 function GeneroChip({
   label,
   pct,
@@ -336,15 +341,9 @@ function GeneroChip({
   className: string;
 }) {
   return (
-    <div
-      className={cn(
-        "rounded-sm border px-1 py-0.5 text-center max-w-[60px] min-w-[46px]",
-        className,
-      )}
-    >
-      <div className="text-[10px] font-semibold leading-tight tracking-tight">{label}</div>
-      <div className="text-[11px] font-bold leading-tight tabular-nums">{Math.round(pct)}%</div>
-    </div>
+    <span className={cn("text-[9px] font-semibold whitespace-nowrap", className)}>
+      {label} <span className="tabular-nums">{Math.round(pct)}%</span>
+    </span>
   );
 }
 
@@ -373,9 +372,9 @@ function GeneroCell({ r, enDetalle }: { r: Row; enDetalle: boolean }) {
   const p = (n: number) => (n / base) * 100;
 
   const items = [
-    { key: "HOMBRE", uds: h, pct: p(h), className: GENERO_BADGE.HOMBRE.className },
-    { key: "MUJER", uds: m, pct: p(m), className: GENERO_BADGE.MUJER.className },
-    { key: "UNISEX", uds: u, pct: p(u), className: GENERO_BADGE.UNISEX.className },
+    { key: "HOMBRE", uds: h, pct: p(h), className: GENERO_TEXT.HOMBRE },
+    { key: "MUJER", uds: m, pct: p(m), className: GENERO_TEXT.MUJER },
+    { key: "UNISEX", uds: u, pct: p(u), className: GENERO_TEXT.UNISEX },
   ].filter((i) => i.uds > 0);
 
   if (!items.length) return <NoData />;
@@ -386,9 +385,12 @@ function GeneroCell({ r, enDetalle }: { r: Row; enDetalle: boolean }) {
   return (
     <Tooltip>
       <TooltipTrigger asChild>
-        <div className="flex flex-wrap items-center gap-1 cursor-help">
-          {visibles.map((i) => (
-            <GeneroChip key={i.key} label={i.key} pct={i.pct} className={i.className} />
+        <div className="flex items-center gap-1 cursor-help whitespace-nowrap leading-tight">
+          {visibles.map((i, idx) => (
+            <span key={i.key} className="inline-flex items-center gap-1">
+              {idx > 0 && <span className="text-[9px] text-muted-foreground">·</span>}
+              <GeneroChip label={i.key} pct={i.pct} className={i.className} />
+            </span>
           ))}
         </div>
       </TooltipTrigger>
@@ -842,7 +844,7 @@ export default function AnalisisLinea360Page() {
                 </button>
               </div>
               <div className="ml-auto flex items-end pb-1.5">
-                <FrescuraBadge rows={rows} conciliadoEn={conciliacionQ.data} />
+                <FrescuraBadge conciliadoEn={conciliacionQ.data} />
               </div>
             </div>
 
