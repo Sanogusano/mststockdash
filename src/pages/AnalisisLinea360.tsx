@@ -570,6 +570,15 @@ function ResumenCards({ rows }: { rows: Row[] }) {
   );
 }
 
+/** Géneros con unidades vendidas en una línea: si solo hay uno, el filtro de
+ *  género no puede cambiar nada y se oculta. */
+const generosConUnidades = (r: Row) =>
+  [
+    { g: "HOMBRE", v: Number(r.und_hombre ?? 0) },
+    { g: "MUJER", v: Number(r.und_mujer ?? 0) },
+    { g: "UNISEX", v: Number(r.und_unisex ?? 0) },
+  ].filter((i) => i.v > 0).map((i) => i.g);
+
 const normalizar = (s: string) =>
   (s ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
 
@@ -708,6 +717,23 @@ export default function AnalisisLinea360Page() {
       } as never);
       if (error) throw error;
       return (data ?? []) as unknown as Row[];
+    },
+  });
+
+  // Producto seleccionado: se reutiliza la vista producto_360 que alimenta el
+  // panel de Análisis de Producto.
+  const productoQ = useQuery({
+    queryKey: ["producto-360-row", prodSel?.id ?? null],
+    enabled: !!prodSel?.id,
+    staleTime: 5 * 60 * 1000,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("producto_360")
+        .select("*")
+        .eq("product_id", prodSel!.id)
+        .maybeSingle();
+      if (error) throw error;
+      return data as any;
     },
   });
 
