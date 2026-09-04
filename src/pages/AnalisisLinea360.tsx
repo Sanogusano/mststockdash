@@ -507,7 +507,7 @@ function HeadMetrics({ canal }: { canal: string }) {
       <TableHead className="text-right min-w-[100px]">Unidades Vendidas</TableHead>
       <TableHead className="min-w-[100px]">Género</TableHead>
       <TableHead className="text-right">Stock</TableHead>
-      <TableHead className="min-w-[110px]">Calidad de Venta</TableHead>
+      <TableHead className="min-w-[180px]">Calidad de Venta</TableHead>
       <TableHead className="text-right">
         RDV
         <span className="block text-[9px] font-normal normal-case text-muted-foreground">
