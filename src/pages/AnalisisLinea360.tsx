@@ -70,7 +70,7 @@ const CANAL_OPTIONS = [
 ];
 
 const NOTA_PIE =
-  "Precio de Venta = efectivamente cobrado, ponderado por unidades vendidas. Precio de Lista = compare_at_price del catálogo, o price si está vacío; en líneas se muestra el rango de precios. Stock = tiendas + online + bodega (requiere conciliación NetSuite del día). Evacuación = tramos incrementales sobre lo producido.";
+  "Precio de Venta = efectivamente cobrado, ponderado por unidades vendidas. Precio de Lista = compare_at_price del catálogo, o price si está vacío; en líneas se muestra el rango de precios. Stock = tiendas + online + bodega. El stock de bodega proviene de la última conciliación con NetSuite, que puede ser anterior al día de hoy. Las bodegas internas solo se actualizan al conciliar. Evacuación = tramos incrementales sobre lo producido.";
 
 const money = (n: number | null | undefined) =>
   "$ " + Math.round(Number(n ?? 0)).toLocaleString("es-CO");
@@ -78,6 +78,18 @@ const int = (n: number | null | undefined) => Number(n ?? 0).toLocaleString("es-
 const pct = (n: number | null | undefined, d = 1) => `${Number(n ?? 0).toFixed(d)}%`;
 const pctCol = (n: number | null | undefined, d = 1) =>
   `${Number(n ?? 0).toFixed(d).replace(".", ",")}%`;
+
+const fechaCorta = (fecha: string | Date | null | undefined) => {
+  if (!fecha) return "";
+  const d = new Date(fecha);
+  return d
+    .toLocaleDateString("es-CO", {
+      timeZone: "America/Bogota",
+      day: "numeric",
+      month: "short",
+    })
+    .replace(/\.$/, "");
+};
 
 const wosColor = (w: number) =>
   w > 12 ? "text-destructive" : w < 4 ? "text-amber-600" : "text-emerald-600";
