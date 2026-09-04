@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { X, Package, Store, ShoppingBag, Warehouse, PauseCircle, Shirt, Flag, Gauge, Zap, Clock, TrendingUp, Ruler, Split } from "lucide-react";
+import { X, ArrowLeft, Package, Store, ShoppingBag, Warehouse, PauseCircle, Shirt, Flag, Gauge, Zap, Clock, TrendingUp, Ruler, Split } from "lucide-react";
 import {
   ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid,
   Tooltip, Legend, ResponsiveContainer, ReferenceLine,
@@ -108,8 +108,13 @@ function CardSalud({ icon: Icon, label, value, sub, v, conSemaforo = false, chil
   );
 }
 
-export function ProductoDetallePanel({ producto, onClose }: {
-  producto: any; onClose: () => void;
+export function ProductoDetallePanel({ producto, onClose, embedded = false, onBack, breadcrumb }: {
+  producto: any;
+  onClose: () => void;
+  /** Modo incrustado: sin overlay ni fondo oscuro; se usa dentro de otro panel. */
+  embedded?: boolean;
+  onBack?: () => void;
+  breadcrumb?: string;
 }) {
   const [curva, setCurva] = useState<PuntoCurva[]>([]);
   const [cargando, setCargando] = useState(true);
