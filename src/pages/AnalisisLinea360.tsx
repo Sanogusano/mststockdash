@@ -292,16 +292,38 @@ function EvacuacionCell({ r }: { r: Row }) {
 const NoData = () => <span className="text-muted-foreground">—</span>;
 
 const GENERO_BADGE: Record<string, { label: string; className: string }> = {
-  HOMBRE: { label: "♂ Hombre", className: "border-sky-500/50 bg-sky-500/10 text-sky-700" },
-  MUJER: { label: "♀ Mujer", className: "border-pink-500/50 bg-pink-500/10 text-pink-700" },
-  UNISEX: { label: "⚲ Unisex", className: "border-violet-500/50 bg-violet-500/10 text-violet-700" },
+  HOMBRE: { label: "HOMBRE", className: "border-sky-500/50 bg-sky-500/10 text-sky-700" },
+  MUJER: { label: "MUJER", className: "border-pink-500/50 bg-pink-500/10 text-pink-700" },
+  UNISEX: { label: "UNISEX", className: "border-violet-500/50 bg-violet-500/10 text-violet-700" },
 };
+
+function GeneroChip({
+  label,
+  pct,
+  className,
+}: {
+  label: string;
+  pct: number;
+  className: string;
+}) {
+  return (
+    <div
+      className={cn(
+        "rounded-sm border px-1 py-0.5 text-center max-w-[60px] min-w-[46px]",
+        className,
+      )}
+    >
+      <div className="text-[10px] font-semibold leading-tight tracking-tight">{label}</div>
+      <div className="text-[11px] font-bold leading-tight tabular-nums">{Math.round(pct)}%</div>
+    </div>
+  );
+}
 
 function GeneroCell({ r, enDetalle }: { r: Row; enDetalle: boolean }) {
   if (enDetalle) {
     const g = (r.genero ?? "").toUpperCase();
     const conf = GENERO_BADGE[g] ?? {
-      label: g ? g : "Sin género",
+      label: g ? g : "SIN GÉNERO",
       className: "border-border bg-muted/40 text-muted-foreground",
     };
     return (
@@ -317,34 +339,39 @@ function GeneroCell({ r, enDetalle }: { r: Row; enDetalle: boolean }) {
   const h = Math.max(0, Number(r.und_hombre ?? 0));
   const m = Math.max(0, Number(r.und_mujer ?? 0));
   const u = Math.max(0, Number(r.und_unisex ?? 0));
-  const total = h + m + u;
-  if (total === 0) return <NoData />;
-  const p = (n: number) => (n / total) * 100;
+  const base = Math.max(Number(r.und_vendidas ?? 0), h + m + u);
+  if (base === 0) return <NoData />;
+  const p = (n: number) => (n / base) * 100;
+
+  const items = [
+    { key: "HOMBRE", uds: h, pct: p(h), className: GENERO_BADGE.HOMBRE.className },
+    { key: "MUJER", uds: m, pct: p(m), className: GENERO_BADGE.MUJER.className },
+    { key: "UNISEX", uds: u, pct: p(u), className: GENERO_BADGE.UNISEX.className },
+  ].filter((i) => i.uds > 0);
+
+  if (!items.length) return <NoData />;
+
+  const dominante = items.find((i) => i.pct >= 95);
+  const visibles = dominante ? [dominante] : items;
 
   return (
     <Tooltip>
       <TooltipTrigger asChild>
-        <div className="min-w-[110px] cursor-help">
-          <div className="flex h-2 w-full rounded-full bg-muted overflow-hidden">
-            {h > 0 && <div className="h-full bg-sky-500" style={{ width: `${p(h)}%` }} />}
-            {m > 0 && <div className="h-full bg-pink-500" style={{ width: `${p(m)}%` }} />}
-            {u > 0 && <div className="h-full bg-violet-500" style={{ width: `${p(u)}%` }} />}
-          </div>
-          <div className="mt-1 flex items-center gap-2 text-[10px] text-muted-foreground tabular-nums whitespace-nowrap">
-            {h > 0 && <span className="text-sky-700">♂ {Math.round(p(h))}%</span>}
-            {m > 0 && <span className="text-pink-700">♀ {Math.round(p(m))}%</span>}
-            {u > 0 && <span className="text-violet-700">⚲ {Math.round(p(u))}%</span>}
-          </div>
+        <div className="flex flex-wrap items-center gap-1 cursor-help">
+          {visibles.map((i) => (
+            <GeneroChip key={i.key} label={i.key} pct={i.pct} className={i.className} />
+          ))}
         </div>
       </TooltipTrigger>
       <TooltipContent side="left" className="text-xs space-y-0.5">
-        <div>♂ Hombre: {int(h)} uds · {pctCol(p(h))}</div>
-        <div>♀ Mujer: {int(m)} uds · {pctCol(p(m))}</div>
-        <div>⚲ Unisex: {int(u)} uds · {pctCol(p(u))}</div>
+        <div>Hombre: {int(h)} uds · {pctCol(p(h))}</div>
+        <div>Mujer: {int(m)} uds · {pctCol(p(m))}</div>
+        <div>Unisex: {int(u)} uds · {pctCol(p(u))}</div>
       </TooltipContent>
     </Tooltip>
   );
 }
+
 
 function MetricCells({ r, enDetalle = false }: { r: Row; enDetalle?: boolean }) {
   const sinVentas = Number(r.und_vendidas ?? 0) === 0;
