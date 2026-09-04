@@ -5,7 +5,9 @@ import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { differenceInCalendarDays } from "date-fns";
 import { TimeFilter, resolveDays } from "@/components/dashboard/TimeFilter";
-import { LoadingState, EmptyState } from "@/components/dashboard/LoadingState";
+import { EmptyState } from "@/components/dashboard/LoadingState";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useQuery } from "@tanstack/react-query";
 import { SalesBreakdownBars } from "@/pages/LineasProducto";
 import { MultiSelectFilter } from "@/components/dashboard/MultiSelectFilter";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
@@ -146,30 +148,70 @@ function StockCell({ r }: { r: Row }) {
   );
 }
 
-function FrescuraBadge({ rows }: { rows: Row[] }) {
+const horaConciliacion = (ts: string | null | undefined) => {
+  if (!ts) return "";
+  return new Date(ts)
+    .toLocaleTimeString("es-CO", {
+      timeZone: "America/Bogota",
+      hour: "numeric",
+      minute: "2-digit",
+      hour12: true,
+    })
+    .replace(/\s?a\.?\s?m\.?/i, " a.m.")
+    .replace(/\s?p\.?\s?m\.?/i, " p.m.");
+};
+
+function FrescuraBadge({ rows, conciliadoEn }: { rows: Row[]; conciliadoEn?: string | null }) {
   const r = rows[0];
   if (!r || !r.fecha_stock) return null;
   const dias = Number(r.dias_desde_conciliacion ?? 0);
   const fechaStock = fechaCorta(r.fecha_stock);
   const fechaBodega = fechaCorta(r.fecha_bodega);
+  const hora = horaConciliacion(conciliadoEn);
+  const bodegaTxt = `Bodega conciliada el ${fechaBodega}${hora ? `, ${hora}` : ""}`;
 
   if (dias === 0) {
-    return <span className="text-xs text-muted-foreground">Inventario al {fechaStock}</span>;
+    return (
+      <span className="text-xs text-muted-foreground">
+        Inventario al {fechaStock}
+        {hora ? ` · ${bodegaTxt}` : ""}
+      </span>
+    );
   }
   if (dias <= 2) {
     return (
       <span className="text-xs font-medium text-amber-600">
-        Bodega al {fechaBodega} · {dias} día{dias === 1 ? "" : "s"} de desfase
+        {bodegaTxt} · {dias} día{dias === 1 ? "" : "s"} de desfase
       </span>
     );
   }
   return (
     <span className="inline-flex items-center gap-1.5 text-xs font-medium text-destructive">
       <AlertTriangle className="h-3.5 w-3.5" />
-      Bodega al {fechaBodega} · {dias} día{dias === 1 ? "" : "s"} sin conciliar
+      {bodegaTxt} · {dias} día{dias === 1 ? "" : "s"} sin conciliar
     </span>
   );
 }
+
+function TableSkeleton({ rows = 8, cols = 8 }: { rows?: number; cols?: number }) {
+  return (
+    <div className="border border-border rounded-lg overflow-hidden">
+      <div className="flex gap-4 px-4 py-3 bg-muted/30 border-b border-border">
+        {Array.from({ length: cols }).map((_, i) => (
+          <Skeleton key={i} className={cn("h-3", i === 0 ? "w-32" : "flex-1")} />
+        ))}
+      </div>
+      {Array.from({ length: rows }).map((_, r) => (
+        <div key={r} className="flex gap-4 px-4 py-4 border-b border-border last:border-0">
+          {Array.from({ length: cols }).map((_, i) => (
+            <Skeleton key={i} className={cn("h-4", i === 0 ? "w-32" : "flex-1")} />
+          ))}
+        </div>
+      ))}
+    </div>
+  );
+}
+
 
 function EvacuacionCell({ r }: { r: Row }) {
   const t1 = Math.max(0, Number(r.pct_evac_0_90 ?? 0));
@@ -489,16 +531,11 @@ export default function AnalisisLinea360Page() {
   const [lineaOptions, setLineaOptions] = useState<string[]>([]);
 
 
-  const [rows, setRows] = useState<Row[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [colOptions, setColOptions] = useState<string[]>([]);
   const colOptionsLoaded = useRef(false);
 
   const [detail, setDetail] = useState<{ coleccion: string | null; linea: string } | null>(null);
-  const [detailRows, setDetailRows] = useState<Row[]>([]);
-  const [detailLoading, setDetailLoading] = useState(false);
-  const [detailError, setDetailError] = useState<string | null>(null);
+
   // Filtros propios del drawer
   const [detColeccion, setDetColeccion] = useState<string>("all");
   const [detBusqueda, setDetBusqueda] = useState("");
@@ -552,11 +589,10 @@ export default function AnalisisLinea360Page() {
     })();
   }, []);
 
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      setLoading(true);
-      setError(null);
+  const mainQ = useQuery({
+    queryKey: ["linea360", dias, coleccion, canalParam, generoParam, lineasSel.join("|")],
+    staleTime: 5 * 60 * 1000,
+    queryFn: async () => {
       const { data, error } = await supabase.rpc("reporte_analisis_linea_coleccion", {
         p_dias: dias,
         p_coleccion: coleccion === "all" ? undefined : coleccion,
@@ -565,45 +601,55 @@ export default function AnalisisLinea360Page() {
         p_lineas: lineasSel.length ? lineasSel : undefined,
         p_genero: generoParam ?? undefined,
       } as never);
-      if (cancelled) return;
+      if (error) throw error;
+      return (data ?? []) as unknown as Row[];
+    },
+  });
 
-      if (error) {
-        setError(error.message);
-        setRows([]);
-      } else {
-        const list = (data ?? []) as unknown as Row[];
-        setRows(list);
-        if (!lineasSel.length) {
-          setLineaOptions([...new Set(list.map((r) => r.linea).filter(Boolean))].sort());
-        }
-      }
-      setLoading(false);
-    })();
-    return () => { cancelled = true; };
-  }, [dias, coleccion, canalParam, generoParam, lineasSel]);
-
-
+  const rows = useMemo(() => mainQ.data ?? [], [mainQ.data]);
+  const loading = mainQ.isLoading;
+  const error = mainQ.error ? (mainQ.error as Error).message : null;
 
   useEffect(() => {
-    if (!detail) return;
-    let cancelled = false;
-    (async () => {
-      setDetailLoading(true);
-      setDetailError(null);
+    if (!mainQ.data || lineasSel.length) return;
+    setLineaOptions([...new Set(mainQ.data.map((r) => r.linea).filter(Boolean))].sort());
+  }, [mainQ.data, lineasSel.length]);
+
+  // Fecha y hora de la última conciliación NetSuite (para el indicador de frescura)
+  const conciliacionQ = useQuery({
+    queryKey: ["conciliacion-ultima-ejecucion"],
+    staleTime: 5 * 60 * 1000,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("proceso_ejecucion_log")
+        .select("ultima_ejecucion")
+        .eq("proceso", "aplicar_conciliacion_netsuite")
+        .maybeSingle();
+      return (data?.ultima_ejecucion as string | null) ?? null;
+    },
+  });
+
+  const detailQ = useQuery({
+    queryKey: ["linea360-detalle", detail?.linea ?? null, dias, detColeccion, canalParam, generoParam],
+    enabled: !!detail,
+    staleTime: 5 * 60 * 1000,
+    queryFn: async () => {
       const { data, error } = await supabase.rpc("reporte_analisis_linea_coleccion", {
         p_dias: dias,
         p_coleccion: detColeccion === "all" ? undefined : detColeccion,
-        p_linea: detail.linea,
+        p_linea: detail!.linea,
         p_canal: canalParam ?? undefined,
         p_genero: generoParam ?? undefined,
       } as never);
-      if (cancelled) return;
-      if (error) { setDetailError(error.message); setDetailRows([]); }
-      else setDetailRows((data ?? []) as unknown as Row[]);
-      setDetailLoading(false);
-    })();
-    return () => { cancelled = true; };
-  }, [detail, dias, canalParam, generoParam, detColeccion]);
+      if (error) throw error;
+      return (data ?? []) as unknown as Row[];
+    },
+  });
+
+  const detailRows = useMemo(() => detailQ.data ?? [], [detailQ.data]);
+  const detailLoading = detailQ.isLoading && !!detail;
+  const detailError = detailQ.error ? (detailQ.error as Error).message : null;
+
 
   const lineas = useMemo(
     () =>
@@ -738,14 +784,14 @@ export default function AnalisisLinea360Page() {
                 </button>
               </div>
               <div className="ml-auto flex items-end pb-1.5">
-                <FrescuraBadge rows={rows} />
+                <FrescuraBadge rows={rows} conciliadoEn={conciliacionQ.data} />
               </div>
             </div>
 
 
             {/* Tabla */}
             {loading ? (
-              <LoadingState rows={8} />
+              <TableSkeleton rows={8} cols={8} />
             ) : error ? (
               <EmptyState message={`Error: ${error}`} />
             ) : !lineas.length ? (
@@ -861,7 +907,7 @@ export default function AnalisisLinea360Page() {
             </div>
 
             {detailLoading ? (
-              <LoadingState rows={6} />
+              <TableSkeleton rows={6} cols={8} />
             ) : detailError ? (
               <EmptyState message={`Error: ${detailError}`} />
             ) : !detalle.length ? (
