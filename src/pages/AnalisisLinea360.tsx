@@ -507,6 +507,7 @@ export default function AnalisisLinea360Page() {
 
   const dias = resolveDays(days);
   const canalParam = canal === "all" ? null : canal;
+  const generoParam = genero === "all" ? null : genero;
 
   // Sincronizar filtros con la URL para que sobrevivan y se puedan compartir.
   useEffect(() => {
@@ -518,7 +519,7 @@ export default function AnalisisLinea360Page() {
     if (soloSinVentas) next.set("sinventas", "1");
     if (lineasSel.length) next.set("lineas", lineasSel.join("|"));
     setSearchParams(next, { replace: true });
-  }, [days, coleccion, canal, soloSinVentas, lineasSel, setSearchParams]);
+  }, [days, coleccion, canal, genero, soloSinVentas, lineasSel, setSearchParams]);
 
 
   const handleDaysChange = (d: number) => {
@@ -579,7 +580,7 @@ export default function AnalisisLinea360Page() {
       setLoading(false);
     })();
     return () => { cancelled = true; };
-  }, [dias, coleccion, canalParam, lineasSel]);
+  }, [dias, coleccion, canalParam, generoParam, lineasSel]);
 
 
 
@@ -602,7 +603,7 @@ export default function AnalisisLinea360Page() {
       setDetailLoading(false);
     })();
     return () => { cancelled = true; };
-  }, [detail, dias, canalParam, detColeccion]);
+  }, [detail, dias, canalParam, generoParam, detColeccion]);
 
   const lineas = useMemo(
     () =>
