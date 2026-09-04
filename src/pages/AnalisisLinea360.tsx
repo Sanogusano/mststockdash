@@ -8,7 +8,7 @@ import { TimeFilter, resolveDays } from "@/components/dashboard/TimeFilter";
 import { EmptyState } from "@/components/dashboard/LoadingState";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useQuery } from "@tanstack/react-query";
-import { SalesBreakdownBars } from "@/pages/LineasProducto";
+
 import { MultiSelectFilter } from "@/components/dashboard/MultiSelectFilter";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import {
@@ -120,14 +120,25 @@ const wosColor = (w: number) =>
   w > 12 ? "text-destructive" : w < 4 ? "text-amber-600" : "text-emerald-600";
 
 function UnidadesCell({ r }: { r: Row }) {
+  const total = Number(r.und_vendidas ?? 0);
+  const items = [
+    { label: "Tiendas", val: Math.max(0, Number(r.und_tiendas ?? 0)) },
+    { label: "Online", val: Math.max(0, Number(r.und_online ?? 0)) },
+    { label: "Outlet", val: Math.max(0, Number(r.und_outlet ?? 0)) },
+  ].filter((i) => i.val > 0);
   return (
     <div className="text-right">
-      <div className="text-sm font-semibold tabular-nums">{int(r.und_vendidas)}</div>
-      <div className="flex items-center justify-end gap-2 text-[10px] text-muted-foreground tabular-nums mt-0.5">
-        <span className="inline-flex items-center gap-0.5"><Store className="h-3 w-3" />{int(r.und_tiendas)}</span>
-        <span className="inline-flex items-center gap-0.5"><Globe className="h-3 w-3" />{int(r.und_online)}</span>
-        <span className="inline-flex items-center gap-0.5"><Tag className="h-3 w-3" />{int(r.und_outlet)}</span>
-      </div>
+      <div className="text-sm font-semibold tabular-nums">{int(total)}</div>
+      {items.length > 0 && (
+        <div className="flex flex-col gap-0.5 mt-0.5 text-xs font-medium w-full min-w-[84px]">
+          {items.map((i) => (
+            <div key={i.label} className="flex items-center justify-between">
+              <span className="text-muted-foreground">{i.label}</span>
+              <span className="tabular-nums text-foreground">{int(i.val)}</span>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -325,27 +336,6 @@ const GENERO_BADGE: Record<string, { label: string; className: string }> = {
   UNISEX: { label: "UNISEX", className: "border-violet-500/50 bg-violet-500/10 text-violet-700" },
 };
 
-const GENERO_TEXT: Record<string, string> = {
-  HOMBRE: "text-sky-800",
-  MUJER: "text-pink-700",
-  UNISEX: "text-violet-800",
-};
-
-function GeneroChip({
-  label,
-  pct,
-  className,
-}: {
-  label: string;
-  pct: number;
-  className: string;
-}) {
-  return (
-    <span className={cn("text-xs font-medium whitespace-nowrap", className)}>
-      {label} <span className="tabular-nums">{Math.round(pct)}%</span>
-    </span>
-  );
-}
 
 function GeneroCell({ r, enDetalle }: { r: Row; enDetalle: boolean }) {
   if (enDetalle) {
@@ -372,32 +362,55 @@ function GeneroCell({ r, enDetalle }: { r: Row; enDetalle: boolean }) {
   const p = (n: number) => (n / base) * 100;
 
   const items = [
-    { key: "HOMBRE", uds: h, pct: p(h), className: GENERO_TEXT.HOMBRE },
-    { key: "MUJER", uds: m, pct: p(m), className: GENERO_TEXT.MUJER },
-    { key: "UNISEX", uds: u, pct: p(u), className: GENERO_TEXT.UNISEX },
-  ];
+    { key: "HOMBRE", uds: h, className: "text-sky-700" },
+    { key: "MUJER", uds: m, className: "text-pink-700" },
+    { key: "UNISEX", uds: u, className: "text-violet-700" },
+  ]
+    .filter((i) => i.uds > 0)
+    .sort((a, b) => b.uds - a.uds);
+
+  const dominant = items[0];
+  const visible = p(dominant.uds) > 95 ? [dominant] : items;
 
   return (
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <div className="flex items-center gap-1 cursor-help whitespace-nowrap leading-tight">
-          {items.map((i, idx) => (
-            <span key={i.key} className="inline-flex items-center gap-1">
-              {idx > 0 && <span className="text-xs text-muted-foreground">·</span>}
-              <GeneroChip label={i.key} pct={i.pct} className={i.className} />
-            </span>
-          ))}
+    <div className="flex flex-col gap-0.5 text-xs font-medium w-full min-w-[84px]">
+      {visible.map((i) => (
+        <div key={i.key} className="flex items-center justify-between">
+          <span className={cn(i.className)}>{i.key}</span>
+          <span className="tabular-nums">{Math.round(p(i.uds))}%</span>
         </div>
-      </TooltipTrigger>
-      <TooltipContent side="left" className="text-xs space-y-0.5">
-        <div>Hombre: {int(h)} uds · {pctCol(p(h))}</div>
-        <div>Mujer: {int(m)} uds · {pctCol(p(m))}</div>
-        <div>Unisex: {int(u)} uds · {pctCol(p(u))}</div>
-      </TooltipContent>
-    </Tooltip>
+      ))}
+    </div>
   );
 }
 
+
+function CalidadVentaCell({ r }: { r: Row }) {
+  const total = Number(r.und_vendidas ?? 0);
+  if (total === 0) return <NoData />;
+  const items = [
+    { label: "Full", val: Math.max(0, Number(r.und_full ?? 0)), className: "text-emerald-600" },
+    { label: "Rebajas", val: Math.max(0, Number(r.und_rebajas ?? 0)), className: "text-destructive" },
+    { label: "Promo", val: Math.max(0, Number(r.und_promo ?? 0)), className: "text-amber-600" },
+  ]
+    .filter((i) => i.val > 0)
+    .sort((a, b) => b.val - a.val);
+  return (
+    <div className="flex flex-col gap-0.5 text-xs font-medium w-full min-w-[84px]">
+      {items.map((i) => (
+        <div key={i.label} className="flex items-center justify-between">
+          <span className={cn(i.className)}>{i.label}</span>
+          <span className="tabular-nums text-foreground">
+            {int(i.val)}
+            <span className="text-muted-foreground font-normal ml-1">
+              {Math.round((i.val / total) * 100)}%
+            </span>
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+}
 
 function MetricCells({ r, enDetalle = false }: { r: Row; enDetalle?: boolean }) {
   const sinVentas = Number(r.und_vendidas ?? 0) === 0;
@@ -442,14 +455,7 @@ function MetricCells({ r, enDetalle = false }: { r: Row; enDetalle?: boolean }) 
       <TableCell className="text-right"><UnidadesCell r={r} /></TableCell>
       <TableCell><GeneroCell r={r} enDetalle={enDetalle} /></TableCell>
       <TableCell className="text-right"><StockCell r={r} /></TableCell>
-      <TableCell>
-        <SalesBreakdownBars
-          full={Number(r.und_full ?? 0)}
-          rebajas={Number(r.und_rebajas ?? 0)}
-          promo={Number(r.und_promo ?? 0)}
-          total={Number(r.und_vendidas ?? 0)}
-        />
-      </TableCell>
+      <TableCell><CalidadVentaCell r={r} /></TableCell>
       <TableCell className="text-right text-sm">
         {sinVentas || r.rdv_semanal == null ? <NoData /> : Number(r.rdv_semanal).toFixed(1)}
       </TableCell>
@@ -476,10 +482,10 @@ function HeadMetrics({ canal }: { canal: string }) {
           venta · lista · dto.
         </span>
       </TableHead>
-      <TableHead className="text-right">Unidades Vendidas</TableHead>
-      <TableHead className="min-w-[150px]">Género</TableHead>
+      <TableHead className="text-right min-w-[100px]">Unidades Vendidas</TableHead>
+      <TableHead className="min-w-[100px]">Género</TableHead>
       <TableHead className="text-right">Stock</TableHead>
-      <TableHead className="min-w-[130px]">Calidad de Venta</TableHead>
+      <TableHead className="min-w-[110px]">Calidad de Venta</TableHead>
       <TableHead className="text-right">
         RDV
         <span className="block text-[9px] font-normal normal-case text-muted-foreground">
@@ -854,10 +860,10 @@ export default function AnalisisLinea360Page() {
             ) : (
               <div className="border border-border rounded-lg overflow-hidden">
                 <div className="overflow-x-auto">
-                  <Table className="min-w-[1040px]">
+                  <Table className="min-w-[980px]">
                     <TableHeader>
                       <TableRow className="bg-muted/30">
-                        <TableHead className="min-w-[180px] sticky left-0 z-20 bg-background">Línea</TableHead>
+                        <TableHead className="min-w-[160px] sticky left-0 z-20 bg-background">Línea</TableHead>
                         <HeadMetrics canal={canal} />
                         <TableHead className="w-8" />
                       </TableRow>
@@ -973,10 +979,10 @@ export default function AnalisisLinea360Page() {
               <div className="border border-border rounded-lg overflow-hidden">
                 <div className="overflow-auto max-h-[65vh]">
 
-                  <Table className="min-w-[1200px]">
+                  <Table className="min-w-[1100px]">
                     <TableHeader className="sticky top-0 z-20 bg-background">
                       <TableRow className="bg-muted/30">
-                        <TableHead className="min-w-[220px] sticky left-0 z-30 bg-background">Producto</TableHead>
+                        <TableHead className="min-w-[200px] sticky left-0 z-30 bg-background">Producto</TableHead>
                         <HeadMetrics canal={canal} />
                       </TableRow>
                     </TableHeader>
