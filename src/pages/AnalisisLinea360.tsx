@@ -936,13 +936,38 @@ export default function AnalisisLinea360Page() {
 
       <Sheet open={!!detail} onOpenChange={(o) => { if (!o) { setDetail(null); setProdSel(null); } }}>
         <SheetContent className="!max-w-full w-full overflow-y-auto p-0" side="right">
-          <SheetHeader className="p-6 pb-4 border-b border-border">
+          <SheetHeader className={cn("p-6 pb-4 border-b border-border", prodSel && "sr-only")}>
             <SheetTitle className="text-base font-semibold">
               {detail?.linea}{detColeccion !== "all" ? ` · ${detColeccion}` : ""}
             </SheetTitle>
             <p className="text-xs text-muted-foreground">Detalle por producto</p>
           </SheetHeader>
-          <div className="p-6 space-y-4">
+
+          {/* Panel de producto: reemplaza el contenido, conservando la lista
+              montada debajo para no perder filtros ni posición de scroll. */}
+          {prodSel && (
+            productoQ.isLoading ? (
+              <div className="p-6"><TableSkeleton rows={5} cols={4} /></div>
+            ) : productoQ.data ? (
+              <ProductoDetallePanel
+                producto={productoQ.data}
+                embedded
+                breadcrumb={`${detail?.linea ?? ""} › ${prodSel.nombre}`}
+                onBack={() => setProdSel(null)}
+                onClose={() => setProdSel(null)}
+              />
+            ) : (
+              <div className="p-6 space-y-3">
+                <button onClick={() => setProdSel(null)}
+                        className="text-xs text-muted-foreground hover:text-foreground">
+                  ← Volver a {detail?.linea}
+                </button>
+                <EmptyState message="Sin análisis disponible para este producto." />
+              </div>
+            )
+          )}
+
+          <div className={cn("p-6 space-y-4", prodSel && "hidden")}>
             {/* Filtros del detalle */}
             <div className="flex flex-wrap items-end gap-3">
               <div className="min-w-0">
@@ -961,6 +986,23 @@ export default function AnalisisLinea360Page() {
                   </SelectContent>
                 </Select>
               </div>
+              {(detail?.generosLinea.length ?? 0) > 1 && (
+                <div className="min-w-0">
+                  <label className="block text-[10px] font-semibold uppercase tracking-wide text-muted-foreground mb-1">
+                    Género
+                  </label>
+                  <Select value={detGenero} onValueChange={setDetGenero}>
+                    <SelectTrigger className="h-9 w-[170px] text-xs">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {GENERO_OPTIONS.map((o) => (
+                        <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
               <div className="min-w-0">
                 <label className="block text-[10px] font-semibold uppercase tracking-wide text-muted-foreground mb-1">
                   Buscar producto
@@ -1024,7 +1066,14 @@ export default function AnalisisLinea360Page() {
                     </TableHeader>
                     <TableBody>
                       {detalle.map((r) => (
-                          <TableRow key={r.producto_id ?? r.producto ?? Math.random()}>
+                          <TableRow
+                            key={r.producto_id ?? r.producto ?? Math.random()}
+                            className={cn(r.producto_id && "cursor-pointer hover:bg-primary/5")}
+                            onClick={() => {
+                              if (!r.producto_id) return;
+                              setProdSel({ id: String(r.producto_id), nombre: r.producto ?? "" });
+                            }}
+                          >
                             <TableCell className="sticky left-0 z-10 bg-background">
 
                               <div className="flex items-center gap-2">
