@@ -131,9 +131,9 @@ const wosColor = (w: number) =>
 function UnidadesCell({ r }: { r: Row }) {
   const total = Number(r.und_vendidas ?? 0);
   const items = [
-    { label: "Tiendas", val: Math.max(0, Number(r.und_tiendas ?? 0)) },
-    { label: "Online", val: Math.max(0, Number(r.und_online ?? 0)) },
-    { label: "Outlet", val: Math.max(0, Number(r.und_outlet ?? 0)) },
+    { label: "Tiendas", val: Math.max(0, Number(r.und_tiendas ?? 0)), Icon: Store },
+    { label: "Online", val: Math.max(0, Number(r.und_online ?? 0)), Icon: Globe },
+    { label: "Outlet", val: Math.max(0, Number(r.und_outlet ?? 0)), Icon: Tag },
   ].filter((i) => i.val > 0);
   return (
     <div className="text-right">
@@ -143,7 +143,10 @@ function UnidadesCell({ r }: { r: Row }) {
           {items.map((i) => (
             <div key={i.label} className="flex items-center justify-between">
               <span className="text-muted-foreground">{i.label}</span>
-              <span className="tabular-nums text-foreground">{int(i.val)}</span>
+              <span className="inline-flex items-center gap-0.5 tabular-nums text-foreground">
+                <i.Icon className="h-3 w-3 text-muted-foreground" />
+                {int(i.val)}
+              </span>
             </div>
           ))}
         </div>
@@ -355,7 +358,7 @@ function GeneroCell({ r, enDetalle }: { r: Row; enDetalle: boolean }) {
     };
     return (
       <span className={cn(
-        "inline-flex h-5 items-center rounded-sm border px-1.5 text-xs font-medium whitespace-nowrap",
+        "inline-flex h-5 items-center rounded border px-1.5 text-xs font-medium whitespace-nowrap",
         conf.className,
       )}>
         {conf.label}
@@ -386,7 +389,7 @@ function GeneroCell({ r, enDetalle }: { r: Row; enDetalle: boolean }) {
       {visible.map((i) => (
         <div key={i.key} className="flex items-center gap-1.5">
           <span className={cn(
-            "inline-flex items-center rounded-sm border px-1.5 py-0.5 text-xs font-medium whitespace-nowrap",
+            "inline-flex items-center rounded border px-1.5 py-0.5 text-xs font-medium whitespace-nowrap",
             i.boxClass,
           )}>
             {i.key}
@@ -410,24 +413,20 @@ function CalidadVentaCell({ r }: { r: Row }) {
     .filter((i) => i.val > 0)
     .sort((a, b) => b.val - a.val);
   return (
-    <div className="flex flex-col gap-1.5 text-xs font-medium w-full min-w-[84px]">
+    <div className="flex flex-col gap-1 text-xs font-medium w-full min-w-[110px]">
       {items.map((i) => {
         const share = Math.min(100, Math.round((i.val / total) * 100));
         return (
-          <div key={i.label} className="space-y-0.5">
-            <div className="flex items-center justify-between">
-              <span className={cn(i.className)}>{i.label}</span>
-              <span className="tabular-nums text-foreground">
-                {int(i.val)}
-                <span className="text-muted-foreground font-normal ml-1">{share}%</span>
-              </span>
-            </div>
-            <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
+          <div key={i.label} className="flex items-center gap-2">
+            <span className={cn("w-10 shrink-0", i.className)}>{i.label}</span>
+            <div className="h-1.5 flex-1 rounded-full bg-muted overflow-hidden">
               <div
                 className={cn("h-full rounded-full", i.barColor)}
                 style={{ width: `${share}%` }}
               />
             </div>
+            <span className="tabular-nums text-foreground whitespace-nowrap">{int(i.val)}</span>
+            <span className="tabular-nums text-muted-foreground font-normal w-8 text-right">{share}%</span>
           </div>
         );
       })}
