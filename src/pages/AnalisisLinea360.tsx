@@ -449,14 +449,7 @@ function MetricCells({ r, enDetalle = false }: { r: Row; enDetalle?: boolean }) 
       <TableCell className="text-right"><UnidadesCell r={r} /></TableCell>
       <TableCell><GeneroCell r={r} enDetalle={enDetalle} /></TableCell>
       <TableCell className="text-right"><StockCell r={r} /></TableCell>
-      <TableCell>
-        <SalesBreakdownBars
-          full={Number(r.und_full ?? 0)}
-          rebajas={Number(r.und_rebajas ?? 0)}
-          promo={Number(r.und_promo ?? 0)}
-          total={Number(r.und_vendidas ?? 0)}
-        />
-      </TableCell>
+      <TableCell><CalidadVentaCell r={r} /></TableCell>
       <TableCell className="text-right text-sm">
         {sinVentas || r.rdv_semanal == null ? <NoData /> : Number(r.rdv_semanal).toFixed(1)}
       </TableCell>
