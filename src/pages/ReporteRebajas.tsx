@@ -596,7 +596,18 @@ export default function ReporteRebajasPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filtradas.map((r) => (
+                    {grupos.map((grupo) => (
+                      <Fragment key={grupo.linea}>
+                        <TableRow className="bg-muted/60 hover:bg-muted/60">
+                          <TableCell colSpan={10} className="py-1.5 text-xs font-semibold text-foreground">
+                            {grupo.linea}
+                            <span className="ml-2 font-normal text-muted-foreground">
+                              {fmtInt(grupo.items.length)} productos
+                            </span>
+                          </TableCell>
+                        </TableRow>
+                        {grupo.items.map((r) => (
+
                       <TableRow key={r.product_id}>
                         <TableCell>
                           {r.foto ? (
