@@ -366,57 +366,78 @@ export default function ReporteRebajasPage() {
     doc.text(`Inventario al ${fechaInventario ?? "—"}`, pageW - margin, 24, { align: "right" });
     doc.setTextColor(0, 0, 0);
 
-    autoTable(doc, {
-      startY: 35,
-      head: [PDF_HEAD],
-      body: filtradas.map((r) => [
-        "",
-        r.producto ?? "-",
-        r.sku ?? "-",
-        r.coleccion ?? "-",
-        r.linea ?? "-",
-        r.genero ?? "-",
-        fmtCOP(r.pvp),
-        fmtCOP(r.precio_actual),
-        fmtPct(r.pct_descuento),
-        r.semanas_vida == null ? "-" : String(r.semanas_vida),
-      ]),
-      styles: { fontSize: 6.8, cellPadding: 1.4, minCellHeight: 14, valign: "middle" },
-      headStyles: { fillColor: [15, 15, 15], textColor: 255, fontStyle: "bold", fontSize: 6.8 },
-      alternateRowStyles: { fillColor: [245, 245, 248] },
-      margin: { left: margin, right: margin, top: 14, bottom: 14 },
-      showHead: "everyPage",
-      columnStyles: {
-        0: { cellWidth: 14 },
-        1: { cellWidth: 48 },
-        6: { halign: "right" }, 7: { halign: "right" }, 8: { halign: "right" },
-        9: { halign: "right" },
-      },
-      didParseCell: (data) => {
-        if (data.section !== "body") return;
-        const row = filtradas[data.row.index];
-        if (!row) return;
-        if (data.column.index === 8 && Number(row.pct_descuento ?? 0) > 50) {
-          data.cell.styles.textColor = [220, 38, 38];
-          data.cell.styles.fontStyle = "bold";
-        }
-        if (data.column.index === 9 && Number(row.semanas_vida ?? 0) > 52) {
-          data.cell.styles.textColor = [220, 38, 38];
-          data.cell.styles.fontStyle = "bold";
-        }
-      },
-      didDrawCell: (data) => {
-        if (data.section === "body" && data.column.index === 0) {
-          const photo = photos[data.row.index];
-          if (!photo) return;
-          try {
-            doc.addImage(photo, "JPEG", data.cell.x + 1, data.cell.y + 1, 12, 12);
-          } catch {
-            // La celda queda vacía si la miniatura no puede incrustarse.
+    let cursorY = 35;
+    grupos.forEach((grupo) => {
+      autoTable(doc, {
+        startY: cursorY,
+        head: [
+          [
+            {
+              content: `${grupo.linea}  ·  ${fmtInt(grupo.items.length)} productos`,
+              colSpan: PDF_HEAD.length,
+              styles: {
+                fillColor: [226, 232, 240] as [number, number, number],
+                textColor: [30, 41, 59] as [number, number, number],
+                fontStyle: "bold" as const,
+                halign: "left" as const,
+                fontSize: 8,
+              },
+            },
+          ],
+          PDF_HEAD,
+        ],
+        body: grupo.items.map((r) => [
+          "",
+          r.producto ?? "-",
+          r.sku ?? "-",
+          r.coleccion ?? "-",
+          r.linea ?? "-",
+          r.genero ?? "-",
+          fmtCOP(r.pvp),
+          fmtCOP(r.precio_actual),
+          fmtPct(r.pct_descuento),
+          r.semanas_vida == null ? "-" : String(r.semanas_vida),
+        ]),
+        styles: { fontSize: 6.8, cellPadding: 1.4, minCellHeight: 14, valign: "middle" },
+        headStyles: { fillColor: [15, 15, 15], textColor: 255, fontStyle: "bold", fontSize: 6.8 },
+        alternateRowStyles: { fillColor: [245, 245, 248] },
+        margin: { left: margin, right: margin, top: 14, bottom: 14 },
+        showHead: "everyPage",
+        columnStyles: {
+          0: { cellWidth: 14 },
+          1: { cellWidth: 48 },
+          6: { halign: "right" }, 7: { halign: "right" }, 8: { halign: "right" },
+          9: { halign: "right" },
+        },
+        didParseCell: (data) => {
+          if (data.section !== "body") return;
+          const row = grupo.items[data.row.index];
+          if (!row) return;
+          if (data.column.index === 8 && Number(row.pct_descuento ?? 0) > 50) {
+            data.cell.styles.textColor = [220, 38, 38];
+            data.cell.styles.fontStyle = "bold";
           }
-        }
-      },
+          if (data.column.index === 9 && Number(row.semanas_vida ?? 0) > 52) {
+            data.cell.styles.textColor = [220, 38, 38];
+            data.cell.styles.fontStyle = "bold";
+          }
+        },
+        didDrawCell: (data) => {
+          if (data.section === "body" && data.column.index === 0) {
+            const photo = photos[grupo.startIndex + data.row.index];
+            if (!photo) return;
+            try {
+              doc.addImage(photo, "JPEG", data.cell.x + 1, data.cell.y + 1, 12, 12);
+            } catch {
+              // La celda queda vacía si la miniatura no puede incrustarse.
+            }
+          }
+        },
+      });
+      const finalY = (doc as unknown as { lastAutoTable?: { finalY: number } }).lastAutoTable?.finalY ?? cursorY;
+      cursorY = finalY + 4;
     });
+
 
     // Pie de página en todas
     const pageH = doc.internal.pageSize.getHeight();
