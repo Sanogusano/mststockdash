@@ -630,6 +630,7 @@ export default function AnalisisLinea360Page() {
   const [detStockOp, setDetStockOp] = useState<"gt" | "lt">("gt");
   const [detStockVal, setDetStockVal] = useState("");
   const [detGenero, setDetGenero] = useState<string>("all");
+  const [detOrden, setDetOrden] = useState(() => searchParams.get("orden") ?? "ventas");
 
   const dias = resolveDays(days);
   const canalParam = canal === "all" ? null : canal;
