@@ -18,7 +18,7 @@ import {
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
-import { ChevronRight, Store, Globe, Tag, Pause } from "lucide-react";
+import { ChevronRight, Store, Globe, Tag, Pause, AlertTriangle } from "lucide-react";
 
 interface Row {
   nivel: string;
