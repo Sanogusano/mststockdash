@@ -21,6 +21,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { ChevronRight, Store, Globe, Tag, Pause, AlertTriangle } from "lucide-react";
+import { ProductoDetallePanel } from "@/components/dashboard/ProductoDetallePanel";
 
 interface Row {
   nivel: string;
@@ -593,13 +594,16 @@ export default function AnalisisLinea360Page() {
   const [colOptions, setColOptions] = useState<string[]>([]);
   const colOptionsLoaded = useRef(false);
 
-  const [detail, setDetail] = useState<{ coleccion: string | null; linea: string } | null>(null);
+  const [detail, setDetail] = useState<{ coleccion: string | null; linea: string; generosLinea: string[] } | null>(null);
+  // Producto seleccionado dentro del drawer: navegación jerárquica en un solo panel.
+  const [prodSel, setProdSel] = useState<{ id: string; nombre: string } | null>(null);
 
   // Filtros propios del drawer
   const [detColeccion, setDetColeccion] = useState<string>("all");
   const [detBusqueda, setDetBusqueda] = useState("");
   const [detStockOp, setDetStockOp] = useState<"gt" | "lt">("gt");
   const [detStockVal, setDetStockVal] = useState("");
+  const [detGenero, setDetGenero] = useState<string>("all");
 
   const dias = resolveDays(days);
   const canalParam = canal === "all" ? null : canal;
@@ -691,7 +695,7 @@ export default function AnalisisLinea360Page() {
   });
 
   const detailQ = useQuery({
-    queryKey: ["linea360-detalle", detail?.linea ?? null, dias, detColeccion, canalParam, generoParam],
+    queryKey: ["linea360-detalle", detail?.linea ?? null, dias, detColeccion, canalParam, detGenero],
     enabled: !!detail,
     staleTime: 5 * 60 * 1000,
     queryFn: async () => {
@@ -700,7 +704,7 @@ export default function AnalisisLinea360Page() {
         p_coleccion: detColeccion === "all" ? undefined : detColeccion,
         p_linea: detail!.linea,
         p_canal: canalParam ?? undefined,
-        p_genero: generoParam ?? undefined,
+        p_genero: detGenero === "all" ? undefined : detGenero,
       } as never);
       if (error) throw error;
       return (data ?? []) as unknown as Row[];
@@ -878,7 +882,13 @@ export default function AnalisisLinea360Page() {
                             setDetBusqueda("");
                             setDetStockVal("");
                             setDetStockOp("gt");
-                            setDetail({ coleccion: coleccion === "all" ? null : coleccion, linea: r.linea });
+                            setDetGenero(genero);
+                            setProdSel(null);
+                            setDetail({
+                              coleccion: coleccion === "all" ? null : coleccion,
+                              linea: r.linea,
+                              generosLinea: generosConUnidades(r),
+                            });
                           }}
                         >
                           <TableCell className="text-sm font-medium whitespace-nowrap sticky left-0 z-10 bg-background">{r.linea}</TableCell>
@@ -898,7 +908,7 @@ export default function AnalisisLinea360Page() {
         </div>
       </div>
 
-      <Sheet open={!!detail} onOpenChange={(o) => { if (!o) setDetail(null); }}>
+      <Sheet open={!!detail} onOpenChange={(o) => { if (!o) { setDetail(null); setProdSel(null); } }}>
         <SheetContent className="!max-w-full w-full overflow-y-auto p-0" side="right">
           <SheetHeader className="p-6 pb-4 border-b border-border">
             <SheetTitle className="text-base font-semibold">
