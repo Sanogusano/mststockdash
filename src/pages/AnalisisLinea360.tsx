@@ -375,9 +375,7 @@ function GeneroCell({ r, enDetalle }: { r: Row; enDetalle: boolean }) {
     { key: "HOMBRE", uds: h, pct: p(h), className: GENERO_TEXT.HOMBRE },
     { key: "MUJER", uds: m, pct: p(m), className: GENERO_TEXT.MUJER },
     { key: "UNISEX", uds: u, pct: p(u), className: GENERO_TEXT.UNISEX },
-  ].filter((i) => i.uds > 0);
-
-  if (!items.length) return <NoData />;
+  ];
 
   return (
     <Tooltip>
