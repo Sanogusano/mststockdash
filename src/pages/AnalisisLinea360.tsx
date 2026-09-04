@@ -108,15 +108,29 @@ function UnidadesCell({ r }: { r: Row }) {
 }
 
 function StockCell({ r }: { r: Row }) {
+  const fechaStock = fechaCorta(r.fecha_stock);
+  const fechaBodega = fechaCorta(r.fecha_bodega);
+  const tip = [
+    fechaStock ? `Tiendas y online al ${fechaStock}` : "Tiendas y online",
+    fechaBodega ? `Bodega al ${fechaBodega}` : "Bodega",
+  ].join(" · ");
+
   return (
-    <div className="text-right">
-      <div className="text-sm font-semibold tabular-nums">{int(r.stock_total)}</div>
-      <div className="flex items-center justify-end gap-2 text-[10px] text-muted-foreground tabular-nums mt-0.5">
-        <span className="inline-flex items-center gap-0.5"><Store className="h-3 w-3" />{int(r.stock_tiendas)}</span>
-        <span className="inline-flex items-center gap-0.5"><Globe className="h-3 w-3" />{int(r.stock_online)}</span>
-        <span className="inline-flex items-center gap-0.5"><Pause className="h-3 w-3" />{int(r.stock_bodega)}</span>
-      </div>
-    </div>
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <div className="text-right cursor-help">
+          <div className="text-sm font-semibold tabular-nums">{int(r.stock_total)}</div>
+          <div className="flex items-center justify-end gap-2 text-[10px] text-muted-foreground tabular-nums mt-0.5">
+            <span className="inline-flex items-center gap-0.5"><Store className="h-3 w-3" />{int(r.stock_tiendas)}</span>
+            <span className="inline-flex items-center gap-0.5"><Globe className="h-3 w-3" />{int(r.stock_online)}</span>
+            <span className="inline-flex items-center gap-0.5"><Pause className="h-3 w-3" />{int(r.stock_bodega)}</span>
+          </div>
+        </div>
+      </TooltipTrigger>
+      <TooltipContent side="left" className="text-xs">
+        {tip}
+      </TooltipContent>
+    </Tooltip>
   );
 }
 
