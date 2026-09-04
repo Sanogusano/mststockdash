@@ -383,29 +383,25 @@ function GeneroCell({ r, enDetalle }: { r: Row; enDetalle: boolean }) {
   const p = (n: number) => (n / base) * 100;
 
   const items = [
-    { key: "HOMBRE", uds: h, pct: p(h), className: GENERO_TEXT.HOMBRE },
-    { key: "MUJER", uds: m, pct: p(m), className: GENERO_TEXT.MUJER },
-    { key: "UNISEX", uds: u, pct: p(u), className: GENERO_TEXT.UNISEX },
-  ];
+    { key: "HOMBRE", uds: h, className: "text-sky-700" },
+    { key: "MUJER", uds: m, className: "text-pink-700" },
+    { key: "UNISEX", uds: u, className: "text-violet-700" },
+  ]
+    .filter((i) => i.uds > 0)
+    .sort((a, b) => b.uds - a.uds);
+
+  const dominant = items[0];
+  const visible = p(dominant.uds) > 95 ? [dominant] : items;
 
   return (
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <div className="flex items-center gap-1 cursor-help whitespace-nowrap leading-tight">
-          {items.map((i, idx) => (
-            <span key={i.key} className="inline-flex items-center gap-1">
-              {idx > 0 && <span className="text-xs text-muted-foreground">·</span>}
-              <GeneroChip label={i.key} pct={i.pct} className={i.className} />
-            </span>
-          ))}
+    <div className="flex flex-col gap-0.5 text-xs font-medium w-full min-w-[84px]">
+      {visible.map((i) => (
+        <div key={i.key} className="flex items-center justify-between">
+          <span className={cn(i.className)}>{i.key}</span>
+          <span className="tabular-nums">{Math.round(p(i.uds))}%</span>
         </div>
-      </TooltipTrigger>
-      <TooltipContent side="left" className="text-xs space-y-0.5">
-        <div>Hombre: {int(h)} uds · {pctCol(p(h))}</div>
-        <div>Mujer: {int(m)} uds · {pctCol(p(m))}</div>
-        <div>Unisex: {int(u)} uds · {pctCol(p(u))}</div>
-      </TooltipContent>
-    </Tooltip>
+      ))}
+    </div>
   );
 }
 
