@@ -771,16 +771,16 @@ export default function AnalisisLinea360Page() {
 
   const detalleBase = useMemo(
     () =>
-      [...detailRows]
-        .filter((r) => (soloSinVentas ? Number(r.und_vendidas ?? 0) === 0 : true))
-        .sort((a, b) => Number(b.und_vendidas ?? 0) - Number(a.und_vendidas ?? 0)),
+      [...detailRows].filter((r) =>
+        soloSinVentas ? Number(r.und_vendidas ?? 0) === 0 : true
+      ),
     [detailRows, soloSinVentas],
   );
 
   const detalle = useMemo(() => {
     const q = normalizar(detBusqueda);
     const umbral = detStockVal.trim() === "" ? null : Number(detStockVal);
-    return detalleBase.filter((r) => {
+    const filtered = detalleBase.filter((r) => {
       if (q && !normalizar(r.producto ?? "").includes(q)) return false;
       if (umbral !== null && Number.isFinite(umbral)) {
         const stock = Number(r.stock_total ?? 0);
@@ -788,7 +788,43 @@ export default function AnalisisLinea360Page() {
       }
       return true;
     });
-  }, [detalleBase, detBusqueda, detStockOp, detStockVal]);
+
+    const safeNum = (v: unknown) => (v == null || Number.isNaN(Number(v)) ? null : Number(v));
+
+    return filtered.sort((a, b) => {
+      switch (detOrden) {
+        case "ventas":
+          return Number(b.und_vendidas ?? 0) - Number(a.und_vendidas ?? 0);
+        case "inventario":
+          return Number(b.stock_total ?? 0) - Number(a.stock_total ?? 0);
+        case "cobertura": {
+          const aw = safeNum(a.wos);
+          const bw = safeNum(b.wos);
+          if (aw == null && bw == null) return 0;
+          if (aw == null) return 1;
+          if (bw == null) return -1;
+          return bw - aw;
+        }
+        case "rdv": {
+          const ar = safeNum(a.rdv_semanal);
+          const br = safeNum(b.rdv_semanal);
+          if (ar == null && br == null) return 0;
+          if (ar == null) return 1;
+          if (br == null) return -1;
+          return ar - br;
+        }
+        case "nombre":
+        default: {
+          const ap = (a.producto ?? "").trim();
+          const bp = (b.producto ?? "").trim();
+          if (!ap && !bp) return 0;
+          if (!ap) return 1;
+          if (!bp) return -1;
+          return ap.localeCompare(bp, "es-CO", { sensitivity: "base" });
+        }
+      }
+    });
+  }, [detalleBase, detBusqueda, detStockOp, detStockVal, detOrden]);
 
 
   return (
