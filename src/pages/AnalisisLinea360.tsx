@@ -690,9 +690,24 @@ export default function AnalisisLinea360Page() {
                       <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
                     ))}
                   </SelectContent>
+                 </Select>
+               </div>
+              <div className="min-w-0">
+                <label className="block text-[10px] font-semibold uppercase tracking-wide text-muted-foreground mb-1">
+                  Género
+                </label>
+                <Select value={genero} onValueChange={setGenero}>
+                  <SelectTrigger className="h-9 w-[170px] text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {GENERO_OPTIONS.map((o) => (
+                      <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                    ))}
+                  </SelectContent>
                 </Select>
               </div>
-              <div className="min-w-0">
+               <div className="min-w-0">
                 <label className="block text-[10px] font-semibold uppercase tracking-wide text-muted-foreground mb-1">
                   Línea
                 </label>
