@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { Fragment, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
@@ -220,8 +220,27 @@ export default function ReporteRebajasPage() {
         norm(r.producto ?? "").includes(q) ||
         norm(r.sku ?? "").includes(q)
       )
-      .sort((a, b) => Number(b.pct_descuento ?? 0) - Number(a.pct_descuento ?? 0));
+      .sort((a, b) => {
+        const la = (a.linea ?? "").localeCompare(b.linea ?? "", "es");
+        if (la !== 0) return la;
+        const ca = (a.coleccion ?? "").localeCompare(b.coleccion ?? "", "es");
+        if (ca !== 0) return ca;
+        return Number(b.pct_descuento ?? 0) - Number(a.pct_descuento ?? 0);
+      });
   }, [rows, coleccion, linea, genero, busqueda]);
+
+  // Agrupación por línea preservando el orden (línea → colección → mayor descuento)
+  const grupos = useMemo(() => {
+    const out: { linea: string; items: Row[]; startIndex: number }[] = [];
+    filtradas.forEach((r, i) => {
+      const nombre = r.linea ?? "SIN LÍNEA";
+      const last = out[out.length - 1];
+      if (last && last.linea === nombre) last.items.push(r);
+      else out.push({ linea: nombre, items: [r], startIndex: i });
+    });
+    return out;
+  }, [filtradas]);
+
 
   const kpis = useMemo(() => {
     const n = filtradas.length;
@@ -265,8 +284,20 @@ export default function ReporteRebajasPage() {
       cell.alignment = { horizontal: "center", vertical: "middle" };
     });
 
-    filtradas.forEach((item, index) => {
+    grupos.forEach((grupo) => {
+      const gRow = ws.addRow([
+        `${grupo.linea}  ·  ${fmtInt(grupo.items.length)} productos`,
+      ]);
+      ws.mergeCells(gRow.number, 1, gRow.number, EXCEL_HEAD.length);
+      gRow.height = 20;
+      gRow.getCell(1).font = { bold: true, color: { argb: "FF1E293B" } };
+      gRow.getCell(1).fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFE2E8F0" } };
+      gRow.getCell(1).alignment = { vertical: "middle" };
+
+      grupo.items.forEach((item, i) => {
+      const index = grupo.startIndex + i;
       const row = ws.addRow([
+
         "",
         item.producto ?? "",
         item.sku ?? "",
@@ -297,7 +328,9 @@ export default function ReporteRebajasPage() {
           ext: { width: 48, height: 48 },
         });
       }
+      });
     });
+
 
     const buffer = await wb.xlsx.writeBuffer();
     const blob = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
@@ -333,57 +366,78 @@ export default function ReporteRebajasPage() {
     doc.text(`Inventario al ${fechaInventario ?? "—"}`, pageW - margin, 24, { align: "right" });
     doc.setTextColor(0, 0, 0);
 
-    autoTable(doc, {
-      startY: 35,
-      head: [PDF_HEAD],
-      body: filtradas.map((r) => [
-        "",
-        r.producto ?? "-",
-        r.sku ?? "-",
-        r.coleccion ?? "-",
-        r.linea ?? "-",
-        r.genero ?? "-",
-        fmtCOP(r.pvp),
-        fmtCOP(r.precio_actual),
-        fmtPct(r.pct_descuento),
-        r.semanas_vida == null ? "-" : String(r.semanas_vida),
-      ]),
-      styles: { fontSize: 6.8, cellPadding: 1.4, minCellHeight: 14, valign: "middle" },
-      headStyles: { fillColor: [15, 15, 15], textColor: 255, fontStyle: "bold", fontSize: 6.8 },
-      alternateRowStyles: { fillColor: [245, 245, 248] },
-      margin: { left: margin, right: margin, top: 14, bottom: 14 },
-      showHead: "everyPage",
-      columnStyles: {
-        0: { cellWidth: 14 },
-        1: { cellWidth: 48 },
-        6: { halign: "right" }, 7: { halign: "right" }, 8: { halign: "right" },
-        9: { halign: "right" },
-      },
-      didParseCell: (data) => {
-        if (data.section !== "body") return;
-        const row = filtradas[data.row.index];
-        if (!row) return;
-        if (data.column.index === 8 && Number(row.pct_descuento ?? 0) > 50) {
-          data.cell.styles.textColor = [220, 38, 38];
-          data.cell.styles.fontStyle = "bold";
-        }
-        if (data.column.index === 9 && Number(row.semanas_vida ?? 0) > 52) {
-          data.cell.styles.textColor = [220, 38, 38];
-          data.cell.styles.fontStyle = "bold";
-        }
-      },
-      didDrawCell: (data) => {
-        if (data.section === "body" && data.column.index === 0) {
-          const photo = photos[data.row.index];
-          if (!photo) return;
-          try {
-            doc.addImage(photo, "JPEG", data.cell.x + 1, data.cell.y + 1, 12, 12);
-          } catch {
-            // La celda queda vacía si la miniatura no puede incrustarse.
+    let cursorY = 35;
+    grupos.forEach((grupo) => {
+      autoTable(doc, {
+        startY: cursorY,
+        head: [
+          [
+            {
+              content: `${grupo.linea}  ·  ${fmtInt(grupo.items.length)} productos`,
+              colSpan: PDF_HEAD.length,
+              styles: {
+                fillColor: [226, 232, 240] as [number, number, number],
+                textColor: [30, 41, 59] as [number, number, number],
+                fontStyle: "bold" as const,
+                halign: "left" as const,
+                fontSize: 8,
+              },
+            },
+          ],
+          PDF_HEAD,
+        ],
+        body: grupo.items.map((r) => [
+          "",
+          r.producto ?? "-",
+          r.sku ?? "-",
+          r.coleccion ?? "-",
+          r.linea ?? "-",
+          r.genero ?? "-",
+          fmtCOP(r.pvp),
+          fmtCOP(r.precio_actual),
+          fmtPct(r.pct_descuento),
+          r.semanas_vida == null ? "-" : String(r.semanas_vida),
+        ]),
+        styles: { fontSize: 6.8, cellPadding: 1.4, minCellHeight: 14, valign: "middle" },
+        headStyles: { fillColor: [15, 15, 15], textColor: 255, fontStyle: "bold", fontSize: 6.8 },
+        alternateRowStyles: { fillColor: [245, 245, 248] },
+        margin: { left: margin, right: margin, top: 14, bottom: 14 },
+        showHead: "everyPage",
+        columnStyles: {
+          0: { cellWidth: 14 },
+          1: { cellWidth: 48 },
+          6: { halign: "right" }, 7: { halign: "right" }, 8: { halign: "right" },
+          9: { halign: "right" },
+        },
+        didParseCell: (data) => {
+          if (data.section !== "body") return;
+          const row = grupo.items[data.row.index];
+          if (!row) return;
+          if (data.column.index === 8 && Number(row.pct_descuento ?? 0) > 50) {
+            data.cell.styles.textColor = [220, 38, 38];
+            data.cell.styles.fontStyle = "bold";
           }
-        }
-      },
+          if (data.column.index === 9 && Number(row.semanas_vida ?? 0) > 52) {
+            data.cell.styles.textColor = [220, 38, 38];
+            data.cell.styles.fontStyle = "bold";
+          }
+        },
+        didDrawCell: (data) => {
+          if (data.section === "body" && data.column.index === 0) {
+            const photo = photos[grupo.startIndex + data.row.index];
+            if (!photo) return;
+            try {
+              doc.addImage(photo, "JPEG", data.cell.x + 1, data.cell.y + 1, 12, 12);
+            } catch {
+              // La celda queda vacía si la miniatura no puede incrustarse.
+            }
+          }
+        },
+      });
+      const finalY = (doc as unknown as { lastAutoTable?: { finalY: number } }).lastAutoTable?.finalY ?? cursorY;
+      cursorY = finalY + 4;
     });
+
 
     // Pie de página en todas
     const pageH = doc.internal.pageSize.getHeight();
@@ -542,7 +596,18 @@ export default function ReporteRebajasPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filtradas.map((r) => (
+                    {grupos.map((grupo) => (
+                      <Fragment key={grupo.linea}>
+                        <TableRow className="bg-muted/60 hover:bg-muted/60">
+                          <TableCell colSpan={10} className="py-1.5 text-xs font-semibold text-foreground">
+                            {grupo.linea}
+                            <span className="ml-2 font-normal text-muted-foreground">
+                              {fmtInt(grupo.items.length)} productos
+                            </span>
+                          </TableCell>
+                        </TableRow>
+                        {grupo.items.map((r) => (
+
                       <TableRow key={r.product_id}>
                         <TableCell>
                           {r.foto ? (
@@ -594,7 +659,10 @@ export default function ReporteRebajasPage() {
                           {r.semanas_vida == null ? "—" : `${fmtInt(r.semanas_vida)} sem`}
                         </TableCell>
                       </TableRow>
+                        ))}
+                      </Fragment>
                     ))}
+
                   </TableBody>
                 </Table>
               </div>
