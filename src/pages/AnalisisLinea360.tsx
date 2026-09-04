@@ -406,6 +406,33 @@ function GeneroCell({ r, enDetalle }: { r: Row; enDetalle: boolean }) {
 }
 
 
+function CalidadVentaCell({ r }: { r: Row }) {
+  const total = Number(r.und_vendidas ?? 0);
+  if (total === 0) return <NoData />;
+  const items = [
+    { label: "Full", val: Math.max(0, Number(r.und_full ?? 0)), className: "text-emerald-600" },
+    { label: "Rebajas", val: Math.max(0, Number(r.und_rebajas ?? 0)), className: "text-destructive" },
+    { label: "Promo", val: Math.max(0, Number(r.und_promo ?? 0)), className: "text-amber-600" },
+  ]
+    .filter((i) => i.val > 0)
+    .sort((a, b) => b.val - a.val);
+  return (
+    <div className="flex flex-col gap-0.5 text-xs font-medium w-full min-w-[84px]">
+      {items.map((i) => (
+        <div key={i.label} className="flex items-center justify-between">
+          <span className={cn(i.className)}>{i.label}</span>
+          <span className="tabular-nums text-foreground">
+            {int(i.val)}
+            <span className="text-muted-foreground font-normal ml-1">
+              {Math.round((i.val / total) * 100)}%
+            </span>
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function MetricCells({ r, enDetalle = false }: { r: Row; enDetalle?: boolean }) {
   const sinVentas = Number(r.und_vendidas ?? 0) === 0;
   const precioProm = r.precio_promedio == null ? null : Number(r.precio_promedio);
