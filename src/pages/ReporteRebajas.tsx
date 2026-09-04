@@ -220,8 +220,27 @@ export default function ReporteRebajasPage() {
         norm(r.producto ?? "").includes(q) ||
         norm(r.sku ?? "").includes(q)
       )
-      .sort((a, b) => Number(b.pct_descuento ?? 0) - Number(a.pct_descuento ?? 0));
+      .sort((a, b) => {
+        const la = (a.linea ?? "").localeCompare(b.linea ?? "", "es");
+        if (la !== 0) return la;
+        const ca = (a.coleccion ?? "").localeCompare(b.coleccion ?? "", "es");
+        if (ca !== 0) return ca;
+        return Number(b.pct_descuento ?? 0) - Number(a.pct_descuento ?? 0);
+      });
   }, [rows, coleccion, linea, genero, busqueda]);
+
+  // Agrupación por línea preservando el orden (línea → colección → mayor descuento)
+  const grupos = useMemo(() => {
+    const out: { linea: string; items: Row[]; startIndex: number }[] = [];
+    filtradas.forEach((r, i) => {
+      const nombre = r.linea ?? "SIN LÍNEA";
+      const last = out[out.length - 1];
+      if (last && last.linea === nombre) last.items.push(r);
+      else out.push({ linea: nombre, items: [r], startIndex: i });
+    });
+    return out;
+  }, [filtradas]);
+
 
   const kpis = useMemo(() => {
     const n = filtradas.length;
