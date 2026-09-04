@@ -249,6 +249,61 @@ function EvacuacionCell({ r }: { r: Row }) {
 
 const NoData = () => <span className="text-muted-foreground">—</span>;
 
+const GENERO_BADGE: Record<string, { label: string; className: string }> = {
+  HOMBRE: { label: "♂ Hombre", className: "border-sky-500/50 bg-sky-500/10 text-sky-700" },
+  MUJER: { label: "♀ Mujer", className: "border-pink-500/50 bg-pink-500/10 text-pink-700" },
+  UNISEX: { label: "⚲ Unisex", className: "border-violet-500/50 bg-violet-500/10 text-violet-700" },
+};
+
+function GeneroCell({ r, enDetalle }: { r: Row; enDetalle: boolean }) {
+  if (enDetalle) {
+    const g = (r.genero ?? "").toUpperCase();
+    const conf = GENERO_BADGE[g] ?? {
+      label: g ? g : "Sin género",
+      className: "border-border bg-muted/40 text-muted-foreground",
+    };
+    return (
+      <span className={cn(
+        "inline-flex h-5 items-center rounded-sm border px-1.5 text-[10px] font-semibold whitespace-nowrap",
+        conf.className,
+      )}>
+        {conf.label}
+      </span>
+    );
+  }
+
+  const h = Math.max(0, Number(r.und_hombre ?? 0));
+  const m = Math.max(0, Number(r.und_mujer ?? 0));
+  const u = Math.max(0, Number(r.und_unisex ?? 0));
+  const total = h + m + u;
+  if (total === 0) return <NoData />;
+  const p = (n: number) => (n / total) * 100;
+
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <div className="min-w-[110px] cursor-help">
+          <div className="flex h-2 w-full rounded-full bg-muted overflow-hidden">
+            {h > 0 && <div className="h-full bg-sky-500" style={{ width: `${p(h)}%` }} />}
+            {m > 0 && <div className="h-full bg-pink-500" style={{ width: `${p(m)}%` }} />}
+            {u > 0 && <div className="h-full bg-violet-500" style={{ width: `${p(u)}%` }} />}
+          </div>
+          <div className="mt-1 flex items-center gap-2 text-[10px] text-muted-foreground tabular-nums whitespace-nowrap">
+            {h > 0 && <span className="text-sky-700">♂ {Math.round(p(h))}%</span>}
+            {m > 0 && <span className="text-pink-700">♀ {Math.round(p(m))}%</span>}
+            {u > 0 && <span className="text-violet-700">⚲ {Math.round(p(u))}%</span>}
+          </div>
+        </div>
+      </TooltipTrigger>
+      <TooltipContent side="left" className="text-xs space-y-0.5">
+        <div>♂ Hombre: {int(h)} uds · {pctCol(p(h))}</div>
+        <div>♀ Mujer: {int(m)} uds · {pctCol(p(m))}</div>
+        <div>⚲ Unisex: {int(u)} uds · {pctCol(p(u))}</div>
+      </TooltipContent>
+    </Tooltip>
+  );
+}
+
 function MetricCells({ r, enDetalle = false }: { r: Row; enDetalle?: boolean }) {
   const sinVentas = Number(r.und_vendidas ?? 0) === 0;
   const precioProm = r.precio_promedio == null ? null : Number(r.precio_promedio);
