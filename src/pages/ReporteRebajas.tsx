@@ -13,11 +13,14 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { Download, Search } from "lucide-react";
+import { Download, FileText, Search } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import * as XLSX from "xlsx";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
+import monasteryLogoWhite from "@/assets/monastery-logo-white.png";
 
 interface Row {
   product_id: string;
@@ -39,6 +42,58 @@ interface Row {
 }
 
 const DIAS_VENTA = 90;
+
+const PDF_HEAD = [
+  "Producto", "SKU", "Colección", "Línea", "Género",
+  "Precio Lista", "Precio Actual", "% Desc.", "Sem. Vida", "Stock", `Vend. ${DIAS_VENTA}d`,
+];
+
+const EXCEL_HEAD = [
+  "Producto", "SKU", "Product ID", "Colección", "Línea", "Género",
+  "Precio de Lista", "Precio Actual", "% Descuento", "Semanas de Vida",
+  "Stock Total", `Vendidas ${DIAS_VENTA}d`, "Unidades desde rebaja",
+  "Variantes", "Fecha Inicio", "Foto",
+];
+
+/** Fecha y hora de generación en Bogotá. */
+const generadoEl = () => {
+  const d = new Date();
+  const f = d.toLocaleDateString("es-CO", {
+    day: "2-digit", month: "long", year: "numeric", timeZone: "America/Bogota",
+  });
+  const h = d.toLocaleTimeString("es-CO", {
+    hour: "2-digit", minute: "2-digit", timeZone: "America/Bogota",
+  });
+  return `${f}, ${h}`;
+};
+
+/** Productos Rebajados Monastery YYYY-MM-DD HHmm */
+const nombreArchivo = () => {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    year: "numeric", month: "2-digit", day: "2-digit",
+    hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "America/Bogota",
+  }).formatToParts(new Date());
+  const g = (t: string) => parts.find((p) => p.type === t)?.value ?? "";
+  return `Productos Rebajados Monastery ${g("year")}-${g("month")}-${g("day")} ${g("hour")}${g("minute")}`;
+};
+
+/** Logo a base64 (mismo patrón que ReportGenerator). */
+async function getLogoBase64(): Promise<string> {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => {
+      const canvas = document.createElement("canvas");
+      canvas.width = img.width;
+      canvas.height = img.height;
+      const ctx = canvas.getContext("2d")!;
+      ctx.drawImage(img, 0, 0);
+      resolve(canvas.toDataURL("image/png"));
+    };
+    img.onerror = () => resolve("");
+    img.src = monasteryLogoWhite;
+  });
+}
 
 const fmtInt = (n: number | null | undefined) =>
   n == null ? "—" : Number(n).toLocaleString("es-CO");
@@ -81,6 +136,21 @@ export default function ReporteRebajasPage() {
       return (data ?? []) as unknown as Row[];
     },
     staleTime: 5 * 60 * 1000,
+  });
+
+  const { data: fechaInventario } = useQuery({
+    queryKey: ["rebajas_fecha_inventario"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("inventory_snapshot")
+        .select("snapshot_date")
+        .order("snapshot_date", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (error) throw error;
+      return (data?.snapshot_date as string | null) ?? null;
+    },
+    staleTime: 10 * 60 * 1000,
   });
 
   const rows = useMemo(() => data ?? [], [data]);
@@ -352,9 +422,14 @@ export default function ReporteRebajasPage() {
                 </p>
               </div>
             </div>
-            <Button onClick={handleExport} disabled={!filtradas.length} size="sm" className="gap-2">
-              <Download className="h-4 w-4" /> Exportar Excel
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button onClick={handleExportXLS} disabled={!filtradas.length} size="sm" variant="outline" className="gap-2">
+                <Download className="h-4 w-4" /> Excel
+              </Button>
+              <Button onClick={handleExportPDF} disabled={!filtradas.length} size="sm" className="gap-2">
+                <FileText className="h-4 w-4" /> PDF
+              </Button>
+            </div>
           </header>
 
           <div className="flex-1 px-4 sm:px-6 py-4 sm:py-6 space-y-5">
