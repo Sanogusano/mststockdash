@@ -31,6 +31,7 @@ import VentaM2Page from "./pages/VentaM2";
 import PresupuestosPage from "./pages/Presupuestos";
 import IncentivosPage from "./pages/Incentivos";
 import CierreColeccionPage from "./pages/CierreColeccion";
+import ReporteRebajasPage from "./pages/ReporteRebajas";
 
 import RendimientoVendedoresPage from "./pages/RendimientoVendedores";
 import ComisionesPage from "./pages/Comisiones";
