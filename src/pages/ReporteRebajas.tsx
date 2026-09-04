@@ -14,6 +14,8 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { Download, Search } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import * as XLSX from "xlsx";
 
@@ -63,15 +65,17 @@ export default function ReporteRebajasPage() {
   const [linea, setLinea] = useState("all");
   const [genero, setGenero] = useState("all");
   const [busqueda, setBusqueda] = useState("");
+  const [incluirAgotados, setIncluirAgotados] = useState(false);
 
   const { data, isLoading, error } = useQuery({
-    queryKey: ["reporte_rebajas_activas", DIAS_VENTA],
+    queryKey: ["reporte_rebajas_activas", DIAS_VENTA, incluirAgotados],
     queryFn: async () => {
       const { data, error } = await supabase.rpc("reporte_rebajas_activas" as never, {
         p_coleccion: null,
         p_linea: null,
         p_genero: null,
         p_dias_venta: DIAS_VENTA,
+        p_solo_con_stock: !incluirAgotados,
       } as never);
       if (error) throw error;
       return (data ?? []) as unknown as Row[];
@@ -116,6 +120,8 @@ export default function ReporteRebajasPage() {
       descProm: n ? descs.reduce((a, b) => a + b, 0) / n : 0,
       stock: filtradas.reduce((a, r) => a + Number(r.stock_total ?? 0), 0),
       semProm: semanas.length ? semanas.reduce((a, b) => a + b, 0) / semanas.length : null,
+      masDeUnAnio: filtradas.filter((r) => Number(r.semanas_vida ?? 0) > 52).length,
+      sinVenta: filtradas.filter((r) => Number(r.und_vendidas ?? 0) === 0).length,
     };
   }, [filtradas]);
 
@@ -169,20 +175,25 @@ export default function ReporteRebajasPage() {
 
           <div className="flex-1 px-4 sm:px-6 py-4 sm:py-6 space-y-5">
             {/* KPIs */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3">
               {[
                 { label: "Productos rebajados", val: fmtInt(kpis.total) },
+                { label: "Unidades en stock", val: fmtInt(kpis.stock) },
                 { label: "Descuento promedio", val: fmtPct(kpis.descProm) },
-                { label: "Stock rebajado", val: `${fmtInt(kpis.stock)} uds` },
                 {
                   label: "Semanas de vida promedio",
                   val: kpis.semProm == null ? "—" : `${kpis.semProm.toFixed(0)} sem`,
                 },
+                { label: "Más de un año rebajados", val: fmtInt(kpis.masDeUnAnio), alerta: kpis.masDeUnAnio > 0 },
+                { label: "Sin venta en 90 días", val: fmtInt(kpis.sinVenta), alerta: kpis.sinVenta > 0 },
               ].map((k) => (
                 <Card key={k.label}>
                   <CardContent className="p-4">
                     <p className="text-[11px] uppercase tracking-wide text-muted-foreground">{k.label}</p>
-                    <p className="text-xl font-semibold text-foreground mt-1 tabular-nums">{k.val}</p>
+                    <p className={cn(
+                      "text-xl font-semibold mt-1 tabular-nums",
+                      k.alerta ? "text-rose-600" : "text-foreground"
+                    )}>{k.val}</p>
                   </CardContent>
                 </Card>
               ))}
@@ -237,6 +248,12 @@ export default function ReporteRebajasPage() {
                     className="h-9 w-[240px] pl-8 text-xs"
                   />
                 </div>
+              </div>
+              <div className="flex items-center gap-2 pb-2">
+                <Switch id="incluir-agotados" checked={incluirAgotados} onCheckedChange={setIncluirAgotados} />
+                <Label htmlFor="incluir-agotados" className="text-xs text-muted-foreground cursor-pointer">
+                  Incluir agotados
+                </Label>
               </div>
               <p className="text-xs text-muted-foreground pb-2">
                 {fmtInt(filtradas.length)} de {fmtInt(rows.length)} productos
@@ -307,7 +324,10 @@ export default function ReporteRebajasPage() {
                           </span>
                         </TableCell>
                         <TableCell className="text-xs text-right tabular-nums">{fmtInt(r.stock_total)}</TableCell>
-                        <TableCell className="text-xs text-right tabular-nums">{fmtInt(r.und_vendidas)}</TableCell>
+                        <TableCell className={cn(
+                          "text-xs text-right tabular-nums",
+                          Number(r.und_vendidas ?? 0) === 0 && "text-rose-600 font-semibold"
+                        )}>{fmtInt(r.und_vendidas)}</TableCell>
                         <TableCell
                           className={cn(
                             "text-xs text-right tabular-nums",
@@ -324,8 +344,9 @@ export default function ReporteRebajasPage() {
             )}
 
             <p className="text-[11px] text-muted-foreground">
-              Rebajado = el precio de catálogo es menor al precio de lista. No incluye descuentos
-              promocionales aplicados en caja. Semanas de vida se cuentan desde la primera venta del producto.
+              Rebajado = precio de catálogo menor al precio de lista. No incluye descuentos promocionales
+              en caja. Semanas de vida desde la primera venta del producto.
+              {!incluirAgotados && " Solo se muestran productos con existencias."}
             </p>
           </div>
         </main>
