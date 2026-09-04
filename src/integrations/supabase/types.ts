@@ -4252,6 +4252,7 @@ export type Database = {
           und_outlet: number
           und_promo: number
           und_rebajas: number
+          und_sin_genero: number
           und_tiendas: number
           und_unisex: number
           und_vendidas: number
