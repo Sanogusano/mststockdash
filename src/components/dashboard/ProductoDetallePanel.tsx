@@ -167,13 +167,17 @@ export function ProductoDetallePanel({ producto, onClose }: {
   const pico = curva.length ? curva.reduce((a, b) => (b.uds > a.uds ? b : a), curva[0]) : null;
   const al80 = curva.find(p => (p.pct_acumulado ?? 0) >= 80);
 
-  return (
-    <div className="fixed inset-0 z-50 flex justify-end bg-black/50" onClick={onClose}>
-      <div className="bg-background w-full max-w-3xl h-full overflow-y-auto shadow-xl"
-           onClick={e => e.stopPropagation()}>
-
+  const cuerpo = (
+    <>
         <div className="sticky top-0 bg-background border-b p-4 flex items-start justify-between z-10">
           <div className="flex items-center gap-3">
+            {embedded && onBack && (
+              <button onClick={onBack}
+                      className="mt-1 rounded-md p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
+                      aria-label="Volver">
+                <ArrowLeft className="h-4 w-4" />
+              </button>
+            )}
             {producto.image_url ? (
               <img src={producto.image_url} alt=""
                    onClick={e => { e.stopPropagation(); setZoom(true); }}
@@ -185,6 +189,9 @@ export function ProductoDetallePanel({ producto, onClose }: {
               </div>
             )}
             <div>
+              {breadcrumb && (
+                <p className="text-[11px] text-muted-foreground mb-0.5">{breadcrumb}</p>
+              )}
               <h2 className="font-semibold leading-tight">{producto.title}</h2>
               <p className="text-xs text-muted-foreground mt-0.5">
                 {producto.categoria_padre} · {producto.genero_norm} · {producto.coleccion} ·
@@ -192,10 +199,13 @@ export function ProductoDetallePanel({ producto, onClose }: {
               </p>
             </div>
           </div>
-          <button onClick={onClose} className="text-muted-foreground hover:text-foreground">
-            <X className="h-5 w-5" />
-          </button>
+          {!embedded && (
+            <button onClick={onClose} className="text-muted-foreground hover:text-foreground">
+              <X className="h-5 w-5" />
+            </button>
+          )}
         </div>
+
 
         <div className="p-4 space-y-5">
           {/* Cifras gruesas */}
