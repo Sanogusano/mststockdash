@@ -328,7 +328,9 @@ export default function ReporteRebajasPage() {
           ext: { width: 48, height: 48 },
         });
       }
+      });
     });
+
 
     const buffer = await wb.xlsx.writeBuffer();
     const blob = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
