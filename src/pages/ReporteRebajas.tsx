@@ -659,7 +659,10 @@ export default function ReporteRebajasPage() {
                           {r.semanas_vida == null ? "—" : `${fmtInt(r.semanas_vida)} sem`}
                         </TableCell>
                       </TableRow>
+                        ))}
+                      </Fragment>
                     ))}
+
                   </TableBody>
                 </Table>
               </div>
