@@ -5,7 +5,9 @@ import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { differenceInCalendarDays } from "date-fns";
 import { TimeFilter, resolveDays } from "@/components/dashboard/TimeFilter";
-import { LoadingState, EmptyState } from "@/components/dashboard/LoadingState";
+import { EmptyState } from "@/components/dashboard/LoadingState";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useQuery } from "@tanstack/react-query";
 import { SalesBreakdownBars } from "@/pages/LineasProducto";
 import { MultiSelectFilter } from "@/components/dashboard/MultiSelectFilter";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
@@ -782,14 +784,14 @@ export default function AnalisisLinea360Page() {
                 </button>
               </div>
               <div className="ml-auto flex items-end pb-1.5">
-                <FrescuraBadge rows={rows} />
+                <FrescuraBadge rows={rows} conciliadoEn={conciliacionQ.data} />
               </div>
             </div>
 
 
             {/* Tabla */}
             {loading ? (
-              <LoadingState rows={8} />
+              <TableSkeleton rows={8} cols={8} />
             ) : error ? (
               <EmptyState message={`Error: ${error}`} />
             ) : !lineas.length ? (
@@ -905,7 +907,7 @@ export default function AnalisisLinea360Page() {
             </div>
 
             {detailLoading ? (
-              <LoadingState rows={6} />
+              <TableSkeleton rows={6} cols={8} />
             ) : detailError ? (
               <EmptyState message={`Error: ${detailError}`} />
             ) : !detalle.length ? (
