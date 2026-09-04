@@ -645,8 +645,9 @@ export default function AnalisisLinea360Page() {
     if (genero !== "all") next.set("genero", genero);
     if (soloSinVentas) next.set("sinventas", "1");
     if (lineasSel.length) next.set("lineas", lineasSel.join("|"));
+    if (detOrden !== "ventas") next.set("orden", detOrden);
     setSearchParams(next, { replace: true });
-  }, [days, coleccion, canal, genero, soloSinVentas, lineasSel, setSearchParams]);
+  }, [days, coleccion, canal, genero, soloSinVentas, lineasSel, detOrden, setSearchParams]);
 
 
   const handleDaysChange = (d: number) => {
