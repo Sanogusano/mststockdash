@@ -547,11 +547,10 @@ export default function AnalisisLinea360Page() {
     })();
   }, []);
 
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      setLoading(true);
-      setError(null);
+  const mainQ = useQuery({
+    queryKey: ["linea360", dias, coleccion, canalParam, generoParam, lineasSel.join("|")],
+    staleTime: 5 * 60 * 1000,
+    queryFn: async () => {
       const { data, error } = await supabase.rpc("reporte_analisis_linea_coleccion", {
         p_dias: dias,
         p_coleccion: coleccion === "all" ? undefined : coleccion,
@@ -560,45 +559,55 @@ export default function AnalisisLinea360Page() {
         p_lineas: lineasSel.length ? lineasSel : undefined,
         p_genero: generoParam ?? undefined,
       } as never);
-      if (cancelled) return;
+      if (error) throw error;
+      return (data ?? []) as unknown as Row[];
+    },
+  });
 
-      if (error) {
-        setError(error.message);
-        setRows([]);
-      } else {
-        const list = (data ?? []) as unknown as Row[];
-        setRows(list);
-        if (!lineasSel.length) {
-          setLineaOptions([...new Set(list.map((r) => r.linea).filter(Boolean))].sort());
-        }
-      }
-      setLoading(false);
-    })();
-    return () => { cancelled = true; };
-  }, [dias, coleccion, canalParam, generoParam, lineasSel]);
-
-
+  const rows = useMemo(() => mainQ.data ?? [], [mainQ.data]);
+  const loading = mainQ.isLoading;
+  const error = mainQ.error ? (mainQ.error as Error).message : null;
 
   useEffect(() => {
-    if (!detail) return;
-    let cancelled = false;
-    (async () => {
-      setDetailLoading(true);
-      setDetailError(null);
+    if (!mainQ.data || lineasSel.length) return;
+    setLineaOptions([...new Set(mainQ.data.map((r) => r.linea).filter(Boolean))].sort());
+  }, [mainQ.data, lineasSel.length]);
+
+  // Fecha y hora de la última conciliación NetSuite (para el indicador de frescura)
+  const conciliacionQ = useQuery({
+    queryKey: ["conciliacion-ultima-ejecucion"],
+    staleTime: 5 * 60 * 1000,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("proceso_ejecucion_log")
+        .select("ultima_ejecucion")
+        .eq("proceso", "aplicar_conciliacion_netsuite")
+        .maybeSingle();
+      return (data?.ultima_ejecucion as string | null) ?? null;
+    },
+  });
+
+  const detailQ = useQuery({
+    queryKey: ["linea360-detalle", detail?.linea ?? null, dias, detColeccion, canalParam, generoParam],
+    enabled: !!detail,
+    staleTime: 5 * 60 * 1000,
+    queryFn: async () => {
       const { data, error } = await supabase.rpc("reporte_analisis_linea_coleccion", {
         p_dias: dias,
         p_coleccion: detColeccion === "all" ? undefined : detColeccion,
-        p_linea: detail.linea,
+        p_linea: detail!.linea,
         p_canal: canalParam ?? undefined,
         p_genero: generoParam ?? undefined,
       } as never);
-      if (cancelled) return;
-      if (error) { setDetailError(error.message); setDetailRows([]); }
-      else setDetailRows((data ?? []) as unknown as Row[]);
-      setDetailLoading(false);
-    })();
-    return () => { cancelled = true; };
-  }, [detail, dias, canalParam, generoParam, detColeccion]);
+      if (error) throw error;
+      return (data ?? []) as unknown as Row[];
+    },
+  });
+
+  const detailRows = useMemo(() => detailQ.data ?? [], [detailQ.data]);
+  const detailLoading = detailQ.isLoading && !!detail;
+  const detailError = detailQ.error ? (detailQ.error as Error).message : null;
+
 
   const lineas = useMemo(
     () =>
