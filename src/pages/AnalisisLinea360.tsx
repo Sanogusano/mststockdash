@@ -57,6 +57,9 @@ interface Row {
   sell_through_pct: number;
   wos: number;
   estado_salud: string;
+  fecha_stock?: string | null;
+  fecha_bodega?: string | null;
+  dias_desde_conciliacion?: number | null;
 }
 
 const CANAL_OPTIONS = [
