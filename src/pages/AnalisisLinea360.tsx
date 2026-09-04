@@ -1098,6 +1098,21 @@ export default function AnalisisLinea360Page() {
                   />
                 </div>
               </div>
+              <div className="min-w-0">
+                <label className="block text-[10px] font-semibold uppercase tracking-wide text-muted-foreground mb-1">
+                  Ordenar por
+                </label>
+                <Select value={detOrden} onValueChange={setDetOrden}>
+                  <SelectTrigger className="h-9 w-[170px] text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {SORT_OPTIONS.map((o) => (
+                      <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
 
             {detailLoading ? (
