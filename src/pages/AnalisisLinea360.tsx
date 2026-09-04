@@ -881,10 +881,10 @@ export default function AnalisisLinea360Page() {
             ) : (
               <div className="border border-border rounded-lg overflow-hidden">
                 <div className="overflow-x-auto">
-                  <Table className="min-w-[1040px]">
+                  <Table className="min-w-[980px]">
                     <TableHeader>
                       <TableRow className="bg-muted/30">
-                        <TableHead className="min-w-[180px] sticky left-0 z-20 bg-background">Línea</TableHead>
+                        <TableHead className="min-w-[160px] sticky left-0 z-20 bg-background">Línea</TableHead>
                         <HeadMetrics canal={canal} />
                         <TableHead className="w-8" />
                       </TableRow>
