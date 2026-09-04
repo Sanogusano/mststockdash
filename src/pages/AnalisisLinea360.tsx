@@ -390,25 +390,34 @@ function CalidadVentaCell({ r }: { r: Row }) {
   const total = Number(r.und_vendidas ?? 0);
   if (total === 0) return <NoData />;
   const items = [
-    { label: "Full", val: Math.max(0, Number(r.und_full ?? 0)), className: "text-emerald-600" },
-    { label: "Rebajas", val: Math.max(0, Number(r.und_rebajas ?? 0)), className: "text-destructive" },
-    { label: "Promo", val: Math.max(0, Number(r.und_promo ?? 0)), className: "text-amber-600" },
+    { label: "Full", val: Math.max(0, Number(r.und_full ?? 0)), className: "text-emerald-600", barColor: "bg-emerald-500" },
+    { label: "Rebajas", val: Math.max(0, Number(r.und_rebajas ?? 0)), className: "text-destructive", barColor: "bg-destructive" },
+    { label: "Promo", val: Math.max(0, Number(r.und_promo ?? 0)), className: "text-amber-600", barColor: "bg-amber-500" },
   ]
     .filter((i) => i.val > 0)
     .sort((a, b) => b.val - a.val);
   return (
-    <div className="flex flex-col gap-0.5 text-xs font-medium w-full min-w-[84px]">
-      {items.map((i) => (
-        <div key={i.label} className="flex items-center justify-between">
-          <span className={cn(i.className)}>{i.label}</span>
-          <span className="tabular-nums text-foreground">
-            {int(i.val)}
-            <span className="text-muted-foreground font-normal ml-1">
-              {Math.round((i.val / total) * 100)}%
-            </span>
-          </span>
-        </div>
-      ))}
+    <div className="flex flex-col gap-1 text-xs font-medium w-full min-w-[84px]">
+      {items.map((i) => {
+        const share = Math.min(100, Math.round((i.val / total) * 100));
+        return (
+          <div key={i.label} className="space-y-0.5">
+            <div className="flex items-center justify-between">
+              <span className={cn(i.className)}>{i.label}</span>
+              <span className="tabular-nums text-foreground">
+                {int(i.val)}
+                <span className="text-muted-foreground font-normal ml-1">{share}%</span>
+              </span>
+            </div>
+            <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
+              <div
+                className={cn("h-full rounded-full", i.barColor)}
+                style={{ width: `${share}%` }}
+              />
+            </div>
+          </div>
+        );
+      })}
     </div>
   );
 }
