@@ -636,7 +636,6 @@ export function ProductoDetallePanel({ producto, onClose }: {
           </div>
 
         </div>
-      </div>
 
       {zoom && producto.image_url && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 p-6"
@@ -650,9 +649,20 @@ export function ProductoDetallePanel({ producto, onClose }: {
                onClick={e => e.stopPropagation()} />
         </div>
       )}
-    </div>
+    </>
+  );
 
+  if (embedded) return <div className="bg-background w-full">{cuerpo}</div>;
+
+  return (
+    <div className="fixed inset-0 z-50 flex justify-end bg-black/50" onClick={onClose}>
+      <div className="bg-background w-full max-w-3xl h-full overflow-y-auto shadow-xl"
+           onClick={e => e.stopPropagation()}>
+        {cuerpo}
+      </div>
+    </div>
   );
 }
+
 
 export default ProductoDetallePanel;
