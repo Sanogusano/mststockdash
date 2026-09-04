@@ -146,30 +146,70 @@ function StockCell({ r }: { r: Row }) {
   );
 }
 
-function FrescuraBadge({ rows }: { rows: Row[] }) {
+const horaConciliacion = (ts: string | null | undefined) => {
+  if (!ts) return "";
+  return new Date(ts)
+    .toLocaleTimeString("es-CO", {
+      timeZone: "America/Bogota",
+      hour: "numeric",
+      minute: "2-digit",
+      hour12: true,
+    })
+    .replace(/\s?a\.?\s?m\.?/i, " a.m.")
+    .replace(/\s?p\.?\s?m\.?/i, " p.m.");
+};
+
+function FrescuraBadge({ rows, conciliadoEn }: { rows: Row[]; conciliadoEn?: string | null }) {
   const r = rows[0];
   if (!r || !r.fecha_stock) return null;
   const dias = Number(r.dias_desde_conciliacion ?? 0);
   const fechaStock = fechaCorta(r.fecha_stock);
   const fechaBodega = fechaCorta(r.fecha_bodega);
+  const hora = horaConciliacion(conciliadoEn);
+  const bodegaTxt = `Bodega conciliada el ${fechaBodega}${hora ? `, ${hora}` : ""}`;
 
   if (dias === 0) {
-    return <span className="text-xs text-muted-foreground">Inventario al {fechaStock}</span>;
+    return (
+      <span className="text-xs text-muted-foreground">
+        Inventario al {fechaStock}
+        {hora ? ` · ${bodegaTxt}` : ""}
+      </span>
+    );
   }
   if (dias <= 2) {
     return (
       <span className="text-xs font-medium text-amber-600">
-        Bodega al {fechaBodega} · {dias} día{dias === 1 ? "" : "s"} de desfase
+        {bodegaTxt} · {dias} día{dias === 1 ? "" : "s"} de desfase
       </span>
     );
   }
   return (
     <span className="inline-flex items-center gap-1.5 text-xs font-medium text-destructive">
       <AlertTriangle className="h-3.5 w-3.5" />
-      Bodega al {fechaBodega} · {dias} día{dias === 1 ? "" : "s"} sin conciliar
+      {bodegaTxt} · {dias} día{dias === 1 ? "" : "s"} sin conciliar
     </span>
   );
 }
+
+function TableSkeleton({ rows = 8, cols = 8 }: { rows?: number; cols?: number }) {
+  return (
+    <div className="border border-border rounded-lg overflow-hidden">
+      <div className="flex gap-4 px-4 py-3 bg-muted/30 border-b border-border">
+        {Array.from({ length: cols }).map((_, i) => (
+          <Skeleton key={i} className={cn("h-3", i === 0 ? "w-32" : "flex-1")} />
+        ))}
+      </div>
+      {Array.from({ length: rows }).map((_, r) => (
+        <div key={r} className="flex gap-4 px-4 py-4 border-b border-border last:border-0">
+          {Array.from({ length: cols }).map((_, i) => (
+            <Skeleton key={i} className={cn("h-4", i === 0 ? "w-32" : "flex-1")} />
+          ))}
+        </div>
+      ))}
+    </div>
+  );
+}
+
 
 function EvacuacionCell({ r }: { r: Row }) {
   const t1 = Math.max(0, Number(r.pct_evac_0_90 ?? 0));
