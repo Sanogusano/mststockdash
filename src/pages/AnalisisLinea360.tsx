@@ -185,10 +185,11 @@ function FrescuraBadge({ rows, conciliadoEn }: { rows: Row[]; conciliadoEn?: str
     return (
       <span className="text-xs text-muted-foreground">
         Inventario al {fechaStock}
-        {hora ? ` · ${bodegaTxt}` : ""}
+        {` · Bodega conciliada hoy${hora ? `, ${hora}` : ""}`}
       </span>
     );
   }
+
   if (dias <= 2) {
     return (
       <span className="text-xs font-medium text-amber-600">
