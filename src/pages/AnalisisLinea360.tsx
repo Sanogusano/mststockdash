@@ -413,20 +413,20 @@ function CalidadVentaCell({ r }: { r: Row }) {
     .filter((i) => i.val > 0)
     .sort((a, b) => b.val - a.val);
   return (
-    <div className="flex flex-col gap-1 text-xs font-medium w-full min-w-[110px]">
+    <div className="flex flex-col gap-1 text-xs font-medium w-full min-w-[160px]">
       {items.map((i) => {
         const share = Math.min(100, Math.round((i.val / total) * 100));
         return (
-          <div key={i.label} className="flex items-center gap-2">
-            <span className={cn("w-10 shrink-0", i.className)}>{i.label}</span>
-            <div className="h-1.5 flex-1 rounded-full bg-muted overflow-hidden">
+          <div key={i.label} className="flex items-center gap-2 whitespace-nowrap">
+            <span className={cn("w-12 shrink-0", i.className)}>{i.label}</span>
+            <div className="h-2 w-16 shrink-0 rounded-full bg-muted overflow-hidden">
               <div
                 className={cn("h-full rounded-full", i.barColor)}
                 style={{ width: `${share}%` }}
               />
             </div>
-            <span className="tabular-nums text-foreground whitespace-nowrap">{int(i.val)}</span>
-            <span className="tabular-nums text-muted-foreground font-normal w-8 text-right">{share}%</span>
+            <span className="tabular-nums text-foreground w-14 text-right">{int(i.val)}</span>
+            <span className="tabular-nums text-muted-foreground font-normal w-9 text-right">{share}%</span>
           </div>
         );
       })}
@@ -507,7 +507,7 @@ function HeadMetrics({ canal }: { canal: string }) {
       <TableHead className="text-right min-w-[100px]">Unidades Vendidas</TableHead>
       <TableHead className="min-w-[100px]">Género</TableHead>
       <TableHead className="text-right">Stock</TableHead>
-      <TableHead className="min-w-[110px]">Calidad de Venta</TableHead>
+      <TableHead className="min-w-[180px]">Calidad de Venta</TableHead>
       <TableHead className="text-right">
         RDV
         <span className="block text-[9px] font-normal normal-case text-muted-foreground">
