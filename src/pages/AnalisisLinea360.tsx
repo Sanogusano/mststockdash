@@ -413,24 +413,20 @@ function CalidadVentaCell({ r }: { r: Row }) {
     .filter((i) => i.val > 0)
     .sort((a, b) => b.val - a.val);
   return (
-    <div className="flex flex-col gap-1.5 text-xs font-medium w-full min-w-[84px]">
+    <div className="flex flex-col gap-1 text-xs font-medium w-full min-w-[110px]">
       {items.map((i) => {
         const share = Math.min(100, Math.round((i.val / total) * 100));
         return (
-          <div key={i.label} className="space-y-0.5">
-            <div className="flex items-center justify-between">
-              <span className={cn(i.className)}>{i.label}</span>
-              <span className="tabular-nums text-foreground">
-                {int(i.val)}
-                <span className="text-muted-foreground font-normal ml-1">{share}%</span>
-              </span>
-            </div>
-            <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
+          <div key={i.label} className="flex items-center gap-2">
+            <span className={cn("w-10 shrink-0", i.className)}>{i.label}</span>
+            <div className="h-1.5 flex-1 rounded-full bg-muted overflow-hidden">
               <div
                 className={cn("h-full rounded-full", i.barColor)}
                 style={{ width: `${share}%` }}
               />
             </div>
+            <span className="tabular-nums text-foreground whitespace-nowrap">{int(i.val)}</span>
+            <span className="tabular-nums text-muted-foreground font-normal w-8 text-right">{share}%</span>
           </div>
         );
       })}
