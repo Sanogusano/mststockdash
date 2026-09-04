@@ -8,7 +8,7 @@ import { TimeFilter, resolveDays } from "@/components/dashboard/TimeFilter";
 import { EmptyState } from "@/components/dashboard/LoadingState";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useQuery } from "@tanstack/react-query";
-import { SalesBreakdownBars } from "@/pages/LineasProducto";
+
 import { MultiSelectFilter } from "@/components/dashboard/MultiSelectFilter";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import {
