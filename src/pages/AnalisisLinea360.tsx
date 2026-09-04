@@ -95,6 +95,16 @@ const pctCol = (n: number | null | undefined, d = 1) =>
 
 const fechaCorta = (fecha: string | Date | null | undefined) => {
   if (!fecha) return "";
+  // Las fechas 'YYYY-MM-DD' de la RPC son fechas calendario: no aplicar zona horaria
+  if (typeof fecha === "string") {
+    const m = fecha.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (m) {
+      const d = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+      return d
+        .toLocaleDateString("es-CO", { day: "numeric", month: "short" })
+        .replace(/\.$/, "");
+    }
+  }
   const d = new Date(fecha);
   return d
     .toLocaleDateString("es-CO", {
@@ -104,6 +114,7 @@ const fechaCorta = (fecha: string | Date | null | undefined) => {
     })
     .replace(/\.$/, "");
 };
+
 
 const wosColor = (w: number) =>
   w > 12 ? "text-destructive" : w < 4 ? "text-amber-600" : "text-emerald-600";
