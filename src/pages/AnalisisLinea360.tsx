@@ -371,9 +371,9 @@ function GeneroCell({ r, enDetalle }: { r: Row; enDetalle: boolean }) {
   const p = (n: number) => (n / base) * 100;
 
   const items = [
-    { key: "HOMBRE", uds: h, className: "text-sky-700" },
-    { key: "MUJER", uds: m, className: "text-pink-700" },
-    { key: "UNISEX", uds: u, className: "text-violet-700" },
+    { key: "HOMBRE", uds: h, boxClass: "border-sky-500/40 bg-sky-500/10 text-sky-700" },
+    { key: "MUJER", uds: m, boxClass: "border-pink-500/40 bg-pink-500/10 text-pink-700" },
+    { key: "UNISEX", uds: u, boxClass: "border-violet-500/40 bg-violet-500/10 text-violet-700" },
   ]
     .filter((i) => i.uds > 0)
     .sort((a, b) => b.uds - a.uds);
@@ -382,11 +382,16 @@ function GeneroCell({ r, enDetalle }: { r: Row; enDetalle: boolean }) {
   const visible = p(dominant.uds) > 95 ? [dominant] : items;
 
   return (
-    <div className="flex flex-col gap-0.5 text-xs font-medium w-full min-w-[84px]">
+    <div className="flex flex-col gap-1 w-full min-w-[84px]">
       {visible.map((i) => (
-        <div key={i.key} className="flex items-center justify-between">
-          <span className={cn(i.className)}>{i.key}</span>
-          <span className="tabular-nums">{Math.round(p(i.uds))}%</span>
+        <div key={i.key} className="flex items-center gap-1.5">
+          <span className={cn(
+            "inline-flex items-center rounded-sm border px-1.5 py-0.5 text-xs font-medium whitespace-nowrap",
+            i.boxClass,
+          )}>
+            {i.key}
+          </span>
+          <span className="text-xs tabular-nums text-foreground">{Math.round(p(i.uds))}%</span>
         </div>
       ))}
     </div>
@@ -405,7 +410,7 @@ function CalidadVentaCell({ r }: { r: Row }) {
     .filter((i) => i.val > 0)
     .sort((a, b) => b.val - a.val);
   return (
-    <div className="flex flex-col gap-1 text-xs font-medium w-full min-w-[84px]">
+    <div className="flex flex-col gap-1.5 text-xs font-medium w-full min-w-[84px]">
       {items.map((i) => {
         const share = Math.min(100, Math.round((i.val / total) * 100));
         return (
