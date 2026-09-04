@@ -120,14 +120,25 @@ const wosColor = (w: number) =>
   w > 12 ? "text-destructive" : w < 4 ? "text-amber-600" : "text-emerald-600";
 
 function UnidadesCell({ r }: { r: Row }) {
+  const total = Number(r.und_vendidas ?? 0);
+  const items = [
+    { label: "Tiendas", val: Math.max(0, Number(r.und_tiendas ?? 0)) },
+    { label: "Online", val: Math.max(0, Number(r.und_online ?? 0)) },
+    { label: "Outlet", val: Math.max(0, Number(r.und_outlet ?? 0)) },
+  ].filter((i) => i.val > 0);
   return (
     <div className="text-right">
-      <div className="text-sm font-semibold tabular-nums">{int(r.und_vendidas)}</div>
-      <div className="flex items-center justify-end gap-2 text-[10px] text-muted-foreground tabular-nums mt-0.5">
-        <span className="inline-flex items-center gap-0.5"><Store className="h-3 w-3" />{int(r.und_tiendas)}</span>
-        <span className="inline-flex items-center gap-0.5"><Globe className="h-3 w-3" />{int(r.und_online)}</span>
-        <span className="inline-flex items-center gap-0.5"><Tag className="h-3 w-3" />{int(r.und_outlet)}</span>
-      </div>
+      <div className="text-sm font-semibold tabular-nums">{int(total)}</div>
+      {items.length > 0 && (
+        <div className="flex flex-col gap-0.5 mt-0.5 text-xs font-medium w-full min-w-[84px]">
+          {items.map((i) => (
+            <div key={i.label} className="flex items-center justify-between">
+              <span className="text-muted-foreground">{i.label}</span>
+              <span className="tabular-nums text-foreground">{int(i.val)}</span>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
