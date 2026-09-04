@@ -67,12 +67,14 @@ const CANAL_OPTIONS = [
 ];
 
 const NOTA_PIE =
-  "Precio de Lista = compare_at_price del catálogo, o price si está vacío. Se muestra la mediana de la línea y su rango. Precio de Venta = efectivamente cobrado, ponderado por unidades vendidas. Stock = tiendas + online + bodega (requiere conciliación NetSuite del día). Evacuación = tramos incrementales sobre lo producido.";
+  "Precio de Venta = efectivamente cobrado, ponderado por unidades vendidas. Precio de Lista = compare_at_price del catálogo, o price si está vacío; en líneas se muestra el rango de precios. Stock = tiendas + online + bodega (requiere conciliación NetSuite del día). Evacuación = tramos incrementales sobre lo producido.";
 
 const money = (n: number | null | undefined) =>
   "$ " + Math.round(Number(n ?? 0)).toLocaleString("es-CO");
 const int = (n: number | null | undefined) => Number(n ?? 0).toLocaleString("es-CO");
 const pct = (n: number | null | undefined, d = 1) => `${Number(n ?? 0).toFixed(d)}%`;
+const pctCol = (n: number | null | undefined, d = 1) =>
+  `${Number(n ?? 0).toFixed(d).replace(".", ",")}%`;
 
 const wosColor = (w: number) =>
   w > 12 ? "text-destructive" : w < 4 ? "text-amber-600" : "text-emerald-600";
@@ -186,27 +188,40 @@ function MetricCells({ r, enDetalle = false }: { r: Row; enDetalle?: boolean }) 
   const precioProm = r.precio_promedio == null ? null : Number(r.precio_promedio);
   const dtoProm = r.pct_descuento_prom == null ? null : Number(r.pct_descuento_prom);
   const pvp = r.pvp_mediana == null ? null : Number(r.pvp_mediana);
+  const pvpMin = r.pvp_min == null ? null : Number(r.pvp_min);
+  const pvpMax = r.pvp_max == null ? null : Number(r.pvp_max);
+  const descuentoClass =
+    dtoProm != null && dtoProm > 50
+      ? "border-destructive/50 bg-destructive/10 text-destructive"
+      : dtoProm != null && dtoProm > 30
+        ? "border-amber-500/60 bg-amber-500/10 text-amber-700"
+        : "border-border bg-muted/40 text-muted-foreground";
   return (
     <>
-      {/* Precios: lista arriba; venta y descuento debajo en gris */}
-      <TableCell className="text-right whitespace-nowrap tabular-nums">
-        {pvp == null ? (
+      {/* Precios: venta principal, lista secundaria y descuento destacado */}
+      <TableCell className="text-right whitespace-nowrap tabular-nums py-2">
+        {precioProm == null ? (
           <NoData />
         ) : (
-          <div className="text-sm font-semibold">{money(pvp)}</div>
+          <div className="text-sm font-bold text-foreground">{money(precioProm)}</div>
         )}
-        {!enDetalle && pvp != null && (
-          <div className="text-[10px] text-muted-foreground">
-            {money(r.pvp_min)} – {money(r.pvp_max)}
-          </div>
-        )}
-        <div className="text-[10px] text-muted-foreground mt-0.5">
-          {precioProm == null ? "—" : money(precioProm)}
-          {" · "}
-          <span className={cn(dtoProm != null && dtoProm > 50 && "text-destructive font-medium")}>
-            {dtoProm == null ? "—" : pct(dtoProm)} dto.
-          </span>
+        <div className="mt-0.5 text-[10px] text-muted-foreground">
+          {enDetalle
+            ? pvp == null ? "— lista" : `${money(pvp)} lista`
+            : pvpMin == null || pvpMax == null
+              ? "— lista"
+              : `${money(pvpMin)} – ${money(pvpMax)} lista`}
         </div>
+        {dtoProm == null ? (
+          <div className="mt-1 text-[10px] text-muted-foreground">—</div>
+        ) : (
+          <span className={cn(
+            "mt-1 inline-flex h-5 items-center rounded-sm border px-1.5 text-[10px] font-semibold",
+            descuentoClass,
+          )}>
+            −{pctCol(Math.abs(dtoProm))}
+          </span>
+        )}
       </TableCell>
       <TableCell className="text-right"><UnidadesCell r={r} /></TableCell>
       <TableCell className="text-right"><StockCell r={r} /></TableCell>
@@ -241,7 +256,7 @@ function HeadMetrics({ canal }: { canal: string }) {
       <TableHead className="text-right">
         Precios
         <span className="block text-[9px] font-normal normal-case text-muted-foreground">
-          lista · venta · dto.
+          venta · lista · dto.
         </span>
       </TableHead>
       <TableHead className="text-right">Unidades Vendidas</TableHead>
