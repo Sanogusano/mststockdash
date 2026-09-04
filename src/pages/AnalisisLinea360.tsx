@@ -36,6 +36,10 @@ interface Row {
   und_tiendas: number;
   und_online: number;
   und_outlet: number;
+  und_hombre?: number;
+  und_mujer?: number;
+  und_unisex?: number;
+  genero?: string | null;
   und_full: number;
   und_rebajas: number;
   und_promo: number;
@@ -67,6 +71,14 @@ const CANAL_OPTIONS = [
   { value: "TIENDA", label: "🏪 Tiendas" },
   { value: "OUTLET", label: "🏷️ Outlets" },
   { value: "Online", label: "🌐 Online" },
+];
+
+const GENERO_OPTIONS = [
+  { value: "all", label: "Todos los géneros" },
+  { value: "HOMBRE", label: "♂ Hombre" },
+  { value: "MUJER", label: "♀ Mujer" },
+  { value: "UNISEX", label: "⚲ Unisex" },
+  { value: "SIN GENERO", label: "Sin género" },
 ];
 
 const NOTA_PIE =
@@ -237,6 +249,61 @@ function EvacuacionCell({ r }: { r: Row }) {
 
 const NoData = () => <span className="text-muted-foreground">—</span>;
 
+const GENERO_BADGE: Record<string, { label: string; className: string }> = {
+  HOMBRE: { label: "♂ Hombre", className: "border-sky-500/50 bg-sky-500/10 text-sky-700" },
+  MUJER: { label: "♀ Mujer", className: "border-pink-500/50 bg-pink-500/10 text-pink-700" },
+  UNISEX: { label: "⚲ Unisex", className: "border-violet-500/50 bg-violet-500/10 text-violet-700" },
+};
+
+function GeneroCell({ r, enDetalle }: { r: Row; enDetalle: boolean }) {
+  if (enDetalle) {
+    const g = (r.genero ?? "").toUpperCase();
+    const conf = GENERO_BADGE[g] ?? {
+      label: g ? g : "Sin género",
+      className: "border-border bg-muted/40 text-muted-foreground",
+    };
+    return (
+      <span className={cn(
+        "inline-flex h-5 items-center rounded-sm border px-1.5 text-[10px] font-semibold whitespace-nowrap",
+        conf.className,
+      )}>
+        {conf.label}
+      </span>
+    );
+  }
+
+  const h = Math.max(0, Number(r.und_hombre ?? 0));
+  const m = Math.max(0, Number(r.und_mujer ?? 0));
+  const u = Math.max(0, Number(r.und_unisex ?? 0));
+  const total = h + m + u;
+  if (total === 0) return <NoData />;
+  const p = (n: number) => (n / total) * 100;
+
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <div className="min-w-[110px] cursor-help">
+          <div className="flex h-2 w-full rounded-full bg-muted overflow-hidden">
+            {h > 0 && <div className="h-full bg-sky-500" style={{ width: `${p(h)}%` }} />}
+            {m > 0 && <div className="h-full bg-pink-500" style={{ width: `${p(m)}%` }} />}
+            {u > 0 && <div className="h-full bg-violet-500" style={{ width: `${p(u)}%` }} />}
+          </div>
+          <div className="mt-1 flex items-center gap-2 text-[10px] text-muted-foreground tabular-nums whitespace-nowrap">
+            {h > 0 && <span className="text-sky-700">♂ {Math.round(p(h))}%</span>}
+            {m > 0 && <span className="text-pink-700">♀ {Math.round(p(m))}%</span>}
+            {u > 0 && <span className="text-violet-700">⚲ {Math.round(p(u))}%</span>}
+          </div>
+        </div>
+      </TooltipTrigger>
+      <TooltipContent side="left" className="text-xs space-y-0.5">
+        <div>♂ Hombre: {int(h)} uds · {pctCol(p(h))}</div>
+        <div>♀ Mujer: {int(m)} uds · {pctCol(p(m))}</div>
+        <div>⚲ Unisex: {int(u)} uds · {pctCol(p(u))}</div>
+      </TooltipContent>
+    </Tooltip>
+  );
+}
+
 function MetricCells({ r, enDetalle = false }: { r: Row; enDetalle?: boolean }) {
   const sinVentas = Number(r.und_vendidas ?? 0) === 0;
   const precioProm = r.precio_promedio == null ? null : Number(r.precio_promedio);
@@ -278,6 +345,7 @@ function MetricCells({ r, enDetalle = false }: { r: Row; enDetalle?: boolean }) 
         )}
       </TableCell>
       <TableCell className="text-right"><UnidadesCell r={r} /></TableCell>
+      <TableCell><GeneroCell r={r} enDetalle={enDetalle} /></TableCell>
       <TableCell className="text-right"><StockCell r={r} /></TableCell>
       <TableCell>
         <SalesBreakdownBars
@@ -314,6 +382,7 @@ function HeadMetrics({ canal }: { canal: string }) {
         </span>
       </TableHead>
       <TableHead className="text-right">Unidades Vendidas</TableHead>
+      <TableHead className="min-w-[120px]">Género</TableHead>
       <TableHead className="text-right">Stock</TableHead>
       <TableHead className="min-w-[150px]">Calidad de Venta</TableHead>
       <TableHead className="text-right">
@@ -411,6 +480,7 @@ export default function AnalisisLinea360Page() {
   const [customTo, setCustomTo] = useState<Date | undefined>();
   const [coleccion, setColeccion] = useState(() => searchParams.get("coleccion") ?? "all");
   const [canal, setCanal] = useState(() => searchParams.get("canal") ?? "all");
+  const [genero, setGenero] = useState(() => searchParams.get("genero") ?? "all");
   const [soloSinVentas, setSoloSinVentas] = useState(() => searchParams.get("sinventas") === "1");
   const [lineasSel, setLineasSel] = useState<string[]>(() => {
     const raw = searchParams.get("lineas");
@@ -437,6 +507,7 @@ export default function AnalisisLinea360Page() {
 
   const dias = resolveDays(days);
   const canalParam = canal === "all" ? null : canal;
+  const generoParam = genero === "all" ? null : genero;
 
   // Sincronizar filtros con la URL para que sobrevivan y se puedan compartir.
   useEffect(() => {
@@ -444,10 +515,11 @@ export default function AnalisisLinea360Page() {
     next.set("dias", String(days));
     if (coleccion !== "all") next.set("coleccion", coleccion);
     if (canal !== "all") next.set("canal", canal);
+    if (genero !== "all") next.set("genero", genero);
     if (soloSinVentas) next.set("sinventas", "1");
     if (lineasSel.length) next.set("lineas", lineasSel.join("|"));
     setSearchParams(next, { replace: true });
-  }, [days, coleccion, canal, soloSinVentas, lineasSel, setSearchParams]);
+  }, [days, coleccion, canal, genero, soloSinVentas, lineasSel, setSearchParams]);
 
 
   const handleDaysChange = (d: number) => {
@@ -491,6 +563,7 @@ export default function AnalisisLinea360Page() {
         p_linea: undefined,
         p_canal: canalParam ?? undefined,
         p_lineas: lineasSel.length ? lineasSel : undefined,
+        p_genero: generoParam ?? undefined,
       } as never);
       if (cancelled) return;
 
@@ -507,7 +580,7 @@ export default function AnalisisLinea360Page() {
       setLoading(false);
     })();
     return () => { cancelled = true; };
-  }, [dias, coleccion, canalParam, lineasSel]);
+  }, [dias, coleccion, canalParam, generoParam, lineasSel]);
 
 
 
@@ -522,14 +595,15 @@ export default function AnalisisLinea360Page() {
         p_coleccion: detColeccion === "all" ? undefined : detColeccion,
         p_linea: detail.linea,
         p_canal: canalParam ?? undefined,
-      });
+        p_genero: generoParam ?? undefined,
+      } as never);
       if (cancelled) return;
       if (error) { setDetailError(error.message); setDetailRows([]); }
       else setDetailRows((data ?? []) as unknown as Row[]);
       setDetailLoading(false);
     })();
     return () => { cancelled = true; };
-  }, [detail, dias, canalParam, detColeccion]);
+  }, [detail, dias, canalParam, generoParam, detColeccion]);
 
   const lineas = useMemo(
     () =>
@@ -616,9 +690,24 @@ export default function AnalisisLinea360Page() {
                       <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
                     ))}
                   </SelectContent>
+                 </Select>
+               </div>
+              <div className="min-w-0">
+                <label className="block text-[10px] font-semibold uppercase tracking-wide text-muted-foreground mb-1">
+                  Género
+                </label>
+                <Select value={genero} onValueChange={setGenero}>
+                  <SelectTrigger className="h-9 w-[170px] text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {GENERO_OPTIONS.map((o) => (
+                      <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                    ))}
+                  </SelectContent>
                 </Select>
               </div>
-              <div className="min-w-0">
+               <div className="min-w-0">
                 <label className="block text-[10px] font-semibold uppercase tracking-wide text-muted-foreground mb-1">
                   Línea
                 </label>
