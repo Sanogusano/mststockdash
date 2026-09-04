@@ -482,16 +482,16 @@ function HeadMetrics({ canal }: { canal: string }) {
         </span>
       </TableHead>
       <TableHead className="text-right">Unidades Vendidas</TableHead>
-      <TableHead className="min-w-[120px]">Género</TableHead>
+      <TableHead className="min-w-[150px]">Género</TableHead>
       <TableHead className="text-right">Stock</TableHead>
-      <TableHead className="min-w-[150px]">Calidad de Venta</TableHead>
+      <TableHead className="min-w-[130px]">Calidad de Venta</TableHead>
       <TableHead className="text-right">
         RDV
         <span className="block text-[9px] font-normal normal-case text-muted-foreground">
           {canal === "Online" ? "uds/semana" : "uds/tienda/semana"}
         </span>
       </TableHead>
-      <TableHead className="min-w-[230px]">Evacuación promedio</TableHead>
+      <TableHead className="min-w-[200px]">Evacuación</TableHead>
       <TableHead className="text-right">
         Rotación
         <span className="block text-[9px] font-normal normal-case text-muted-foreground">
