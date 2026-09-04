@@ -84,6 +84,14 @@ const GENERO_OPTIONS = [
   { value: "SIN GENERO", label: "Sin género" },
 ];
 
+const SORT_OPTIONS = [
+  { value: "ventas", label: "Más vendidos" },
+  { value: "inventario", label: "Mayor inventario" },
+  { value: "cobertura", label: "Mayor cobertura" },
+  { value: "rdv", label: "Menor RDV" },
+  { value: "nombre", label: "Nombre A-Z" },
+];
+
 const NOTA_PIE =
   "Precio de Venta = efectivamente cobrado, ponderado por unidades vendidas. Precio de Lista = compare_at_price del catálogo, o price si está vacío; en líneas se muestra el rango de precios. Stock = tiendas + online + bodega. El stock de bodega proviene de la última conciliación con NetSuite, que puede ser anterior al día de hoy. Las bodegas internas solo se actualizan al conciliar. Evacuación = tramos incrementales sobre lo producido.";
 
@@ -622,6 +630,7 @@ export default function AnalisisLinea360Page() {
   const [detStockOp, setDetStockOp] = useState<"gt" | "lt">("gt");
   const [detStockVal, setDetStockVal] = useState("");
   const [detGenero, setDetGenero] = useState<string>("all");
+  const [detOrden, setDetOrden] = useState(() => searchParams.get("orden") ?? "ventas");
 
   const dias = resolveDays(days);
   const canalParam = canal === "all" ? null : canal;
@@ -636,8 +645,9 @@ export default function AnalisisLinea360Page() {
     if (genero !== "all") next.set("genero", genero);
     if (soloSinVentas) next.set("sinventas", "1");
     if (lineasSel.length) next.set("lineas", lineasSel.join("|"));
+    if (detOrden !== "ventas") next.set("orden", detOrden);
     setSearchParams(next, { replace: true });
-  }, [days, coleccion, canal, genero, soloSinVentas, lineasSel, setSearchParams]);
+  }, [days, coleccion, canal, genero, soloSinVentas, lineasSel, detOrden, setSearchParams]);
 
 
   const handleDaysChange = (d: number) => {
@@ -761,16 +771,16 @@ export default function AnalisisLinea360Page() {
 
   const detalleBase = useMemo(
     () =>
-      [...detailRows]
-        .filter((r) => (soloSinVentas ? Number(r.und_vendidas ?? 0) === 0 : true))
-        .sort((a, b) => Number(b.und_vendidas ?? 0) - Number(a.und_vendidas ?? 0)),
+      [...detailRows].filter((r) =>
+        soloSinVentas ? Number(r.und_vendidas ?? 0) === 0 : true
+      ),
     [detailRows, soloSinVentas],
   );
 
   const detalle = useMemo(() => {
     const q = normalizar(detBusqueda);
     const umbral = detStockVal.trim() === "" ? null : Number(detStockVal);
-    return detalleBase.filter((r) => {
+    const filtered = detalleBase.filter((r) => {
       if (q && !normalizar(r.producto ?? "").includes(q)) return false;
       if (umbral !== null && Number.isFinite(umbral)) {
         const stock = Number(r.stock_total ?? 0);
@@ -778,7 +788,43 @@ export default function AnalisisLinea360Page() {
       }
       return true;
     });
-  }, [detalleBase, detBusqueda, detStockOp, detStockVal]);
+
+    const safeNum = (v: unknown) => (v == null || Number.isNaN(Number(v)) ? null : Number(v));
+
+    return filtered.sort((a, b) => {
+      switch (detOrden) {
+        case "ventas":
+          return Number(b.und_vendidas ?? 0) - Number(a.und_vendidas ?? 0);
+        case "inventario":
+          return Number(b.stock_total ?? 0) - Number(a.stock_total ?? 0);
+        case "cobertura": {
+          const aw = safeNum(a.wos);
+          const bw = safeNum(b.wos);
+          if (aw == null && bw == null) return 0;
+          if (aw == null) return 1;
+          if (bw == null) return -1;
+          return bw - aw;
+        }
+        case "rdv": {
+          const ar = safeNum(a.rdv_semanal);
+          const br = safeNum(b.rdv_semanal);
+          if (ar == null && br == null) return 0;
+          if (ar == null) return 1;
+          if (br == null) return -1;
+          return ar - br;
+        }
+        case "nombre":
+        default: {
+          const ap = (a.producto ?? "").trim();
+          const bp = (b.producto ?? "").trim();
+          if (!ap && !bp) return 0;
+          if (!ap) return 1;
+          if (!bp) return -1;
+          return ap.localeCompare(bp, "es-CO", { sensitivity: "base" });
+        }
+      }
+    });
+  }, [detalleBase, detBusqueda, detStockOp, detStockVal, detOrden]);
 
 
   return (
@@ -1052,6 +1098,21 @@ export default function AnalisisLinea360Page() {
                   />
                 </div>
               </div>
+              <div className="min-w-0">
+                <label className="block text-[10px] font-semibold uppercase tracking-wide text-muted-foreground mb-1">
+                  Ordenar por
+                </label>
+                <Select value={detOrden} onValueChange={setDetOrden}>
+                  <SelectTrigger className="h-9 w-[170px] text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {SORT_OPTIONS.map((o) => (
+                      <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
 
             {detailLoading ? (
@@ -1085,13 +1146,20 @@ export default function AnalisisLinea360Page() {
                           >
                             <TableCell className="sticky left-0 z-10 bg-background">
 
-                              <div className="flex items-center gap-2">
-                                {r.foto ? (
-                                  <img src={r.foto} alt={r.producto ?? ""} className="h-9 w-9 rounded object-cover border border-border shrink-0" />
-                                ) : (
-                                  <div className="h-9 w-9 rounded bg-muted/50 shrink-0" />
-                                )}
-                                <span className="text-sm font-medium line-clamp-2">{r.producto ?? "—"}</span>
+                              <div className="flex items-start gap-2">
+                                <div className="flex flex-col items-center gap-0.5 shrink-0 w-9">
+                                  {r.foto ? (
+                                    <img src={r.foto} alt={r.producto ?? ""} className="h-9 w-9 rounded object-cover border border-border" />
+                                  ) : (
+                                    <div className="h-9 w-9 rounded bg-muted/50" />
+                                  )}
+                                  {detColeccion === "all" && r.coleccion && (
+                                    <span className="text-[10px] leading-none text-muted-foreground text-center w-full line-clamp-1">
+                                      {r.coleccion}
+                                    </span>
+                                  )}
+                                </div>
+                                <span className="text-sm font-medium line-clamp-2 pt-0.5">{r.producto ?? "—"}</span>
                               </div>
                             </TableCell>
                             <MetricCells r={r} enDetalle />
