@@ -17,7 +17,7 @@ import { Download, FileText, Search } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
-import * as XLSX from "xlsx";
+import ExcelJS from "exceljs";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import monasteryLogoWhite from "@/assets/monastery-logo-white.png";
@@ -44,15 +44,13 @@ interface Row {
 const DIAS_VENTA = 90;
 
 const PDF_HEAD = [
-  "Producto", "SKU", "Colección", "Línea", "Género",
-  "Precio Lista", "Precio Actual", "% Desc.", "Sem. Vida", "Stock", `Vend. ${DIAS_VENTA}d`,
+  "Foto", "Producto", "SKU", "Colección", "Línea", "Género",
+  "Precio Lista", "Precio Actual", "% Desc.", "Sem. Vida",
 ];
 
 const EXCEL_HEAD = [
-  "Producto", "SKU", "Product ID", "Colección", "Línea", "Género",
-  "Precio de Lista", "Precio Actual", "% Descuento", "Semanas de Vida",
-  "Stock Total", `Vendidas ${DIAS_VENTA}d`, "Unidades desde rebaja",
-  "Variantes", "Fecha Inicio", "Foto",
+  "Foto", "Producto", "SKU", "Colección", "Línea", "Género",
+  "Precio Lista", "Precio Actual", "% Desc.", "Sem. Vida",
 ];
 
 /** Fecha y hora de generación en Bogotá. */
@@ -86,13 +84,59 @@ async function getLogoBase64(): Promise<string> {
       const canvas = document.createElement("canvas");
       canvas.width = img.width;
       canvas.height = img.height;
-      const ctx = canvas.getContext("2d")!;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) {
+        resolve("");
+        return;
+      }
       ctx.drawImage(img, 0, 0);
       resolve(canvas.toDataURL("image/png"));
     };
     img.onerror = () => resolve("");
     img.src = monasteryLogoWhite;
   });
+}
+
+/** Convierte una foto remota en una miniatura JPEG tolerando imágenes ausentes o bloqueadas. */
+async function getPhotoThumbnail(url: string | null): Promise<string> {
+  if (!url) return "";
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => {
+      const canvas = document.createElement("canvas");
+      canvas.width = 96;
+      canvas.height = 96;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) {
+        resolve("");
+        return;
+      }
+      const scale = Math.max(96 / img.naturalWidth, 96 / img.naturalHeight);
+      const width = img.naturalWidth * scale;
+      const height = img.naturalHeight * scale;
+      ctx.fillStyle = "#FFFFFF";
+      ctx.fillRect(0, 0, 96, 96);
+      ctx.drawImage(img, (96 - width) / 2, (96 - height) / 2, width, height);
+      resolve(canvas.toDataURL("image/jpeg", 0.72));
+    };
+    img.onerror = () => resolve("");
+    img.src = url;
+  });
+}
+
+async function getPhotoThumbnails(rows: Row[]): Promise<string[]> {
+  const thumbnails = new Array<string>(rows.length).fill("");
+  const concurrency = 8;
+  let next = 0;
+  const worker = async () => {
+    while (next < rows.length) {
+      const index = next++;
+      thumbnails[index] = await getPhotoThumbnail(rows[index]?.foto ?? null);
+    }
+  };
+  await Promise.all(Array.from({ length: Math.min(concurrency, rows.length) }, worker));
+  return thumbnails;
 }
 
 const fmtInt = (n: number | null | undefined) =>
@@ -195,113 +239,80 @@ export default function ReporteRebajasPage() {
     };
   }, [filtradas]);
 
-  /** Filtros activos, en una línea, para encabezado de PDF y Excel. */
-  const filtrosTexto = useMemo(() => {
-    const p: string[] = [
-      `Colección: ${coleccion === "all" ? "Todas" : coleccion}`,
-      `Línea: ${linea === "all" ? "Todas" : linea}`,
-      `Género: ${genero === "all" ? "Todos" : genero}`,
-      `Existencias: ${incluirAgotados ? "Incluye agotados" : "Solo con stock"}`,
-      `Ventas: últimos ${DIAS_VENTA} días`,
-    ];
-    if (busqueda.trim()) p.push(`Búsqueda: "${busqueda.trim()}"`);
-    return p.join("  ·  ");
-  }, [coleccion, linea, genero, incluirAgotados, busqueda]);
-
-  const kpiPares = useMemo(
-    () => [
-      ["Productos", fmtInt(kpis.total)],
-      ["Unidades en stock", fmtInt(kpis.stock)],
-      ["Descuento promedio", fmtPct(kpis.descProm)],
-      ["Semanas promedio", kpis.semProm == null ? "—" : `${kpis.semProm.toFixed(0)}`],
-      ["Más de un año", fmtInt(kpis.masDeUnAnio)],
-      [`Sin venta ${DIAS_VENTA}d`, fmtInt(kpis.sinVenta)],
-    ] as [string, string][],
-    [kpis]
-  );
-
-  const handleExportXLS = () => {
+  const handleExportXLS = async () => {
     if (!filtradas.length) return;
-    const wb = XLSX.utils.book_new();
-
-    const aoa: (string | number)[][] = [
-      [`Productos Rebajados Monastery  ·  Generado ${generadoEl()}`],
-      [filtrosTexto],
-      [],
-      [...EXCEL_HEAD],
-      ...filtradas.map((r) => [
-        r.producto ?? "",
-        r.sku ?? "",
-        r.product_id,
-        r.coleccion ?? "",
-        r.linea ?? "",
-        r.genero ?? "",
-        Number(r.pvp ?? 0),
-        Number(r.precio_actual ?? 0),
-        Number(r.pct_descuento ?? 0),
-        r.semanas_vida ?? "",
-        Number(r.stock_total ?? 0),
-        Number(r.und_vendidas ?? 0),
-        Number(r.und_desde_rebaja ?? 0),
-        Number(r.variantes ?? 0),
-        r.fecha_inicio ?? "",
-        r.foto ?? "",
-      ]),
+    const generated = generadoEl();
+    const photos = await getPhotoThumbnails(filtradas);
+    const wb = new ExcelJS.Workbook();
+    const ws = wb.addWorksheet("Rebajas", { views: [{ state: "frozen", ySplit: 4 }] });
+    ws.columns = [
+      { width: 14 }, { width: 42 }, { width: 18 }, { width: 18 }, { width: 20 },
+      { width: 14 }, { width: 16 }, { width: 16 }, { width: 12 }, { width: 14 },
     ];
-    const ws = XLSX.utils.aoa_to_sheet(aoa);
-    ws["!cols"] = [
-      { wch: 42 }, { wch: 16 }, { wch: 16 }, { wch: 16 }, { wch: 18 }, { wch: 12 },
-      { wch: 14 }, { wch: 14 }, { wch: 12 }, { wch: 14 }, { wch: 10 }, { wch: 14 },
-      { wch: 16 }, { wch: 10 }, { wch: 12 }, { wch: 40 },
-    ];
-    ws["!freeze"] = { xSplit: "0", ySplit: "4", topLeftCell: "A5" } as never;
-    ws["!panes"] = [{ ySplit: 4, topLeftCell: "A5", activePane: "bottomLeft", state: "frozen" }] as never;
 
-    // Encabezados en negrita con fondo azul + formatos numéricos.
-    for (let c = 0; c < EXCEL_HEAD.length; c++) {
-      const ref = XLSX.utils.encode_cell({ r: 3, c });
-      const cell = ws[ref];
-      if (cell) {
-        cell.s = {
-          font: { bold: true, color: { rgb: "FFFFFF" } },
-          fill: { fgColor: { rgb: "1E40AF" } },
-          alignment: { horizontal: "center" },
-        };
-      }
-    }
-    for (let i = 0; i < filtradas.length; i++) {
-      const r = 4 + i;
-      for (const c of [6, 7]) {
-        const cell = ws[XLSX.utils.encode_cell({ r, c })];
-        if (cell) cell.z = "#,##0";
-      }
-      const pct = ws[XLSX.utils.encode_cell({ r, c: 8 })];
-      if (pct) pct.z = "0.0";
-      for (const c of [10, 11, 12, 13]) {
-        const cell = ws[XLSX.utils.encode_cell({ r, c })];
-        if (cell) cell.z = "#,##0";
-      }
-    }
-    XLSX.utils.book_append_sheet(wb, ws, "Rebajas");
+    ws.addRow([`Productos Rebajados Monastery  ·  Generado ${generated}`]);
+    ws.mergeCells(1, 1, 1, EXCEL_HEAD.length);
+    ws.getRow(1).getCell(1).font = { bold: true, size: 14 };
+    ws.addRow([`Inventario al ${fechaInventario ?? "—"}`]);
+    ws.mergeCells(2, 1, 2, EXCEL_HEAD.length);
+    ws.getRow(2).getCell(1).font = { color: { argb: "FF666666" } };
+    ws.addRow([]);
+    const header = ws.addRow(EXCEL_HEAD);
+    header.height = 24;
+    header.eachCell((cell) => {
+      cell.font = { bold: true, color: { argb: "FFFFFFFF" } };
+      cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF1E40AF" } };
+      cell.alignment = { horizontal: "center", vertical: "middle" };
+    });
 
-    const resumen = XLSX.utils.aoa_to_sheet([
-      ["Productos Rebajados Monastery"],
-      [`Generado ${generadoEl()}`],
-      [filtrosTexto],
-      [`Inventario al ${fechaInventario ?? "—"}`],
-      [],
-      ["Indicador", "Valor"],
-      ...kpiPares,
-    ]);
-    resumen["!cols"] = [{ wch: 30 }, { wch: 20 }];
-    XLSX.utils.book_append_sheet(wb, resumen, "Resumen");
+    filtradas.forEach((item, index) => {
+      const row = ws.addRow([
+        "",
+        item.producto ?? "",
+        item.sku ?? "",
+        item.coleccion ?? "",
+        item.linea ?? "",
+        item.genero ?? "",
+        Number(item.pvp ?? 0),
+        Number(item.precio_actual ?? 0),
+        Number(item.pct_descuento ?? 0) / 100,
+        item.semanas_vida ?? "",
+      ]);
+      row.height = 42;
+      row.alignment = { vertical: "middle" };
+      row.getCell(7).numFmt = '"$" #,##0';
+      row.getCell(8).numFmt = '"$" #,##0';
+      row.getCell(9).numFmt = "0.0%";
+      if (Number(item.pct_descuento ?? 0) > 50) {
+        row.getCell(9).font = { bold: true, color: { argb: "FFDC2626" } };
+      }
+      if (Number(item.semanas_vida ?? 0) > 52) {
+        row.getCell(10).font = { bold: true, color: { argb: "FFDC2626" } };
+      }
+      const photo = photos[index];
+      if (photo) {
+        const imageId = wb.addImage({ base64: photo, extension: "jpeg" });
+        ws.addImage(imageId, {
+          tl: { col: 0.12, row: row.number - 0.88 },
+          ext: { width: 48, height: 48 },
+        });
+      }
+    });
 
-    XLSX.writeFile(wb, `${nombreArchivo()}.xlsx`);
+    const buffer = await wb.xlsx.writeBuffer();
+    const blob = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `${nombreArchivo()}.xlsx`;
+    link.click();
+    URL.revokeObjectURL(url);
   };
 
   const handleExportPDF = async () => {
     if (!filtradas.length) return;
-    const logoB64 = await getLogoBase64();
+    const [logoB64, photos] = await Promise.all([getLogoBase64(), getPhotoThumbnails(filtradas)]);
+    const generated = generadoEl();
     const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "letter" });
     const pageW = doc.internal.pageSize.getWidth();
     const margin = 14;
@@ -318,35 +329,15 @@ export default function ReporteRebajasPage() {
     doc.text("Productos Rebajados", pageW - margin, 11, { align: "right" });
     doc.setFontSize(7.5);
     doc.setFont("helvetica", "normal");
-    doc.text(`Generado ${generadoEl()}`, pageW - margin, 17, { align: "right" });
-    doc.text(filtrosTexto, pageW - margin, 21.5, { align: "right" });
-    doc.text(`Inventario al ${fechaInventario ?? "—"}`, pageW - margin, 26, { align: "right" });
+    doc.text(`Generado ${generated}`, pageW - margin, 18, { align: "right" });
+    doc.text(`Inventario al ${fechaInventario ?? "—"}`, pageW - margin, 24, { align: "right" });
     doc.setTextColor(0, 0, 0);
 
-    // Fila de KPIs
-    let y = 36;
-    const cardW = (pageW - 2 * margin - 5 * 3) / 6;
-    kpiPares.forEach(([label, val], i) => {
-      const x = margin + i * (cardW + 3);
-      doc.setFillColor(245, 245, 245);
-      doc.roundedRect(x, y, cardW, 16, 2, 2, "F");
-      doc.setDrawColor(220, 220, 230);
-      doc.roundedRect(x, y, cardW, 16, 2, 2, "S");
-      doc.setFontSize(6.5);
-      doc.setTextColor(120, 120, 120);
-      doc.setFont("helvetica", "normal");
-      doc.text(label, x + 3, y + 5.5);
-      doc.setFontSize(11);
-      doc.setFont("helvetica", "bold");
-      doc.setTextColor(15, 15, 15);
-      doc.text(val, x + 3, y + 12.5);
-    });
-    y += 22;
-
     autoTable(doc, {
-      startY: y,
+      startY: 35,
       head: [PDF_HEAD],
       body: filtradas.map((r) => [
+        "",
         r.producto ?? "-",
         r.sku ?? "-",
         r.coleccion ?? "-",
@@ -356,33 +347,40 @@ export default function ReporteRebajasPage() {
         fmtCOP(r.precio_actual),
         fmtPct(r.pct_descuento),
         r.semanas_vida == null ? "-" : String(r.semanas_vida),
-        fmtInt(r.stock_total),
-        fmtInt(r.und_vendidas),
       ]),
-      styles: { fontSize: 6.8, cellPadding: 1.4 },
+      styles: { fontSize: 6.8, cellPadding: 1.4, minCellHeight: 14, valign: "middle" },
       headStyles: { fillColor: [15, 15, 15], textColor: 255, fontStyle: "bold", fontSize: 6.8 },
       alternateRowStyles: { fillColor: [245, 245, 248] },
       margin: { left: margin, right: margin, top: 14, bottom: 14 },
       showHead: "everyPage",
       columnStyles: {
-        5: { halign: "right" }, 6: { halign: "right" }, 7: { halign: "right" },
-        8: { halign: "right" }, 9: { halign: "right" }, 10: { halign: "right" },
+        0: { cellWidth: 14 },
+        1: { cellWidth: 48 },
+        6: { halign: "right" }, 7: { halign: "right" }, 8: { halign: "right" },
+        9: { halign: "right" },
       },
       didParseCell: (data) => {
         if (data.section !== "body") return;
         const row = filtradas[data.row.index];
         if (!row) return;
-        if (data.column.index === 7 && Number(row.pct_descuento ?? 0) > 50) {
+        if (data.column.index === 8 && Number(row.pct_descuento ?? 0) > 50) {
           data.cell.styles.textColor = [220, 38, 38];
           data.cell.styles.fontStyle = "bold";
         }
-        if (data.column.index === 8 && Number(row.semanas_vida ?? 0) > 52) {
+        if (data.column.index === 9 && Number(row.semanas_vida ?? 0) > 52) {
           data.cell.styles.textColor = [220, 38, 38];
           data.cell.styles.fontStyle = "bold";
         }
-        if (data.column.index === 10 && Number(row.und_vendidas ?? 0) === 0) {
-          data.cell.styles.textColor = [220, 38, 38];
-          data.cell.styles.fontStyle = "bold";
+      },
+      didDrawCell: (data) => {
+        if (data.section === "body" && data.column.index === 0) {
+          const photo = photos[data.row.index];
+          if (!photo) return;
+          try {
+            doc.addImage(photo, "JPEG", data.cell.x + 1, data.cell.y + 1, 12, 12);
+          } catch {
+            // La celda queda vacía si la miniatura no puede incrustarse.
+          }
         }
       },
     });
@@ -398,7 +396,7 @@ export default function ReporteRebajasPage() {
       doc.setDrawColor(200, 200, 210);
       doc.line(margin, pageH - 10, pageW - margin, pageH - 10);
       doc.text("MST-Retail Intelligence · powered by Selliq", margin, pageH - 6);
-      doc.text(generadoEl(), pageW / 2, pageH - 6, { align: "center" });
+      doc.text(generated, pageW / 2, pageH - 6, { align: "center" });
       doc.text(`Página ${i} de ${total}`, pageW - margin, pageH - 6, { align: "right" });
     }
 
