@@ -326,9 +326,9 @@ const GENERO_BADGE: Record<string, { label: string; className: string }> = {
 };
 
 const GENERO_TEXT: Record<string, string> = {
-  HOMBRE: "text-sky-700",
+  HOMBRE: "text-sky-800",
   MUJER: "text-pink-700",
-  UNISEX: "text-violet-700",
+  UNISEX: "text-violet-800",
 };
 
 function GeneroChip({
@@ -341,7 +341,7 @@ function GeneroChip({
   className: string;
 }) {
   return (
-    <span className={cn("text-[9px] font-semibold whitespace-nowrap", className)}>
+    <span className={cn("text-xs font-medium whitespace-nowrap", className)}>
       {label} <span className="tabular-nums">{Math.round(pct)}%</span>
     </span>
   );
@@ -356,7 +356,7 @@ function GeneroCell({ r, enDetalle }: { r: Row; enDetalle: boolean }) {
     };
     return (
       <span className={cn(
-        "inline-flex h-5 items-center rounded-sm border px-1.5 text-[10px] font-semibold whitespace-nowrap",
+        "inline-flex h-5 items-center rounded-sm border px-1.5 text-xs font-medium whitespace-nowrap",
         conf.className,
       )}>
         {conf.label}
@@ -379,16 +379,13 @@ function GeneroCell({ r, enDetalle }: { r: Row; enDetalle: boolean }) {
 
   if (!items.length) return <NoData />;
 
-  const dominante = items.find((i) => i.pct >= 95);
-  const visibles = dominante ? [dominante] : items;
-
   return (
     <Tooltip>
       <TooltipTrigger asChild>
         <div className="flex items-center gap-1 cursor-help whitespace-nowrap leading-tight">
-          {visibles.map((i, idx) => (
+          {items.map((i, idx) => (
             <span key={i.key} className="inline-flex items-center gap-1">
-              {idx > 0 && <span className="text-[9px] text-muted-foreground">·</span>}
+              {idx > 0 && <span className="text-xs text-muted-foreground">·</span>}
               <GeneroChip label={i.key} pct={i.pct} className={i.className} />
             </span>
           ))}
