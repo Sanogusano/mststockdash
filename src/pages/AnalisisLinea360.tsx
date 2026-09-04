@@ -345,6 +345,7 @@ function MetricCells({ r, enDetalle = false }: { r: Row; enDetalle?: boolean }) 
         )}
       </TableCell>
       <TableCell className="text-right"><UnidadesCell r={r} /></TableCell>
+      <TableCell><GeneroCell r={r} enDetalle={enDetalle} /></TableCell>
       <TableCell className="text-right"><StockCell r={r} /></TableCell>
       <TableCell>
         <SalesBreakdownBars
@@ -381,6 +382,7 @@ function HeadMetrics({ canal }: { canal: string }) {
         </span>
       </TableHead>
       <TableHead className="text-right">Unidades Vendidas</TableHead>
+      <TableHead className="min-w-[120px]">Género</TableHead>
       <TableHead className="text-right">Stock</TableHead>
       <TableHead className="min-w-[150px]">Calidad de Venta</TableHead>
       <TableHead className="text-right">
