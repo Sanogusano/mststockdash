@@ -1000,10 +1000,10 @@ export default function AnalisisLinea360Page() {
               <div className="border border-border rounded-lg overflow-hidden">
                 <div className="overflow-auto max-h-[65vh]">
 
-                  <Table className="min-w-[1200px]">
+                  <Table className="min-w-[1100px]">
                     <TableHeader className="sticky top-0 z-20 bg-background">
                       <TableRow className="bg-muted/30">
-                        <TableHead className="min-w-[220px] sticky left-0 z-30 bg-background">Producto</TableHead>
+                        <TableHead className="min-w-[200px] sticky left-0 z-30 bg-background">Producto</TableHead>
                         <HeadMetrics canal={canal} />
                       </TableRow>
                     </TableHeader>
