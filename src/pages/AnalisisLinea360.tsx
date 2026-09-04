@@ -336,27 +336,6 @@ const GENERO_BADGE: Record<string, { label: string; className: string }> = {
   UNISEX: { label: "UNISEX", className: "border-violet-500/50 bg-violet-500/10 text-violet-700" },
 };
 
-const GENERO_TEXT: Record<string, string> = {
-  HOMBRE: "text-sky-800",
-  MUJER: "text-pink-700",
-  UNISEX: "text-violet-800",
-};
-
-function GeneroChip({
-  label,
-  pct,
-  className,
-}: {
-  label: string;
-  pct: number;
-  className: string;
-}) {
-  return (
-    <span className={cn("text-xs font-medium whitespace-nowrap", className)}>
-      {label} <span className="tabular-nums">{Math.round(pct)}%</span>
-    </span>
-  );
-}
 
 function GeneroCell({ r, enDetalle }: { r: Row; enDetalle: boolean }) {
   if (enDetalle) {
