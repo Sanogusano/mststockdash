@@ -172,20 +172,36 @@ const horaConciliacion = (ts: string | null | undefined) => {
     .replace(/\s?p\.?\s?m\.?/i, " p.m.");
 };
 
-function FrescuraBadge({ rows, conciliadoEn }: { rows: Row[]; conciliadoEn?: string | null }) {
-  const r = rows[0];
-  if (!r || !r.fecha_stock) return null;
-  const dias = Number(r.dias_desde_conciliacion ?? 0);
-  const fechaStock = fechaCorta(r.fecha_stock);
-  const fechaBodega = fechaCorta(r.fecha_bodega);
+// Fuente única: proceso_ejecucion_log.ultima_ejecucion (America/Bogota)
+const bogotaYMD = (d: Date) =>
+  new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Bogota",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(d);
+
+function FrescuraBadge({ conciliadoEn }: { conciliadoEn?: string | null }) {
+  if (!conciliadoEn) return null;
+  const ts = new Date(conciliadoEn);
+  if (Number.isNaN(ts.getTime())) return null;
+
+  const hoyYMD = bogotaYMD(new Date());
+  const conYMD = bogotaYMD(ts);
+  const dias = Math.max(
+    0,
+    Math.round((Date.parse(`${hoyYMD}T00:00:00Z`) - Date.parse(`${conYMD}T00:00:00Z`)) / 86400000),
+  );
+
+  const fecha = fechaCorta(conYMD);
   const hora = horaConciliacion(conciliadoEn);
-  const bodegaTxt = `Bodega conciliada el ${fechaBodega}${hora ? `, ${hora}` : ""}`;
+  const cuando = dias === 0 ? "hoy" : `el ${fecha}`;
+  const bodegaTxt = `Bodega conciliada ${cuando}${hora ? `, ${hora}` : ""}`;
 
   if (dias === 0) {
     return (
       <span className="text-xs text-muted-foreground">
-        Inventario al {fechaStock}
-        {` · Bodega conciliada hoy${hora ? `, ${hora}` : ""}`}
+        Inventario al {fecha} · {bodegaTxt}
       </span>
     );
   }
@@ -204,6 +220,7 @@ function FrescuraBadge({ rows, conciliadoEn }: { rows: Row[]; conciliadoEn?: str
     </span>
   );
 }
+
 
 function TableSkeleton({ rows = 8, cols = 8 }: { rows?: number; cols?: number }) {
   return (
@@ -245,10 +262,10 @@ function EvacuacionCell({ r }: { r: Row }) {
   return (
     <Tooltip>
       <TooltipTrigger asChild>
-        <div className="flex items-center gap-2 min-w-[210px] cursor-help">
+        <div className="flex items-center gap-2 min-w-[185px] cursor-help">
           <div
             className={cn(
-              "relative h-3 min-w-[120px] flex-1 rounded-full bg-muted overflow-hidden",
+              "relative h-2.5 min-w-[110px] flex-1 rounded-full bg-muted overflow-hidden",
               incompleta && "opacity-60",
             )}
           >
@@ -268,9 +285,8 @@ function EvacuacionCell({ r }: { r: Row }) {
               ) : null,
             )}
           </div>
-          <div className="text-right whitespace-nowrap">
-            <div className="text-xs font-medium tabular-nums">{pct(total)} prom.</div>
-            <div className="text-[10px] text-muted-foreground tabular-nums">{int(u1 + u2 + u3)} uds</div>
+          <div className="text-[11px] font-medium tabular-nums whitespace-nowrap">
+            {pctCol(total)} <span className="text-muted-foreground">· {int(u1 + u2 + u3)} uds</span>
           </div>
         </div>
       </TooltipTrigger>
@@ -309,6 +325,12 @@ const GENERO_BADGE: Record<string, { label: string; className: string }> = {
   UNISEX: { label: "UNISEX", className: "border-violet-500/50 bg-violet-500/10 text-violet-700" },
 };
 
+const GENERO_TEXT: Record<string, string> = {
+  HOMBRE: "text-sky-700",
+  MUJER: "text-pink-700",
+  UNISEX: "text-violet-700",
+};
+
 function GeneroChip({
   label,
   pct,
@@ -319,15 +341,9 @@ function GeneroChip({
   className: string;
 }) {
   return (
-    <div
-      className={cn(
-        "rounded-sm border px-1 py-0.5 text-center max-w-[60px] min-w-[46px]",
-        className,
-      )}
-    >
-      <div className="text-[10px] font-semibold leading-tight tracking-tight">{label}</div>
-      <div className="text-[11px] font-bold leading-tight tabular-nums">{Math.round(pct)}%</div>
-    </div>
+    <span className={cn("text-[9px] font-semibold whitespace-nowrap", className)}>
+      {label} <span className="tabular-nums">{Math.round(pct)}%</span>
+    </span>
   );
 }
 
@@ -356,9 +372,9 @@ function GeneroCell({ r, enDetalle }: { r: Row; enDetalle: boolean }) {
   const p = (n: number) => (n / base) * 100;
 
   const items = [
-    { key: "HOMBRE", uds: h, pct: p(h), className: GENERO_BADGE.HOMBRE.className },
-    { key: "MUJER", uds: m, pct: p(m), className: GENERO_BADGE.MUJER.className },
-    { key: "UNISEX", uds: u, pct: p(u), className: GENERO_BADGE.UNISEX.className },
+    { key: "HOMBRE", uds: h, pct: p(h), className: GENERO_TEXT.HOMBRE },
+    { key: "MUJER", uds: m, pct: p(m), className: GENERO_TEXT.MUJER },
+    { key: "UNISEX", uds: u, pct: p(u), className: GENERO_TEXT.UNISEX },
   ].filter((i) => i.uds > 0);
 
   if (!items.length) return <NoData />;
@@ -369,9 +385,12 @@ function GeneroCell({ r, enDetalle }: { r: Row; enDetalle: boolean }) {
   return (
     <Tooltip>
       <TooltipTrigger asChild>
-        <div className="flex flex-wrap items-center gap-1 cursor-help">
-          {visibles.map((i) => (
-            <GeneroChip key={i.key} label={i.key} pct={i.pct} className={i.className} />
+        <div className="flex items-center gap-1 cursor-help whitespace-nowrap leading-tight">
+          {visibles.map((i, idx) => (
+            <span key={i.key} className="inline-flex items-center gap-1">
+              {idx > 0 && <span className="text-[9px] text-muted-foreground">·</span>}
+              <GeneroChip label={i.key} pct={i.pct} className={i.className} />
+            </span>
           ))}
         </div>
       </TooltipTrigger>
@@ -463,16 +482,16 @@ function HeadMetrics({ canal }: { canal: string }) {
         </span>
       </TableHead>
       <TableHead className="text-right">Unidades Vendidas</TableHead>
-      <TableHead className="min-w-[120px]">Género</TableHead>
+      <TableHead className="min-w-[150px]">Género</TableHead>
       <TableHead className="text-right">Stock</TableHead>
-      <TableHead className="min-w-[150px]">Calidad de Venta</TableHead>
+      <TableHead className="min-w-[130px]">Calidad de Venta</TableHead>
       <TableHead className="text-right">
         RDV
         <span className="block text-[9px] font-normal normal-case text-muted-foreground">
           {canal === "Online" ? "uds/semana" : "uds/tienda/semana"}
         </span>
       </TableHead>
-      <TableHead className="min-w-[230px]">Evacuación promedio</TableHead>
+      <TableHead className="min-w-[200px]">Evacuación</TableHead>
       <TableHead className="text-right">
         Rotación
         <span className="block text-[9px] font-normal normal-case text-muted-foreground">
@@ -825,7 +844,7 @@ export default function AnalisisLinea360Page() {
                 </button>
               </div>
               <div className="ml-auto flex items-end pb-1.5">
-                <FrescuraBadge rows={rows} conciliadoEn={conciliacionQ.data} />
+                <FrescuraBadge conciliadoEn={conciliacionQ.data} />
               </div>
             </div>
 
@@ -840,7 +859,7 @@ export default function AnalisisLinea360Page() {
             ) : (
               <div className="border border-border rounded-lg overflow-hidden">
                 <div className="overflow-x-auto">
-                  <Table className="min-w-[1100px]">
+                  <Table className="min-w-[1040px]">
                     <TableHeader>
                       <TableRow className="bg-muted/30">
                         <TableHead className="min-w-[180px] sticky left-0 z-20 bg-background">Línea</TableHead>
