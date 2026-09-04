@@ -648,6 +648,9 @@ export default function AnalisisLinea360Page() {
                   Sin ventas en el período
                 </button>
               </div>
+              <div className="ml-auto flex items-end pb-1.5">
+                <FrescuraBadge rows={rows} />
+              </div>
             </div>
 
 
