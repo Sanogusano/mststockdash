@@ -262,10 +262,10 @@ function EvacuacionCell({ r }: { r: Row }) {
   return (
     <Tooltip>
       <TooltipTrigger asChild>
-        <div className="flex items-center gap-2 min-w-[210px] cursor-help">
+        <div className="flex items-center gap-2 min-w-[185px] cursor-help">
           <div
             className={cn(
-              "relative h-3 min-w-[120px] flex-1 rounded-full bg-muted overflow-hidden",
+              "relative h-2.5 min-w-[110px] flex-1 rounded-full bg-muted overflow-hidden",
               incompleta && "opacity-60",
             )}
           >
@@ -859,7 +859,7 @@ export default function AnalisisLinea360Page() {
             ) : (
               <div className="border border-border rounded-lg overflow-hidden">
                 <div className="overflow-x-auto">
-                  <Table className="min-w-[1100px]">
+                  <Table className="min-w-[1040px]">
                     <TableHeader>
                       <TableRow className="bg-muted/30">
                         <TableHead className="min-w-[180px] sticky left-0 z-20 bg-background">Línea</TableHead>
