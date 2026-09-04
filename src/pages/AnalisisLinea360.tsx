@@ -36,6 +36,10 @@ interface Row {
   und_tiendas: number;
   und_online: number;
   und_outlet: number;
+  und_hombre?: number;
+  und_mujer?: number;
+  und_unisex?: number;
+  genero?: string | null;
   und_full: number;
   und_rebajas: number;
   und_promo: number;
@@ -67,6 +71,14 @@ const CANAL_OPTIONS = [
   { value: "TIENDA", label: "🏪 Tiendas" },
   { value: "OUTLET", label: "🏷️ Outlets" },
   { value: "Online", label: "🌐 Online" },
+];
+
+const GENERO_OPTIONS = [
+  { value: "all", label: "Todos los géneros" },
+  { value: "HOMBRE", label: "♂ Hombre" },
+  { value: "MUJER", label: "♀ Mujer" },
+  { value: "UNISEX", label: "⚲ Unisex" },
+  { value: "SIN GENERO", label: "Sin género" },
 ];
 
 const NOTA_PIE =
