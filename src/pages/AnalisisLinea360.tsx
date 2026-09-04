@@ -21,6 +21,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { ChevronRight, Store, Globe, Tag, Pause, AlertTriangle } from "lucide-react";
+import { ProductoDetallePanel } from "@/components/dashboard/ProductoDetallePanel";
 
 interface Row {
   nivel: string;
@@ -569,6 +570,15 @@ function ResumenCards({ rows }: { rows: Row[] }) {
   );
 }
 
+/** Géneros con unidades vendidas en una línea: si solo hay uno, el filtro de
+ *  género no puede cambiar nada y se oculta. */
+const generosConUnidades = (r: Row) =>
+  [
+    { g: "HOMBRE", v: Number(r.und_hombre ?? 0) },
+    { g: "MUJER", v: Number(r.und_mujer ?? 0) },
+    { g: "UNISEX", v: Number(r.und_unisex ?? 0) },
+  ].filter((i) => i.v > 0).map((i) => i.g);
+
 const normalizar = (s: string) =>
   (s ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
 
@@ -593,13 +603,16 @@ export default function AnalisisLinea360Page() {
   const [colOptions, setColOptions] = useState<string[]>([]);
   const colOptionsLoaded = useRef(false);
 
-  const [detail, setDetail] = useState<{ coleccion: string | null; linea: string } | null>(null);
+  const [detail, setDetail] = useState<{ coleccion: string | null; linea: string; generosLinea: string[] } | null>(null);
+  // Producto seleccionado dentro del drawer: navegación jerárquica en un solo panel.
+  const [prodSel, setProdSel] = useState<{ id: string; nombre: string } | null>(null);
 
   // Filtros propios del drawer
   const [detColeccion, setDetColeccion] = useState<string>("all");
   const [detBusqueda, setDetBusqueda] = useState("");
   const [detStockOp, setDetStockOp] = useState<"gt" | "lt">("gt");
   const [detStockVal, setDetStockVal] = useState("");
+  const [detGenero, setDetGenero] = useState<string>("all");
 
   const dias = resolveDays(days);
   const canalParam = canal === "all" ? null : canal;
@@ -691,7 +704,7 @@ export default function AnalisisLinea360Page() {
   });
 
   const detailQ = useQuery({
-    queryKey: ["linea360-detalle", detail?.linea ?? null, dias, detColeccion, canalParam, generoParam],
+    queryKey: ["linea360-detalle", detail?.linea ?? null, dias, detColeccion, canalParam, detGenero],
     enabled: !!detail,
     staleTime: 5 * 60 * 1000,
     queryFn: async () => {
@@ -700,10 +713,27 @@ export default function AnalisisLinea360Page() {
         p_coleccion: detColeccion === "all" ? undefined : detColeccion,
         p_linea: detail!.linea,
         p_canal: canalParam ?? undefined,
-        p_genero: generoParam ?? undefined,
+        p_genero: detGenero === "all" ? undefined : detGenero,
       } as never);
       if (error) throw error;
       return (data ?? []) as unknown as Row[];
+    },
+  });
+
+  // Producto seleccionado: se reutiliza la vista producto_360 que alimenta el
+  // panel de Análisis de Producto.
+  const productoQ = useQuery({
+    queryKey: ["producto-360-row", prodSel?.id ?? null],
+    enabled: !!prodSel?.id,
+    staleTime: 5 * 60 * 1000,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("producto_360")
+        .select("*")
+        .eq("product_id", prodSel!.id)
+        .maybeSingle();
+      if (error) throw error;
+      return data as any;
     },
   });
 
@@ -878,7 +908,13 @@ export default function AnalisisLinea360Page() {
                             setDetBusqueda("");
                             setDetStockVal("");
                             setDetStockOp("gt");
-                            setDetail({ coleccion: coleccion === "all" ? null : coleccion, linea: r.linea });
+                            setDetGenero(genero);
+                            setProdSel(null);
+                            setDetail({
+                              coleccion: coleccion === "all" ? null : coleccion,
+                              linea: r.linea,
+                              generosLinea: generosConUnidades(r),
+                            });
                           }}
                         >
                           <TableCell className="text-sm font-medium whitespace-nowrap sticky left-0 z-10 bg-background">{r.linea}</TableCell>
@@ -898,15 +934,40 @@ export default function AnalisisLinea360Page() {
         </div>
       </div>
 
-      <Sheet open={!!detail} onOpenChange={(o) => { if (!o) setDetail(null); }}>
+      <Sheet open={!!detail} onOpenChange={(o) => { if (!o) { setDetail(null); setProdSel(null); } }}>
         <SheetContent className="!max-w-full w-full overflow-y-auto p-0" side="right">
-          <SheetHeader className="p-6 pb-4 border-b border-border">
+          <SheetHeader className={cn("p-6 pb-4 border-b border-border", prodSel && "sr-only")}>
             <SheetTitle className="text-base font-semibold">
               {detail?.linea}{detColeccion !== "all" ? ` · ${detColeccion}` : ""}
             </SheetTitle>
             <p className="text-xs text-muted-foreground">Detalle por producto</p>
           </SheetHeader>
-          <div className="p-6 space-y-4">
+
+          {/* Panel de producto: reemplaza el contenido, conservando la lista
+              montada debajo para no perder filtros ni posición de scroll. */}
+          {prodSel && (
+            productoQ.isLoading ? (
+              <div className="p-6"><TableSkeleton rows={5} cols={4} /></div>
+            ) : productoQ.data ? (
+              <ProductoDetallePanel
+                producto={productoQ.data}
+                embedded
+                breadcrumb={`${detail?.linea ?? ""} › ${prodSel.nombre}`}
+                onBack={() => setProdSel(null)}
+                onClose={() => setProdSel(null)}
+              />
+            ) : (
+              <div className="p-6 space-y-3">
+                <button onClick={() => setProdSel(null)}
+                        className="text-xs text-muted-foreground hover:text-foreground">
+                  ← Volver a {detail?.linea}
+                </button>
+                <EmptyState message="Sin análisis disponible para este producto." />
+              </div>
+            )
+          )}
+
+          <div className={cn("p-6 space-y-4", prodSel && "hidden")}>
             {/* Filtros del detalle */}
             <div className="flex flex-wrap items-end gap-3">
               <div className="min-w-0">
@@ -925,6 +986,23 @@ export default function AnalisisLinea360Page() {
                   </SelectContent>
                 </Select>
               </div>
+              {(detail?.generosLinea.length ?? 0) > 1 && (
+                <div className="min-w-0">
+                  <label className="block text-[10px] font-semibold uppercase tracking-wide text-muted-foreground mb-1">
+                    Género
+                  </label>
+                  <Select value={detGenero} onValueChange={setDetGenero}>
+                    <SelectTrigger className="h-9 w-[170px] text-xs">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {GENERO_OPTIONS.map((o) => (
+                        <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
               <div className="min-w-0">
                 <label className="block text-[10px] font-semibold uppercase tracking-wide text-muted-foreground mb-1">
                   Buscar producto
@@ -988,7 +1066,14 @@ export default function AnalisisLinea360Page() {
                     </TableHeader>
                     <TableBody>
                       {detalle.map((r) => (
-                          <TableRow key={r.producto_id ?? r.producto ?? Math.random()}>
+                          <TableRow
+                            key={r.producto_id ?? r.producto ?? Math.random()}
+                            className={cn(r.producto_id && "cursor-pointer hover:bg-primary/5")}
+                            onClick={() => {
+                              if (!r.producto_id) return;
+                              setProdSel({ id: String(r.producto_id), nombre: r.producto ?? "" });
+                            }}
+                          >
                             <TableCell className="sticky left-0 z-10 bg-background">
 
                               <div className="flex items-center gap-2">
