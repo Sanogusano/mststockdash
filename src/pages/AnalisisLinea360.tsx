@@ -631,6 +631,7 @@ export default function AnalisisLinea360Page() {
   const mainQ = useQuery({
     queryKey: ["linea360", dias, coleccion, canalParam, generoParam, lineasSel.join("|")],
     staleTime: 5 * 60 * 1000,
+    refetchOnMount: true,
     queryFn: async () => {
       const { data, error } = await supabase.rpc("reporte_analisis_linea_coleccion", {
         p_dias: dias,
@@ -657,7 +658,8 @@ export default function AnalisisLinea360Page() {
   // Fecha y hora de la última conciliación NetSuite (para el indicador de frescura)
   const conciliacionQ = useQuery({
     queryKey: ["conciliacion-ultima-ejecucion"],
-    staleTime: 5 * 60 * 1000,
+    staleTime: 30 * 1000,
+    refetchOnMount: true,
     queryFn: async () => {
       const { data } = await supabase
         .from("proceso_ejecucion_log")
