@@ -131,9 +131,9 @@ const wosColor = (w: number) =>
 function UnidadesCell({ r }: { r: Row }) {
   const total = Number(r.und_vendidas ?? 0);
   const items = [
-    { label: "Tiendas", val: Math.max(0, Number(r.und_tiendas ?? 0)) },
-    { label: "Online", val: Math.max(0, Number(r.und_online ?? 0)) },
-    { label: "Outlet", val: Math.max(0, Number(r.und_outlet ?? 0)) },
+    { label: "Tiendas", val: Math.max(0, Number(r.und_tiendas ?? 0)), Icon: Store },
+    { label: "Online", val: Math.max(0, Number(r.und_online ?? 0)), Icon: Globe },
+    { label: "Outlet", val: Math.max(0, Number(r.und_outlet ?? 0)), Icon: Tag },
   ].filter((i) => i.val > 0);
   return (
     <div className="text-right">
@@ -143,7 +143,10 @@ function UnidadesCell({ r }: { r: Row }) {
           {items.map((i) => (
             <div key={i.label} className="flex items-center justify-between">
               <span className="text-muted-foreground">{i.label}</span>
-              <span className="tabular-nums text-foreground">{int(i.val)}</span>
+              <span className="inline-flex items-center gap-0.5 tabular-nums text-foreground">
+                <i.Icon className="h-3 w-3 text-muted-foreground" />
+                {int(i.val)}
+              </span>
             </div>
           ))}
         </div>
