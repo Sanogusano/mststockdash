@@ -134,6 +134,31 @@ function StockCell({ r }: { r: Row }) {
   );
 }
 
+function FrescuraBadge({ rows }: { rows: Row[] }) {
+  const r = rows[0];
+  if (!r || !r.fecha_stock) return null;
+  const dias = Number(r.dias_desde_conciliacion ?? 0);
+  const fechaStock = fechaCorta(r.fecha_stock);
+  const fechaBodega = fechaCorta(r.fecha_bodega);
+
+  if (dias === 0) {
+    return <span className="text-xs text-muted-foreground">Inventario al {fechaStock}</span>;
+  }
+  if (dias <= 2) {
+    return (
+      <span className="text-xs font-medium text-amber-600">
+        Bodega al {fechaBodega} · {dias} día{dias === 1 ? "" : "s"} de desfase
+      </span>
+    );
+  }
+  return (
+    <span className="inline-flex items-center gap-1.5 text-xs font-medium text-destructive">
+      <AlertTriangle className="h-3.5 w-3.5" />
+      Bodega al {fechaBodega} · {dias} día{dias === 1 ? "" : "s"} sin conciliar
+    </span>
+  );
+}
+
 function EvacuacionCell({ r }: { r: Row }) {
   const t1 = Math.max(0, Number(r.pct_evac_0_90 ?? 0));
   const t2 = Math.max(0, Number(r.pct_evac_90_120 ?? 0));
