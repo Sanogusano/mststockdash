@@ -77,7 +77,9 @@ const productoBottomItems: NavItem[] = [cierreColeccionItem];
 
 const inventarioItems: NavItem[] = [inventariosItem];
 
-const herramientasItems: NavItem[] = [bundleConstructionItem, insumosItem];
+const reporteRebajasItem: NavItem = { title: "Reporte de Rebajas", url: "/reporte-rebajas", icon: Tag, description: "Productos con precio de catálogo rebajado", module: "dashboards.inventario_salud", action: "view" };
+
+const herramientasItems: NavItem[] = [bundleConstructionItem, reporteRebajasItem, insumosItem];
 
 const alertasDistribucionItem: NavItem = {
   title: "Alertas de distribución",
@@ -385,7 +387,7 @@ export function AppSidebar() {
                   {herramientasOpen && (
                     <>
                       {visibleHerramientas
-                        .filter((i) => i.url === bundleConstructionItem.url)
+                        .filter((i) => i.url === bundleConstructionItem.url || i.url === reporteRebajasItem.url)
                         .map((item) => renderItem(item, 1))}
                       {visibleLogistica.length > 0 && (
                         <>

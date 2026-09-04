@@ -101,6 +101,7 @@ const App = () => (
           <Route path="/analisis-linea-360" element={<Guard module="dashboards.desempeno_linea" action="view"><AnalisisLinea360Page /></Guard>} />
           <Route path="/analisis-linea" element={<Guard module="dashboards.salud_producto" action="view"><Linea360Page /></Guard>} />
           <Route path="/top-productos" element={<Guard module="dashboards.inventario_salud" action="view"><TopProductosPage /></Guard>} />
+          <Route path="/reporte-rebajas" element={<Guard module="dashboards.inventario_salud" action="view"><ReporteRebajasPage /></Guard>} />
           <Route path="/venta-m2" element={<Guard module="dashboards.venta_m2" action="view"><VentaM2Page /></Guard>} />
           <Route path="/insumos" element={<Guard module="dashboards.gestion_insumos" action="view"><InsumosPage /></Guard>} />
           <Route path="/alertas-distribucion" element={<Guard module="dashboards.inventario_salud" action="view"><AlertasDistribucionPage /></Guard>} />
