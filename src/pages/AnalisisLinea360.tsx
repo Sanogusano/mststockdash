@@ -18,7 +18,7 @@ import {
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
-import { ChevronRight, Store, Globe, Tag, Pause } from "lucide-react";
+import { ChevronRight, Store, Globe, Tag, Pause, AlertTriangle } from "lucide-react";
 
 interface Row {
   nivel: string;
@@ -57,6 +57,9 @@ interface Row {
   sell_through_pct: number;
   wos: number;
   estado_salud: string;
+  fecha_stock?: string | null;
+  fecha_bodega?: string | null;
+  dias_desde_conciliacion?: number | null;
 }
 
 const CANAL_OPTIONS = [
@@ -67,7 +70,7 @@ const CANAL_OPTIONS = [
 ];
 
 const NOTA_PIE =
-  "Precio de Venta = efectivamente cobrado, ponderado por unidades vendidas. Precio de Lista = compare_at_price del catálogo, o price si está vacío; en líneas se muestra el rango de precios. Stock = tiendas + online + bodega (requiere conciliación NetSuite del día). Evacuación = tramos incrementales sobre lo producido.";
+  "Precio de Venta = efectivamente cobrado, ponderado por unidades vendidas. Precio de Lista = compare_at_price del catálogo, o price si está vacío; en líneas se muestra el rango de precios. Stock = tiendas + online + bodega. El stock de bodega proviene de la última conciliación con NetSuite, que puede ser anterior al día de hoy. Las bodegas internas solo se actualizan al conciliar. Evacuación = tramos incrementales sobre lo producido.";
 
 const money = (n: number | null | undefined) =>
   "$ " + Math.round(Number(n ?? 0)).toLocaleString("es-CO");
@@ -75,6 +78,18 @@ const int = (n: number | null | undefined) => Number(n ?? 0).toLocaleString("es-
 const pct = (n: number | null | undefined, d = 1) => `${Number(n ?? 0).toFixed(d)}%`;
 const pctCol = (n: number | null | undefined, d = 1) =>
   `${Number(n ?? 0).toFixed(d).replace(".", ",")}%`;
+
+const fechaCorta = (fecha: string | Date | null | undefined) => {
+  if (!fecha) return "";
+  const d = new Date(fecha);
+  return d
+    .toLocaleDateString("es-CO", {
+      timeZone: "America/Bogota",
+      day: "numeric",
+      month: "short",
+    })
+    .replace(/\.$/, "");
+};
 
 const wosColor = (w: number) =>
   w > 12 ? "text-destructive" : w < 4 ? "text-amber-600" : "text-emerald-600";
@@ -93,15 +108,54 @@ function UnidadesCell({ r }: { r: Row }) {
 }
 
 function StockCell({ r }: { r: Row }) {
+  const fechaStock = fechaCorta(r.fecha_stock);
+  const fechaBodega = fechaCorta(r.fecha_bodega);
+  const tip = [
+    fechaStock ? `Tiendas y online al ${fechaStock}` : "Tiendas y online",
+    fechaBodega ? `Bodega al ${fechaBodega}` : "Bodega",
+  ].join(" · ");
+
   return (
-    <div className="text-right">
-      <div className="text-sm font-semibold tabular-nums">{int(r.stock_total)}</div>
-      <div className="flex items-center justify-end gap-2 text-[10px] text-muted-foreground tabular-nums mt-0.5">
-        <span className="inline-flex items-center gap-0.5"><Store className="h-3 w-3" />{int(r.stock_tiendas)}</span>
-        <span className="inline-flex items-center gap-0.5"><Globe className="h-3 w-3" />{int(r.stock_online)}</span>
-        <span className="inline-flex items-center gap-0.5"><Pause className="h-3 w-3" />{int(r.stock_bodega)}</span>
-      </div>
-    </div>
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <div className="text-right cursor-help">
+          <div className="text-sm font-semibold tabular-nums">{int(r.stock_total)}</div>
+          <div className="flex items-center justify-end gap-2 text-[10px] text-muted-foreground tabular-nums mt-0.5">
+            <span className="inline-flex items-center gap-0.5"><Store className="h-3 w-3" />{int(r.stock_tiendas)}</span>
+            <span className="inline-flex items-center gap-0.5"><Globe className="h-3 w-3" />{int(r.stock_online)}</span>
+            <span className="inline-flex items-center gap-0.5"><Pause className="h-3 w-3" />{int(r.stock_bodega)}</span>
+          </div>
+        </div>
+      </TooltipTrigger>
+      <TooltipContent side="left" className="text-xs">
+        {tip}
+      </TooltipContent>
+    </Tooltip>
+  );
+}
+
+function FrescuraBadge({ rows }: { rows: Row[] }) {
+  const r = rows[0];
+  if (!r || !r.fecha_stock) return null;
+  const dias = Number(r.dias_desde_conciliacion ?? 0);
+  const fechaStock = fechaCorta(r.fecha_stock);
+  const fechaBodega = fechaCorta(r.fecha_bodega);
+
+  if (dias === 0) {
+    return <span className="text-xs text-muted-foreground">Inventario al {fechaStock}</span>;
+  }
+  if (dias <= 2) {
+    return (
+      <span className="text-xs font-medium text-amber-600">
+        Bodega al {fechaBodega} · {dias} día{dias === 1 ? "" : "s"} de desfase
+      </span>
+    );
+  }
+  return (
+    <span className="inline-flex items-center gap-1.5 text-xs font-medium text-destructive">
+      <AlertTriangle className="h-3.5 w-3.5" />
+      Bodega al {fechaBodega} · {dias} día{dias === 1 ? "" : "s"} sin conciliar
+    </span>
   );
 }
 
@@ -593,6 +647,9 @@ export default function AnalisisLinea360Page() {
                 >
                   Sin ventas en el período
                 </button>
+              </div>
+              <div className="ml-auto flex items-end pb-1.5">
+                <FrescuraBadge rows={rows} />
               </div>
             </div>
 

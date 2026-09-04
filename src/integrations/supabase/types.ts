@@ -4208,13 +4208,18 @@ export type Database = {
           p_canal?: string
           p_coleccion?: string
           p_dias?: number
+          p_genero?: string
           p_linea?: string
           p_lineas?: string[]
         }
         Returns: {
           coleccion: string
+          dias_desde_conciliacion: number
           estado_salud: string
+          fecha_bodega: string
+          fecha_stock: string
           foto: string
+          genero: string
           linea: string
           nivel: string
           pct_descuento_prom: number
@@ -4241,11 +4246,14 @@ export type Database = {
           uds_evac_120_150: number
           uds_evac_90_120: number
           und_full: number
+          und_hombre: number
+          und_mujer: number
           und_online: number
           und_outlet: number
           und_promo: number
           und_rebajas: number
           und_tiendas: number
+          und_unisex: number
           und_vendidas: number
           wos: number
         }[]
