@@ -506,128 +506,55 @@ export default function BajaRotacionPage() {
           </header>
 
           <div className="flex-1 px-4 sm:px-6 py-4 sm:py-6 space-y-6">
-            {/* KPIs - Fila 1: Niveles */}
-            <div className={`grid grid-cols-1 gap-4 ${incluirNoDistribuidos ? "sm:grid-cols-2 lg:grid-cols-4" : "sm:grid-cols-3"}`}>
+            {/* Unidades por canal */}
+            <p className="text-xs text-muted-foreground flex flex-wrap items-center gap-x-4 gap-y-1">
+              <span className="flex items-center gap-1"><Store className="h-3.5 w-3.5" /> Tiendas {fmtInt(stockTotals.linea)}</span>
+              <span className="flex items-center gap-1"><Tag className="h-3.5 w-3.5" /> Outlet {fmtInt(stockTotals.outlet)}</span>
+              <span className="flex items-center gap-1"><Globe className="h-3.5 w-3.5" /> Digital {fmtInt(stockTotals.digital)}</span>
+              <span className="flex items-center gap-1"><Warehouse className="h-3.5 w-3.5" /> Bodega {fmtInt(stockTotals.bodega)}</span>
+            </p>
 
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium flex items-center gap-2 text-yellow-700">
-                    <AlertTriangle className="h-4 w-4" /> 🟡 Atención
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-3xl font-semibold">
-                    {counts.atencion.full + counts.atencion.rebaja}
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {counts.atencion.full} full + {counts.atencion.rebaja} rebajas · ST &lt; 30%, 4–8 sem
-                  </p>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium flex items-center gap-2 text-red-700">
-                    <AlertCircle className="h-4 w-4" /> 🔴 Crítico
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-3xl font-semibold">
-                    {counts.critico.full + counts.critico.rebaja}
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {counts.critico.full} full + {counts.critico.rebaja} rebajas · ST &lt; 15%, +8 sem
-                  </p>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium flex items-center gap-2 text-neutral-700">
-                    <CircleOff className="h-4 w-4" /> ⚫ Liquidar
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-3xl font-semibold">
-                    {counts.liquidar.full + counts.liquidar.rebaja}
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {counts.liquidar.full} full + {counts.liquidar.rebaja} rebajas · ST &lt; 10%, +12 sem
-                  </p>
-                </CardContent>
-              </Card>
-              {incluirNoDistribuidos && (
-                <Card>
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm font-medium flex items-center gap-2 text-violet-700">
-                      <PackageX className="h-4 w-4" /> 📦 Sin distribuir
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-3xl font-semibold">
-                      {counts["sin distribuir"].full + counts["sin distribuir"].rebaja}
-                    </div>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      nunca salieron a piso · no es baja rotación
-                    </p>
-                  </CardContent>
-                </Card>
-              )}
-            </div>
-
-
-            {/* KPIs - Fila 2: Stock por canal */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium flex items-center gap-2 text-foreground">
-                    <Store className="h-4 w-4" /> 🏪 Tiendas línea
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-3xl font-semibold">{fmtInt(stockTotals.linea)}</div>
-                  <p className="text-xs text-muted-foreground mt-1">unidades en tiendas de línea</p>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium flex items-center gap-2 text-foreground">
-                    <Tag className="h-4 w-4" /> 🏷️ Outlets
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-3xl font-semibold">{fmtInt(stockTotals.outlet)}</div>
-                  <p className="text-xs text-muted-foreground mt-1">unidades en outlets</p>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium flex items-center gap-2 text-foreground">
-                    <Globe className="h-4 w-4" /> 🌐 Digital / CEDI
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-3xl font-semibold">{fmtInt(stockTotals.digital)}</div>
-                  <p className="text-xs text-muted-foreground mt-1">unidades en CEDI/Ecommerce</p>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium flex items-center gap-2 text-foreground">
-                    <Warehouse className="h-4 w-4" /> 🏭 Bodega
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-3xl font-semibold">{fmtInt(stockTotals.bodega)}</div>
-                  <p className="text-xs text-muted-foreground mt-1">unidades que no salieron a piso</p>
-                </CardContent>
-              </Card>
+            {/* Tarjetas de nivel — filtro rápido */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              {([
+                { key: "atencion", label: "🟡 Atención", icon: AlertTriangle, text: "text-yellow-700", ring: "ring-yellow-400 bg-yellow-50", hint: "cobertura bajo 17 semanas" },
+                { key: "critico", label: "🔴 Crítico", icon: AlertCircle, text: "text-red-700", ring: "ring-red-400 bg-red-50", hint: "cobertura entre 17 y 32 semanas" },
+                { key: "liquidar", label: "⚫ Liquidar", icon: CircleOff, text: "text-neutral-700", ring: "ring-neutral-500 bg-neutral-100", hint: "cobertura sobre 32 semanas" },
+              ] as const).map((n) => {
+                const c = counts[n.key as keyof typeof counts];
+                const active = nivel === n.key;
+                const Icon = n.icon;
+                return (
+                  <Card
+                    key={n.key}
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => { setNivel(active ? "todos" : n.key); setPage(1); }}
+                    onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { setNivel(active ? "todos" : n.key); setPage(1); } }}
+                    className={`cursor-pointer transition-shadow hover:shadow-md ${active ? `ring-2 ${n.ring}` : ""}`}
+                  >
+                    <CardHeader className="pb-2">
+                      <CardTitle className={`text-sm font-medium flex items-center gap-2 ${n.text}`}>
+                        <Icon className="h-4 w-4" /> {n.label}
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-3xl font-semibold">{c.full + c.rebaja}</div>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {c.full} full + {c.rebaja} rebajas · {n.hint}
+                      </p>
+                    </CardContent>
+                  </Card>
+                );
+              })}
             </div>
 
             {/* Filtros */}
             <Card>
-              <CardContent className="pt-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-8 gap-4">
+              <CardContent className="pt-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
                 <div className="space-y-1.5">
                   <label className="text-xs font-medium text-muted-foreground">Nivel</label>
-                  <Select value={nivel} onValueChange={setNivel}>
+                  <Select value={nivel} onValueChange={(v) => { setNivel(v); setPage(1); }}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="todos">Todos</SelectItem>
@@ -636,12 +563,23 @@ export default function BajaRotacionPage() {
                       <SelectItem value="liquidar">⚫ Liquidar</SelectItem>
                       <SelectItem value="sin distribuir">📦 Sin distribuir</SelectItem>
                     </SelectContent>
-
+                  </Select>
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-muted-foreground">Colección</label>
+                  <Select value={coleccion} onValueChange={(v) => { setColeccion(v); setPage(1); }}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="todas">Todas</SelectItem>
+                      {colecciones.map((c) => (
+                        <SelectItem key={c} value={c}>{c}</SelectItem>
+                      ))}
+                    </SelectContent>
                   </Select>
                 </div>
                 <div className="space-y-1.5">
                   <label className="text-xs font-medium text-muted-foreground">Categoría</label>
-                  <Select value={categoria} onValueChange={setCategoria}>
+                  <Select value={categoria} onValueChange={(v) => { setCategoria(v); setPage(1); }}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="todas">Todas</SelectItem>
@@ -652,31 +590,8 @@ export default function BajaRotacionPage() {
                   </Select>
                 </div>
                 <div className="space-y-1.5">
-                  <label className="text-xs font-medium text-muted-foreground">Tipo tienda</label>
-                  <Select value={tipoTienda} onValueChange={setTipoTienda}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="todas">Todas</SelectItem>
-                      <SelectItem value="linea">🏪 Solo línea</SelectItem>
-                      <SelectItem value="outlet">🏷️ Solo outlet</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-1.5">
-                  <label className="text-xs font-medium text-muted-foreground">Ubicación</label>
-                  <Select value={locationId} onValueChange={setLocationId}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="todas">Todas</SelectItem>
-                      {locations.map((l) => (
-                        <SelectItem key={l.location_id} value={l.location_id}>{l.name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-1.5">
                   <label className="text-xs font-medium text-muted-foreground">Semanas mínimas</label>
-                  <Select value={semanasMin} onValueChange={setSemanasMin}>
+                  <Select value={semanasMin} onValueChange={(v) => { setSemanasMin(v); setPage(1); }}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="4">4 semanas</SelectItem>
@@ -686,39 +601,22 @@ export default function BajaRotacionPage() {
                   </Select>
                 </div>
                 <div className="space-y-1.5">
-                  <label className="text-xs font-medium text-muted-foreground">
-                    Sell-through máximo: {stMax}%
-                  </label>
-                  <Slider
-                    value={[stMax]}
-                    min={0}
-                    max={50}
-                    step={1}
-                    onValueChange={(v) => setStMax(v[0])}
-                    className="pt-2"
-                  />
-                </div>
-                <div className="space-y-1.5">
                   <label className="text-xs font-medium text-muted-foreground">Incluir rebajas</label>
                   <div className="flex items-center gap-2 h-9">
-                    <Switch checked={incluirRebajas} onCheckedChange={setIncluirRebajas} />
-                    <span className="text-xs text-muted-foreground">
-                      {incluirRebajas ? "Sí" : "No"}
-                    </span>
+                    <Switch checked={incluirRebajas} onCheckedChange={(v) => { setIncluirRebajas(v); setPage(1); }} />
+                    <span className="text-xs text-muted-foreground">{incluirRebajas ? "Sí" : "No"}</span>
                   </div>
                 </div>
                 <div className="space-y-1.5">
                   <label className="text-xs font-medium text-muted-foreground">Incluir no distribuidos</label>
                   <div className="flex items-center gap-2 h-9">
-                    <Switch checked={incluirNoDistribuidos} onCheckedChange={setIncluirNoDistribuidos} />
-                    <span className="text-xs text-muted-foreground">
-                      {incluirNoDistribuidos ? "Sí" : "No"}
-                    </span>
+                    <Switch checked={incluirNoDistribuidos} onCheckedChange={(v) => { setIncluirNoDistribuidos(v); setPage(1); }} />
+                    <span className="text-xs text-muted-foreground">{incluirNoDistribuidos ? "Sí" : "No"}</span>
                   </div>
                 </div>
               </CardContent>
-
             </Card>
+
 
             {/* Tabla */}
             <Card>
