@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { LineChart, BarChart3, TrendingUp, ArrowLeftRight, Package, Tag, Layers, Target, Zap, Trophy, Archive, Users, Calculator, UserCog, Briefcase, ChevronDown, Settings, MapPin, Upload, LogOut, Truck, Shield, Store, Banknote, LayoutDashboard, CreditCard, MessageCircle, AlertTriangle, RefreshCw, Sparkles, Search, LayoutGrid, TrendingDown, Globe, Gauge, ScatterChart, Siren } from "lucide-react";
+import { LineChart, BarChart3, TrendingUp, ArrowLeftRight, Package, Tag, Layers, Target, Zap, Trophy, Archive, Users, Calculator, UserCog, Briefcase, ChevronDown, Settings, MapPin, Upload, LogOut, Truck, Shield, Store, Banknote, LayoutDashboard, CreditCard, MessageCircle, AlertTriangle, RefreshCw, Sparkles, Search, LayoutGrid, TrendingDown, Globe, Gauge, ScatterChart, Siren, Database } from "lucide-react";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useAuth } from "@/hooks/useAuth";
 import { useUserPermissions } from "@/hooks/useUserPermissions";
@@ -121,6 +121,7 @@ const configuracionItems: NavItem[] = [
   { title: "Roles y Permisos", url: "/configuracion/roles", icon: Shield, description: "Matriz de permisos por rol", module: "config.roles", action: "view" },
   { title: "Alertas WhatsApp", url: "/configuracion/notificaciones", icon: MessageCircle, description: "Destinatarios y reportes WhatsApp", module: "config.notificaciones", action: "view" },
   { title: "Sync de Inventario", url: "/configuracion/sync-inventario", icon: RefreshCw, description: "Disparar y monitorear sync diario", module: "inventario_netsuite", action: "view" },
+  { title: "Fuente de Ventas", url: "/configuracion/fuente-ventas", icon: Database, description: "Shopify POS vs Nxt Sale (NetSuite)", module: "config.fuente_ventas", action: "view" },
 ];
 
 export function AppSidebar() {

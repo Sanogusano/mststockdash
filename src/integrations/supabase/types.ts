@@ -952,6 +952,52 @@ export type Database = {
         }
         Relationships: []
       }
+      fuente_venta_ubicacion: {
+        Row: {
+          fecha_corte: string | null
+          fuente: string
+          location_id: string
+          nota: string | null
+          updated_at: string
+        }
+        Insert: {
+          fecha_corte?: string | null
+          fuente?: string
+          location_id: string
+          nota?: string | null
+          updated_at?: string
+        }
+        Update: {
+          fecha_corte?: string | null
+          fuente?: string
+          location_id?: string
+          nota?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fuente_venta_ubicacion_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: true
+            referencedRelation: "locations"
+            referencedColumns: ["location_id"]
+          },
+          {
+            foreignKeyName: "fuente_venta_ubicacion_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: true
+            referencedRelation: "v_locations_allocation_config"
+            referencedColumns: ["location_id"]
+          },
+          {
+            foreignKeyName: "fuente_venta_ubicacion_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: true
+            referencedRelation: "v_ubicaciones_gestion"
+            referencedColumns: ["location_id"]
+          },
+        ]
+      }
       incentivo_liquidaciones: {
         Row: {
           cumple_meta: boolean | null
@@ -1745,6 +1791,7 @@ export type Database = {
           is_facturado: boolean | null
           location_id: string | null
           order_number: string
+          origen: string
           payment_authorization: string | null
           payment_gateway: string | null
           payment_token: string | null
@@ -1763,6 +1810,7 @@ export type Database = {
           is_facturado?: boolean | null
           location_id?: string | null
           order_number: string
+          origen?: string
           payment_authorization?: string | null
           payment_gateway?: string | null
           payment_token?: string | null
@@ -1781,6 +1829,7 @@ export type Database = {
           is_facturado?: boolean | null
           location_id?: string | null
           order_number?: string
+          origen?: string
           payment_authorization?: string | null
           payment_gateway?: string | null
           payment_token?: string | null
