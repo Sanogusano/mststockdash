@@ -151,13 +151,6 @@ function coberturaBadge(con: number, total: number) {
   return "bg-red-100 text-red-800 border-red-300";
 }
 
-function toHexColor(color?: string): string | null {
-  if (!color) return null;
-  const t = color.trim().replace(/^#/, "");
-  if (/^[0-9a-fA-F]{6}$/.test(t)) return `#${t.toUpperCase()}`;
-  if (/^[0-9a-fA-F]{3}$/.test(t)) return `#${t.toUpperCase()}`;
-  return null;
-}
 
 type TallaParsed = {
   talla: string;
