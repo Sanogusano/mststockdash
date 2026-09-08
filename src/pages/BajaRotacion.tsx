@@ -833,7 +833,9 @@ export default function BajaRotacionPage() {
                                   </span>
                                 </TableCell>
                                 <TableCell className="text-right text-xs">
-                                  {r.primera_venta ? (
+                                  {!r.fue_distribuido ? (
+                                    <span className="text-violet-700 font-medium">Sin distribuir</span>
+                                  ) : r.dias_en_tienda != null ? (
                                     <TooltipProvider>
                                       <Tooltip>
                                         <TooltipTrigger asChild>
@@ -842,12 +844,16 @@ export default function BajaRotacionPage() {
                                           </span>
                                         </TooltipTrigger>
                                         <TooltipContent>
-                                          Liberado el {new Date(r.primera_venta).toLocaleDateString("es-CO", { day: "2-digit", month: "short", year: "numeric" })}
+                                          {fmtFecha(r.fecha_llegada_tienda)
+                                            ? `Llegó a tienda el ${fmtFecha(r.fecha_llegada_tienda)}`
+                                            : "Contado desde el despacho a tienda"}
+                                          {fmtFecha(r.primera_venta) ? ` · primera venta ${fmtFecha(r.primera_venta)}` : ""}
                                         </TooltipContent>
                                       </Tooltip>
                                     </TooltipProvider>
                                   ) : (
-                                    <span className="text-muted-foreground">Sin liberar</span>
+                                    <span className="text-muted-foreground">—</span>
+
                                   )}
                                 </TableCell>
                                 <TableCell className="text-right text-xs">{r.unidades_vendidas}</TableCell>
