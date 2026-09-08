@@ -324,6 +324,7 @@ export default function BajaRotacionPage() {
       atencion: { full: 0, rebaja: 0 },
       critico: { full: 0, rebaja: 0 },
       liquidar: { full: 0, rebaja: 0 },
+      "sin distribuir": { full: 0, rebaja: 0 },
     };
     rows.forEach((r) => {
       if (r.nivel in c) {
@@ -334,6 +335,7 @@ export default function BajaRotacionPage() {
     });
     return c;
   }, [rows]);
+
 
   const stockTotals = useMemo(() => {
     return filtered.reduce(
