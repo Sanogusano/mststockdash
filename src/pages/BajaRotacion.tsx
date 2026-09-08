@@ -994,6 +994,10 @@ export default function BajaRotacionPage() {
                                                   <span className="inline-flex items-center gap-0.5 px-1 py-0.5 rounded bg-background/60 border border-border">
                                                     🌐 {t.digital}
                                                   </span>
+                                                  <span className="inline-flex items-center gap-0.5 px-1 py-0.5 rounded bg-background/60 border border-border">
+                                                    🏭 {t.bodega}
+
+                                                  </span>
                                                 </div>
                                               </div>
                                             );
