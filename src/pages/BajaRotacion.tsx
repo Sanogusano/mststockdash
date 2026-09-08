@@ -416,8 +416,8 @@ export default function BajaRotacionPage() {
       startY: 35,
       head: [[
         "Producto", "Categoría", "Colección", "Tallas", "Días rot.", "U. vend.",
-        "Stock", "Línea", "Outlet", "Digital", "Bodega", "Ubicación",
-        "Sell-through", "Vel/sem", "ADU", "Precio", "Dcto. sug.", "Nivel", "Acción sugerida",
+        "Stock", "Línea", "Outlet", "Digital", "Bodega",
+        "Sell-through", "Vel/sem", "Precio", "Dcto. sug.", "Nivel", "Acción sugerida",
       ]],
       body: filtered.map((r) => [
         r.titulo,
@@ -431,42 +431,36 @@ export default function BajaRotacionPage() {
         fmtInt(r.stock_outlet ?? 0),
         fmtInt(r.stock_digital ?? 0),
         fmtInt(r.stock_bodega ?? 0),
-        ubicacionDominante(r)?.label ?? "-",
         pct(r.sell_through),
         fmtNum2(r.velocidad_semanal),
-
-        fmtAdu(r.adu),
         fmtCOP(r.precio_actual),
         `-${pct(r.descuento_sugerido)}`,
         NIVEL_LABELS[r.nivel]?.label ?? r.nivel,
         r.accion ?? "-",
       ]),
-      styles: { fontSize: 6.2, cellPadding: 1.2, valign: "middle" },
-      headStyles: { fillColor: [15, 15, 15], textColor: 255, fontStyle: "bold", fontSize: 6.2 },
+      styles: { fontSize: 6.4, cellPadding: 1.3, valign: "middle" },
+      headStyles: { fillColor: [15, 15, 15], textColor: 255, fontStyle: "bold", fontSize: 6.4 },
       alternateRowStyles: { fillColor: [245, 245, 248] },
       margin: { left: margin, right: margin, top: 14, bottom: 14 },
       showHead: "everyPage",
       columnStyles: {
-        0: { cellWidth: 44 },
+        0: { cellWidth: 46 },
         4: { halign: "right" }, 5: { halign: "right" }, 6: { halign: "right" },
         7: { halign: "right" }, 8: { halign: "right" }, 9: { halign: "right" },
-        10: { halign: "right" }, 12: { halign: "right" }, 13: { halign: "right" },
-        14: { halign: "right" }, 15: { halign: "right" }, 16: { halign: "right" },
-        18: { cellWidth: 34 },
+        10: { halign: "right" }, 11: { halign: "right" }, 12: { halign: "right" },
+        13: { halign: "right" }, 14: { halign: "right" },
+        16: { cellWidth: 38 },
       },
       didParseCell: (data) => {
         if (data.section !== "body") return;
         const row = filtered[data.row.index];
         if (!row) return;
-        if (data.column.index === 12 && Number(row.sell_through) < 15) {
+        if (data.column.index === 11 && Number(row.sell_through) < 15) {
           data.cell.styles.textColor = [220, 38, 38];
           data.cell.styles.fontStyle = "bold";
         }
-        if (data.column.index === 11 && ubicacionDominante(row)?.label === "EN BODEGA") {
-          data.cell.styles.textColor = [109, 40, 217];
-          data.cell.styles.fontStyle = "bold";
-        }
       },
+
     });
 
     const pageH = doc.internal.pageSize.getHeight();
