@@ -622,7 +622,9 @@ export default function BajaRotacionPage() {
             <Card>
               <CardHeader className="pb-2">
                 <CardTitle className="text-base">
-                  Resultados <span className="text-muted-foreground font-normal">({filtered.length})</span>
+                  Resultados <span className="text-muted-foreground font-normal">
+                    ({fmtInt(filtered.length)} · mostrando {fmtInt(pageRows.length)})
+                  </span>
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -651,14 +653,8 @@ export default function BajaRotacionPage() {
                           <TableHead className="text-right">Días rot.</TableHead>
                           <TableHead className="text-right">U. vend.</TableHead>
                           <TableHead className="text-right">Stock</TableHead>
-                          <TableHead className="text-right">🏪 Línea</TableHead>
-                          <TableHead className="text-right">🏷️ Outlet</TableHead>
-                          <TableHead className="text-right">🌐 Digital</TableHead>
-                          <TableHead className="text-right">🏭 Bodega</TableHead>
-                          <TableHead>Ubicación</TableHead>
                           <TableHead className="text-right">Sell-through</TableHead>
                           <TableHead className="text-right">Vel/sem</TableHead>
-                          <TableHead className="text-right">ADU</TableHead>
                           <TableHead className="text-right">Precio</TableHead>
                           <TableHead className="text-right">Dcto. actual</TableHead>
                           <TableHead className="text-right">Dcto. sugerido</TableHead>
@@ -667,13 +663,13 @@ export default function BajaRotacionPage() {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {filtered.map((r) => {
+                        {pageRows.map((r) => {
                           const niv = NIVEL_LABELS[r.nivel];
                           const img = imagesMap[r.product_id];
                           const hex = toHexColor(r.color);
                           const tallas = parseTallas(r.tallas_disponibles);
                           const isOpen = expanded.has(r.product_id);
-                          const ubic = ubicacionDominante(r);
+
                           return (
                             <Fragment key={r.product_id}>
                               <TableRow className="cursor-pointer" onClick={() => toggleExpand(r.product_id)}>
