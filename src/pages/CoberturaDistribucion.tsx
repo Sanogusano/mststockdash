@@ -132,6 +132,13 @@ const TONE_CLS: Record<string, string> = {
   sky: "bg-sky-100 text-sky-700 border-sky-200",
 };
 
+function pctEnVentaColor(v: number | null | undefined) {
+  const n = Number(v ?? 0);
+  if (n < 50) return "text-rose-600";
+  if (n <= 70) return "text-amber-600";
+  return "text-emerald-600";
+}
+
 function Badge({ label }: { label: string | null | undefined }) {
   if (!label) return <span className="text-[11px] text-muted-foreground">—</span>;
   return (
