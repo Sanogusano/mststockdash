@@ -905,7 +905,7 @@ export default function BajaRotacionPage() {
                                   </span>
                                 </TableCell>
                                 <TableCell className="text-right text-xs">
-                                  {Number(r.velocidad_semanal).toFixed(2)}
+                                  {fmtNum2(r.velocidad_semanal)}
                                 </TableCell>
                                 <TableCell className="text-right text-xs tabular-nums">
                                   <TooltipProvider>
