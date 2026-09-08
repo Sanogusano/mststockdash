@@ -383,7 +383,6 @@ export default function ConfiguracionFuenteVentasPage() {
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
-      </AlertDialogContent>
       </AlertDialog>
     </MainLayout>
   );
