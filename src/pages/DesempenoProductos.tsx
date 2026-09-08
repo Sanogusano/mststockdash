@@ -334,7 +334,6 @@ export default function DesempenoProductosPage() {
                         <TableHead className="text-right min-w-[140px]">Ventas</TableHead>
                         <TableHead className="min-w-[140px]">Mezcla de Precios</TableHead>
                         <TableHead className="min-w-[130px]">Clasificación</TableHead>
-                        <TableHead className="text-right min-w-[90px]">Semanas</TableHead>
                         <TableHead className="text-right min-w-[140px]">Inventario</TableHead>
                       </TableRow>
                     </TableHeader>
