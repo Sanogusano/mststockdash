@@ -863,8 +863,34 @@ export default function BajaRotacionPage() {
                         })}
                       </TableBody>
                     </Table>
+                    {totalPages > 1 && (
+                      <div className="flex items-center justify-between gap-3 pt-4 text-xs text-muted-foreground">
+                        <span>
+                          Página {currentPage} de {totalPages} · {fmtInt(filtered.length)} productos
+                        </span>
+                        <div className="flex items-center gap-2">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            disabled={currentPage <= 1}
+                            onClick={() => setPage(currentPage - 1)}
+                          >
+                            Anterior
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            disabled={currentPage >= totalPages}
+                            onClick={() => setPage(currentPage + 1)}
+                          >
+                            Siguiente
+                          </Button>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
+
               </CardContent>
             </Card>
           </div>
