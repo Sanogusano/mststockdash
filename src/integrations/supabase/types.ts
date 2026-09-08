@@ -5502,7 +5502,9 @@ export type Database = {
           pct_descuento: number
           pct_full_price: number
           pct_rebajas: number
+          primera_venta: string
           producto: string
+          semanas_vida: number
           sku: string
           stock_online: number
           stock_standby: number

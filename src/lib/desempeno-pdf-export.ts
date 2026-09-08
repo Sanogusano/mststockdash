@@ -15,6 +15,8 @@ interface ProductRow {
   pct_descuento: number;
   clasificacion: string;
   stock_venta_directa: number;
+  semanas_vida: number;
+  primera_venta: string;
 }
 
 function cleanText(s: string): string {
@@ -103,11 +105,11 @@ export async function exportDesempenoPDF(data: ProductRow[], days: number) {
   doc.text(`${formatDate()}  |  Ultimos ${days} dias  |  ${data.length} productos`, pageW - 14, 11, { align: "right" });
 
   // ── Table ──
-  // Columns: #, [Foto+Producto], Categoria, Coleccion, Tiendas, Outlets, Digital, Total, Mezcla Precios, Clasificacion, Stock VD
+  // Columns: #, [Foto+Producto], Categoria, Coleccion, Tiendas, Outlets, Digital, Total, Mezcla Precios, Clasificacion, Semanas, Stock VD
   const headers = [
     "#", "Producto", "Categoria", "Coleccion",
     "Tiendas", "Outlets", "Digital", "Total Uds",
-    "Mezcla de Precios", "Clasificacion", "Stock VD"
+    "Mezcla de Precios", "Clasificacion", "Semanas", "Stock VD"
   ];
 
   const body = data.map((r, i) => [
@@ -121,6 +123,7 @@ export async function exportDesempenoPDF(data: ProductRow[], days: number) {
     String(r.und_total ?? 0),
     `FP ${r.pct_full_price ?? 0}% | Reb ${r.pct_rebajas ?? 0}% | Promo ${r.pct_descuento ?? 0}%`,
     cleanText(r.clasificacion),
+    `${r.semanas_vida ?? 0} sem`,
     String(r.stock_venta_directa ?? 0),
   ]);
 
@@ -161,12 +164,22 @@ export async function exportDesempenoPDF(data: ProductRow[], days: number) {
       7: { halign: "right", cellWidth: 16, fontStyle: "bold" },     // Total
       8: { cellWidth: 50 },                                          // Mezcla precios (bars)
       9: { cellWidth: 28 },                                          // Clasificacion
-      10: { halign: "right", cellWidth: 16, fontStyle: "bold" },    // Stock VD
+      10: { halign: "right", cellWidth: 16, fontStyle: "bold" },    // Semanas
+      11: { halign: "right", cellWidth: 16, fontStyle: "bold" },    // Stock VD
     },
     didParseCell: (hookData) => {
       if (hookData.section === "body" && hookData.column.index === 1) {
         // Add left padding for the image
         hookData.cell.styles.cellPadding = { top: 1, bottom: 1, left: 13, right: 1.5 };
+      }
+      if (hookData.section === "body" && hookData.column.index === 10) {
+        const row = data[hookData.row.index];
+        const sem = row?.semanas_vida ?? 0;
+        if (sem > 52) {
+          hookData.cell.styles.textColor = [220, 38, 38];
+        } else if (sem < 8) {
+          hookData.cell.styles.textColor = [150, 150, 150];
+        }
       }
     },
     didDrawCell: (hookData) => {

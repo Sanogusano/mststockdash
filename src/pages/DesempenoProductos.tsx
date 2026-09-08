@@ -39,6 +39,8 @@ interface ProductRow {
   stock_tiendas: number;
   stock_online: number;
   stock_standby: number;
+  semanas_vida: number;
+  primera_venta: string;
 }
 
 const CANAL_OPTIONS = [
@@ -157,6 +159,8 @@ export default function DesempenoProductosPage() {
         "Rebajas %": r.pct_rebajas,
         "Desc Promo %": r.pct_descuento,
         Clasificacion: cleanClasificacion(r.clasificacion),
+        "Semanas Vida": r.semanas_vida ?? "",
+        "Primera Venta": r.primera_venta ?? "",
         "Stock Venta Directa": r.stock_venta_directa ?? 0,
         "Stock Tiendas": r.stock_tiendas ?? 0,
         "Stock Online": r.stock_online ?? 0,
@@ -289,6 +293,7 @@ export default function DesempenoProductosPage() {
                         <TableHead className="text-right min-w-[140px]">Ventas</TableHead>
                         <TableHead className="min-w-[140px]">Mezcla de Precios</TableHead>
                         <TableHead className="min-w-[130px]">Clasificación</TableHead>
+                        <TableHead className="text-right min-w-[90px]">Semanas</TableHead>
                         <TableHead className="text-right min-w-[140px]">Inventario</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -343,6 +348,20 @@ export default function DesempenoProductosPage() {
                             }`}>
                               {cleanClasificacion(row.clasificacion)}
                             </span>
+                          </TableCell>
+                          <TableCell className="text-right whitespace-nowrap">
+                            <div
+                              className={`font-semibold tabular-nums ${
+                                (row.semanas_vida ?? 0) > 52
+                                  ? "text-destructive"
+                                  : (row.semanas_vida ?? 0) < 8
+                                  ? "text-muted-foreground"
+                                  : "text-foreground"
+                              }`}
+                              title={row.primera_venta ? `Primera venta: ${row.primera_venta}` : undefined}
+                            >
+                              {(row.semanas_vida ?? 0).toLocaleString("es-CO")} sem
+                            </div>
                           </TableCell>
                           <TableCell className="text-right whitespace-nowrap">
                             <div className="font-semibold tabular-nums">
