@@ -124,37 +124,8 @@ async function getLogoBase64(): Promise<string> {
   });
 }
 
-type Ubicacion = { label: string; className: string };
-
-const UBIC_CLS: Record<string, string> = {
-  "EN BODEGA": "bg-violet-100 text-violet-800 border-violet-300",
-  "EN OUTLET": "bg-orange-100 text-orange-800 border-orange-300",
-  "EN TIENDAS": "bg-sky-100 text-sky-800 border-sky-300",
-};
-
-/** Dónde está el grueso del inventario: define la acción a tomar. */
-function ubicacionDominante(r: Row): Ubicacion | null {
-  const desdeRpc = (r.ubicacion_dominante ?? "").trim().toUpperCase();
-  if (desdeRpc) {
-    return { label: desdeRpc, className: UBIC_CLS[desdeRpc] ?? "bg-muted text-muted-foreground border-border" };
-  }
-  const linea = Number(r.stock_linea) || 0;
-  const outlet = Number(r.stock_outlet) || 0;
-  const digital = Number(r.stock_digital) || 0;
-  const bodega = Number(r.stock_bodega) || 0;
-  const total = linea + outlet + digital + bodega;
-  if (total <= 0) return null;
-  if (bodega / total >= 0.8) return { label: "EN BODEGA", className: UBIC_CLS["EN BODEGA"] };
-  if (outlet > linea) return { label: "EN OUTLET", className: UBIC_CLS["EN OUTLET"] };
-  return { label: "EN TIENDAS", className: UBIC_CLS["EN TIENDAS"] };
-}
-
-function fmtAdu(n?: number | null) {
-  if (n == null) return "—";
-  return (Number(n) || 0).toLocaleString("es-CO", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-}
-
 function fmtFecha(f?: string | null) {
+
   if (!f) return null;
   return new Date(f).toLocaleDateString("es-CO", { day: "2-digit", month: "short", year: "numeric" });
 }
