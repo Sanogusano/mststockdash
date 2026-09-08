@@ -15,6 +15,8 @@ interface ProductRow {
   pct_descuento: number;
   clasificacion: string;
   stock_venta_directa: number;
+  semanas_vida: number;
+  primera_venta: string;
 }
 
 function cleanText(s: string): string {

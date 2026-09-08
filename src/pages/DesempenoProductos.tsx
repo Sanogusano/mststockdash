@@ -39,6 +39,8 @@ interface ProductRow {
   stock_tiendas: number;
   stock_online: number;
   stock_standby: number;
+  semanas_vida: number;
+  primera_venta: string;
 }
 
 const CANAL_OPTIONS = [
@@ -157,6 +159,8 @@ export default function DesempenoProductosPage() {
         "Rebajas %": r.pct_rebajas,
         "Desc Promo %": r.pct_descuento,
         Clasificacion: cleanClasificacion(r.clasificacion),
+        "Semanas Vida": r.semanas_vida ?? "",
+        "Primera Venta": r.primera_venta ?? "",
         "Stock Venta Directa": r.stock_venta_directa ?? 0,
         "Stock Tiendas": r.stock_tiendas ?? 0,
         "Stock Online": r.stock_online ?? 0,
