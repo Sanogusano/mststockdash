@@ -79,6 +79,36 @@ function PriceTypeBars({ fp, reb, promo }: { fp: number; reb: number; promo: num
   );
 }
 
+const SEMANAS_VENTANA = 17;
+
+function LifetimeMiniCard({ semanas, primeraVenta }: { semanas: number | null; primeraVenta: string | null }) {
+  if (semanas == null) {
+    return <div className="text-[9px] text-muted-foreground mt-1">—</div>;
+  }
+  const pct = Math.min(100, Math.max(0, (semanas / SEMANAS_VENTANA) * 100));
+  const over = semanas > SEMANAS_VENTANA;
+  const color = over ? "bg-rose-500" : semanas >= 9 ? "bg-amber-500" : "bg-emerald-500";
+  const textColor = over ? "text-rose-600" : semanas >= 9 ? "text-amber-600" : "text-emerald-600";
+
+  const fechaFormateada = primeraVenta
+    ? new Date(primeraVenta).toLocaleDateString("es-CO", { day: "numeric", month: "short" })
+    : null;
+
+  return (
+    <div className="mt-1.5 w-12">
+      <div className={`text-[9px] font-medium tabular-nums ${textColor}`}>
+        {over ? `Semana ${semanas.toLocaleString("es-CO")} · fuera de ventana` : `Semana ${semanas.toLocaleString("es-CO")} de ${SEMANAS_VENTANA}`}
+      </div>
+      <div className="h-1 w-12 rounded-full bg-muted overflow-hidden mt-0.5">
+        <div className={`h-full rounded-full ${color}`} style={{ width: `${pct}%` }} />
+      </div>
+      {fechaFormateada && (
+        <div className="text-[9px] text-muted-foreground mt-0.5 tabular-nums">{fechaFormateada}</div>
+      )}
+    </div>
+  );
+}
+
 export default function DesempenoProductosPage() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -308,13 +338,16 @@ export default function DesempenoProductosPage() {
                         >
                           <TableCell className="text-center text-sm font-bold text-muted-foreground">{i + 1}</TableCell>
                           <TableCell>
-                            <div className="flex items-center gap-3">
-                              {row.foto ? (
-                                <ProductImageThumb src={row.foto} alt={row.producto} sku={row.sku} title={row.producto} className="w-12 h-12 rounded-lg object-cover bg-muted shrink-0" onError={e => { e.currentTarget.style.display = "none"; }} />
-                              ) : (
-                                <div className="w-12 h-12 rounded-lg bg-muted/50 flex items-center justify-center text-lg shrink-0">📦</div>
-                              )}
-                              <span className="text-sm font-medium text-foreground line-clamp-2 max-w-[200px]">{row.producto}</span>
+                            <div className="flex items-start gap-3">
+                              <div className="flex flex-col shrink-0">
+                                {row.foto ? (
+                                  <ProductImageThumb src={row.foto} alt={row.producto} sku={row.sku} title={row.producto} className="w-12 h-12 rounded-lg object-cover bg-muted" onError={e => { e.currentTarget.style.display = "none"; }} />
+                                ) : (
+                                  <div className="w-12 h-12 rounded-lg bg-muted/50 flex items-center justify-center text-lg">📦</div>
+                                )}
+                                <LifetimeMiniCard semanas={row.semanas_vida} primeraVenta={row.primera_venta} />
+                              </div>
+                              <span className="text-sm font-medium text-foreground line-clamp-2 max-w-[200px] pt-1">{row.producto}</span>
                             </div>
                           </TableCell>
                           <TableCell className="text-xs text-muted-foreground">{row.categoria}</TableCell>

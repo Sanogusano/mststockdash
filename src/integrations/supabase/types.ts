@@ -1815,6 +1815,30 @@ export type Database = {
           },
         ]
       }
+      parametros_comerciales: {
+        Row: {
+          clave: string
+          descripcion: string
+          unidad: string | null
+          updated_at: string
+          valor: number
+        }
+        Insert: {
+          clave: string
+          descripcion: string
+          unidad?: string | null
+          updated_at?: string
+          valor: number
+        }
+        Update: {
+          clave?: string
+          descripcion?: string
+          unidad?: string | null
+          updated_at?: string
+          valor?: number
+        }
+        Relationships: []
+      }
       permission_catalog: {
         Row: {
           action_key: string
