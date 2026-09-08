@@ -755,7 +755,7 @@ export default function BajaRotacionPage() {
                               </TableRow>
                               {isOpen && (
                                 <TableRow className="bg-muted/30 hover:bg-muted/30">
-                                  <TableCell colSpan={17} className="py-3">
+                                  <TableCell colSpan={15} className="py-3">
                                     <div className="space-y-2">
                                       <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
                                         Stock por talla y canal
