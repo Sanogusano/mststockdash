@@ -257,13 +257,14 @@ export default function BajaRotacionPage() {
   });
 
   const { data: rows = [], isLoading, error, isFetching } = useQuery<Row[]>({
-    queryKey: ["baja-rotacion", semanasMin, stMax, locationId, incluirRebajas],
+    queryKey: ["baja-rotacion", semanasMin, stMax, locationId, incluirRebajas, incluirNoDistribuidos],
     queryFn: async () => {
       const { data, error } = await supabase.rpc("get_baja_rotacion", {
         p_semanas_minimas: Number(semanasMin),
         p_sell_through_max: stMax,
         p_location_id: locationId === "todas" ? null : locationId,
         p_incluir_rebajas: incluirRebajas,
+        p_incluir_no_distribuidos: incluirNoDistribuidos,
       } as any);
       if (error) throw error;
       // El RPC devuelve stock_tiendas_linea / stock_outlets; normalizamos al modelo del UI.
@@ -273,13 +274,10 @@ export default function BajaRotacionPage() {
         stock_outlet: Number(r.stock_outlet ?? r.stock_outlets ?? 0) || 0,
         stock_digital: Number(r.stock_digital ?? 0) || 0,
         stock_bodega: Number(r.stock_bodega ?? r.stock_bodegas ?? 0) || 0,
-        adu:
-          r.adu != null
-            ? Number(r.adu) || 0
-            : Number(r.dias_en_tienda) > 0
-              ? (Number(r.unidades_vendidas) || 0) / Number(r.dias_en_tienda)
-              : 0,
+        fue_distribuido: r.fue_distribuido !== false,
+        adu: r.adu != null ? Number(r.adu) || 0 : null,
       })) as Row[];
+
     },
   });
 
