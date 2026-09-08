@@ -511,7 +511,8 @@ export default function BajaRotacionPage() {
 
           <div className="flex-1 px-4 sm:px-6 py-4 sm:py-6 space-y-6">
             {/* KPIs - Fila 1: Niveles */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className={`grid grid-cols-1 gap-4 ${incluirNoDistribuidos ? "sm:grid-cols-2 lg:grid-cols-4" : "sm:grid-cols-3"}`}>
+
               <Card>
                 <CardHeader className="pb-2">
                   <CardTitle className="text-sm font-medium flex items-center gap-2 text-yellow-700">
