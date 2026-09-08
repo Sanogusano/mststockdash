@@ -611,8 +611,6 @@ export default function BajaRotacionPage() {
                           <TableHead className="w-16">Foto</TableHead>
                           <TableHead>Producto</TableHead>
                           <TableHead>Categoría</TableHead>
-                          <TableHead>Color</TableHead>
-                          <TableHead>Colección</TableHead>
                           <TableHead className="text-center">Tallas</TableHead>
                           <TableHead className="text-right">Días rot.</TableHead>
                           <TableHead className="text-right">U. vend.</TableHead>
