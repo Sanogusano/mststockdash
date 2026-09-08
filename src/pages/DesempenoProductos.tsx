@@ -182,6 +182,16 @@ export default function DesempenoProductosPage() {
     fetch();
   }, [days, canal, catFilter, orden, topN]);
 
+  // Sincronizar filtros rápidos con la URL
+  useEffect(() => {
+    const params = new URLSearchParams(searchParams);
+    if (semanaFilter === "all") params.delete("semana");
+    else params.set("semana", semanaFilter);
+    if (mezclaFilter === "all") params.delete("mezcla");
+    else params.set("mezcla", mezclaFilter);
+    navigate({ search: params.toString() }, { replace: true });
+  }, [semanaFilter, mezclaFilter]);
+
   const categories = useMemo(() => {
     return [...new Set(data.map(r => r.categoria).filter(Boolean))].sort();
   }, [data]);
