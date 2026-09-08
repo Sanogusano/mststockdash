@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { LineChart, BarChart3, TrendingUp, ArrowLeftRight, Package, Tag, Layers, Target, Zap, Trophy, Archive, Users, Calculator, UserCog, Briefcase, ChevronDown, Settings, MapPin, Upload, LogOut, Truck, Shield, Store, Banknote, LayoutDashboard, CreditCard, MessageCircle, AlertTriangle, RefreshCw, Sparkles, Search, LayoutGrid, TrendingDown, Globe, Gauge, ScatterChart, Siren } from "lucide-react";
+import { LineChart, BarChart3, TrendingUp, ArrowLeftRight, Package, Tag, Layers, Target, Zap, Trophy, Archive, Users, Calculator, UserCog, Briefcase, ChevronDown, Settings, MapPin, Upload, LogOut, Truck, Shield, Store, Banknote, LayoutDashboard, CreditCard, MessageCircle, AlertTriangle, RefreshCw, Sparkles, Search, LayoutGrid, TrendingDown, Globe, Gauge, ScatterChart, Siren, Database } from "lucide-react";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useAuth } from "@/hooks/useAuth";
 import { useUserPermissions } from "@/hooks/useUserPermissions";
