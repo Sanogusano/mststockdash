@@ -20,6 +20,7 @@ import { exportToCSV } from "@/lib/csv-export";
 import { ProductImageThumb } from "@/components/dashboard/ProductImageThumb";
 import { ProductDetailDrawer } from "@/components/dashboard/ProductDetailDrawer";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { cn } from "@/lib/utils";
 
 
 interface ProductRow {
