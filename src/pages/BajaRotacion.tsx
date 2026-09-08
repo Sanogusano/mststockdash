@@ -23,9 +23,11 @@ type TallaInfo = {
   stock_linea?: number;
   stock_outlet?: number;
   stock_digital?: number;
+  stock_bodega?: number;
   linea?: number;
   outlet?: number;
   digital?: number;
+  bodega?: number;
 } & Record<string, unknown>;
 
 type Row = {
@@ -38,9 +40,11 @@ type Row = {
   precio_actual: number;
   precio_original: number;
   descuento_actual: number;
-  primera_venta: string;
-  dias_en_tienda: number;
-  semanas_en_tienda: number;
+  primera_venta: string | null;
+  fecha_llegada_tienda: string | null;
+  fue_distribuido: boolean;
+  dias_en_tienda: number | null;
+  semanas_en_tienda: number | null;
   tallas_disponibles: TallaInfo[] | null;
   tallas_con_stock: number;
   tallas_totales: number;
@@ -53,9 +57,10 @@ type Row = {
   stock_bodega?: number;
   inventario_inicial: number;
   sell_through: number;
-  velocidad_semanal: number;
-  adu?: number;
-  nivel: "atencion" | "critico" | "liquidar" | string;
+  velocidad_semanal: number | null;
+  adu?: number | null;
+  ubicacion_dominante?: string | null;
+  nivel: "atencion" | "critico" | "liquidar" | "sin distribuir" | string;
   descuento_sugerido: number;
   accion: string;
 };
@@ -66,7 +71,9 @@ const NIVEL_LABELS: Record<string, { label: string; emoji: string; className: st
   atencion: { label: "Atención", emoji: "🟡", className: "bg-yellow-100 text-yellow-800 border-yellow-300" },
   critico: { label: "Crítico", emoji: "🔴", className: "bg-red-100 text-red-800 border-red-300" },
   liquidar: { label: "Liquidar", emoji: "⚫", className: "bg-neutral-200 text-neutral-800 border-neutral-400" },
+  "sin distribuir": { label: "Sin distribuir", emoji: "📦", className: "bg-violet-100 text-violet-800 border-violet-300" },
 };
+
 
 function pct(n: number) {
   return `${(Number(n) || 0).toFixed(1)}%`;
