@@ -628,7 +628,7 @@ export default function BajaRotacionPage() {
 
             {/* Filtros */}
             <Card>
-              <CardContent className="pt-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-7 gap-4">
+              <CardContent className="pt-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-8 gap-4">
                 <div className="space-y-1.5">
                   <label className="text-xs font-medium text-muted-foreground">Nivel</label>
                   <Select value={nivel} onValueChange={setNivel}>
@@ -638,7 +638,9 @@ export default function BajaRotacionPage() {
                       <SelectItem value="atencion">🟡 Atención</SelectItem>
                       <SelectItem value="critico">🔴 Crítico</SelectItem>
                       <SelectItem value="liquidar">⚫ Liquidar</SelectItem>
+                      <SelectItem value="sin distribuir">📦 Sin distribuir</SelectItem>
                     </SelectContent>
+
                   </Select>
                 </div>
                 <div className="space-y-1.5">
