@@ -81,7 +81,7 @@ function MezclaToggle({ value, onChange }: { value: string; onChange: (v: string
             type="button"
             onClick={() => onChange(opt.value)}
             className={cn(
-              "h-full px-3 rounded-md border text-xs font-medium transition-colors flex items-center gap-1.5",
+              "h-10 px-3 rounded-md border text-xs font-medium transition-colors flex items-center gap-1.5",
               active ? activeClass : "bg-background text-muted-foreground border-border hover:bg-muted/50"
             )}
           >
