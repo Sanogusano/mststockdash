@@ -229,8 +229,10 @@ export default function BajaRotacionPage() {
   const [stMax, setStMax] = useState<number>(30);
   const [locationId, setLocationId] = useState<string>("todas");
   const [incluirRebajas, setIncluirRebajas] = useState<boolean>(true);
+  const [incluirNoDistribuidos, setIncluirNoDistribuidos] = useState<boolean>(false);
   const [tipoTienda, setTipoTienda] = useState<string>("todas");
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
+
 
   const toggleExpand = (id: string) => {
     setExpanded((prev) => {
