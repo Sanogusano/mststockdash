@@ -67,10 +67,13 @@ const zoomProductoItems: NavItem[] = [
 
 const analisisLinea360Item: NavItem = { title: "Análisis por Línea 360", url: "/analisis-linea-360", icon: Layers, description: "Precio, descuento, stock y salud por colección y línea", module: "dashboards.desempeno_linea", action: "view" };
 
+const coberturaItem: NavItem = { title: "Cobertura de Distribución", url: "/cobertura", icon: Layers, description: "¿Llegó bien repartido a las tiendas?", module: "dashboards.salud_producto", action: "view" };
+
 const productoItems: NavItem[] = [
   saludProductoItem,
   desempenoLineaItem,
   analisisLinea360Item,
+  coberturaItem,
 ];
 
 const productoBottomItems: NavItem[] = [cierreColeccionItem];
