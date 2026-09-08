@@ -7,10 +7,9 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Slider } from "@/components/ui/slider";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Download, FileText, AlertTriangle, AlertCircle, CircleOff, ChevronDown, ChevronRight, Store, Tag, Globe, Warehouse, PackageX } from "lucide-react";
+import { Download, FileText, AlertTriangle, AlertCircle, CircleOff, ChevronDown, ChevronRight, Store, Tag, Globe, Warehouse } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { exportToXLS } from "@/lib/xls-export";
 import jsPDF from "jspdf";
@@ -65,7 +64,6 @@ type Row = {
   accion: string;
 };
 
-type Location = { location_id: string; name: string };
 
 const NIVEL_LABELS: Record<string, { label: string; emoji: string; className: string }> = {
   atencion: { label: "Atención", emoji: "🟡", className: "bg-yellow-100 text-yellow-800 border-yellow-300" },
@@ -124,37 +122,8 @@ async function getLogoBase64(): Promise<string> {
   });
 }
 
-type Ubicacion = { label: string; className: string };
-
-const UBIC_CLS: Record<string, string> = {
-  "EN BODEGA": "bg-violet-100 text-violet-800 border-violet-300",
-  "EN OUTLET": "bg-orange-100 text-orange-800 border-orange-300",
-  "EN TIENDAS": "bg-sky-100 text-sky-800 border-sky-300",
-};
-
-/** Dónde está el grueso del inventario: define la acción a tomar. */
-function ubicacionDominante(r: Row): Ubicacion | null {
-  const desdeRpc = (r.ubicacion_dominante ?? "").trim().toUpperCase();
-  if (desdeRpc) {
-    return { label: desdeRpc, className: UBIC_CLS[desdeRpc] ?? "bg-muted text-muted-foreground border-border" };
-  }
-  const linea = Number(r.stock_linea) || 0;
-  const outlet = Number(r.stock_outlet) || 0;
-  const digital = Number(r.stock_digital) || 0;
-  const bodega = Number(r.stock_bodega) || 0;
-  const total = linea + outlet + digital + bodega;
-  if (total <= 0) return null;
-  if (bodega / total >= 0.8) return { label: "EN BODEGA", className: UBIC_CLS["EN BODEGA"] };
-  if (outlet > linea) return { label: "EN OUTLET", className: UBIC_CLS["EN OUTLET"] };
-  return { label: "EN TIENDAS", className: UBIC_CLS["EN TIENDAS"] };
-}
-
-function fmtAdu(n?: number | null) {
-  if (n == null) return "—";
-  return (Number(n) || 0).toLocaleString("es-CO", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-}
-
 function fmtFecha(f?: string | null) {
+
   if (!f) return null;
   return new Date(f).toLocaleDateString("es-CO", { day: "2-digit", month: "short", year: "numeric" });
 }
@@ -222,17 +191,18 @@ function parseTallas(t: Row["tallas_disponibles"]): TallaParsed[] {
 }
 
 
+const PAGE_SIZE = 100;
+const ST_MAX = 30;
+
 export default function BajaRotacionPage() {
   const [nivel, setNivel] = useState<string>("todos");
   const [categoria, setCategoria] = useState<string>("todas");
+  const [coleccion, setColeccion] = useState<string>("todas");
   const [semanasMin, setSemanasMin] = useState<string>("4");
-  const [stMax, setStMax] = useState<number>(30);
-  const [locationId, setLocationId] = useState<string>("todas");
   const [incluirRebajas, setIncluirRebajas] = useState<boolean>(true);
   const [incluirNoDistribuidos, setIncluirNoDistribuidos] = useState<boolean>(false);
-  const [tipoTienda, setTipoTienda] = useState<string>("todas");
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
-
+  const [page, setPage] = useState<number>(1);
 
   const toggleExpand = (id: string) => {
     setExpanded((prev) => {
@@ -243,26 +213,13 @@ export default function BajaRotacionPage() {
     });
   };
 
-  const { data: locations = [] } = useQuery<Location[]>({
-    queryKey: ["locations-baja-rot"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("locations")
-        .select("location_id,name")
-        .eq("is_active", true)
-        .order("name");
-      if (error) throw error;
-      return (data ?? []) as Location[];
-    },
-  });
-
   const { data: rows = [], isLoading, error, isFetching } = useQuery<Row[]>({
-    queryKey: ["baja-rotacion", semanasMin, stMax, locationId, incluirRebajas, incluirNoDistribuidos],
+    queryKey: ["baja-rotacion", semanasMin, incluirRebajas, incluirNoDistribuidos],
     queryFn: async () => {
       const { data, error } = await supabase.rpc("get_baja_rotacion", {
         p_semanas_minimas: Number(semanasMin),
-        p_sell_through_max: stMax,
-        p_location_id: locationId === "todas" ? null : locationId,
+        p_sell_through_max: ST_MAX,
+        p_location_id: null,
         p_incluir_rebajas: incluirRebajas,
         p_incluir_no_distribuidos: incluirNoDistribuidos,
       } as any);
@@ -281,9 +238,39 @@ export default function BajaRotacionPage() {
     },
   });
 
-  const productIds = useMemo(() => rows.map((r) => r.product_id).filter(Boolean), [rows]);
+  const categorias = useMemo(() => {
+    const s = new Set<string>();
+    rows.forEach((r) => r.category && s.add(r.category));
+    return Array.from(s).sort();
+  }, [rows]);
+
+  const colecciones = useMemo(() => {
+    const s = new Set<string>();
+    rows.forEach((r) => r.collection_season && s.add(r.collection_season));
+    return Array.from(s).sort();
+  }, [rows]);
+
+  const filtered = useMemo(() => {
+    return rows
+      .filter((r) => {
+        if (nivel !== "todos" && r.nivel !== nivel) return false;
+        if (categoria !== "todas" && r.category !== categoria) return false;
+        if (coleccion !== "todas" && (r.collection_season ?? "") !== coleccion) return false;
+        return true;
+      })
+      .sort((a, b) => (Number(b.stock_actual) || 0) - (Number(a.stock_actual) || 0));
+  }, [rows, nivel, categoria, coleccion]);
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const currentPage = Math.min(page, totalPages);
+  const pageRows = useMemo(
+    () => filtered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE),
+    [filtered, currentPage],
+  );
+
+  const productIds = useMemo(() => pageRows.map((r) => r.product_id).filter(Boolean), [pageRows]);
   const { data: imagesMap = {} } = useQuery<Record<string, string>>({
-    queryKey: ["baja-rot-images", productIds.length, productIds.slice(0, 5).join(",")],
+    queryKey: ["baja-rot-images", productIds.join(",")],
     enabled: productIds.length > 0,
     queryFn: async () => {
       const map: Record<string, string> = {};
@@ -302,22 +289,6 @@ export default function BajaRotacionPage() {
       return map;
     },
   });
-
-  const categorias = useMemo(() => {
-    const s = new Set<string>();
-    rows.forEach((r) => r.category && s.add(r.category));
-    return Array.from(s).sort();
-  }, [rows]);
-
-  const filtered = useMemo(() => {
-    return rows.filter((r) => {
-      if (nivel !== "todos" && r.nivel !== nivel) return false;
-      if (categoria !== "todas" && r.category !== categoria) return false;
-      if (tipoTienda === "linea" && !(Number(r.stock_linea) > 0)) return false;
-      if (tipoTienda === "outlet" && !(Number(r.stock_outlet) > 0)) return false;
-      return true;
-    });
-  }, [rows, nivel, categoria, tipoTienda]);
 
   const counts = useMemo(() => {
     const c = {
@@ -350,6 +321,7 @@ export default function BajaRotacionPage() {
     );
   }, [filtered]);
 
+
   const handleExport = () => {
     const data = filtered.map((r) => ({
       Producto: r.titulo,
@@ -370,11 +342,10 @@ export default function BajaRotacionPage() {
       "Stock Outlet": Number(r.stock_outlet) || 0,
       "Stock Digital/CEDI": Number(r.stock_digital) || 0,
       "Stock Bodega": Number(r.stock_bodega) || 0,
-      "Ubicación dominante": ubicacionDominante(r)?.label ?? "—",
       "Inventario inicial": r.inventario_inicial,
       "Sell-through (%)": Number(r.sell_through).toFixed(2),
       "Velocidad semanal": fmtNum2(r.velocidad_semanal),
-      "ADU (uds/día)": fmtAdu(r.adu),
+
 
       "Precio actual": Number(r.precio_actual) || 0,
       "Precio original": Number(r.precio_original) || 0,
@@ -414,8 +385,8 @@ export default function BajaRotacionPage() {
       startY: 35,
       head: [[
         "Producto", "Categoría", "Colección", "Tallas", "Días rot.", "U. vend.",
-        "Stock", "Línea", "Outlet", "Digital", "Bodega", "Ubicación",
-        "Sell-through", "Vel/sem", "ADU", "Precio", "Dcto. sug.", "Nivel", "Acción sugerida",
+        "Stock", "Línea", "Outlet", "Digital", "Bodega",
+        "Sell-through", "Vel/sem", "Precio", "Dcto. sug.", "Nivel", "Acción sugerida",
       ]],
       body: filtered.map((r) => [
         r.titulo,
@@ -429,42 +400,36 @@ export default function BajaRotacionPage() {
         fmtInt(r.stock_outlet ?? 0),
         fmtInt(r.stock_digital ?? 0),
         fmtInt(r.stock_bodega ?? 0),
-        ubicacionDominante(r)?.label ?? "-",
         pct(r.sell_through),
         fmtNum2(r.velocidad_semanal),
-
-        fmtAdu(r.adu),
         fmtCOP(r.precio_actual),
         `-${pct(r.descuento_sugerido)}`,
         NIVEL_LABELS[r.nivel]?.label ?? r.nivel,
         r.accion ?? "-",
       ]),
-      styles: { fontSize: 6.2, cellPadding: 1.2, valign: "middle" },
-      headStyles: { fillColor: [15, 15, 15], textColor: 255, fontStyle: "bold", fontSize: 6.2 },
+      styles: { fontSize: 6.4, cellPadding: 1.3, valign: "middle" },
+      headStyles: { fillColor: [15, 15, 15], textColor: 255, fontStyle: "bold", fontSize: 6.4 },
       alternateRowStyles: { fillColor: [245, 245, 248] },
       margin: { left: margin, right: margin, top: 14, bottom: 14 },
       showHead: "everyPage",
       columnStyles: {
-        0: { cellWidth: 44 },
+        0: { cellWidth: 46 },
         4: { halign: "right" }, 5: { halign: "right" }, 6: { halign: "right" },
         7: { halign: "right" }, 8: { halign: "right" }, 9: { halign: "right" },
-        10: { halign: "right" }, 12: { halign: "right" }, 13: { halign: "right" },
-        14: { halign: "right" }, 15: { halign: "right" }, 16: { halign: "right" },
-        18: { cellWidth: 34 },
+        10: { halign: "right" }, 11: { halign: "right" }, 12: { halign: "right" },
+        13: { halign: "right" }, 14: { halign: "right" },
+        16: { cellWidth: 38 },
       },
       didParseCell: (data) => {
         if (data.section !== "body") return;
         const row = filtered[data.row.index];
         if (!row) return;
-        if (data.column.index === 12 && Number(row.sell_through) < 15) {
+        if (data.column.index === 11 && Number(row.sell_through) < 15) {
           data.cell.styles.textColor = [220, 38, 38];
           data.cell.styles.fontStyle = "bold";
         }
-        if (data.column.index === 11 && ubicacionDominante(row)?.label === "EN BODEGA") {
-          data.cell.styles.textColor = [109, 40, 217];
-          data.cell.styles.fontStyle = "bold";
-        }
       },
+
     });
 
     const pageH = doc.internal.pageSize.getHeight();
@@ -510,128 +475,55 @@ export default function BajaRotacionPage() {
           </header>
 
           <div className="flex-1 px-4 sm:px-6 py-4 sm:py-6 space-y-6">
-            {/* KPIs - Fila 1: Niveles */}
-            <div className={`grid grid-cols-1 gap-4 ${incluirNoDistribuidos ? "sm:grid-cols-2 lg:grid-cols-4" : "sm:grid-cols-3"}`}>
+            {/* Unidades por canal */}
+            <p className="text-xs text-muted-foreground flex flex-wrap items-center gap-x-4 gap-y-1">
+              <span className="flex items-center gap-1"><Store className="h-3.5 w-3.5" /> Tiendas {fmtInt(stockTotals.linea)}</span>
+              <span className="flex items-center gap-1"><Tag className="h-3.5 w-3.5" /> Outlet {fmtInt(stockTotals.outlet)}</span>
+              <span className="flex items-center gap-1"><Globe className="h-3.5 w-3.5" /> Digital {fmtInt(stockTotals.digital)}</span>
+              <span className="flex items-center gap-1"><Warehouse className="h-3.5 w-3.5" /> Bodega {fmtInt(stockTotals.bodega)}</span>
+            </p>
 
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium flex items-center gap-2 text-yellow-700">
-                    <AlertTriangle className="h-4 w-4" /> 🟡 Atención
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-3xl font-semibold">
-                    {counts.atencion.full + counts.atencion.rebaja}
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {counts.atencion.full} full + {counts.atencion.rebaja} rebajas · ST &lt; 30%, 4–8 sem
-                  </p>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium flex items-center gap-2 text-red-700">
-                    <AlertCircle className="h-4 w-4" /> 🔴 Crítico
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-3xl font-semibold">
-                    {counts.critico.full + counts.critico.rebaja}
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {counts.critico.full} full + {counts.critico.rebaja} rebajas · ST &lt; 15%, +8 sem
-                  </p>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium flex items-center gap-2 text-neutral-700">
-                    <CircleOff className="h-4 w-4" /> ⚫ Liquidar
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-3xl font-semibold">
-                    {counts.liquidar.full + counts.liquidar.rebaja}
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {counts.liquidar.full} full + {counts.liquidar.rebaja} rebajas · ST &lt; 10%, +12 sem
-                  </p>
-                </CardContent>
-              </Card>
-              {incluirNoDistribuidos && (
-                <Card>
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm font-medium flex items-center gap-2 text-violet-700">
-                      <PackageX className="h-4 w-4" /> 📦 Sin distribuir
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-3xl font-semibold">
-                      {counts["sin distribuir"].full + counts["sin distribuir"].rebaja}
-                    </div>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      nunca salieron a piso · no es baja rotación
-                    </p>
-                  </CardContent>
-                </Card>
-              )}
-            </div>
-
-
-            {/* KPIs - Fila 2: Stock por canal */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium flex items-center gap-2 text-foreground">
-                    <Store className="h-4 w-4" /> 🏪 Tiendas línea
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-3xl font-semibold">{fmtInt(stockTotals.linea)}</div>
-                  <p className="text-xs text-muted-foreground mt-1">unidades en tiendas de línea</p>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium flex items-center gap-2 text-foreground">
-                    <Tag className="h-4 w-4" /> 🏷️ Outlets
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-3xl font-semibold">{fmtInt(stockTotals.outlet)}</div>
-                  <p className="text-xs text-muted-foreground mt-1">unidades en outlets</p>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium flex items-center gap-2 text-foreground">
-                    <Globe className="h-4 w-4" /> 🌐 Digital / CEDI
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-3xl font-semibold">{fmtInt(stockTotals.digital)}</div>
-                  <p className="text-xs text-muted-foreground mt-1">unidades en CEDI/Ecommerce</p>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium flex items-center gap-2 text-foreground">
-                    <Warehouse className="h-4 w-4" /> 🏭 Bodega
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-3xl font-semibold">{fmtInt(stockTotals.bodega)}</div>
-                  <p className="text-xs text-muted-foreground mt-1">unidades que no salieron a piso</p>
-                </CardContent>
-              </Card>
+            {/* Tarjetas de nivel — filtro rápido */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              {([
+                { key: "atencion", label: "🟡 Atención", icon: AlertTriangle, text: "text-yellow-700", ring: "ring-yellow-400 bg-yellow-50", hint: "cobertura bajo 17 semanas" },
+                { key: "critico", label: "🔴 Crítico", icon: AlertCircle, text: "text-red-700", ring: "ring-red-400 bg-red-50", hint: "cobertura entre 17 y 32 semanas" },
+                { key: "liquidar", label: "⚫ Liquidar", icon: CircleOff, text: "text-neutral-700", ring: "ring-neutral-500 bg-neutral-100", hint: "cobertura sobre 32 semanas" },
+              ] as const).map((n) => {
+                const c = counts[n.key as keyof typeof counts];
+                const active = nivel === n.key;
+                const Icon = n.icon;
+                return (
+                  <Card
+                    key={n.key}
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => { setNivel(active ? "todos" : n.key); setPage(1); }}
+                    onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { setNivel(active ? "todos" : n.key); setPage(1); } }}
+                    className={`cursor-pointer transition-shadow hover:shadow-md ${active ? `ring-2 ${n.ring}` : ""}`}
+                  >
+                    <CardHeader className="pb-2">
+                      <CardTitle className={`text-sm font-medium flex items-center gap-2 ${n.text}`}>
+                        <Icon className="h-4 w-4" /> {n.label}
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-3xl font-semibold">{c.full + c.rebaja}</div>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {c.full} full + {c.rebaja} rebajas · {n.hint}
+                      </p>
+                    </CardContent>
+                  </Card>
+                );
+              })}
             </div>
 
             {/* Filtros */}
             <Card>
-              <CardContent className="pt-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-8 gap-4">
+              <CardContent className="pt-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
                 <div className="space-y-1.5">
                   <label className="text-xs font-medium text-muted-foreground">Nivel</label>
-                  <Select value={nivel} onValueChange={setNivel}>
+                  <Select value={nivel} onValueChange={(v) => { setNivel(v); setPage(1); }}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="todos">Todos</SelectItem>
@@ -640,12 +532,23 @@ export default function BajaRotacionPage() {
                       <SelectItem value="liquidar">⚫ Liquidar</SelectItem>
                       <SelectItem value="sin distribuir">📦 Sin distribuir</SelectItem>
                     </SelectContent>
-
+                  </Select>
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-muted-foreground">Colección</label>
+                  <Select value={coleccion} onValueChange={(v) => { setColeccion(v); setPage(1); }}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="todas">Todas</SelectItem>
+                      {colecciones.map((c) => (
+                        <SelectItem key={c} value={c}>{c}</SelectItem>
+                      ))}
+                    </SelectContent>
                   </Select>
                 </div>
                 <div className="space-y-1.5">
                   <label className="text-xs font-medium text-muted-foreground">Categoría</label>
-                  <Select value={categoria} onValueChange={setCategoria}>
+                  <Select value={categoria} onValueChange={(v) => { setCategoria(v); setPage(1); }}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="todas">Todas</SelectItem>
@@ -656,31 +559,8 @@ export default function BajaRotacionPage() {
                   </Select>
                 </div>
                 <div className="space-y-1.5">
-                  <label className="text-xs font-medium text-muted-foreground">Tipo tienda</label>
-                  <Select value={tipoTienda} onValueChange={setTipoTienda}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="todas">Todas</SelectItem>
-                      <SelectItem value="linea">🏪 Solo línea</SelectItem>
-                      <SelectItem value="outlet">🏷️ Solo outlet</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-1.5">
-                  <label className="text-xs font-medium text-muted-foreground">Ubicación</label>
-                  <Select value={locationId} onValueChange={setLocationId}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="todas">Todas</SelectItem>
-                      {locations.map((l) => (
-                        <SelectItem key={l.location_id} value={l.location_id}>{l.name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-1.5">
                   <label className="text-xs font-medium text-muted-foreground">Semanas mínimas</label>
-                  <Select value={semanasMin} onValueChange={setSemanasMin}>
+                  <Select value={semanasMin} onValueChange={(v) => { setSemanasMin(v); setPage(1); }}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="4">4 semanas</SelectItem>
@@ -690,45 +570,30 @@ export default function BajaRotacionPage() {
                   </Select>
                 </div>
                 <div className="space-y-1.5">
-                  <label className="text-xs font-medium text-muted-foreground">
-                    Sell-through máximo: {stMax}%
-                  </label>
-                  <Slider
-                    value={[stMax]}
-                    min={0}
-                    max={50}
-                    step={1}
-                    onValueChange={(v) => setStMax(v[0])}
-                    className="pt-2"
-                  />
-                </div>
-                <div className="space-y-1.5">
                   <label className="text-xs font-medium text-muted-foreground">Incluir rebajas</label>
                   <div className="flex items-center gap-2 h-9">
-                    <Switch checked={incluirRebajas} onCheckedChange={setIncluirRebajas} />
-                    <span className="text-xs text-muted-foreground">
-                      {incluirRebajas ? "Sí" : "No"}
-                    </span>
+                    <Switch checked={incluirRebajas} onCheckedChange={(v) => { setIncluirRebajas(v); setPage(1); }} />
+                    <span className="text-xs text-muted-foreground">{incluirRebajas ? "Sí" : "No"}</span>
                   </div>
                 </div>
                 <div className="space-y-1.5">
                   <label className="text-xs font-medium text-muted-foreground">Incluir no distribuidos</label>
                   <div className="flex items-center gap-2 h-9">
-                    <Switch checked={incluirNoDistribuidos} onCheckedChange={setIncluirNoDistribuidos} />
-                    <span className="text-xs text-muted-foreground">
-                      {incluirNoDistribuidos ? "Sí" : "No"}
-                    </span>
+                    <Switch checked={incluirNoDistribuidos} onCheckedChange={(v) => { setIncluirNoDistribuidos(v); setPage(1); }} />
+                    <span className="text-xs text-muted-foreground">{incluirNoDistribuidos ? "Sí" : "No"}</span>
                   </div>
                 </div>
               </CardContent>
-
             </Card>
+
 
             {/* Tabla */}
             <Card>
               <CardHeader className="pb-2">
                 <CardTitle className="text-base">
-                  Resultados <span className="text-muted-foreground font-normal">({filtered.length})</span>
+                  Resultados <span className="text-muted-foreground font-normal">
+                    ({fmtInt(filtered.length)} · mostrando {fmtInt(pageRows.length)})
+                  </span>
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -757,14 +622,8 @@ export default function BajaRotacionPage() {
                           <TableHead className="text-right">Días rot.</TableHead>
                           <TableHead className="text-right">U. vend.</TableHead>
                           <TableHead className="text-right">Stock</TableHead>
-                          <TableHead className="text-right">🏪 Línea</TableHead>
-                          <TableHead className="text-right">🏷️ Outlet</TableHead>
-                          <TableHead className="text-right">🌐 Digital</TableHead>
-                          <TableHead className="text-right">🏭 Bodega</TableHead>
-                          <TableHead>Ubicación</TableHead>
                           <TableHead className="text-right">Sell-through</TableHead>
                           <TableHead className="text-right">Vel/sem</TableHead>
-                          <TableHead className="text-right">ADU</TableHead>
                           <TableHead className="text-right">Precio</TableHead>
                           <TableHead className="text-right">Dcto. actual</TableHead>
                           <TableHead className="text-right">Dcto. sugerido</TableHead>
@@ -773,13 +632,13 @@ export default function BajaRotacionPage() {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {filtered.map((r) => {
+                        {pageRows.map((r) => {
                           const niv = NIVEL_LABELS[r.nivel];
                           const img = imagesMap[r.product_id];
                           const hex = toHexColor(r.color);
                           const tallas = parseTallas(r.tallas_disponibles);
                           const isOpen = expanded.has(r.product_id);
-                          const ubic = ubicacionDominante(r);
+
                           return (
                             <Fragment key={r.product_id}>
                               <TableRow className="cursor-pointer" onClick={() => toggleExpand(r.product_id)}>
@@ -857,43 +716,14 @@ export default function BajaRotacionPage() {
                                   )}
                                 </TableCell>
                                 <TableCell className="text-right text-xs">{r.unidades_vendidas}</TableCell>
-                                <TableCell className="text-right text-xs font-semibold">{r.stock_actual}</TableCell>
-                                <TableCell className="text-right text-xs">
-                                  {Number(r.stock_linea) > 0 ? (
-                                    fmtInt(r.stock_linea ?? 0)
-                                  ) : (
-                                    <span className="text-muted-foreground">—</span>
-                                  )}
-                                </TableCell>
-                                <TableCell className="text-right text-xs">
-                                  {Number(r.stock_outlet) > 0 ? (
-                                    fmtInt(r.stock_outlet ?? 0)
-                                  ) : (
-                                    <span className="text-muted-foreground">—</span>
-                                  )}
-                                </TableCell>
-                                <TableCell className="text-right text-xs">
-                                  {Number(r.stock_digital) > 0 ? (
-                                    fmtInt(r.stock_digital ?? 0)
-                                  ) : (
-                                    <span className="text-muted-foreground">—</span>
-                                  )}
-                                </TableCell>
-                                <TableCell className="text-right text-xs">
-                                  {Number(r.stock_bodega) > 0 ? (
-                                    fmtInt(r.stock_bodega ?? 0)
-                                  ) : (
-                                    <span className="text-muted-foreground">—</span>
-                                  )}
-                                </TableCell>
-                                <TableCell>
-                                  {ubic ? (
-                                    <span className={`inline-flex px-2 py-0.5 rounded-full text-[10px] font-semibold border ${ubic.className}`}>
-                                      {ubic.label}
-                                    </span>
-                                  ) : (
-                                    <span className="text-muted-foreground text-xs">—</span>
-                                  )}
+                                <TableCell className="text-right text-xs whitespace-nowrap">
+                                  <div className="font-semibold tabular-nums">{fmtInt(r.stock_actual)}</div>
+                                  <div className="flex items-center justify-end gap-2 text-[10px] text-muted-foreground tabular-nums">
+                                    <span className="flex items-center gap-0.5"><Store className="h-3 w-3" />{fmtInt(r.stock_linea ?? 0)}</span>
+                                    <span className="flex items-center gap-0.5"><Tag className="h-3 w-3" />{fmtInt(r.stock_outlet ?? 0)}</span>
+                                    <span className="flex items-center gap-0.5"><Globe className="h-3 w-3" />{fmtInt(r.stock_digital ?? 0)}</span>
+                                    <span className="flex items-center gap-0.5"><Warehouse className="h-3 w-3" />{fmtInt(r.stock_bodega ?? 0)}</span>
+                                  </div>
                                 </TableCell>
                                 <TableCell className="text-right">
                                   <span
@@ -907,18 +737,7 @@ export default function BajaRotacionPage() {
                                 <TableCell className="text-right text-xs">
                                   {fmtNum2(r.velocidad_semanal)}
                                 </TableCell>
-                                <TableCell className="text-right text-xs tabular-nums">
-                                  <TooltipProvider>
-                                    <Tooltip>
-                                      <TooltipTrigger asChild>
-                                        <span className="cursor-help border-b border-dotted border-muted-foreground/40">
-                                          {fmtAdu(r.adu)}
-                                        </span>
-                                      </TooltipTrigger>
-                                      <TooltipContent>Unidades vendidas por día desde la primera venta</TooltipContent>
-                                    </Tooltip>
-                                  </TooltipProvider>
-                                </TableCell>
+
                                 <TableCell className="text-right text-xs">
                                   <div className="font-medium">{fmtCOP(r.precio_actual)}</div>
                                   {r.es_rebaja && r.precio_original > r.precio_actual && (
@@ -958,7 +777,7 @@ export default function BajaRotacionPage() {
                               </TableRow>
                               {isOpen && (
                                 <TableRow className="bg-muted/30 hover:bg-muted/30">
-                                  <TableCell colSpan={23} className="py-3">
+                                  <TableCell colSpan={17} className="py-3">
                                     <div className="space-y-2">
                                       <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
                                         Stock por talla y canal
@@ -1013,8 +832,34 @@ export default function BajaRotacionPage() {
                         })}
                       </TableBody>
                     </Table>
+                    {totalPages > 1 && (
+                      <div className="flex items-center justify-between gap-3 pt-4 text-xs text-muted-foreground">
+                        <span>
+                          Página {currentPage} de {totalPages} · {fmtInt(filtered.length)} productos
+                        </span>
+                        <div className="flex items-center gap-2">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            disabled={currentPage <= 1}
+                            onClick={() => setPage(currentPage - 1)}
+                          >
+                            Anterior
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            disabled={currentPage >= totalPages}
+                            onClick={() => setPage(currentPage + 1)}
+                          >
+                            Siguiente
+                          </Button>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
+
               </CardContent>
             </Card>
           </div>
