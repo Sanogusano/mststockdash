@@ -1,4 +1,5 @@
-import { Fragment, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
@@ -189,12 +190,14 @@ const PAGE_SIZE = 100;
 const ST_MAX = 30;
 
 export default function BajaRotacionPage() {
-  const [nivel, setNivel] = useState<string>("todos");
-  const [categoria, setCategoria] = useState<string>("todas");
-  const [coleccion, setColeccion] = useState<string>("todas");
-  const [semanasMin, setSemanasMin] = useState<string>("4");
-  const [incluirRebajas, setIncluirRebajas] = useState<boolean>(true);
-  const [incluirNoDistribuidos, setIncluirNoDistribuidos] = useState<boolean>(false);
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  const [nivel, setNivel] = useState<string>(() => searchParams.get("nivel") || "todos");
+  const [categoria, setCategoria] = useState<string>(() => searchParams.get("categoria") || "todas");
+  const [coleccion, setColeccion] = useState<string>(() => searchParams.get("coleccion") || "todas");
+  const [semanasMin, setSemanasMin] = useState<string>(() => searchParams.get("semanas") || "4");
+  const [incluirRebajas, setIncluirRebajas] = useState<boolean>(() => searchParams.get("rebajas") !== "false");
+  const [incluirNoDistribuidos, setIncluirNoDistribuidos] = useState<boolean>(() => searchParams.get("nodistribuidos") === "true");
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [page, setPage] = useState<number>(1);
 
@@ -206,6 +209,18 @@ export default function BajaRotacionPage() {
       return next;
     });
   };
+
+  // Sincronizar filtros con la URL para que sobrevivan a la navegación y se puedan compartir.
+  useEffect(() => {
+    const next = new URLSearchParams();
+    if (nivel !== "todos") next.set("nivel", nivel);
+    if (categoria !== "todas") next.set("categoria", categoria);
+    if (coleccion !== "todas") next.set("coleccion", coleccion);
+    if (semanasMin !== "4") next.set("semanas", semanasMin);
+    if (!incluirRebajas) next.set("rebajas", "false");
+    if (incluirNoDistribuidos) next.set("nodistribuidos", "true");
+    setSearchParams(next, { replace: true });
+  }, [nivel, categoria, coleccion, semanasMin, incluirRebajas, incluirNoDistribuidos, setSearchParams]);
 
   const { data: rows = [], isLoading, error, isFetching } = useQuery<Row[]>({
     queryKey: ["baja-rotacion", semanasMin, incluirRebajas, incluirNoDistribuidos],
