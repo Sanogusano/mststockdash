@@ -107,7 +107,7 @@ export default function DesempenoProductosPage() {
         p_canal: canalParam,
         p_categoria: catParam,
         p_orden: orden,
-        p_limite: 500,
+        p_limite: topN,
         p_hasta: hastaParam,
       });
       if (err) {
@@ -119,7 +119,7 @@ export default function DesempenoProductosPage() {
       setLoading(false);
     }
     fetch();
-  }, [days, canal, catFilter, orden]);
+  }, [days, canal, catFilter, orden, topN]);
 
   const categories = useMemo(() => {
     return [...new Set(data.map(r => r.categoria).filter(Boolean))].sort();
