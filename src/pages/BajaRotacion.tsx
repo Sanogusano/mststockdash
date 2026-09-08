@@ -195,6 +195,7 @@ type TallaParsed = {
   linea: number;
   outlet: number;
   digital: number;
+  bodega: number;
 };
 
 function parseTallas(t: Row["tallas_disponibles"]): TallaParsed[] {
@@ -205,18 +206,21 @@ function parseTallas(t: Row["tallas_disponibles"]): TallaParsed[] {
       const linea = Number(x?.stock_linea ?? x?.linea ?? x?.tiendas ?? 0) || 0;
       const outlet = Number(x?.stock_outlet ?? x?.outlet ?? x?.outlets ?? 0) || 0;
       const digital = Number(x?.stock_digital ?? x?.digital ?? x?.cedi ?? x?.ecommerce ?? 0) || 0;
+      const bodega = Number(x?.stock_bodega ?? x?.bodega ?? 0) || 0;
       const stockRaw = Number(x?.stock ?? x?.available ?? x?.qty ?? 0) || 0;
-      const stock = stockRaw || linea + outlet + digital;
+      const stock = stockRaw || linea + outlet + digital + bodega;
       return {
         talla: String(x?.talla ?? x?.size ?? x?.name ?? ""),
         stock,
         linea,
         outlet,
         digital,
+        bodega,
       };
     })
     .filter((x) => x.talla);
 }
+
 
 export default function BajaRotacionPage() {
   const [nivel, setNivel] = useState<string>("todos");
