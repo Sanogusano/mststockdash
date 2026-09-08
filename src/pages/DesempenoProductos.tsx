@@ -68,7 +68,7 @@ const MEZCLA_TOGGLE_OPTIONS = [
 
 function MezclaToggle({ value, onChange }: { value: string; onChange: (v: string) => void }) {
   return (
-    <div className="flex items-center gap-1 h-10">
+    <div className="flex flex-wrap items-center gap-1 min-h-10">
       {MEZCLA_TOGGLE_OPTIONS.map((opt) => {
         const active = value === opt.value;
         const activeClass =
@@ -81,7 +81,7 @@ function MezclaToggle({ value, onChange }: { value: string; onChange: (v: string
             type="button"
             onClick={() => onChange(opt.value)}
             className={cn(
-              "h-full px-3 rounded-md border text-xs font-medium transition-colors flex items-center gap-1.5",
+              "h-10 px-3 rounded-md border text-xs font-medium transition-colors flex items-center gap-1.5",
               active ? activeClass : "bg-background text-muted-foreground border-border hover:bg-muted/50"
             )}
           >
@@ -322,32 +322,28 @@ export default function DesempenoProductosPage() {
           <div className="flex-1 px-4 sm:px-6 py-4 sm:py-6 space-y-4">
             {/* Filters */}
             <div className="space-y-3">
-              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
-                <div className="relative flex-1 w-full sm:max-w-xs">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    placeholder="Buscar producto o categoría..."
-                    value={search}
-                    onChange={e => setSearch(e.target.value)}
-                    className="pl-10 h-10"
-                  />
+              {/* Línea 1: Buscador, Canal, Categoría, Semana de Vida y Cantidad */}
+              <div className="flex flex-col sm:flex-row flex-wrap items-start sm:items-end gap-3">
+                <div className="min-w-0 w-full sm:w-auto sm:flex-1 sm:max-w-xs">
+                  <label className="block text-[10px] font-semibold uppercase tracking-wide text-muted-foreground mb-1">
+                    Buscar
+                  </label>
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Producto o categoría..."
+                      value={search}
+                      onChange={e => setSearch(e.target.value)}
+                      className="pl-10 h-10"
+                    />
+                  </div>
                 </div>
-                <div className="flex items-center gap-2 ml-auto">
-                  <Button variant="outline" size="sm" onClick={handleExportCSV} disabled={!filtered.length}>
-                    <Download className="h-4 w-4 mr-1" /> CSV
-                  </Button>
-                  <Button variant="outline" size="sm" onClick={handleExportPDF} disabled={!filtered.length}>
-                    <FileText className="h-4 w-4 mr-1" /> PDF
-                  </Button>
-                </div>
-              </div>
-              <div className="flex flex-wrap items-end gap-3">
-                <div className="min-w-0">
+                <div className="min-w-0 w-full sm:w-auto">
                   <label className="block text-[10px] font-semibold uppercase tracking-wide text-muted-foreground mb-1">
                     Canal
                   </label>
                   <Select value={canal} onValueChange={setCanal}>
-                    <SelectTrigger className="w-[200px] h-10">
+                    <SelectTrigger className="w-full sm:w-[200px] h-10">
                       <SelectValue placeholder="Todos los Canales" />
                     </SelectTrigger>
                     <SelectContent>
@@ -357,12 +353,12 @@ export default function DesempenoProductosPage() {
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="min-w-0">
+                <div className="min-w-0 w-full sm:w-auto">
                   <label className="block text-[10px] font-semibold uppercase tracking-wide text-muted-foreground mb-1">
                     Categoría
                   </label>
                   <Select value={catFilter} onValueChange={setCatFilter}>
-                    <SelectTrigger className="w-[200px] h-10">
+                    <SelectTrigger className="w-full sm:w-[200px] h-10">
                       <SelectValue placeholder="Todas las categorías" />
                     </SelectTrigger>
                     <SelectContent>
@@ -373,12 +369,12 @@ export default function DesempenoProductosPage() {
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="min-w-0">
+                <div className="min-w-0 w-full sm:w-auto">
                   <label className="block text-[10px] font-semibold uppercase tracking-wide text-muted-foreground mb-1">
                     Semana de vida
                   </label>
                   <Select value={semanaFilter} onValueChange={setSemanaFilter}>
-                    <SelectTrigger className="w-[210px] h-10">
+                    <SelectTrigger className="w-full sm:w-[210px] h-10">
                       <SelectValue placeholder="Semana de vida" />
                     </SelectTrigger>
                     <SelectContent>
@@ -388,18 +384,12 @@ export default function DesempenoProductosPage() {
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="min-w-0">
-                  <label className="block text-[10px] font-semibold uppercase tracking-wide text-muted-foreground mb-1">
-                    Mezcla de precios
-                  </label>
-                  <MezclaToggle value={mezclaFilter} onChange={setMezclaFilter} />
-                </div>
-                <div className="min-w-0">
+                <div className="min-w-0 w-full sm:w-auto">
                   <label className="block text-[10px] font-semibold uppercase tracking-wide text-muted-foreground mb-1">
                     Cantidad
                   </label>
                   <Select value={String(topN)} onValueChange={v => setTopN(Number(v))}>
-                    <SelectTrigger className="w-[150px] h-10">
+                    <SelectTrigger className="w-full sm:w-[150px] h-10">
                       <SelectValue placeholder="Cantidad" />
                     </SelectTrigger>
                     <SelectContent>
@@ -412,27 +402,37 @@ export default function DesempenoProductosPage() {
                   </Select>
                 </div>
               </div>
-            </div>
 
-            {/* Total del universo filtrado (antes del corte de Top N) */}
-            <div className="glass-card rounded-xl p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1">
-              <div>
-                <p className="text-xs text-muted-foreground uppercase tracking-widest">Unidades vendidas — universo filtrado</p>
-                <p className="text-2xl font-display font-bold text-primary tabular-nums">
-                  {totalUnidadesUniverso.toLocaleString("es-CO")}
+              {/* Línea 2: Mezcla de precios a la izquierda, exportaciones a la derecha */}
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <label className="block text-[10px] font-semibold uppercase tracking-wide text-muted-foreground mb-1">
+                    Mezcla de precios
+                  </label>
+                  <MezclaToggle value={mezclaFilter} onChange={setMezclaFilter} />
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button variant="outline" size="sm" onClick={handleExportCSV} disabled={!filtered.length}>
+                    <Download className="h-4 w-4 mr-1" /> CSV
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={handleExportPDF} disabled={!filtered.length}>
+                    <FileText className="h-4 w-4 mr-1" /> PDF
+                  </Button>
+                </div>
+              </div>
+
+              {/* Línea 3: Total del universo filtrado */}
+              <div className="glass-card rounded-xl p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1">
+                <div>
+                  <p className="text-xs text-muted-foreground uppercase tracking-widest">Unidades vendidas — universo filtrado</p>
+                  <p className="text-2xl font-display font-bold text-primary tabular-nums">
+                    {totalUnidadesUniverso.toLocaleString("es-CO")}
+                  </p>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {universe.length.toLocaleString("es-CO")} referencias · mostrando {filtered.length.toLocaleString("es-CO")}
                 </p>
               </div>
-              <p className="text-xs text-muted-foreground">
-                {universe.length.toLocaleString("es-CO")} referencias · mostrando {filtered.length.toLocaleString("es-CO")}
-              </p>
-            </div>
-
-
-            {/* Legend */}
-            <div className="flex items-center gap-4 text-[10px] text-muted-foreground">
-              <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block" /> Full Price</span>
-              <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-blue-500 inline-block" /> Rebajas</span>
-              <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-orange-500 inline-block" /> Desc Promo</span>
             </div>
 
             {/* Table */}
