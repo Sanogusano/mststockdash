@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { exportToCSV } from "@/lib/csv-export";
 import { exportToPDF } from "@/lib/pdf-export";
 import { Download, FileText } from "lucide-react";
+import { ProductImageThumb } from "./ProductImageThumb";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
