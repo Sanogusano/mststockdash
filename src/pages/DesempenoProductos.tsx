@@ -184,7 +184,7 @@ export default function DesempenoProductosPage() {
 
   // Sincronizar filtros rápidos con la URL
   useEffect(() => {
-    const params = new URLSearchParams(searchParams);
+    const params = new URLSearchParams(window.location.search);
     if (semanaFilter === "all") params.delete("semana");
     else params.set("semana", semanaFilter);
     if (mezclaFilter === "all") params.delete("mezcla");
