@@ -580,16 +580,19 @@ function NivelColecciones({
             </div>
 
             <div className="grid grid-cols-3 gap-2 text-center">
-              {[
-                ["Recibidas", r.uds_recibidas],
-                ["Vendidas", r.uds_vendidas],
-                ["Stock", r.stock_actual],
-              ].map(([l, v]) => (
-                <div key={l as string} className="rounded-md bg-muted/50 py-1.5">
-                  <p className="text-xs font-semibold tabular-nums text-foreground">{num(v as number)}</p>
-                  <p className="text-[10px] text-muted-foreground">{l as string}</p>
-                </div>
-              ))}
+              <div className="rounded-md bg-muted/50 py-1.5">
+                <p className="text-xs font-semibold tabular-nums text-foreground">{num(r.uds_recibidas)}</p>
+                <p className="text-[10px] text-muted-foreground leading-tight">Despachadas<br/>a tiendas</p>
+              </div>
+              <div className="rounded-md bg-muted/50 py-1.5">
+                <p className="text-xs font-semibold tabular-nums text-foreground">{num(r.uds_vendidas)}</p>
+                <p className="text-[10px] text-muted-foreground leading-tight">Vendidas<br/>en ventana</p>
+                <p className="text-[9px] text-muted-foreground/70 leading-tight">primeros 120 días<br/>en cada tienda</p>
+              </div>
+              <div className="rounded-md bg-muted/50 py-1.5">
+                <p className="text-xs font-semibold tabular-nums text-foreground">{num(r.stock_actual)}</p>
+                <p className="text-[10px] text-muted-foreground leading-tight">Stock actual<br/>en tiendas</p>
+              </div>
             </div>
 
             <StackedBar
@@ -604,7 +607,12 @@ function NivelColecciones({
               ]}
             />
 
-            <Badge label={r.diagnostico_dominante} />
+            <div className="flex items-start gap-2">
+              <Badge label={r.diagnostico_dominante} />
+            </div>
+            <p className="text-[10px] text-muted-foreground/80 leading-snug pt-1 border-t border-border/40">
+              No incluye venta posterior a la ventana ni de outlet y online.
+            </p>
           </CardContent>
         </Card>
       ))}
