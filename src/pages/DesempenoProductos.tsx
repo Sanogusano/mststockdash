@@ -68,7 +68,7 @@ const MEZCLA_TOGGLE_OPTIONS = [
 
 function MezclaToggle({ value, onChange }: { value: string; onChange: (v: string) => void }) {
   return (
-    <div className="flex items-center gap-1 h-10">
+    <div className="flex flex-wrap items-center gap-1 min-h-10">
       {MEZCLA_TOGGLE_OPTIONS.map((opt) => {
         const active = value === opt.value;
         const activeClass =
