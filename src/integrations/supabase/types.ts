@@ -4672,6 +4672,89 @@ export type Database = {
           und_vendidas: number
         }[]
       }
+      reporte_cobertura_coleccion: {
+        Args: {
+          p_coleccion?: string
+          p_dias_ventana?: number
+          p_linea?: string
+          p_product_id?: string
+        }
+        Returns: {
+          coleccion: string
+          diagnostico: string
+          dias_desde_llegada: number
+          dias_ultima_venta: number
+          en_ventana: boolean
+          estado: string
+          fecha_llegada: string
+          foto: string
+          linea: string
+          location_id: string
+          nivel: string
+          pct_evacuado: number
+          pct_proyectado: number
+          product_id: string
+          producto: string
+          stock_actual: number
+          tienda: string
+          tiendas_estancado: number
+          tiendas_lento: number
+          tiendas_quiebre: number
+          tiendas_regular: number
+          tiendas_sano: number
+          tiendas_total: number
+          tipo_tienda: string
+          uds_recibidas: number
+          uds_vendidas: number
+        }[]
+      }
+      reporte_cobertura_resumen: {
+        Args: { p_dias_ventana?: number }
+        Returns: {
+          coleccion: string
+          diagnostico_dominante: string
+          dias_promedio: number
+          en_ventana: number
+          n_bien: number
+          n_en_curso: number
+          n_falto: number
+          n_lento: number
+          n_mal_repartido: number
+          n_sin_muestra: number
+          n_sobreproducido: number
+          pct_evacuado: number
+          productos: number
+          stock_actual: number
+          tiendas_alcanzadas: number
+          uds_recibidas: number
+          uds_vendidas: number
+        }[]
+      }
+      reporte_cobertura_tiendas: {
+        Args: {
+          p_coleccion?: string
+          p_dias_ventana?: number
+          p_linea?: string
+        }
+        Returns: {
+          location_id: string
+          n_estancado: number
+          n_lento: number
+          n_quiebre: number
+          n_regular: number
+          n_sano: number
+          pct_estancado: number
+          pct_evacuado: number
+          pct_quiebre: number
+          perfil: string
+          productos: number
+          stock_actual: number
+          tienda: string
+          tipo_tienda: string
+          uds_recibidas: number
+          uds_vendidas: number
+        }[]
+      }
       reporte_comportamiento_producto: {
         Args: {
           dias_atras: number
