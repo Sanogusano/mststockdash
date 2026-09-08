@@ -747,43 +747,14 @@ export default function BajaRotacionPage() {
                                   )}
                                 </TableCell>
                                 <TableCell className="text-right text-xs">{r.unidades_vendidas}</TableCell>
-                                <TableCell className="text-right text-xs font-semibold">{r.stock_actual}</TableCell>
-                                <TableCell className="text-right text-xs">
-                                  {Number(r.stock_linea) > 0 ? (
-                                    fmtInt(r.stock_linea ?? 0)
-                                  ) : (
-                                    <span className="text-muted-foreground">—</span>
-                                  )}
-                                </TableCell>
-                                <TableCell className="text-right text-xs">
-                                  {Number(r.stock_outlet) > 0 ? (
-                                    fmtInt(r.stock_outlet ?? 0)
-                                  ) : (
-                                    <span className="text-muted-foreground">—</span>
-                                  )}
-                                </TableCell>
-                                <TableCell className="text-right text-xs">
-                                  {Number(r.stock_digital) > 0 ? (
-                                    fmtInt(r.stock_digital ?? 0)
-                                  ) : (
-                                    <span className="text-muted-foreground">—</span>
-                                  )}
-                                </TableCell>
-                                <TableCell className="text-right text-xs">
-                                  {Number(r.stock_bodega) > 0 ? (
-                                    fmtInt(r.stock_bodega ?? 0)
-                                  ) : (
-                                    <span className="text-muted-foreground">—</span>
-                                  )}
-                                </TableCell>
-                                <TableCell>
-                                  {ubic ? (
-                                    <span className={`inline-flex px-2 py-0.5 rounded-full text-[10px] font-semibold border ${ubic.className}`}>
-                                      {ubic.label}
-                                    </span>
-                                  ) : (
-                                    <span className="text-muted-foreground text-xs">—</span>
-                                  )}
+                                <TableCell className="text-right text-xs whitespace-nowrap">
+                                  <div className="font-semibold tabular-nums">{fmtInt(r.stock_actual)}</div>
+                                  <div className="flex items-center justify-end gap-2 text-[10px] text-muted-foreground tabular-nums">
+                                    <span className="flex items-center gap-0.5"><Store className="h-3 w-3" />{fmtInt(r.stock_linea ?? 0)}</span>
+                                    <span className="flex items-center gap-0.5"><Tag className="h-3 w-3" />{fmtInt(r.stock_outlet ?? 0)}</span>
+                                    <span className="flex items-center gap-0.5"><Globe className="h-3 w-3" />{fmtInt(r.stock_digital ?? 0)}</span>
+                                    <span className="flex items-center gap-0.5"><Warehouse className="h-3 w-3" />{fmtInt(r.stock_bodega ?? 0)}</span>
+                                  </div>
                                 </TableCell>
                                 <TableCell className="text-right">
                                   <span
@@ -797,18 +768,7 @@ export default function BajaRotacionPage() {
                                 <TableCell className="text-right text-xs">
                                   {fmtNum2(r.velocidad_semanal)}
                                 </TableCell>
-                                <TableCell className="text-right text-xs tabular-nums">
-                                  <TooltipProvider>
-                                    <Tooltip>
-                                      <TooltipTrigger asChild>
-                                        <span className="cursor-help border-b border-dotted border-muted-foreground/40">
-                                          {fmtAdu(r.adu)}
-                                        </span>
-                                      </TooltipTrigger>
-                                      <TooltipContent>Unidades vendidas por día desde la primera venta</TooltipContent>
-                                    </Tooltip>
-                                  </TooltipProvider>
-                                </TableCell>
+
                                 <TableCell className="text-right text-xs">
                                   <div className="font-medium">{fmtCOP(r.precio_actual)}</div>
                                   {r.es_rebaja && r.precio_original > r.precio_actual && (
