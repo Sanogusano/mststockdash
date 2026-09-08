@@ -382,7 +382,7 @@ export default function ConfiguracionFuenteVentasPage() {
               Confirmar cambio
             </AlertDialogAction>
           </AlertDialogFooter>
-        </AlertDialogFooter>
+        </AlertDialogContent>
       </AlertDialogContent>
       </AlertDialog>
     </MainLayout>
