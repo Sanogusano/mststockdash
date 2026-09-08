@@ -428,13 +428,12 @@ export default function DesempenoProductosPage() {
                 <EmptyState message="No se encontraron productos para estos filtros." />
               ) : (
                 <div className="overflow-x-auto">
-                  <Table className="min-w-[1100px]">
+                    <Table className="min-w-[1000px]">
                     <TableHeader>
                       <TableRow className="bg-muted/30">
                         <TableHead className="w-[50px] text-center">#</TableHead>
-                        <TableHead className="min-w-[240px]">Producto</TableHead>
+                        <TableHead className="min-w-[280px]">Producto</TableHead>
                         <TableHead className="min-w-[100px]">Categoría</TableHead>
-                        <TableHead className="min-w-[100px]">Colección</TableHead>
                         <TableHead className="text-right min-w-[140px]">Ventas</TableHead>
                         <TableHead className="min-w-[140px]">Mezcla de Precios</TableHead>
                         <TableHead className="min-w-[130px]">Clasificación</TableHead>
