@@ -51,6 +51,20 @@ const CANAL_OPTIONS = [
   { value: "digital", label: "Digital" },
 ];
 
+const SEMANA_VIDA_OPTIONS = [
+  { value: "all", label: "Todas" },
+  { value: "nuevos", label: "Nuevos · 1 a 8 semanas" },
+  { value: "en-ventana", label: "En ventana · 9 a 17 semanas" },
+  { value: "fuera-ventana", label: "Fuera de ventana · más de 17" },
+];
+
+const MEZCLA_OPTIONS = [
+  { value: "all", label: "Todas" },
+  { value: "Full Price", label: "Ganador Full Price" },
+  { value: "Rebajas", label: "Ganador Rebajas" },
+  { value: "Promo", label: "Ganador Promo" },
+];
+
 function cleanClasificacion(c: string) {
   return (c || "").replace(/[🏆🏷️🧲]/g, "").trim();
 }
@@ -131,6 +145,10 @@ export default function DesempenoProductosPage() {
   const [days, setDays] = useState<number>(initialDays);
   const [canal, setCanal] = useState(initialCanal);
   const [catFilter, setCatFilter] = useState("all");
+  const initialSemana = searchParams.get("semana") || "all";
+  const initialMezcla = searchParams.get("mezcla") || "all";
+  const [semanaFilter, setSemanaFilter] = useState(initialSemana);
+  const [mezclaFilter, setMezclaFilter] = useState(initialMezcla);
   const [topN, setTopN] = useState(50);
   const [search, setSearch] = useState("");
   const [data, setData] = useState<ProductRow[]>([]);
@@ -164,18 +182,49 @@ export default function DesempenoProductosPage() {
     fetch();
   }, [days, canal, catFilter, orden, topN]);
 
+  // Sincronizar filtros rápidos con la URL
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (semanaFilter === "all") params.delete("semana");
+    else params.set("semana", semanaFilter);
+    if (mezclaFilter === "all") params.delete("mezcla");
+    else params.set("mezcla", mezclaFilter);
+    navigate({ search: params.toString() }, { replace: true });
+  }, [semanaFilter, mezclaFilter]);
+
   const categories = useMemo(() => {
     return [...new Set(data.map(r => r.categoria).filter(Boolean))].sort();
   }, [data]);
 
-  // Universo filtrado (colección/línea/búsqueda), antes del corte de Top N
+  // Universo filtrado (colección/línea/búsqueda/filtros rápidos), antes del corte de Top N
   const universe = useMemo(() => {
-    if (!search.trim()) return data;
-    const q = search.toLowerCase();
-    return data.filter(r =>
-      r.producto?.toLowerCase().includes(q) || r.categoria?.toLowerCase().includes(q)
-    );
-  }, [data, search]);
+    let result = data;
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      result = result.filter(r =>
+        r.producto?.toLowerCase().includes(q) || r.categoria?.toLowerCase().includes(q)
+      );
+    }
+    if (semanaFilter !== "all") {
+      result = result.filter(r => {
+        const s = r.semanas_vida ?? 0;
+        if (semanaFilter === "nuevos") return s >= 1 && s <= 8;
+        if (semanaFilter === "en-ventana") return s >= 9 && s <= 17;
+        if (semanaFilter === "fuera-ventana") return s > 17;
+        return true;
+      });
+    }
+    if (mezclaFilter !== "all") {
+      result = result.filter(r => {
+        const c = cleanClasificacion(r.clasificacion);
+        if (mezclaFilter === "Full Price") return c.includes("Full Price");
+        if (mezclaFilter === "Rebajas") return c.includes("Rebajas");
+        if (mezclaFilter === "Promo") return c.includes("Promo");
+        return true;
+      });
+    }
+    return result;
+  }, [data, search, semanaFilter, mezclaFilter]);
 
   const totalUnidadesUniverso = useMemo(
     () => universe.reduce((s, r) => s + (r.und_total ?? 0), 0),
@@ -264,6 +313,26 @@ export default function DesempenoProductosPage() {
                   <SelectItem value="all">Todas las categorías</SelectItem>
                   {categories.map(c => (
                     <SelectItem key={c} value={c}>{c}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select value={semanaFilter} onValueChange={setSemanaFilter}>
+                <SelectTrigger className="w-full sm:w-[210px] h-10">
+                  <SelectValue placeholder="Semana de vida" />
+                </SelectTrigger>
+                <SelectContent>
+                  {SEMANA_VIDA_OPTIONS.map(o => (
+                    <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select value={mezclaFilter} onValueChange={setMezclaFilter}>
+                <SelectTrigger className="w-full sm:w-[200px] h-10">
+                  <SelectValue placeholder="Mezcla de precios" />
+                </SelectTrigger>
+                <SelectContent>
+                  {MEZCLA_OPTIONS.map(o => (
+                    <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
