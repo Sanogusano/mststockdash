@@ -131,6 +131,7 @@ const App = () => (
           <Route path="/configuracion/roles" element={<Guard module="config.roles" action="view"><ConfiguracionRolesPage /></Guard>} />
           <Route path="/configuracion/notificaciones" element={<ProtectedRoute><ConfiguracionNotificacionesPage /></ProtectedRoute>} />
           <Route path="/configuracion/sync-inventario" element={<Guard module="inventario_netsuite" action="view"><ConfiguracionSyncInventarioPage /></Guard>} />
+          <Route path="/configuracion/fuente-ventas" element={<Guard module="config.fuente_ventas" action="view"><ConfiguracionFuenteVentasPage /></Guard>} />
 
           <Route path="*" element={<NotFound />} />
         </Routes>
