@@ -196,14 +196,35 @@ export default function DesempenoProductosPage() {
     return [...new Set(data.map(r => r.categoria).filter(Boolean))].sort();
   }, [data]);
 
-  // Universo filtrado (colección/línea/búsqueda), antes del corte de Top N
+  // Universo filtrado (colección/línea/búsqueda/filtros rápidos), antes del corte de Top N
   const universe = useMemo(() => {
-    if (!search.trim()) return data;
-    const q = search.toLowerCase();
-    return data.filter(r =>
-      r.producto?.toLowerCase().includes(q) || r.categoria?.toLowerCase().includes(q)
-    );
-  }, [data, search]);
+    let result = data;
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      result = result.filter(r =>
+        r.producto?.toLowerCase().includes(q) || r.categoria?.toLowerCase().includes(q)
+      );
+    }
+    if (semanaFilter !== "all") {
+      result = result.filter(r => {
+        const s = r.semanas_vida ?? 0;
+        if (semanaFilter === "nuevos") return s >= 1 && s <= 8;
+        if (semanaFilter === "en-ventana") return s >= 9 && s <= 17;
+        if (semanaFilter === "fuera-ventana") return s > 17;
+        return true;
+      });
+    }
+    if (mezclaFilter !== "all") {
+      result = result.filter(r => {
+        const c = cleanClasificacion(r.clasificacion);
+        if (mezclaFilter === "Full Price") return c.includes("Full Price");
+        if (mezclaFilter === "Rebajas") return c.includes("Rebajas");
+        if (mezclaFilter === "Promo") return c.includes("Promo");
+        return true;
+      });
+    }
+    return result;
+  }, [data, search, semanaFilter, mezclaFilter]);
 
   const totalUnidadesUniverso = useMemo(
     () => universe.reduce((s, r) => s + (r.und_total ?? 0), 0),
