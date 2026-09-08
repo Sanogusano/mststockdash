@@ -586,9 +586,17 @@ function NivelColecciones({
                   {num(r.dias_promedio)} días desde la llegada · {num(r.en_ventana)} de {num(r.productos)} en ventana
                 </p>
               </div>
-              <div className="text-right">
-                <p className="text-2xl font-semibold tabular-nums text-foreground">{pct(r.pct_evacuado)}</p>
-                <p className="text-[10px] uppercase tracking-wide text-muted-foreground">evacuado</p>
+              <div className="text-right flex gap-4">
+                <div>
+                  <p className="text-2xl font-semibold tabular-nums text-foreground">{pct(r.pct_evacuado)}</p>
+                  <p className="text-[10px] uppercase tracking-wide text-muted-foreground">evacuado</p>
+                </div>
+                <div className="text-right">
+                  <p className={cn("text-2xl font-semibold tabular-nums", pctEnVentaColor(r.pct_en_ventana))}>
+                    {pct(r.pct_en_ventana)}
+                  </p>
+                  <p className="text-[10px] uppercase tracking-wide text-muted-foreground">en ventana</p>
+                </div>
               </div>
             </div>
 
@@ -604,7 +612,22 @@ function NivelColecciones({
               </div>
               <div className="rounded-md bg-muted/50 py-1.5">
                 <p className="text-xs font-semibold tabular-nums text-foreground">{num(r.stock_actual)}</p>
-                <p className="text-[10px] text-muted-foreground leading-tight">Stock actual<br/>en tiendas</p>
+                <p className="text-[10px] text-muted-foreground leading-tight">Stock<br/>en tiendas</p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-3 gap-2 text-center">
+              <div className="rounded-md bg-muted/30 py-1.5">
+                <p className="text-xs font-semibold tabular-nums text-foreground">{num(r.uds_fuera_ventana)}</p>
+                <p className="text-[10px] text-muted-foreground leading-tight">Fuera de<br/>ventana</p>
+              </div>
+              <div className="rounded-md bg-muted/30 py-1.5">
+                <p className="text-xs font-semibold tabular-nums text-foreground">{num(r.uds_otros_canales)}</p>
+                <p className="text-[10px] text-muted-foreground leading-tight">Otros<br/>canales</p>
+              </div>
+              <div className="rounded-md bg-muted/30 py-1.5">
+                <p className="text-xs font-semibold tabular-nums text-foreground">{num(r.stock_outlet)}</p>
+                <p className="text-[10px] text-muted-foreground leading-tight">Stock<br/>outlet</p>
               </div>
             </div>
 
@@ -624,7 +647,8 @@ function NivelColecciones({
               <Badge label={r.diagnostico_dominante} />
             </div>
             <p className="text-[10px] text-muted-foreground/80 leading-snug pt-1 border-t border-border/40">
-              No incluye venta posterior a la ventana ni de outlet y online.
+              {pct(r.pct_en_ventana)} de su venta total ocurrió dentro de los 120 días.
+              Fuera de ventana: {num(r.uds_fuera_ventana)} · Otros canales: {num(r.uds_otros_canales)} · Stock outlet: {num(r.stock_outlet)}.
             </p>
           </CardContent>
         </Card>
