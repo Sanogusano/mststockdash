@@ -475,7 +475,7 @@ export default function BajaRotacionPage() {
               <span className="flex items-center gap-1"><Store className="h-3.5 w-3.5" /> Tiendas {fmtInt(stockTotals.linea)}</span>
               <span className="flex items-center gap-1"><Tag className="h-3.5 w-3.5" /> Outlet {fmtInt(stockTotals.outlet)}</span>
               <span className="flex items-center gap-1"><Globe className="h-3.5 w-3.5" /> Digital {fmtInt(stockTotals.digital)}</span>
-              <span className="flex items-center gap-1"><Warehouse className="h-3.5 w-3.5" /> Bodega {fmtInt(stockTotals.bodega)}</span>
+              <span className="flex items-center gap-1"><Pause className="h-3.5 w-3.5" /> Bodega {fmtInt(stockTotals.bodega)}</span>
             </p>
 
             {/* Tarjetas de nivel — filtro rápido */}
