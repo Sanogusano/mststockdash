@@ -373,11 +373,10 @@ export default function BajaRotacionPage() {
       "Stock Outlet": Number(r.stock_outlet) || 0,
       "Stock Digital/CEDI": Number(r.stock_digital) || 0,
       "Stock Bodega": Number(r.stock_bodega) || 0,
-      "Ubicación dominante": ubicacionDominante(r)?.label ?? "—",
       "Inventario inicial": r.inventario_inicial,
       "Sell-through (%)": Number(r.sell_through).toFixed(2),
       "Velocidad semanal": fmtNum2(r.velocidad_semanal),
-      "ADU (uds/día)": fmtAdu(r.adu),
+
 
       "Precio actual": Number(r.precio_actual) || 0,
       "Precio original": Number(r.precio_original) || 0,
