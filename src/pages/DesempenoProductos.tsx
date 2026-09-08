@@ -338,13 +338,16 @@ export default function DesempenoProductosPage() {
                         >
                           <TableCell className="text-center text-sm font-bold text-muted-foreground">{i + 1}</TableCell>
                           <TableCell>
-                            <div className="flex items-center gap-3">
-                              {row.foto ? (
-                                <ProductImageThumb src={row.foto} alt={row.producto} sku={row.sku} title={row.producto} className="w-12 h-12 rounded-lg object-cover bg-muted shrink-0" onError={e => { e.currentTarget.style.display = "none"; }} />
-                              ) : (
-                                <div className="w-12 h-12 rounded-lg bg-muted/50 flex items-center justify-center text-lg shrink-0">📦</div>
-                              )}
-                              <span className="text-sm font-medium text-foreground line-clamp-2 max-w-[200px]">{row.producto}</span>
+                            <div className="flex items-start gap-3">
+                              <div className="flex flex-col shrink-0">
+                                {row.foto ? (
+                                  <ProductImageThumb src={row.foto} alt={row.producto} sku={row.sku} title={row.producto} className="w-12 h-12 rounded-lg object-cover bg-muted" onError={e => { e.currentTarget.style.display = "none"; }} />
+                                ) : (
+                                  <div className="w-12 h-12 rounded-lg bg-muted/50 flex items-center justify-center text-lg">📦</div>
+                                )}
+                                <LifetimeMiniCard semanas={row.semanas_vida} primeraVenta={row.primera_venta} />
+                              </div>
+                              <span className="text-sm font-medium text-foreground line-clamp-2 max-w-[200px] pt-1">{row.producto}</span>
                             </div>
                           </TableCell>
                           <TableCell className="text-xs text-muted-foreground">{row.categoria}</TableCell>
