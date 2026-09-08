@@ -4722,12 +4722,18 @@ export type Database = {
           n_mal_repartido: number
           n_sin_muestra: number
           n_sobreproducido: number
+          pct_en_ventana: number
           pct_evacuado: number
           productos: number
           stock_actual: number
+          stock_bodega: number
+          stock_outlet: number
           tiendas_alcanzadas: number
+          uds_fuera_ventana: number
+          uds_otros_canales: number
           uds_recibidas: number
           uds_vendidas: number
+          uds_venta_total: number
         }[]
       }
       reporte_cobertura_tiendas: {
