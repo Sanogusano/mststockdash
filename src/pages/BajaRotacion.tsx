@@ -210,6 +210,18 @@ export default function BajaRotacionPage() {
     });
   };
 
+  // Sincronizar filtros con la URL para que sobrevivan a la navegación y se puedan compartir.
+  useEffect(() => {
+    const next = new URLSearchParams();
+    if (nivel !== "todos") next.set("nivel", nivel);
+    if (categoria !== "todas") next.set("categoria", categoria);
+    if (coleccion !== "todas") next.set("coleccion", coleccion);
+    if (semanasMin !== "4") next.set("semanas", semanasMin);
+    if (!incluirRebajas) next.set("rebajas", "false");
+    if (incluirNoDistribuidos) next.set("nodistribuidos", "true");
+    setSearchParams(next, { replace: true });
+  }, [nivel, categoria, coleccion, semanasMin, incluirRebajas, incluirNoDistribuidos, setSearchParams]);
+
   const { data: rows = [], isLoading, error, isFetching } = useQuery<Row[]>({
     queryKey: ["baja-rotacion", semanasMin, incluirRebajas, incluirNoDistribuidos],
     staleTime: 5 * 60 * 1000,
