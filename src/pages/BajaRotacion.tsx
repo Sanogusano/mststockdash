@@ -222,17 +222,18 @@ function parseTallas(t: Row["tallas_disponibles"]): TallaParsed[] {
 }
 
 
+const PAGE_SIZE = 100;
+const ST_MAX = 30;
+
 export default function BajaRotacionPage() {
   const [nivel, setNivel] = useState<string>("todos");
   const [categoria, setCategoria] = useState<string>("todas");
+  const [coleccion, setColeccion] = useState<string>("todas");
   const [semanasMin, setSemanasMin] = useState<string>("4");
-  const [stMax, setStMax] = useState<number>(30);
-  const [locationId, setLocationId] = useState<string>("todas");
   const [incluirRebajas, setIncluirRebajas] = useState<boolean>(true);
   const [incluirNoDistribuidos, setIncluirNoDistribuidos] = useState<boolean>(false);
-  const [tipoTienda, setTipoTienda] = useState<string>("todas");
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
-
+  const [page, setPage] = useState<number>(1);
 
   const toggleExpand = (id: string) => {
     setExpanded((prev) => {
@@ -243,26 +244,13 @@ export default function BajaRotacionPage() {
     });
   };
 
-  const { data: locations = [] } = useQuery<Location[]>({
-    queryKey: ["locations-baja-rot"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("locations")
-        .select("location_id,name")
-        .eq("is_active", true)
-        .order("name");
-      if (error) throw error;
-      return (data ?? []) as Location[];
-    },
-  });
-
   const { data: rows = [], isLoading, error, isFetching } = useQuery<Row[]>({
-    queryKey: ["baja-rotacion", semanasMin, stMax, locationId, incluirRebajas, incluirNoDistribuidos],
+    queryKey: ["baja-rotacion", semanasMin, incluirRebajas, incluirNoDistribuidos],
     queryFn: async () => {
       const { data, error } = await supabase.rpc("get_baja_rotacion", {
         p_semanas_minimas: Number(semanasMin),
-        p_sell_through_max: stMax,
-        p_location_id: locationId === "todas" ? null : locationId,
+        p_sell_through_max: ST_MAX,
+        p_location_id: null,
         p_incluir_rebajas: incluirRebajas,
         p_incluir_no_distribuidos: incluirNoDistribuidos,
       } as any);
@@ -281,9 +269,39 @@ export default function BajaRotacionPage() {
     },
   });
 
-  const productIds = useMemo(() => rows.map((r) => r.product_id).filter(Boolean), [rows]);
+  const categorias = useMemo(() => {
+    const s = new Set<string>();
+    rows.forEach((r) => r.category && s.add(r.category));
+    return Array.from(s).sort();
+  }, [rows]);
+
+  const colecciones = useMemo(() => {
+    const s = new Set<string>();
+    rows.forEach((r) => r.collection_season && s.add(r.collection_season));
+    return Array.from(s).sort();
+  }, [rows]);
+
+  const filtered = useMemo(() => {
+    return rows
+      .filter((r) => {
+        if (nivel !== "todos" && r.nivel !== nivel) return false;
+        if (categoria !== "todas" && r.category !== categoria) return false;
+        if (coleccion !== "todas" && (r.collection_season ?? "") !== coleccion) return false;
+        return true;
+      })
+      .sort((a, b) => (Number(b.stock_actual) || 0) - (Number(a.stock_actual) || 0));
+  }, [rows, nivel, categoria, coleccion]);
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const currentPage = Math.min(page, totalPages);
+  const pageRows = useMemo(
+    () => filtered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE),
+    [filtered, currentPage],
+  );
+
+  const productIds = useMemo(() => pageRows.map((r) => r.product_id).filter(Boolean), [pageRows]);
   const { data: imagesMap = {} } = useQuery<Record<string, string>>({
-    queryKey: ["baja-rot-images", productIds.length, productIds.slice(0, 5).join(",")],
+    queryKey: ["baja-rot-images", productIds.join(",")],
     enabled: productIds.length > 0,
     queryFn: async () => {
       const map: Record<string, string> = {};
@@ -302,22 +320,6 @@ export default function BajaRotacionPage() {
       return map;
     },
   });
-
-  const categorias = useMemo(() => {
-    const s = new Set<string>();
-    rows.forEach((r) => r.category && s.add(r.category));
-    return Array.from(s).sort();
-  }, [rows]);
-
-  const filtered = useMemo(() => {
-    return rows.filter((r) => {
-      if (nivel !== "todos" && r.nivel !== nivel) return false;
-      if (categoria !== "todas" && r.category !== categoria) return false;
-      if (tipoTienda === "linea" && !(Number(r.stock_linea) > 0)) return false;
-      if (tipoTienda === "outlet" && !(Number(r.stock_outlet) > 0)) return false;
-      return true;
-    });
-  }, [rows, nivel, categoria, tipoTienda]);
 
   const counts = useMemo(() => {
     const c = {
@@ -349,6 +351,7 @@ export default function BajaRotacionPage() {
       { linea: 0, outlet: 0, digital: 0, bodega: 0 },
     );
   }, [filtered]);
+
 
   const handleExport = () => {
     const data = filtered.map((r) => ({
