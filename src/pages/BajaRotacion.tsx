@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Slider } from "@/components/ui/slider";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Download, FileText, AlertTriangle, AlertCircle, CircleOff, ChevronDown, ChevronRight, Store, Tag, Globe, Warehouse } from "lucide-react";
+import { Download, FileText, AlertTriangle, AlertCircle, CircleOff, ChevronDown, ChevronRight, Store, Tag, Globe, Warehouse, PackageX } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { exportToXLS } from "@/lib/xls-export";
 import jsPDF from "jspdf";
@@ -23,9 +23,11 @@ type TallaInfo = {
   stock_linea?: number;
   stock_outlet?: number;
   stock_digital?: number;
+  stock_bodega?: number;
   linea?: number;
   outlet?: number;
   digital?: number;
+  bodega?: number;
 } & Record<string, unknown>;
 
 type Row = {
@@ -38,9 +40,11 @@ type Row = {
   precio_actual: number;
   precio_original: number;
   descuento_actual: number;
-  primera_venta: string;
-  dias_en_tienda: number;
-  semanas_en_tienda: number;
+  primera_venta: string | null;
+  fecha_llegada_tienda: string | null;
+  fue_distribuido: boolean;
+  dias_en_tienda: number | null;
+  semanas_en_tienda: number | null;
   tallas_disponibles: TallaInfo[] | null;
   tallas_con_stock: number;
   tallas_totales: number;
@@ -53,9 +57,10 @@ type Row = {
   stock_bodega?: number;
   inventario_inicial: number;
   sell_through: number;
-  velocidad_semanal: number;
-  adu?: number;
-  nivel: "atencion" | "critico" | "liquidar" | string;
+  velocidad_semanal: number | null;
+  adu?: number | null;
+  ubicacion_dominante?: string | null;
+  nivel: "atencion" | "critico" | "liquidar" | "sin distribuir" | string;
   descuento_sugerido: number;
   accion: string;
 };
@@ -66,7 +71,9 @@ const NIVEL_LABELS: Record<string, { label: string; emoji: string; className: st
   atencion: { label: "Atención", emoji: "🟡", className: "bg-yellow-100 text-yellow-800 border-yellow-300" },
   critico: { label: "Crítico", emoji: "🔴", className: "bg-red-100 text-red-800 border-red-300" },
   liquidar: { label: "Liquidar", emoji: "⚫", className: "bg-neutral-200 text-neutral-800 border-neutral-400" },
+  "sin distribuir": { label: "Sin distribuir", emoji: "📦", className: "bg-violet-100 text-violet-800 border-violet-300" },
 };
+
 
 function pct(n: number) {
   return `${(Number(n) || 0).toFixed(1)}%`;
@@ -119,26 +126,44 @@ async function getLogoBase64(): Promise<string> {
 
 type Ubicacion = { label: string; className: string };
 
+const UBIC_CLS: Record<string, string> = {
+  "EN BODEGA": "bg-violet-100 text-violet-800 border-violet-300",
+  "EN OUTLET": "bg-orange-100 text-orange-800 border-orange-300",
+  "EN TIENDAS": "bg-sky-100 text-sky-800 border-sky-300",
+};
+
 /** Dónde está el grueso del inventario: define la acción a tomar. */
 function ubicacionDominante(r: Row): Ubicacion | null {
+  const desdeRpc = (r.ubicacion_dominante ?? "").trim().toUpperCase();
+  if (desdeRpc) {
+    return { label: desdeRpc, className: UBIC_CLS[desdeRpc] ?? "bg-muted text-muted-foreground border-border" };
+  }
   const linea = Number(r.stock_linea) || 0;
   const outlet = Number(r.stock_outlet) || 0;
   const digital = Number(r.stock_digital) || 0;
   const bodega = Number(r.stock_bodega) || 0;
   const total = linea + outlet + digital + bodega;
   if (total <= 0) return null;
-  if (bodega / total >= 0.8) {
-    return { label: "EN BODEGA", className: "bg-violet-100 text-violet-800 border-violet-300" };
-  }
-  if (outlet > linea) {
-    return { label: "EN OUTLET", className: "bg-orange-100 text-orange-800 border-orange-300" };
-  }
-  return { label: "EN TIENDAS", className: "bg-sky-100 text-sky-800 border-sky-300" };
+  if (bodega / total >= 0.8) return { label: "EN BODEGA", className: UBIC_CLS["EN BODEGA"] };
+  if (outlet > linea) return { label: "EN OUTLET", className: UBIC_CLS["EN OUTLET"] };
+  return { label: "EN TIENDAS", className: UBIC_CLS["EN TIENDAS"] };
 }
 
-function fmtAdu(n?: number) {
+function fmtAdu(n?: number | null) {
+  if (n == null) return "—";
   return (Number(n) || 0).toLocaleString("es-CO", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
+
+function fmtFecha(f?: string | null) {
+  if (!f) return null;
+  return new Date(f).toLocaleDateString("es-CO", { day: "2-digit", month: "short", year: "numeric" });
+}
+
+function fmtNum2(n?: number | null) {
+  if (n == null) return "—";
+  return (Number(n) || 0).toFixed(2);
+}
+
 
 function stBadge(st: number) {
   const v = Number(st) || 0;
@@ -170,6 +195,7 @@ type TallaParsed = {
   linea: number;
   outlet: number;
   digital: number;
+  bodega: number;
 };
 
 function parseTallas(t: Row["tallas_disponibles"]): TallaParsed[] {
@@ -180,18 +206,21 @@ function parseTallas(t: Row["tallas_disponibles"]): TallaParsed[] {
       const linea = Number(x?.stock_linea ?? x?.linea ?? x?.tiendas ?? 0) || 0;
       const outlet = Number(x?.stock_outlet ?? x?.outlet ?? x?.outlets ?? 0) || 0;
       const digital = Number(x?.stock_digital ?? x?.digital ?? x?.cedi ?? x?.ecommerce ?? 0) || 0;
+      const bodega = Number(x?.stock_bodega ?? x?.bodega ?? 0) || 0;
       const stockRaw = Number(x?.stock ?? x?.available ?? x?.qty ?? 0) || 0;
-      const stock = stockRaw || linea + outlet + digital;
+      const stock = stockRaw || linea + outlet + digital + bodega;
       return {
         talla: String(x?.talla ?? x?.size ?? x?.name ?? ""),
         stock,
         linea,
         outlet,
         digital,
+        bodega,
       };
     })
     .filter((x) => x.talla);
 }
+
 
 export default function BajaRotacionPage() {
   const [nivel, setNivel] = useState<string>("todos");
@@ -200,8 +229,10 @@ export default function BajaRotacionPage() {
   const [stMax, setStMax] = useState<number>(30);
   const [locationId, setLocationId] = useState<string>("todas");
   const [incluirRebajas, setIncluirRebajas] = useState<boolean>(true);
+  const [incluirNoDistribuidos, setIncluirNoDistribuidos] = useState<boolean>(false);
   const [tipoTienda, setTipoTienda] = useState<string>("todas");
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
+
 
   const toggleExpand = (id: string) => {
     setExpanded((prev) => {
@@ -226,13 +257,14 @@ export default function BajaRotacionPage() {
   });
 
   const { data: rows = [], isLoading, error, isFetching } = useQuery<Row[]>({
-    queryKey: ["baja-rotacion", semanasMin, stMax, locationId, incluirRebajas],
+    queryKey: ["baja-rotacion", semanasMin, stMax, locationId, incluirRebajas, incluirNoDistribuidos],
     queryFn: async () => {
       const { data, error } = await supabase.rpc("get_baja_rotacion", {
         p_semanas_minimas: Number(semanasMin),
         p_sell_through_max: stMax,
         p_location_id: locationId === "todas" ? null : locationId,
         p_incluir_rebajas: incluirRebajas,
+        p_incluir_no_distribuidos: incluirNoDistribuidos,
       } as any);
       if (error) throw error;
       // El RPC devuelve stock_tiendas_linea / stock_outlets; normalizamos al modelo del UI.
@@ -242,13 +274,10 @@ export default function BajaRotacionPage() {
         stock_outlet: Number(r.stock_outlet ?? r.stock_outlets ?? 0) || 0,
         stock_digital: Number(r.stock_digital ?? 0) || 0,
         stock_bodega: Number(r.stock_bodega ?? r.stock_bodegas ?? 0) || 0,
-        adu:
-          r.adu != null
-            ? Number(r.adu) || 0
-            : Number(r.dias_en_tienda) > 0
-              ? (Number(r.unidades_vendidas) || 0) / Number(r.dias_en_tienda)
-              : 0,
+        fue_distribuido: r.fue_distribuido !== false,
+        adu: r.adu != null ? Number(r.adu) || 0 : null,
       })) as Row[];
+
     },
   });
 
@@ -295,6 +324,7 @@ export default function BajaRotacionPage() {
       atencion: { full: 0, rebaja: 0 },
       critico: { full: 0, rebaja: 0 },
       liquidar: { full: 0, rebaja: 0 },
+      "sin distribuir": { full: 0, rebaja: 0 },
     };
     rows.forEach((r) => {
       if (r.nivel in c) {
@@ -305,6 +335,7 @@ export default function BajaRotacionPage() {
     });
     return c;
   }, [rows]);
+
 
   const stockTotals = useMemo(() => {
     return filtered.reduce(
@@ -329,8 +360,10 @@ export default function BajaRotacionPage() {
       "Tallas con stock": r.tallas_con_stock,
       "Tallas totales": r.tallas_totales,
       "Cobertura curva (%)": Number(r.cobertura_curva).toFixed(1),
-      "Semanas en tienda": Number(r.semanas_en_tienda).toFixed(1),
-      "Días en tienda": r.dias_en_tienda,
+      "Semanas en tienda": r.semanas_en_tienda == null ? "—" : Number(r.semanas_en_tienda).toFixed(1),
+      "Días en tienda": r.dias_en_tienda ?? "—",
+      "Fecha llegada a tienda": fmtFecha(r.fecha_llegada_tienda) ?? "—",
+      Distribuido: r.fue_distribuido ? "Sí" : "No",
       "Unidades vendidas": r.unidades_vendidas,
       "Stock actual": r.stock_actual,
       "Stock Línea": Number(r.stock_linea) || 0,
@@ -340,8 +373,9 @@ export default function BajaRotacionPage() {
       "Ubicación dominante": ubicacionDominante(r)?.label ?? "—",
       "Inventario inicial": r.inventario_inicial,
       "Sell-through (%)": Number(r.sell_through).toFixed(2),
-      "Velocidad semanal": Number(r.velocidad_semanal).toFixed(2),
+      "Velocidad semanal": fmtNum2(r.velocidad_semanal),
       "ADU (uds/día)": fmtAdu(r.adu),
+
       "Precio actual": Number(r.precio_actual) || 0,
       "Precio original": Number(r.precio_original) || 0,
       "Es rebaja": r.es_rebaja ? "Sí" : "No",
@@ -388,7 +422,7 @@ export default function BajaRotacionPage() {
         r.category ?? "-",
         r.collection_season ?? "-",
         `${r.tallas_con_stock}/${r.tallas_totales}`,
-        String(r.dias_en_tienda ?? "-"),
+        r.fue_distribuido ? String(r.dias_en_tienda ?? "-") : "Sin distribuir",
         fmtInt(r.unidades_vendidas),
         fmtInt(r.stock_actual),
         fmtInt(r.stock_linea ?? 0),
@@ -397,7 +431,8 @@ export default function BajaRotacionPage() {
         fmtInt(r.stock_bodega ?? 0),
         ubicacionDominante(r)?.label ?? "-",
         pct(r.sell_through),
-        Number(r.velocidad_semanal).toFixed(2),
+        fmtNum2(r.velocidad_semanal),
+
         fmtAdu(r.adu),
         fmtCOP(r.precio_actual),
         `-${pct(r.descuento_sugerido)}`,
@@ -476,7 +511,8 @@ export default function BajaRotacionPage() {
 
           <div className="flex-1 px-4 sm:px-6 py-4 sm:py-6 space-y-6">
             {/* KPIs - Fila 1: Niveles */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className={`grid grid-cols-1 gap-4 ${incluirNoDistribuidos ? "sm:grid-cols-2 lg:grid-cols-4" : "sm:grid-cols-3"}`}>
+
               <Card>
                 <CardHeader className="pb-2">
                   <CardTitle className="text-sm font-medium flex items-center gap-2 text-yellow-700">
@@ -522,7 +558,25 @@ export default function BajaRotacionPage() {
                   </p>
                 </CardContent>
               </Card>
+              {incluirNoDistribuidos && (
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm font-medium flex items-center gap-2 text-violet-700">
+                      <PackageX className="h-4 w-4" /> 📦 Sin distribuir
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-3xl font-semibold">
+                      {counts["sin distribuir"].full + counts["sin distribuir"].rebaja}
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      nunca salieron a piso · no es baja rotación
+                    </p>
+                  </CardContent>
+                </Card>
+              )}
             </div>
+
 
             {/* KPIs - Fila 2: Stock por canal */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -574,7 +628,7 @@ export default function BajaRotacionPage() {
 
             {/* Filtros */}
             <Card>
-              <CardContent className="pt-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-7 gap-4">
+              <CardContent className="pt-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-8 gap-4">
                 <div className="space-y-1.5">
                   <label className="text-xs font-medium text-muted-foreground">Nivel</label>
                   <Select value={nivel} onValueChange={setNivel}>
@@ -584,7 +638,9 @@ export default function BajaRotacionPage() {
                       <SelectItem value="atencion">🟡 Atención</SelectItem>
                       <SelectItem value="critico">🔴 Crítico</SelectItem>
                       <SelectItem value="liquidar">⚫ Liquidar</SelectItem>
+                      <SelectItem value="sin distribuir">📦 Sin distribuir</SelectItem>
                     </SelectContent>
+
                   </Select>
                 </div>
                 <div className="space-y-1.5">
@@ -655,7 +711,17 @@ export default function BajaRotacionPage() {
                     </span>
                   </div>
                 </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-muted-foreground">Incluir no distribuidos</label>
+                  <div className="flex items-center gap-2 h-9">
+                    <Switch checked={incluirNoDistribuidos} onCheckedChange={setIncluirNoDistribuidos} />
+                    <span className="text-xs text-muted-foreground">
+                      {incluirNoDistribuidos ? "Sí" : "No"}
+                    </span>
+                  </div>
+                </div>
               </CardContent>
+
             </Card>
 
             {/* Tabla */}
@@ -767,7 +833,9 @@ export default function BajaRotacionPage() {
                                   </span>
                                 </TableCell>
                                 <TableCell className="text-right text-xs">
-                                  {r.primera_venta ? (
+                                  {!r.fue_distribuido ? (
+                                    <span className="text-violet-700 font-medium">Sin distribuir</span>
+                                  ) : r.dias_en_tienda != null ? (
                                     <TooltipProvider>
                                       <Tooltip>
                                         <TooltipTrigger asChild>
@@ -776,12 +844,16 @@ export default function BajaRotacionPage() {
                                           </span>
                                         </TooltipTrigger>
                                         <TooltipContent>
-                                          Liberado el {new Date(r.primera_venta).toLocaleDateString("es-CO", { day: "2-digit", month: "short", year: "numeric" })}
+                                          {fmtFecha(r.fecha_llegada_tienda)
+                                            ? `Llegó a tienda el ${fmtFecha(r.fecha_llegada_tienda)}`
+                                            : "Contado desde el despacho a tienda"}
+                                          {fmtFecha(r.primera_venta) ? ` · primera venta ${fmtFecha(r.primera_venta)}` : ""}
                                         </TooltipContent>
                                       </Tooltip>
                                     </TooltipProvider>
                                   ) : (
-                                    <span className="text-muted-foreground">Sin liberar</span>
+                                    <span className="text-muted-foreground">—</span>
+
                                   )}
                                 </TableCell>
                                 <TableCell className="text-right text-xs">{r.unidades_vendidas}</TableCell>
@@ -833,7 +905,7 @@ export default function BajaRotacionPage() {
                                   </span>
                                 </TableCell>
                                 <TableCell className="text-right text-xs">
-                                  {Number(r.velocidad_semanal).toFixed(2)}
+                                  {fmtNum2(r.velocidad_semanal)}
                                 </TableCell>
                                 <TableCell className="text-right text-xs tabular-nums">
                                   <TooltipProvider>
@@ -921,6 +993,10 @@ export default function BajaRotacionPage() {
                                                   </span>
                                                   <span className="inline-flex items-center gap-0.5 px-1 py-0.5 rounded bg-background/60 border border-border">
                                                     🌐 {t.digital}
+                                                  </span>
+                                                  <span className="inline-flex items-center gap-0.5 px-1 py-0.5 rounded bg-background/60 border border-border">
+                                                    🏭 {t.bodega}
+
                                                   </span>
                                                 </div>
                                               </div>

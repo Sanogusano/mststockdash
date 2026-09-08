@@ -4211,6 +4211,7 @@ export type Database = {
       }
       get_baja_rotacion: {
         Args: {
+          p_incluir_no_distribuidos?: boolean
           p_incluir_rebajas?: boolean
           p_location_id?: string
           p_sell_through_max?: number
@@ -4218,6 +4219,7 @@ export type Database = {
         }
         Returns: {
           accion: string
+          adu: number
           category: string
           cobertura_curva: number
           collection_season: string
@@ -4226,6 +4228,8 @@ export type Database = {
           descuento_sugerido: number
           dias_en_tienda: number
           es_rebaja: boolean
+          fecha_llegada_tienda: string
+          fue_distribuido: boolean
           inventario_inicial: number
           nivel: string
           precio_actual: number
@@ -4235,6 +4239,7 @@ export type Database = {
           sell_through: number
           semanas_en_tienda: number
           stock_actual: number
+          stock_bodega: number
           stock_digital: number
           stock_outlets: number
           stock_tiendas_linea: number
@@ -4242,6 +4247,7 @@ export type Database = {
           tallas_disponibles: Json
           tallas_totales: number
           titulo: string
+          ubicacion_dominante: string
           unidades_vendidas: number
           velocidad_8sem: number
           velocidad_semanal: number
