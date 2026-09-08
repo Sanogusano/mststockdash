@@ -10,9 +10,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Slider } from "@/components/ui/slider";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Download, AlertTriangle, AlertCircle, CircleOff, ChevronDown, ChevronRight, Store, Tag, Globe } from "lucide-react";
+import { Download, FileText, AlertTriangle, AlertCircle, CircleOff, ChevronDown, ChevronRight, Store, Tag, Globe, Warehouse } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { exportToXLS } from "@/lib/xls-export";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
+import monasteryLogoWhite from "@/assets/monastery-logo-white.png";
 
 type TallaInfo = {
   talla?: string;
@@ -47,9 +50,11 @@ type Row = {
   stock_linea?: number;
   stock_outlet?: number;
   stock_digital?: number;
+  stock_bodega?: number;
   inventario_inicial: number;
   sell_through: number;
   velocidad_semanal: number;
+  adu?: number;
   nivel: "atencion" | "critico" | "liquidar" | string;
   descuento_sugerido: number;
   accion: string;
@@ -74,6 +79,29 @@ function fmtCOP(n: number) {
 
 function fmtInt(n: number) {
   return (Number(n) || 0).toLocaleString("es-CO");
+}
+
+type Ubicacion = { label: string; className: string };
+
+/** Dónde está el grueso del inventario: define la acción a tomar. */
+function ubicacionDominante(r: Row): Ubicacion | null {
+  const linea = Number(r.stock_linea) || 0;
+  const outlet = Number(r.stock_outlet) || 0;
+  const digital = Number(r.stock_digital) || 0;
+  const bodega = Number(r.stock_bodega) || 0;
+  const total = linea + outlet + digital + bodega;
+  if (total <= 0) return null;
+  if (bodega / total >= 0.8) {
+    return { label: "EN BODEGA", className: "bg-violet-100 text-violet-800 border-violet-300" };
+  }
+  if (outlet > linea) {
+    return { label: "EN OUTLET", className: "bg-orange-100 text-orange-800 border-orange-300" };
+  }
+  return { label: "EN TIENDAS", className: "bg-sky-100 text-sky-800 border-sky-300" };
+}
+
+function fmtAdu(n?: number) {
+  return (Number(n) || 0).toLocaleString("es-CO", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
 function stBadge(st: number) {
@@ -177,6 +205,13 @@ export default function BajaRotacionPage() {
         stock_linea: Number(r.stock_linea ?? r.stock_tiendas_linea ?? 0) || 0,
         stock_outlet: Number(r.stock_outlet ?? r.stock_outlets ?? 0) || 0,
         stock_digital: Number(r.stock_digital ?? 0) || 0,
+        stock_bodega: Number(r.stock_bodega ?? r.stock_bodegas ?? 0) || 0,
+        adu:
+          r.adu != null
+            ? Number(r.adu) || 0
+            : Number(r.dias_en_tienda) > 0
+              ? (Number(r.unidades_vendidas) || 0) / Number(r.dias_en_tienda)
+              : 0,
       })) as Row[];
     },
   });
@@ -241,9 +276,10 @@ export default function BajaRotacionPage() {
         acc.linea += Number(r.stock_linea) || 0;
         acc.outlet += Number(r.stock_outlet) || 0;
         acc.digital += Number(r.stock_digital) || 0;
+        acc.bodega += Number(r.stock_bodega) || 0;
         return acc;
       },
-      { linea: 0, outlet: 0, digital: 0 },
+      { linea: 0, outlet: 0, digital: 0, bodega: 0 },
     );
   }, [filtered]);
 
@@ -264,9 +300,12 @@ export default function BajaRotacionPage() {
       "Stock Línea": Number(r.stock_linea) || 0,
       "Stock Outlet": Number(r.stock_outlet) || 0,
       "Stock Digital/CEDI": Number(r.stock_digital) || 0,
+      "Stock Bodega": Number(r.stock_bodega) || 0,
+      "Ubicación dominante": ubicacionDominante(r)?.label ?? "—",
       "Inventario inicial": r.inventario_inicial,
       "Sell-through (%)": Number(r.sell_through).toFixed(2),
       "Velocidad semanal": Number(r.velocidad_semanal).toFixed(2),
+      "ADU (uds/día)": fmtAdu(r.adu),
       "Precio actual": Number(r.precio_actual) || 0,
       "Precio original": Number(r.precio_original) || 0,
       "Es rebaja": r.es_rebaja ? "Sí" : "No",
@@ -293,9 +332,14 @@ export default function BajaRotacionPage() {
                 </p>
               </div>
             </div>
-            <Button onClick={handleExport} disabled={!filtered.length} size="sm" className="gap-2">
-              <Download className="h-4 w-4" /> Exportar Excel
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button onClick={handleExport} disabled={!filtered.length} size="sm" variant="outline" className="gap-2">
+                <Download className="h-4 w-4" /> Excel
+              </Button>
+              <Button onClick={handleExportPDF} disabled={!filtered.length} size="sm" className="gap-2">
+                <FileText className="h-4 w-4" /> PDF
+              </Button>
+            </div>
           </header>
 
           <div className="flex-1 px-4 sm:px-6 py-4 sm:py-6 space-y-6">
@@ -349,7 +393,7 @@ export default function BajaRotacionPage() {
             </div>
 
             {/* KPIs - Fila 2: Stock por canal */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               <Card>
                 <CardHeader className="pb-2">
                   <CardTitle className="text-sm font-medium flex items-center gap-2 text-foreground">
@@ -381,6 +425,17 @@ export default function BajaRotacionPage() {
                 <CardContent>
                   <div className="text-3xl font-semibold">{fmtInt(stockTotals.digital)}</div>
                   <p className="text-xs text-muted-foreground mt-1">unidades en CEDI/Ecommerce</p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium flex items-center gap-2 text-foreground">
+                    <Warehouse className="h-4 w-4" /> 🏭 Bodega
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-3xl font-semibold">{fmtInt(stockTotals.bodega)}</div>
+                  <p className="text-xs text-muted-foreground mt-1">unidades que no salieron a piso</p>
                 </CardContent>
               </Card>
             </div>
@@ -507,8 +562,11 @@ export default function BajaRotacionPage() {
                           <TableHead className="text-right">🏪 Línea</TableHead>
                           <TableHead className="text-right">🏷️ Outlet</TableHead>
                           <TableHead className="text-right">🌐 Digital</TableHead>
+                          <TableHead className="text-right">🏭 Bodega</TableHead>
+                          <TableHead>Ubicación</TableHead>
                           <TableHead className="text-right">Sell-through</TableHead>
                           <TableHead className="text-right">Vel/sem</TableHead>
+                          <TableHead className="text-right">ADU</TableHead>
                           <TableHead className="text-right">Precio</TableHead>
                           <TableHead className="text-right">Dcto. actual</TableHead>
                           <TableHead className="text-right">Dcto. sugerido</TableHead>
@@ -523,6 +581,7 @@ export default function BajaRotacionPage() {
                           const hex = toHexColor(r.color);
                           const tallas = parseTallas(r.tallas_disponibles);
                           const isOpen = expanded.has(r.product_id);
+                          const ubic = ubicacionDominante(r);
                           return (
                             <Fragment key={r.product_id}>
                               <TableRow className="cursor-pointer" onClick={() => toggleExpand(r.product_id)}>
@@ -616,6 +675,22 @@ export default function BajaRotacionPage() {
                                     <span className="text-muted-foreground">—</span>
                                   )}
                                 </TableCell>
+                                <TableCell className="text-right text-xs">
+                                  {Number(r.stock_bodega) > 0 ? (
+                                    fmtInt(r.stock_bodega ?? 0)
+                                  ) : (
+                                    <span className="text-muted-foreground">—</span>
+                                  )}
+                                </TableCell>
+                                <TableCell>
+                                  {ubic ? (
+                                    <span className={`inline-flex px-2 py-0.5 rounded-full text-[10px] font-semibold border ${ubic.className}`}>
+                                      {ubic.label}
+                                    </span>
+                                  ) : (
+                                    <span className="text-muted-foreground text-xs">—</span>
+                                  )}
+                                </TableCell>
                                 <TableCell className="text-right">
                                   <span
                                     className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium border ${stBadge(
@@ -627,6 +702,18 @@ export default function BajaRotacionPage() {
                                 </TableCell>
                                 <TableCell className="text-right text-xs">
                                   {Number(r.velocidad_semanal).toFixed(2)}
+                                </TableCell>
+                                <TableCell className="text-right text-xs tabular-nums">
+                                  <TooltipProvider>
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <span className="cursor-help border-b border-dotted border-muted-foreground/40">
+                                          {fmtAdu(r.adu)}
+                                        </span>
+                                      </TooltipTrigger>
+                                      <TooltipContent>Unidades vendidas por día desde la primera venta</TooltipContent>
+                                    </Tooltip>
+                                  </TooltipProvider>
                                 </TableCell>
                                 <TableCell className="text-right text-xs">
                                   <div className="font-medium">{fmtCOP(r.precio_actual)}</div>
@@ -667,7 +754,7 @@ export default function BajaRotacionPage() {
                               </TableRow>
                               {isOpen && (
                                 <TableRow className="bg-muted/30 hover:bg-muted/30">
-                                  <TableCell colSpan={20} className="py-3">
+                                  <TableCell colSpan={23} className="py-3">
                                     <div className="space-y-2">
                                       <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
                                         Stock por talla y canal
