@@ -59,12 +59,47 @@ const SEMANA_VIDA_OPTIONS = [
   { value: "fuera-ventana", label: "Fuera de ventana · más de 17" },
 ];
 
-const MEZCLA_OPTIONS = [
-  { value: "all", label: "Todas" },
-  { value: "Full Price", label: "Ganador Full Price" },
-  { value: "Rebajas", label: "Ganador Rebajas" },
-  { value: "Promo", label: "Ganador Promo" },
+const MEZCLA_TOGGLE_OPTIONS = [
+  { value: "all", label: "Todas", color: null as string | null },
+  { value: "Full Price", label: "Full Price", color: "bg-emerald-500" },
+  { value: "Rebajas", label: "Rebajas", color: "bg-blue-500" },
+  { value: "Promo", label: "Promo", color: "bg-orange-500" },
 ];
+
+function MezclaToggle({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  return (
+    <div className="flex items-center gap-1 h-10">
+      {MEZCLA_TOGGLE_OPTIONS.map((opt) => {
+        const active = value === opt.value;
+        const activeClass =
+          opt.value === "all"
+            ? "bg-foreground text-background border-foreground"
+            : `${opt.color} text-white border-transparent`;
+        return (
+          <button
+            key={opt.value}
+            type="button"
+            onClick={() => onChange(opt.value)}
+            className={cn(
+              "h-full px-3 rounded-md border text-xs font-medium transition-colors flex items-center gap-1.5",
+              active ? activeClass : "bg-background text-muted-foreground border-border hover:bg-muted/50"
+            )}
+          >
+            {opt.value !== "all" && opt.color && (
+              <span
+                className={cn(
+                  "w-2 h-2 rounded-full",
+                  active ? "bg-white/80" : opt.color
+                )}
+              />
+            )}
+            {opt.label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
 
 function cleanClasificacion(c: string) {
   return (c || "").replace(/[🏆🏷️🧲]/g, "").trim();
