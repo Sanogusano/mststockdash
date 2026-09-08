@@ -166,7 +166,14 @@ export function ProductDetailDrawer({
             <SheetHeader className="p-6 pb-4 border-b border-border">
               <div className="flex items-start gap-4">
                 {product.foto ? (
-                  <img src={product.foto} alt={product.producto} className="h-20 w-20 rounded-xl object-cover border border-border shrink-0" />
+                  <ProductImageThumb
+                    src={product.foto}
+                    alt={product.producto}
+                    sku={product.sku}
+                    title={product.producto}
+                    className="h-20 w-20 rounded-xl object-cover border border-border shrink-0"
+                    loading="eager"
+                  />
                 ) : (
                   <div className="h-20 w-20 rounded-xl bg-muted/50 flex items-center justify-center text-muted-foreground shrink-0">N/A</div>
                 )}
