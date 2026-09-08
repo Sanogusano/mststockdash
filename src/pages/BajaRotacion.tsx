@@ -422,7 +422,7 @@ export default function BajaRotacionPage() {
         r.category ?? "-",
         r.collection_season ?? "-",
         `${r.tallas_con_stock}/${r.tallas_totales}`,
-        String(r.dias_en_tienda ?? "-"),
+        r.fue_distribuido ? String(r.dias_en_tienda ?? "-") : "Sin distribuir",
         fmtInt(r.unidades_vendidas),
         fmtInt(r.stock_actual),
         fmtInt(r.stock_linea ?? 0),
@@ -431,7 +431,8 @@ export default function BajaRotacionPage() {
         fmtInt(r.stock_bodega ?? 0),
         ubicacionDominante(r)?.label ?? "-",
         pct(r.sell_through),
-        Number(r.velocidad_semanal).toFixed(2),
+        fmtNum2(r.velocidad_semanal),
+
         fmtAdu(r.adu),
         fmtCOP(r.precio_actual),
         `-${pct(r.descuento_sugerido)}`,
