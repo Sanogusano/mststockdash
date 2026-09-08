@@ -558,7 +558,25 @@ export default function BajaRotacionPage() {
                   </p>
                 </CardContent>
               </Card>
+              {incluirNoDistribuidos && (
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm font-medium flex items-center gap-2 text-violet-700">
+                      <PackageX className="h-4 w-4" /> 📦 Sin distribuir
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-3xl font-semibold">
+                      {counts["sin distribuir"].full + counts["sin distribuir"].rebaja}
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      nunca salieron a piso · no es baja rotación
+                    </p>
+                  </CardContent>
+                </Card>
+              )}
             </div>
+
 
             {/* KPIs - Fila 2: Stock por canal */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
