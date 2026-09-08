@@ -9,7 +9,8 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Download, FileText, AlertTriangle, AlertCircle, CircleOff, ChevronDown, ChevronRight, Store, Tag, Globe, Warehouse } from "lucide-react";
+import { Download, FileText, AlertTriangle, AlertCircle, CircleOff, ChevronDown, ChevronRight, Store, Tag, Globe, Pause } from "lucide-react";
+import { CollectionBadge } from "@/components/dashboard/CollectionBadge";
 import { supabase } from "@/integrations/supabase/client";
 import { exportToXLS } from "@/lib/xls-export";
 import jsPDF from "jspdf";
@@ -150,13 +151,6 @@ function coberturaBadge(con: number, total: number) {
   return "bg-red-100 text-red-800 border-red-300";
 }
 
-function toHexColor(color?: string): string | null {
-  if (!color) return null;
-  const t = color.trim().replace(/^#/, "");
-  if (/^[0-9a-fA-F]{6}$/.test(t)) return `#${t.toUpperCase()}`;
-  if (/^[0-9a-fA-F]{3}$/.test(t)) return `#${t.toUpperCase()}`;
-  return null;
-}
 
 type TallaParsed = {
   talla: string;
@@ -215,6 +209,7 @@ export default function BajaRotacionPage() {
 
   const { data: rows = [], isLoading, error, isFetching } = useQuery<Row[]>({
     queryKey: ["baja-rotacion", semanasMin, incluirRebajas, incluirNoDistribuidos],
+    staleTime: 5 * 60 * 1000,
     queryFn: async () => {
       const { data, error } = await supabase.rpc("get_baja_rotacion", {
         p_semanas_minimas: Number(semanasMin),
@@ -480,7 +475,7 @@ export default function BajaRotacionPage() {
               <span className="flex items-center gap-1"><Store className="h-3.5 w-3.5" /> Tiendas {fmtInt(stockTotals.linea)}</span>
               <span className="flex items-center gap-1"><Tag className="h-3.5 w-3.5" /> Outlet {fmtInt(stockTotals.outlet)}</span>
               <span className="flex items-center gap-1"><Globe className="h-3.5 w-3.5" /> Digital {fmtInt(stockTotals.digital)}</span>
-              <span className="flex items-center gap-1"><Warehouse className="h-3.5 w-3.5" /> Bodega {fmtInt(stockTotals.bodega)}</span>
+              <span className="flex items-center gap-1"><Pause className="h-3.5 w-3.5" /> Bodega {fmtInt(stockTotals.bodega)}</span>
             </p>
 
             {/* Tarjetas de nivel — filtro rápido */}
@@ -616,8 +611,6 @@ export default function BajaRotacionPage() {
                           <TableHead className="w-16">Foto</TableHead>
                           <TableHead>Producto</TableHead>
                           <TableHead>Categoría</TableHead>
-                          <TableHead>Color</TableHead>
-                          <TableHead>Colección</TableHead>
                           <TableHead className="text-center">Tallas</TableHead>
                           <TableHead className="text-right">Días rot.</TableHead>
                           <TableHead className="text-right">U. vend.</TableHead>
@@ -635,7 +628,6 @@ export default function BajaRotacionPage() {
                         {pageRows.map((r) => {
                           const niv = NIVEL_LABELS[r.nivel];
                           const img = imagesMap[r.product_id];
-                          const hex = toHexColor(r.color);
                           const tallas = parseTallas(r.tallas_disponibles);
                           const isOpen = expanded.has(r.product_id);
 
@@ -664,23 +656,9 @@ export default function BajaRotacionPage() {
                                 <TableCell>
                                   <div className="font-medium text-sm">{r.titulo}</div>
                                   <div className="text-[10px] text-muted-foreground font-mono">{r.product_id}</div>
+                                  <CollectionBadge coleccion={r.collection_season} className="mt-1" />
                                 </TableCell>
                                 <TableCell className="text-xs">{r.category}</TableCell>
-                                <TableCell className="text-xs">
-                                  <div className="flex items-center gap-2">
-                                    {hex && (
-                                      <span
-                                        className="inline-block h-4 w-4 rounded-full border border-border shadow-sm"
-                                        style={{ backgroundColor: hex }}
-                                        title={hex}
-                                      />
-                                    )}
-                                    <span className="font-mono">{hex ?? r.color}</span>
-                                  </div>
-                                </TableCell>
-                                <TableCell className="text-xs text-muted-foreground">
-                                  {r.collection_season ?? "—"}
-                                </TableCell>
                                 <TableCell className="text-center">
                                   <span
                                     className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium border ${coberturaBadge(
@@ -722,7 +700,7 @@ export default function BajaRotacionPage() {
                                     <span className="flex items-center gap-0.5"><Store className="h-3 w-3" />{fmtInt(r.stock_linea ?? 0)}</span>
                                     <span className="flex items-center gap-0.5"><Tag className="h-3 w-3" />{fmtInt(r.stock_outlet ?? 0)}</span>
                                     <span className="flex items-center gap-0.5"><Globe className="h-3 w-3" />{fmtInt(r.stock_digital ?? 0)}</span>
-                                    <span className="flex items-center gap-0.5"><Warehouse className="h-3 w-3" />{fmtInt(r.stock_bodega ?? 0)}</span>
+                                    <span className="flex items-center gap-0.5"><Pause className="h-3 w-3" />{fmtInt(r.stock_bodega ?? 0)}</span>
                                   </div>
                                 </TableCell>
                                 <TableCell className="text-right">
@@ -777,7 +755,7 @@ export default function BajaRotacionPage() {
                               </TableRow>
                               {isOpen && (
                                 <TableRow className="bg-muted/30 hover:bg-muted/30">
-                                  <TableCell colSpan={17} className="py-3">
+                                  <TableCell colSpan={15} className="py-3">
                                     <div className="space-y-2">
                                       <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
                                         Stock por talla y canal
