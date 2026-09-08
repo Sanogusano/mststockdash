@@ -105,11 +105,11 @@ export async function exportDesempenoPDF(data: ProductRow[], days: number) {
   doc.text(`${formatDate()}  |  Ultimos ${days} dias  |  ${data.length} productos`, pageW - 14, 11, { align: "right" });
 
   // ── Table ──
-  // Columns: #, [Foto+Producto], Categoria, Coleccion, Tiendas, Outlets, Digital, Total, Mezcla Precios, Clasificacion, Stock VD
+  // Columns: #, [Foto+Producto], Categoria, Coleccion, Tiendas, Outlets, Digital, Total, Mezcla Precios, Clasificacion, Semanas, Stock VD
   const headers = [
     "#", "Producto", "Categoria", "Coleccion",
     "Tiendas", "Outlets", "Digital", "Total Uds",
-    "Mezcla de Precios", "Clasificacion", "Stock VD"
+    "Mezcla de Precios", "Clasificacion", "Semanas", "Stock VD"
   ];
 
   const body = data.map((r, i) => [
@@ -123,6 +123,7 @@ export async function exportDesempenoPDF(data: ProductRow[], days: number) {
     String(r.und_total ?? 0),
     `FP ${r.pct_full_price ?? 0}% | Reb ${r.pct_rebajas ?? 0}% | Promo ${r.pct_descuento ?? 0}%`,
     cleanText(r.clasificacion),
+    `${r.semanas_vida ?? 0} sem`,
     String(r.stock_venta_directa ?? 0),
   ]);
 
