@@ -757,6 +757,70 @@ export type Database = {
         }
         Relationships: []
       }
+      distribucion_config: {
+        Row: {
+          clave: string
+          descripcion: string
+          unidad: string | null
+          valor: number
+        }
+        Insert: {
+          clave: string
+          descripcion: string
+          unidad?: string | null
+          valor: number
+        }
+        Update: {
+          clave?: string
+          descripcion?: string
+          unidad?: string | null
+          valor?: number
+        }
+        Relationships: []
+      }
+      distribucion_excepciones: {
+        Row: {
+          es_flagship: boolean
+          factor_ajuste: number
+          location_id: string
+          nota: string | null
+        }
+        Insert: {
+          es_flagship?: boolean
+          factor_ajuste?: number
+          location_id: string
+          nota?: string | null
+        }
+        Update: {
+          es_flagship?: boolean
+          factor_ajuste?: number
+          location_id?: string
+          nota?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "distribucion_excepciones_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: true
+            referencedRelation: "locations"
+            referencedColumns: ["location_id"]
+          },
+          {
+            foreignKeyName: "distribucion_excepciones_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: true
+            referencedRelation: "v_locations_allocation_config"
+            referencedColumns: ["location_id"]
+          },
+          {
+            foreignKeyName: "distribucion_excepciones_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: true
+            referencedRelation: "v_ubicaciones_gestion"
+            referencedColumns: ["location_id"]
+          },
+        ]
+      }
       estrategias_aplicadas: {
         Row: {
           anio: number
@@ -1544,6 +1608,77 @@ export type Database = {
           sku?: string
         }
         Relationships: []
+      }
+      netsuite_traslados: {
+        Row: {
+          destino_location_id: string | null
+          destino_ns: number | null
+          origen_location_id: string | null
+          origen_ns: number | null
+          shipdate: string | null
+          sincronizado_en: string
+          status: string | null
+          trandate: string | null
+          tranid: string | null
+          transaction_id: string
+        }
+        Insert: {
+          destino_location_id?: string | null
+          destino_ns?: number | null
+          origen_location_id?: string | null
+          origen_ns?: number | null
+          shipdate?: string | null
+          sincronizado_en?: string
+          status?: string | null
+          trandate?: string | null
+          tranid?: string | null
+          transaction_id: string
+        }
+        Update: {
+          destino_location_id?: string | null
+          destino_ns?: number | null
+          origen_location_id?: string | null
+          origen_ns?: number | null
+          shipdate?: string | null
+          sincronizado_en?: string
+          status?: string | null
+          trandate?: string | null
+          tranid?: string | null
+          transaction_id?: string
+        }
+        Relationships: []
+      }
+      netsuite_traslados_lineas: {
+        Row: {
+          id: number
+          item_id: string
+          sku: string | null
+          transaction_id: string
+          unidades: number
+        }
+        Insert: {
+          id?: number
+          item_id: string
+          sku?: string | null
+          transaction_id: string
+          unidades: number
+        }
+        Update: {
+          id?: number
+          item_id?: string
+          sku?: string | null
+          transaction_id?: string
+          unidades?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "netsuite_traslados_lineas_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "netsuite_traslados"
+            referencedColumns: ["transaction_id"]
+          },
+        ]
       }
       order_items: {
         Row: {
@@ -3625,6 +3760,38 @@ export type Database = {
         Args: { p_location_id: string; p_netsuite_code: number }
         Returns: undefined
       }
+      asistente_distribucion_curvas: {
+        Args: {
+          p_dias_lanzamientos?: number
+          p_min_curvas?: number
+          p_product_ids: string[]
+          p_semanas?: number
+          p_uds_talla_principal?: number
+          p_umbral_talla?: number
+          p_unidades_totales?: number
+        }
+        Returns: {
+          cobertura_semanas: number
+          color: string
+          curvas: number
+          detalle_tallas: string
+          factor_color: number
+          linea: string
+          location_id: string
+          motivo_exclusion: string
+          pct_linea_en_tienda: number
+          pct_venta_full: number
+          product_id: string
+          producto: string
+          rdv_full: number
+          refs_lanzadas: number
+          tallas_excluidas: string
+          tienda: string
+          tipo_tienda: string
+          uds_por_curva: number
+          unidades_totales: number
+        }[]
+      }
       bulk_update_payment_tokens: { Args: { records: Json }; Returns: number }
       calcular_comisiones_periodo: {
         Args: { p_anio: number; p_mes: number; p_reglas?: Json; p_rol?: string }
@@ -5427,6 +5594,7 @@ export type Database = {
           venta_promedio_semanal: number
         }[]
       }
+      resolver_sku_traslados: { Args: never; Returns: number }
       rpc_inv_ejec_alertas: {
         Args: { p_fecha?: string }
         Returns: {
