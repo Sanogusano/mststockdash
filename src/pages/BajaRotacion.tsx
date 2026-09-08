@@ -209,6 +209,7 @@ export default function BajaRotacionPage() {
 
   const { data: rows = [], isLoading, error, isFetching } = useQuery<Row[]>({
     queryKey: ["baja-rotacion", semanasMin, incluirRebajas, incluirNoDistribuidos],
+    staleTime: 5 * 60 * 1000,
     queryFn: async () => {
       const { data, error } = await supabase.rpc("get_baja_rotacion", {
         p_semanas_minimas: Number(semanasMin),
