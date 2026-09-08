@@ -36,6 +36,12 @@ interface ResumenRow {
   uds_vendidas: number | null;
   stock_actual: number | null;
   pct_evacuado: number | null;
+  pct_en_ventana: number | null;
+  uds_fuera_ventana: number | null;
+  uds_otros_canales: number | null;
+  stock_outlet: number | null;
+  stock_bodega: number | null;
+  uds_venta_total: number | null;
   tiendas_alcanzadas: number | null;
   n_en_curso: number | null;
   n_bien: number | null;
@@ -125,6 +131,13 @@ const TONE_CLS: Record<string, string> = {
   slate: "bg-slate-100 text-slate-600 border-slate-200",
   sky: "bg-sky-100 text-sky-700 border-sky-200",
 };
+
+function pctEnVentaColor(v: number | null | undefined) {
+  const n = Number(v ?? 0);
+  if (n < 50) return "text-rose-600";
+  if (n <= 70) return "text-amber-600";
+  return "text-emerald-600";
+}
 
 function Badge({ label }: { label: string | null | undefined }) {
   if (!label) return <span className="text-[11px] text-muted-foreground">—</span>;
@@ -573,9 +586,17 @@ function NivelColecciones({
                   {num(r.dias_promedio)} días desde la llegada · {num(r.en_ventana)} de {num(r.productos)} en ventana
                 </p>
               </div>
-              <div className="text-right">
-                <p className="text-2xl font-semibold tabular-nums text-foreground">{pct(r.pct_evacuado)}</p>
-                <p className="text-[10px] uppercase tracking-wide text-muted-foreground">evacuado</p>
+              <div className="text-right flex gap-4">
+                <div>
+                  <p className="text-2xl font-semibold tabular-nums text-foreground">{pct(r.pct_evacuado)}</p>
+                  <p className="text-[10px] uppercase tracking-wide text-muted-foreground">evacuado</p>
+                </div>
+                <div className="text-right">
+                  <p className={cn("text-2xl font-semibold tabular-nums", pctEnVentaColor(r.pct_en_ventana))}>
+                    {pct(r.pct_en_ventana)}
+                  </p>
+                  <p className="text-[10px] uppercase tracking-wide text-muted-foreground">en ventana</p>
+                </div>
               </div>
             </div>
 
@@ -591,7 +612,22 @@ function NivelColecciones({
               </div>
               <div className="rounded-md bg-muted/50 py-1.5">
                 <p className="text-xs font-semibold tabular-nums text-foreground">{num(r.stock_actual)}</p>
-                <p className="text-[10px] text-muted-foreground leading-tight">Stock actual<br/>en tiendas</p>
+                <p className="text-[10px] text-muted-foreground leading-tight">Stock<br/>en tiendas</p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-3 gap-2 text-center">
+              <div className="rounded-md bg-muted/30 py-1.5">
+                <p className="text-xs font-semibold tabular-nums text-foreground">{num(r.uds_fuera_ventana)}</p>
+                <p className="text-[10px] text-muted-foreground leading-tight">Fuera de<br/>ventana</p>
+              </div>
+              <div className="rounded-md bg-muted/30 py-1.5">
+                <p className="text-xs font-semibold tabular-nums text-foreground">{num(r.uds_otros_canales)}</p>
+                <p className="text-[10px] text-muted-foreground leading-tight">Otros<br/>canales</p>
+              </div>
+              <div className="rounded-md bg-muted/30 py-1.5">
+                <p className="text-xs font-semibold tabular-nums text-foreground">{num(r.stock_outlet)}</p>
+                <p className="text-[10px] text-muted-foreground leading-tight">Stock<br/>outlet</p>
               </div>
             </div>
 
@@ -611,7 +647,8 @@ function NivelColecciones({
               <Badge label={r.diagnostico_dominante} />
             </div>
             <p className="text-[10px] text-muted-foreground/80 leading-snug pt-1 border-t border-border/40">
-              No incluye venta posterior a la ventana ni de outlet y online.
+              {pct(r.pct_en_ventana)} de su venta total ocurrió dentro de los 120 días.
+              Fuera de ventana: {num(r.uds_fuera_ventana)} · Otros canales: {num(r.uds_otros_canales)} · Stock outlet: {num(r.stock_outlet)}.
             </p>
           </CardContent>
         </Card>
