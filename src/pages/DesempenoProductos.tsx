@@ -51,6 +51,20 @@ const CANAL_OPTIONS = [
   { value: "digital", label: "Digital" },
 ];
 
+const SEMANA_VIDA_OPTIONS = [
+  { value: "all", label: "Todas" },
+  { value: "nuevos", label: "Nuevos · 1 a 8 semanas" },
+  { value: "en-ventana", label: "En ventana · 9 a 17 semanas" },
+  { value: "fuera-ventana", label: "Fuera de ventana · más de 17" },
+];
+
+const MEZCLA_OPTIONS = [
+  { value: "all", label: "Todas" },
+  { value: "Full Price", label: "Ganador Full Price" },
+  { value: "Rebajas", label: "Ganador Rebajas" },
+  { value: "Promo", label: "Ganador Promo" },
+];
+
 function cleanClasificacion(c: string) {
   return (c || "").replace(/[🏆🏷️🧲]/g, "").trim();
 }
