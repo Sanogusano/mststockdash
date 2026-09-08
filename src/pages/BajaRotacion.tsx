@@ -81,6 +81,42 @@ function fmtInt(n: number) {
   return (Number(n) || 0).toLocaleString("es-CO");
 }
 
+/** Fecha y hora de generación en Bogotá. */
+const generadoEl = () => {
+  const d = new Date();
+  const f = d.toLocaleDateString("es-CO", { day: "2-digit", month: "long", year: "numeric", timeZone: "America/Bogota" });
+  const h = d.toLocaleTimeString("es-CO", { hour: "2-digit", minute: "2-digit", timeZone: "America/Bogota" });
+  return `${f}, ${h}`;
+};
+
+/** Baja Rotacion Monastery YYYY-MM-DD HHmm */
+const nombreArchivo = () => {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    year: "numeric", month: "2-digit", day: "2-digit",
+    hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "America/Bogota",
+  }).formatToParts(new Date());
+  const g = (t: string) => parts.find((p) => p.type === t)?.value ?? "";
+  return `Baja Rotacion Monastery ${g("year")}-${g("month")}-${g("day")} ${g("hour")}${g("minute")}`;
+};
+
+async function getLogoBase64(): Promise<string> {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => {
+      const canvas = document.createElement("canvas");
+      canvas.width = img.width;
+      canvas.height = img.height;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) { resolve(""); return; }
+      ctx.drawImage(img, 0, 0);
+      resolve(canvas.toDataURL("image/png"));
+    };
+    img.onerror = () => resolve("");
+    img.src = monasteryLogoWhite;
+  });
+}
+
 type Ubicacion = { label: string; className: string };
 
 /** Dónde está el grueso del inventario: define la acción a tomar. */
@@ -315,6 +351,102 @@ export default function BajaRotacionPage() {
       "Acción sugerida": r.accion,
     }));
     exportToXLS(data, `baja-rotacion-${new Date().toISOString().slice(0, 10)}`, "Baja Rotación");
+  };
+
+  const handleExportPDF = async () => {
+    if (!filtered.length) return;
+    const logoB64 = await getLogoBase64();
+    const generated = generadoEl();
+    const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "letter" });
+    const pageW = doc.internal.pageSize.getWidth();
+    const margin = 14;
+
+    doc.setFillColor(15, 15, 15);
+    doc.rect(0, 0, pageW, 30, "F");
+    if (logoB64) {
+      try { doc.addImage(logoB64, "PNG", margin, 4, 50, 22); } catch { /* sin logo */ }
+    }
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(13);
+    doc.setFont("helvetica", "bold");
+    doc.text("Baja Rotación", pageW - margin, 11, { align: "right" });
+    doc.setFontSize(7.5);
+    doc.setFont("helvetica", "normal");
+    doc.text(`Generado ${generated}`, pageW - margin, 18, { align: "right" });
+    doc.text(`${fmtInt(filtered.length)} productos`, pageW - margin, 24, { align: "right" });
+    doc.setTextColor(0, 0, 0);
+
+    autoTable(doc, {
+      startY: 35,
+      head: [[
+        "Producto", "Categoría", "Colección", "Tallas", "Días rot.", "U. vend.",
+        "Stock", "Línea", "Outlet", "Digital", "Bodega", "Ubicación",
+        "Sell-through", "Vel/sem", "ADU", "Precio", "Dcto. sug.", "Nivel", "Acción sugerida",
+      ]],
+      body: filtered.map((r) => [
+        r.titulo,
+        r.category ?? "-",
+        r.collection_season ?? "-",
+        `${r.tallas_con_stock}/${r.tallas_totales}`,
+        String(r.dias_en_tienda ?? "-"),
+        fmtInt(r.unidades_vendidas),
+        fmtInt(r.stock_actual),
+        fmtInt(r.stock_linea ?? 0),
+        fmtInt(r.stock_outlet ?? 0),
+        fmtInt(r.stock_digital ?? 0),
+        fmtInt(r.stock_bodega ?? 0),
+        ubicacionDominante(r)?.label ?? "-",
+        pct(r.sell_through),
+        Number(r.velocidad_semanal).toFixed(2),
+        fmtAdu(r.adu),
+        fmtCOP(r.precio_actual),
+        `-${pct(r.descuento_sugerido)}`,
+        NIVEL_LABELS[r.nivel]?.label ?? r.nivel,
+        r.accion ?? "-",
+      ]),
+      styles: { fontSize: 6.2, cellPadding: 1.2, valign: "middle" },
+      headStyles: { fillColor: [15, 15, 15], textColor: 255, fontStyle: "bold", fontSize: 6.2 },
+      alternateRowStyles: { fillColor: [245, 245, 248] },
+      margin: { left: margin, right: margin, top: 14, bottom: 14 },
+      showHead: "everyPage",
+      columnStyles: {
+        0: { cellWidth: 44 },
+        4: { halign: "right" }, 5: { halign: "right" }, 6: { halign: "right" },
+        7: { halign: "right" }, 8: { halign: "right" }, 9: { halign: "right" },
+        10: { halign: "right" }, 12: { halign: "right" }, 13: { halign: "right" },
+        14: { halign: "right" }, 15: { halign: "right" }, 16: { halign: "right" },
+        18: { cellWidth: 34 },
+      },
+      didParseCell: (data) => {
+        if (data.section !== "body") return;
+        const row = filtered[data.row.index];
+        if (!row) return;
+        if (data.column.index === 12 && Number(row.sell_through) < 15) {
+          data.cell.styles.textColor = [220, 38, 38];
+          data.cell.styles.fontStyle = "bold";
+        }
+        if (data.column.index === 11 && ubicacionDominante(row)?.label === "EN BODEGA") {
+          data.cell.styles.textColor = [109, 40, 217];
+          data.cell.styles.fontStyle = "bold";
+        }
+      },
+    });
+
+    const pageH = doc.internal.pageSize.getHeight();
+    const total = doc.getNumberOfPages();
+    for (let i = 1; i <= total; i++) {
+      doc.setPage(i);
+      doc.setFontSize(7);
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(120, 120, 120);
+      doc.setDrawColor(200, 200, 210);
+      doc.line(margin, pageH - 10, pageW - margin, pageH - 10);
+      doc.text("MST-Retail Intelligence · powered by Selliq", margin, pageH - 6);
+      doc.text(generated, pageW / 2, pageH - 6, { align: "center" });
+      doc.text(`Página ${i} de ${total}`, pageW - margin, pageH - 6, { align: "right" });
+    }
+
+    doc.save(`${nombreArchivo()}.pdf`);
   };
 
   return (
