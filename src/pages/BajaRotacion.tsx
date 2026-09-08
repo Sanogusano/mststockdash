@@ -628,7 +628,6 @@ export default function BajaRotacionPage() {
                         {pageRows.map((r) => {
                           const niv = NIVEL_LABELS[r.nivel];
                           const img = imagesMap[r.product_id];
-                          const hex = toHexColor(r.color);
                           const tallas = parseTallas(r.tallas_disponibles);
                           const isOpen = expanded.has(r.product_id);
 
@@ -657,23 +656,9 @@ export default function BajaRotacionPage() {
                                 <TableCell>
                                   <div className="font-medium text-sm">{r.titulo}</div>
                                   <div className="text-[10px] text-muted-foreground font-mono">{r.product_id}</div>
+                                  <CollectionBadge coleccion={r.collection_season} className="mt-1" />
                                 </TableCell>
                                 <TableCell className="text-xs">{r.category}</TableCell>
-                                <TableCell className="text-xs">
-                                  <div className="flex items-center gap-2">
-                                    {hex && (
-                                      <span
-                                        className="inline-block h-4 w-4 rounded-full border border-border shadow-sm"
-                                        style={{ backgroundColor: hex }}
-                                        title={hex}
-                                      />
-                                    )}
-                                    <span className="font-mono">{hex ?? r.color}</span>
-                                  </div>
-                                </TableCell>
-                                <TableCell className="text-xs text-muted-foreground">
-                                  {r.collection_season ?? "—"}
-                                </TableCell>
                                 <TableCell className="text-center">
                                   <span
                                     className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium border ${coberturaBadge(
