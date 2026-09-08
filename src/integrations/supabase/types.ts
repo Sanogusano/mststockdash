@@ -4708,6 +4708,26 @@ export type Database = {
           uds_vendidas: number
         }[]
       }
+      reporte_cobertura_recorrido: {
+        Args: { p_product_id: string }
+        Returns: {
+          desp_bodega: number
+          desp_online: number
+          desp_outlet: number
+          desp_tiendas: number
+          desp_total: number
+          producto: string
+          stock_bodega: number
+          stock_online: number
+          stock_outlet: number
+          stock_tienda: number
+          stock_total: number
+          vend_online: number
+          vend_outlet: number
+          vend_tienda: number
+          vend_total: number
+        }[]
+      }
       reporte_cobertura_resumen: {
         Args: { p_dias_ventana?: number }
         Returns: {
@@ -5302,6 +5322,35 @@ export type Database = {
           total_pedidos: number
           unidades_vendidas: number
           upt: number
+        }[]
+      }
+      reporte_mayor_stock_baja_rotacion: {
+        Args: {
+          p_coleccion?: string
+          p_limite?: number
+          p_linea?: string
+          p_min_stock?: number
+        }
+        Returns: {
+          adu: number
+          coleccion: string
+          color: string
+          costo_total: number
+          foto: string
+          ingreso_total: number
+          inventario_total: number
+          linea: string
+          pct_evacuado: number
+          producto: string
+          ranking: number
+          semaforo: string
+          stock_bodega: number
+          stock_online: number
+          stock_outlet: number
+          stock_tiendas: number
+          tiempo_vida: number
+          ubicacion_dominante: string
+          venta_actual: number
         }[]
       }
       reporte_metricas_tienda_individual: {
