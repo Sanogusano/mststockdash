@@ -286,76 +286,96 @@ export default function DesempenoProductosPage() {
           </header>
           <div className="flex-1 px-4 sm:px-6 py-4 sm:py-6 space-y-4">
             {/* Filters */}
-            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 flex-wrap">
-              <div className="relative flex-1 w-full sm:max-w-xs">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Buscar producto o categoría..."
-                  value={search}
-                  onChange={e => setSearch(e.target.value)}
-                  className="pl-10 h-10"
-                />
+            <div className="space-y-3">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+                <div className="relative flex-1 w-full sm:max-w-xs">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Buscar producto o categoría..."
+                    value={search}
+                    onChange={e => setSearch(e.target.value)}
+                    className="pl-10 h-10"
+                  />
+                </div>
+                <div className="flex items-center gap-2 ml-auto">
+                  <Button variant="outline" size="sm" onClick={handleExportCSV} disabled={!filtered.length}>
+                    <Download className="h-4 w-4 mr-1" /> CSV
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={handleExportPDF} disabled={!filtered.length}>
+                    <FileText className="h-4 w-4 mr-1" /> PDF
+                  </Button>
+                </div>
               </div>
-              <Select value={canal} onValueChange={setCanal}>
-                <SelectTrigger className="w-full sm:w-[200px] h-10">
-                  <SelectValue placeholder="Todos los Canales" />
-                </SelectTrigger>
-                <SelectContent>
-                  {CANAL_OPTIONS.map(o => (
-                    <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Select value={catFilter} onValueChange={setCatFilter}>
-                <SelectTrigger className="w-full sm:w-[200px] h-10">
-                  <SelectValue placeholder="Todas las categorías" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todas las categorías</SelectItem>
-                  {categories.map(c => (
-                    <SelectItem key={c} value={c}>{c}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Select value={semanaFilter} onValueChange={setSemanaFilter}>
-                <SelectTrigger className="w-full sm:w-[210px] h-10">
-                  <SelectValue placeholder="Semana de vida" />
-                </SelectTrigger>
-                <SelectContent>
-                  {SEMANA_VIDA_OPTIONS.map(o => (
-                    <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Select value={mezclaFilter} onValueChange={setMezclaFilter}>
-                <SelectTrigger className="w-full sm:w-[200px] h-10">
-                  <SelectValue placeholder="Mezcla de precios" />
-                </SelectTrigger>
-                <SelectContent>
-                  {MEZCLA_OPTIONS.map(o => (
-                    <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Select value={String(topN)} onValueChange={v => setTopN(Number(v))}>
-                <SelectTrigger className="w-full sm:w-[150px] h-10">
-                  <SelectValue placeholder="Cantidad" />
-                </SelectTrigger>
-                <SelectContent>
-                  {[5, 10, 20, 50, 100].map(n => (
-                    <SelectItem key={n} value={String(n)}>
-                      {orden === "BOTTOM" ? `Bottom ${n}` : `Top ${n}`}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <div className="flex items-center gap-2 ml-auto">
-                <Button variant="outline" size="sm" onClick={handleExportCSV} disabled={!filtered.length}>
-                  <Download className="h-4 w-4 mr-1" /> CSV
-                </Button>
-                <Button variant="outline" size="sm" onClick={handleExportPDF} disabled={!filtered.length}>
-                  <FileText className="h-4 w-4 mr-1" /> PDF
-                </Button>
+              <div className="flex flex-wrap items-end gap-3">
+                <div className="min-w-0">
+                  <label className="block text-[10px] font-semibold uppercase tracking-wide text-muted-foreground mb-1">
+                    Canal
+                  </label>
+                  <Select value={canal} onValueChange={setCanal}>
+                    <SelectTrigger className="w-[200px] h-10">
+                      <SelectValue placeholder="Todos los Canales" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {CANAL_OPTIONS.map(o => (
+                        <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="min-w-0">
+                  <label className="block text-[10px] font-semibold uppercase tracking-wide text-muted-foreground mb-1">
+                    Categoría
+                  </label>
+                  <Select value={catFilter} onValueChange={setCatFilter}>
+                    <SelectTrigger className="w-[200px] h-10">
+                      <SelectValue placeholder="Todas las categorías" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todas las categorías</SelectItem>
+                      {categories.map(c => (
+                        <SelectItem key={c} value={c}>{c}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="min-w-0">
+                  <label className="block text-[10px] font-semibold uppercase tracking-wide text-muted-foreground mb-1">
+                    Semana de vida
+                  </label>
+                  <Select value={semanaFilter} onValueChange={setSemanaFilter}>
+                    <SelectTrigger className="w-[210px] h-10">
+                      <SelectValue placeholder="Semana de vida" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {SEMANA_VIDA_OPTIONS.map(o => (
+                        <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="min-w-0">
+                  <label className="block text-[10px] font-semibold uppercase tracking-wide text-muted-foreground mb-1">
+                    Mezcla de precios
+                  </label>
+                  <MezclaToggle value={mezclaFilter} onChange={setMezclaFilter} />
+                </div>
+                <div className="min-w-0">
+                  <label className="block text-[10px] font-semibold uppercase tracking-wide text-muted-foreground mb-1">
+                    Cantidad
+                  </label>
+                  <Select value={String(topN)} onValueChange={v => setTopN(Number(v))}>
+                    <SelectTrigger className="w-[150px] h-10">
+                      <SelectValue placeholder="Cantidad" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {[5, 10, 20, 50, 100].map(n => (
+                        <SelectItem key={n} value={String(n)}>
+                          {orden === "BOTTOM" ? `Bottom ${n}` : `Top ${n}`}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
             </div>
 
