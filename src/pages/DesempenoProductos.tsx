@@ -316,6 +316,26 @@ export default function DesempenoProductosPage() {
                   ))}
                 </SelectContent>
               </Select>
+              <Select value={semanaFilter} onValueChange={setSemanaFilter}>
+                <SelectTrigger className="w-full sm:w-[210px] h-10">
+                  <SelectValue placeholder="Semana de vida" />
+                </SelectTrigger>
+                <SelectContent>
+                  {SEMANA_VIDA_OPTIONS.map(o => (
+                    <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select value={mezclaFilter} onValueChange={setMezclaFilter}>
+                <SelectTrigger className="w-full sm:w-[200px] h-10">
+                  <SelectValue placeholder="Mezcla de precios" />
+                </SelectTrigger>
+                <SelectContent>
+                  {MEZCLA_OPTIONS.map(o => (
+                    <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               <Select value={String(topN)} onValueChange={v => setTopN(Number(v))}>
                 <SelectTrigger className="w-full sm:w-[150px] h-10">
                   <SelectValue placeholder="Cantidad" />
