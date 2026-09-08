@@ -36,6 +36,12 @@ interface ResumenRow {
   uds_vendidas: number | null;
   stock_actual: number | null;
   pct_evacuado: number | null;
+  pct_en_ventana: number | null;
+  uds_fuera_ventana: number | null;
+  uds_otros_canales: number | null;
+  stock_outlet: number | null;
+  stock_bodega: number | null;
+  uds_venta_total: number | null;
   tiendas_alcanzadas: number | null;
   n_en_curso: number | null;
   n_bien: number | null;
