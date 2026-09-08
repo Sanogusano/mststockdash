@@ -700,7 +700,7 @@ export default function BajaRotacionPage() {
                                     <span className="flex items-center gap-0.5"><Store className="h-3 w-3" />{fmtInt(r.stock_linea ?? 0)}</span>
                                     <span className="flex items-center gap-0.5"><Tag className="h-3 w-3" />{fmtInt(r.stock_outlet ?? 0)}</span>
                                     <span className="flex items-center gap-0.5"><Globe className="h-3 w-3" />{fmtInt(r.stock_digital ?? 0)}</span>
-                                    <span className="flex items-center gap-0.5"><Warehouse className="h-3 w-3" />{fmtInt(r.stock_bodega ?? 0)}</span>
+                                    <span className="flex items-center gap-0.5"><Pause className="h-3 w-3" />{fmtInt(r.stock_bodega ?? 0)}</span>
                                   </div>
                                 </TableCell>
                                 <TableCell className="text-right">
