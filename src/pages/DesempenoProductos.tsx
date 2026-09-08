@@ -393,20 +393,6 @@ export default function DesempenoProductosPage() {
                             </span>
                           </TableCell>
                           <TableCell className="text-right whitespace-nowrap">
-                            <div
-                              className={`font-semibold tabular-nums ${
-                                (row.semanas_vida ?? 0) > 52
-                                  ? "text-destructive"
-                                  : (row.semanas_vida ?? 0) < 8
-                                  ? "text-muted-foreground"
-                                  : "text-foreground"
-                              }`}
-                              title={row.primera_venta ? `Primera venta: ${row.primera_venta}` : undefined}
-                            >
-                              {(row.semanas_vida ?? 0).toLocaleString("es-CO")} sem
-                            </div>
-                          </TableCell>
-                          <TableCell className="text-right whitespace-nowrap">
                             <div className="font-semibold tabular-nums">
                               {(row.stock_venta_directa ?? 0).toLocaleString()}
                             </div>
