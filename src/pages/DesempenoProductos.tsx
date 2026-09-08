@@ -132,42 +132,21 @@ function PriceTypeBars({ fp, reb, promo }: { fp: number; reb: number; promo: num
 
 const SEMANAS_VENTANA = 17;
 
-function LifetimeMiniCard({ semanas, primeraVenta }: { semanas: number | null; primeraVenta: string | null }) {
-  if (semanas == null) {
-    return <div className="text-[9px] text-muted-foreground mt-1">—</div>;
-  }
-  const pct = Math.min(100, Math.max(0, (semanas / SEMANAS_VENTANA) * 100));
-  const over = semanas > SEMANAS_VENTANA;
-  const colorBar = over ? "bg-rose-500" : semanas >= 9 ? "bg-amber-500" : "bg-emerald-500";
-  const colorText = over ? "text-rose-500" : semanas >= 9 ? "text-amber-500" : "text-emerald-500";
-
+function getLifetimeInfo(semanas: number | null, primeraVenta: string | null) {
+  const over = semanas != null && semanas > SEMANAS_VENTANA;
+  const colorBar = over ? "bg-rose-500" : (semanas ?? 0) >= 9 ? "bg-amber-500" : "bg-emerald-500";
+  const colorText = over ? "text-rose-500" : (semanas ?? 0) >= 9 ? "text-amber-500" : "text-emerald-500";
+  const pct = Math.min(100, Math.max(0, ((semanas ?? 0) / SEMANAS_VENTANA) * 100));
   const fechaPrimera = primeraVenta
     ? new Date(primeraVenta).toLocaleDateString("es-CO", { day: "numeric", month: "long" })
     : null;
-  const tooltipText = fechaPrimera
-    ? `Semana ${semanas.toLocaleString("es-CO")} de ${SEMANAS_VENTANA} · primera venta ${fechaPrimera}`
-    : `Semana ${semanas.toLocaleString("es-CO")} de ${SEMANAS_VENTANA}`;
-
-  return (
-    <TooltipProvider>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <div className="mt-1.5 w-12 cursor-default">
-            <div className={`flex items-center gap-0.5 text-[10px] font-medium tabular-nums ${colorText}`}>
-              <Clock className="h-3 w-3" />
-              <span>{semanas.toLocaleString("es-CO")}/{SEMANAS_VENTANA}</span>
-            </div>
-            <div className="h-[3px] w-12 rounded-full bg-muted overflow-hidden mt-0.5">
-              <div className={`h-full rounded-full ${colorBar}`} style={{ width: `${pct}%` }} />
-            </div>
-          </div>
-        </TooltipTrigger>
-        <TooltipContent side="bottom" className="text-xs">
-          <p>{tooltipText}</p>
-        </TooltipContent>
-      </Tooltip>
-    </TooltipProvider>
-  );
+  const tooltipText =
+    semanas == null
+      ? "Sin datos de vida"
+      : fechaPrimera
+      ? `Semana ${semanas.toLocaleString("es-CO")} de ${SEMANAS_VENTANA} · primera venta ${fechaPrimera}`
+      : `Semana ${semanas.toLocaleString("es-CO")} de ${SEMANAS_VENTANA}`;
+  return { colorBar, colorText, pct, tooltipText, fechaPrimera };
 }
 
 export default function DesempenoProductosPage() {
@@ -449,13 +428,12 @@ export default function DesempenoProductosPage() {
                 <EmptyState message="No se encontraron productos para estos filtros." />
               ) : (
                 <div className="overflow-x-auto">
-                  <Table className="min-w-[1100px]">
+                    <Table className="min-w-[1000px]">
                     <TableHeader>
                       <TableRow className="bg-muted/30">
                         <TableHead className="w-[50px] text-center">#</TableHead>
-                        <TableHead className="min-w-[240px]">Producto</TableHead>
+                        <TableHead className="min-w-[280px]">Producto</TableHead>
                         <TableHead className="min-w-[100px]">Categoría</TableHead>
-                        <TableHead className="min-w-[100px]">Colección</TableHead>
                         <TableHead className="text-right min-w-[140px]">Ventas</TableHead>
                         <TableHead className="min-w-[140px]">Mezcla de Precios</TableHead>
                         <TableHead className="min-w-[130px]">Clasificación</TableHead>
@@ -474,19 +452,47 @@ export default function DesempenoProductosPage() {
                           <TableCell className="text-center text-sm font-bold text-muted-foreground">{i + 1}</TableCell>
                           <TableCell>
                             <div className="flex items-start gap-3">
-                              <div className="flex flex-col shrink-0">
+                              <div className="shrink-0">
                                 {row.foto ? (
                                   <ProductImageThumb src={row.foto} alt={row.producto} sku={row.sku} title={row.producto} className="w-12 h-12 rounded-lg object-cover bg-muted" onError={e => { e.currentTarget.style.display = "none"; }} />
                                 ) : (
                                   <div className="w-12 h-12 rounded-lg bg-muted/50 flex items-center justify-center text-lg">📦</div>
                                 )}
-                                <LifetimeMiniCard semanas={row.semanas_vida} primeraVenta={row.primera_venta} />
                               </div>
-                              <span className="text-sm font-medium text-foreground line-clamp-2 max-w-[200px] pt-1">{row.producto}</span>
+                              <div className="flex flex-col min-w-0">
+                                <span className="text-sm font-medium text-foreground line-clamp-2 max-w-[200px] pt-0.5">{row.producto}</span>
+                                {(() => {
+                                  const s = row.semanas_vida;
+                                  if (s == null) {
+                                    return <span className="text-[9px] text-muted-foreground mt-1">—</span>;
+                                  }
+                                  const { colorBar, colorText, pct, tooltipText } = getLifetimeInfo(s, row.primera_venta);
+                                  return (
+                                    <TooltipProvider>
+                                      <div className="flex items-center gap-2 mt-1">
+                                        <Tooltip>
+                                          <TooltipTrigger asChild>
+                                            <div className={`flex items-center gap-0.5 text-[10px] font-medium tabular-nums ${colorText} cursor-default`}>
+                                              <Clock className="h-3 w-3" />
+                                              <span>{s.toLocaleString("es-CO")}/{SEMANAS_VENTANA}</span>
+                                            </div>
+                                          </TooltipTrigger>
+                                          <TooltipContent side="bottom" className="text-xs">
+                                            <p>{tooltipText}</p>
+                                          </TooltipContent>
+                                        </Tooltip>
+                                        <CollectionBadge coleccion={row.coleccion} />
+                                      </div>
+                                      <div className="h-[3px] w-12 rounded-full bg-muted overflow-hidden mt-1">
+                                        <div className={`h-full rounded-full ${colorBar}`} style={{ width: `${pct}%` }} />
+                                      </div>
+                                    </TooltipProvider>
+                                  );
+                                })()}
+                              </div>
                             </div>
                           </TableCell>
                           <TableCell className="text-xs text-muted-foreground">{row.categoria}</TableCell>
-                          <TableCell><CollectionBadge coleccion={row.coleccion} /></TableCell>
                           <TableCell className="text-right whitespace-nowrap">
                             <div className="font-semibold tabular-nums">
                               {(row.und_total ?? 0).toLocaleString()}
