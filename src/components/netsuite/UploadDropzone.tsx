@@ -20,8 +20,9 @@ export function UploadDropzone({ onParsed, disabled }: Props) {
 
   const handleFile = useCallback(
     async (file: File) => {
-      if (!file.name.toLowerCase().endsWith(".xls")) {
-        toast.error("El archivo debe tener extensión .xls (XML Spreadsheet 2003)");
+      const ext = file.name.toLowerCase();
+      if (!ext.endsWith(".xls") && !ext.endsWith(".xlsx")) {
+        toast.error("El archivo debe tener extensión .xls o .xlsx");
         return;
       }
       setIsParsing(true);
@@ -78,7 +79,7 @@ export function UploadDropzone({ onParsed, disabled }: Props) {
       <input
         ref={inputRef}
         type="file"
-        accept=".xls"
+        accept=".xls,.xlsx"
         className="hidden"
         onChange={(e) => {
           const file = e.target.files?.[0];
@@ -101,7 +102,7 @@ export function UploadDropzone({ onParsed, disabled }: Props) {
           </div>
           <div className="text-center">
             <p className="text-sm font-medium">
-              Arrastra el archivo .xls de NetSuite
+              Arrastra el archivo de NetSuite (.xls / .xlsx)
             </p>
             <p className="text-xs text-muted-foreground mt-1">
               o haz clic para seleccionar
@@ -110,8 +111,8 @@ export function UploadDropzone({ onParsed, disabled }: Props) {
           <div className="flex items-center gap-2 text-xs text-muted-foreground mt-2">
             <FileSpreadsheet className="h-3.5 w-3.5" />
             <span>
-              Formato: XML Spreadsheet 2003 — reporte "Inventario Disponible por
-              Ubicación"
+              Formato: XML Spreadsheet 2003 o Excel 2007+ — reporte "Inventario
+              Disponible por Ubicación"
             </span>
           </div>
         </>
