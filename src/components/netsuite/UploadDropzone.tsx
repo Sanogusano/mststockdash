@@ -20,8 +20,9 @@ export function UploadDropzone({ onParsed, disabled }: Props) {
 
   const handleFile = useCallback(
     async (file: File) => {
-      if (!file.name.toLowerCase().endsWith(".xls")) {
-        toast.error("El archivo debe tener extensión .xls (XML Spreadsheet 2003)");
+      const ext = file.name.toLowerCase();
+      if (!ext.endsWith(".xls") && !ext.endsWith(".xlsx")) {
+        toast.error("El archivo debe tener extensión .xls o .xlsx");
         return;
       }
       setIsParsing(true);
