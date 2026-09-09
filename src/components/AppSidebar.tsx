@@ -418,7 +418,7 @@ export function AppSidebar() {
                       )}
                       {visibleAlertas.length > 0 && renderItem(alertasDistribucionItem, 1)}
                       {visibleHerramientas
-                        .filter((i) => i.url !== bundleConstructionItem.url)
+                        .filter((i) => i.url !== bundleConstructionItem.url && i.url !== reporteRebajasItem.url)
                         .map((item) => renderItem(item, 1))}
                     </>
                   )}
