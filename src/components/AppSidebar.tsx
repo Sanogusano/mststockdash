@@ -133,6 +133,7 @@ export function AppSidebar() {
   const { isAdmin, role } = useUserRole();
   const { signOut, session } = useAuth();
   const { data: permissions } = useUserPermissions();
+  const canDesempenoCategoria = useHasPermission({ module: "producto.desempeno_categoria", action: "view" });
 
   const can = (module: string, action: string) => {
     if (isAdmin) return true;
@@ -150,7 +151,11 @@ export function AppSidebar() {
   const visibleInventario = useMemo(() => inventarioItems.filter((i) => can(i.module, i.action)), [permissions, isAdmin]);
   const visibleHerramientas = useMemo(() => herramientasItems.filter((i) => can(i.module, i.action)), [permissions, isAdmin]);
   const visibleAlertas = useMemo(() => [alertasDistribucionItem].filter((i) => can(i.module, i.action)), [permissions, isAdmin]);
-  const visibleZoom = useMemo(() => zoomProductoItems.filter((i) => can(i.module, i.action)), [permissions, isAdmin]);
+  const visibleZoom = useMemo(() => {
+    const base = zoomProductoItems.filter((i) => can(i.module, i.action));
+    if (canDesempenoCategoria) base.push(desempenoCategoriaItem);
+    return base;
+  }, [permissions, isAdmin, canDesempenoCategoria]);
 
   const canPresupuesto = can(presupuestoItem.module, presupuestoItem.action);
 
