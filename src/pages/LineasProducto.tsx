@@ -252,7 +252,7 @@ export default function LineasProductoPage() {
         Salud: r.estado_salud,
       })),
       "desempeno_lineas",
-      "Desempeño por Línea de Producto"
+      "Salud por Línea"
     );
   };
 
@@ -267,7 +267,7 @@ export default function LineasProductoPage() {
             <div className="flex items-center gap-3">
               <SidebarTrigger className="text-muted-foreground hover:text-foreground" />
               <div>
-                <h1 className="text-base sm:text-lg font-semibold text-foreground">Desempeño por Línea</h1>
+                <h1 className="text-base sm:text-lg font-semibold text-foreground">Salud por Línea</h1>
                 <p className="text-[10px] sm:text-xs text-muted-foreground">Stock, ventas por canal, participación, sell-through y salud por categoría</p>
               </div>
             </div>
