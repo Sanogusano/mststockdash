@@ -79,7 +79,7 @@ export function UploadDropzone({ onParsed, disabled }: Props) {
       <input
         ref={inputRef}
         type="file"
-        accept=".xls"
+        accept=".xls,.xlsx"
         className="hidden"
         onChange={(e) => {
           const file = e.target.files?.[0];
