@@ -3,6 +3,7 @@ import { LineChart, BarChart3, TrendingUp, ArrowLeftRight, Package, Tag, Layers,
 import { useUserRole } from "@/hooks/useUserRole";
 import { useAuth } from "@/hooks/useAuth";
 import { useUserPermissions } from "@/hooks/useUserPermissions";
+import { useHasPermission } from "@/hooks/useHasPermission";
 import { useLocation, Link, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import monasteryLogoWhite from "@/assets/monastery-logo-white.jpg";
@@ -42,7 +43,7 @@ const inventariosItem: NavItem = { title: "Inventarios & Salud", url: "/inventar
 const bajaRotacionItem: NavItem = { title: "Baja Rotación", url: "/baja-rotacion", icon: TrendingDown, description: "Sell-through bajo & antigüedad", module: "dashboards.inventario_salud", action: "view" };
 const insumosItem: NavItem = { title: "Gestión de Insumos", url: "/insumos", icon: Package, description: "CEDI & reorden", module: "dashboards.gestion_insumos", action: "view" };
 const bundleConstructionItem: NavItem = { title: "Bundle Construction", url: "/bundle-construction", icon: Sparkles, description: "Combos de baja rotación", module: "dashboards.inventario_salud", action: "view" };
-const desempenoCategoriaItem: NavItem = { title: "Desempeño por categoría", url: "/desempeno-categoria", icon: BarChart3, description: "Medianas de ROS y cobertura por categoría", module: "dashboards.inventario_salud", action: "view" };
+const desempenoCategoriaItem: NavItem = { title: "Desempeño por categoría", url: "/desempeno-categoria", icon: BarChart3, description: "Medianas de ROS y cobertura por categoría", module: "producto.desempeno_categoria", action: "view" };
 
 const producto360Item: NavItem = { title: "Análisis de producto", url: "/analisis-producto", icon: LayoutGrid, description: "Vista consolidada: meta, pares, calidad de venta y cobertura", module: "dashboards.salud_producto", action: "view" };
 
@@ -59,7 +60,6 @@ const zoomProductoItems: NavItem[] = [
   mapaProductoItem,
   linea360Item,
   topProductosItem,
-  desempenoCategoriaItem,
   bajaRotacionItem,
   saludPublicacionItem,
 ];
@@ -133,6 +133,7 @@ export function AppSidebar() {
   const { isAdmin, role } = useUserRole();
   const { signOut, session } = useAuth();
   const { data: permissions } = useUserPermissions();
+  const canDesempenoCategoria = useHasPermission({ module: "producto.desempeno_categoria", action: "view" });
 
   const can = (module: string, action: string) => {
     if (isAdmin) return true;
@@ -150,7 +151,11 @@ export function AppSidebar() {
   const visibleInventario = useMemo(() => inventarioItems.filter((i) => can(i.module, i.action)), [permissions, isAdmin]);
   const visibleHerramientas = useMemo(() => herramientasItems.filter((i) => can(i.module, i.action)), [permissions, isAdmin]);
   const visibleAlertas = useMemo(() => [alertasDistribucionItem].filter((i) => can(i.module, i.action)), [permissions, isAdmin]);
-  const visibleZoom = useMemo(() => zoomProductoItems.filter((i) => can(i.module, i.action)), [permissions, isAdmin]);
+  const visibleZoom = useMemo(() => {
+    const base = zoomProductoItems.filter((i) => can(i.module, i.action));
+    if (canDesempenoCategoria) base.push(desempenoCategoriaItem);
+    return base;
+  }, [permissions, isAdmin, canDesempenoCategoria]);
 
   const canPresupuesto = can(presupuestoItem.module, presupuestoItem.action);
 
