@@ -20,7 +20,7 @@ import {
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
-import { ChevronRight, Store, Globe, Tag, Pause, AlertTriangle } from "lucide-react";
+import { ChevronRight, Store, Globe, Tag, Pause, AlertTriangle, Info } from "lucide-react";
 import { ProductoDetallePanel } from "@/components/dashboard/ProductoDetallePanel";
 
 interface Row {
@@ -844,10 +844,16 @@ export default function AnalisisLinea360Page() {
         <div className="flex-1 flex flex-col min-w-0">
           <header className="h-12 flex items-center border-b border-border px-4 gap-2">
             <SidebarTrigger />
-            <h1 className="text-sm font-semibold text-foreground">Análisis por Línea 360</h1>
+            <h1 className="text-sm font-semibold text-foreground">Análisis de Rotación por Línea</h1>
           </header>
 
           <main className="flex-1 p-4 md:p-6 space-y-4 min-w-0">
+            <div className="flex items-start gap-2 rounded-md border bg-muted/30 p-3 text-xs text-muted-foreground">
+              <Info className="h-4 w-4 shrink-0 mt-0.5 text-muted-foreground" />
+              <p>
+                Estas cifras suman toda la historia de cada línea. Para leerlas correctamente, filtra por colección: una línea mezcla producto de varias temporadas con ventanas ya cerradas.
+              </p>
+            </div>
             {/* Filtros */}
             <div className="flex flex-wrap items-end gap-3">
               <div className="min-w-0">
