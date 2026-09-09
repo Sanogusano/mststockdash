@@ -1,16 +1,21 @@
 /**
- * Parser de archivos XML Spreadsheet 2003 (.xls) exportados desde NetSuite.
+ * Parser de archivos de inventario NetSuite.
  * Reporte: "Inventario Disponible por Ubicación".
  *
+ * Soporta dos formatos de entrada:
+ * - XML Spreadsheet 2003 (extensión .xls habitual de NetSuite)
+ * - Excel 2007+ (.xlsx)
+ *
  * Notas clave:
- * - El archivo NO es Excel binario; es XML con extensión .xls
- * - Las celdas vacías se comprimen usando ss:Index — debe respetarse
+ * - Las celdas vacías se comprimen en XML usando ss:Index — debe respetarse
  * - Las columnas se localizan POR NOMBRE de header, no por índice fijo:
  *   NetSuite puede agregar/reordenar columnas (p. ej. "Código UPC", bodegas
  *   nuevas) y el parser debe seguir funcionando sin cambios.
  * - Se incluyen los sub_tipo vendibles: PRENDAS, ACCESORIOS y CALZADO.
  *   Se excluyen MUESTRAS, INSUMOS, TELA, MATERIAL DE EMPAQUE, GANCHO, Total.
  */
+
+import * as XLSX from "xlsx";
 
 export interface NetsuiteLine {
   sku: string;
@@ -95,9 +100,9 @@ function normalizeSku(raw: string): string {
 }
 
 /**
- * Parsea una fila respetando ss:Index (celdas vacías comprimidas).
+ * Parsea una fila XML respetando ss:Index (celdas vacías comprimidas).
  */
-function parseRow(rowElement: Element, numCols: number = NUM_COLS): string[] {
+function parseXmlRow(rowElement: Element, numCols: number = NUM_COLS): string[] {
   const result: string[] = new Array(numCols).fill("");
   let pos = 0;
 
@@ -140,17 +145,15 @@ function buildColumnIndex(headers: string[]): Record<string, number> {
   return idx;
 }
 
-export async function parseNetsuiteXls(
-  file: File
-): Promise<NetsuiteSnapshotData> {
-  const text = await file.text();
-
-  if (!text.trimStart().startsWith("<?xml") || !text.includes("<Workbook")) {
-    throw new Error(
-      "Formato inválido. El archivo debe ser XML Spreadsheet 2003 exportado desde NetSuite."
-    );
+function normalizeRow(row: any[]): string[] {
+  const cells: string[] = new Array(NUM_COLS).fill("");
+  for (let i = 0; i < Math.min(row.length, NUM_COLS); i++) {
+    cells[i] = row[i] != null ? String(row[i]).trim() : "";
   }
+  return cells;
+}
 
+function parseXmlWorksheet(text: string): string[][] {
   const parser = new DOMParser();
   const xmlDoc = parser.parseFromString(text, "text/xml");
 
@@ -165,12 +168,33 @@ export async function parseNetsuiteXls(
   }
 
   const rows = worksheet.querySelectorAll("Row");
+  return Array.from(rows).map((row) => parseXmlRow(row, NUM_COLS));
+}
+
+function parseXlsxWorksheet(buffer: ArrayBuffer): string[][] {
+  const workbook = XLSX.read(buffer, { type: "array" });
+  const sheetName = workbook.SheetNames[0];
+  if (!sheetName) {
+    throw new Error("No se encontró ninguna hoja en el archivo Excel.");
+  }
+  const sheet = workbook.Sheets[sheetName];
+  const raw = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: "" }) as any[][];
+  return raw.map(normalizeRow);
+}
+
+function processWorksheet(
+  rows: string[][],
+  fileName: string,
+  formatLabel: string
+): NetsuiteSnapshotData {
   if (rows.length < DATA_START_ROW + 1) {
-    throw new Error("El archivo no tiene suficientes filas de datos.");
+    throw new Error(
+      `El archivo ${formatLabel} no tiene suficientes filas de datos.`
+    );
   }
 
   // Header y mapa de columnas por nombre
-  const headers = parseRow(rows[HEADER_ROW_INDEX], NUM_COLS);
+  const headers = rows[HEADER_ROW_INDEX];
   const col = buildColumnIndex(headers);
 
   // Posiciones de ubicación = cualquier header que no sea atributo/Total
@@ -200,7 +224,7 @@ export async function parseNetsuiteXls(
   let normalizedCount = 0;
 
   for (let i = DATA_START_ROW; i < rows.length; i++) {
-    const cells = parseRow(rows[i], NUM_COLS);
+    const cells = rows[i];
     const subTipo = cells[iSub];
     const rawSku = cells[iArt];
     const sku = normalizeSku(rawSku);
@@ -264,11 +288,11 @@ export async function parseNetsuiteXls(
   const snapshotDate = today.toISOString().slice(0, 10);
 
   console.log(
-    `[Parser] Líneas: ${lines.length}, SKUs únicos: ${skuSet.size}, normalizados (tenían ':'): ${normalizedCount}`
+    `[Parser ${formatLabel}] Líneas: ${lines.length}, SKUs únicos: ${skuSet.size}, normalizados (tenían ':'): ${normalizedCount}`
   );
 
   return {
-    fileName: file.name,
+    fileName,
     snapshotDate,
     totalSkus: skuSet.size,
     totalUnits,
@@ -279,4 +303,35 @@ export async function parseNetsuiteXls(
     topLineas,
     uniqueLocationNames,
   };
+}
+
+export async function parseNetsuiteXls(
+  file: File
+): Promise<NetsuiteSnapshotData> {
+  const buffer = await file.arrayBuffer();
+
+  // Detectar formato leyendo los primeros bytes como texto
+  const sampleBytes = buffer.slice(0, 200);
+  const sampleText = new TextDecoder().decode(sampleBytes).trimStart();
+  const isXml = sampleText.startsWith("<?xml");
+
+  if (isXml) {
+    const text = new TextDecoder().decode(buffer);
+    if (!text.includes("<Workbook")) {
+      throw new Error(
+        "Formato detectado: XML Spreadsheet 2003, pero no contiene un <Workbook> válido."
+      );
+    }
+    const rows = parseXmlWorksheet(text);
+    return processWorksheet(rows, file.name, "XML Spreadsheet 2003");
+  }
+
+  try {
+    const rows = parseXlsxWorksheet(buffer);
+    return processWorksheet(rows, file.name, "Excel 2007+ (.xlsx)");
+  } catch (err: any) {
+    throw new Error(
+      `Formato detectado: Excel 2007+ (.xlsx). ${err?.message ?? "No se pudo leer el archivo."}`
+    );
+  }
 }
