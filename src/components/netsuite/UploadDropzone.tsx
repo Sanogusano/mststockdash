@@ -102,7 +102,7 @@ export function UploadDropzone({ onParsed, disabled }: Props) {
           </div>
           <div className="text-center">
             <p className="text-sm font-medium">
-              Arrastra el archivo .xls de NetSuite
+              Arrastra el archivo de NetSuite (.xls / .xlsx)
             </p>
             <p className="text-xs text-muted-foreground mt-1">
               o haz clic para seleccionar
@@ -111,8 +111,8 @@ export function UploadDropzone({ onParsed, disabled }: Props) {
           <div className="flex items-center gap-2 text-xs text-muted-foreground mt-2">
             <FileSpreadsheet className="h-3.5 w-3.5" />
             <span>
-              Formato: XML Spreadsheet 2003 — reporte "Inventario Disponible por
-              Ubicación"
+              Formato: XML Spreadsheet 2003 o Excel 2007+ — reporte "Inventario
+              Disponible por Ubicación"
             </span>
           </div>
         </>
