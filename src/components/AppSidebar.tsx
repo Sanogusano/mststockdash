@@ -35,7 +35,7 @@ const presupuestoItem: NavItem = { title: "Presupuesto", url: "/presupuestos", i
 const rendimientoTiendasItem: NavItem = { title: "Rendimiento Tiendas", url: "/rendimiento-red", icon: Store, description: "Same-store, maduración y eficiencia", module: "dashboards.rendimiento_red", action: "view" };
 const saludProductoItem: NavItem = { title: "Salud de Producto", url: "/producto", icon: Tag, description: "Sell-through & WOS", module: "dashboards.salud_producto", action: "view" };
 const desempenoLineaItem: NavItem = { title: "Salud por Línea", url: "/lineas", icon: Layers, description: "Categorías & canales", module: "dashboards.desempeno_linea", action: "view" };
-const cierreColeccionItem: NavItem = { title: "Comportamiento de Colecciones", url: "/cierre-coleccion", icon: Archive, description: "Desempeño por colección & remanentes", module: "dashboards.cierre_colecciones", action: "view" };
+const cierreColeccionItem: NavItem = { title: "Comportamiento de Colecciones", url: "/cierre-coleccion", icon: Archive, description: "Desempeño por colección & remanentes", module: "producto.cierre_coleccion", action: "view" };
 
 
 // Items adicionales (no listados explícitamente, se mantienen visibles al final del bloque de análisis)
@@ -65,9 +65,9 @@ const zoomProductoItems: NavItem[] = [
 ];
 
 
-const analisisLinea360Item: NavItem = { title: "Análisis por Línea 360", url: "/analisis-linea-360", icon: Layers, description: "Precio, descuento, stock y salud por colección y línea", module: "dashboards.desempeno_linea", action: "view" };
+const analisisLinea360Item: NavItem = { title: "Análisis de Rotación por Línea", url: "/analisis-linea-360", icon: Layers, description: "Precio, descuento, stock y salud por colección y línea", module: "dashboards.desempeno_linea", action: "view" };
 
-const coberturaItem: NavItem = { title: "Cobertura de Distribución", url: "/cobertura", icon: Layers, description: "¿Llegó bien repartido a las tiendas?", module: "dashboards.salud_producto", action: "view" };
+const coberturaItem: NavItem = { title: "Cobertura de Distribución", url: "/cobertura", icon: Layers, description: "¿Llegó bien repartido a las tiendas?", module: "producto.cobertura_distribucion", action: "view" };
 
 const productoItems: NavItem[] = [
   saludProductoItem,
