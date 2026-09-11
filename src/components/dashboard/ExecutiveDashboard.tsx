@@ -1471,11 +1471,25 @@ function BrandTopBottomProducts({ days, customFrom, customTo }: { days: number; 
       if (!isValidDays(days)) return;
       setLoading(true);
       const { dias_atras: effectiveDays, p_hasta: hastaParam } = buildRpcDateParams(days, customFrom, customTo);
-      const data = await fetchComportamientoProducto({
-        dias_atras: effectiveDays,
-        p_location_id: null,
-        p_hasta: hastaParam,
+      const toGlobal = (r: ProductRow): GlobalProductRow => ({
+        foto: r.foto ?? null,
+        producto: r.producto ?? null,
+        categoria: r.categoria ?? null,
+        und_total: r.unidades_vendidas ?? 0,
+        clasificacion: r.clasificacion ?? null,
+        coleccion: r.coleccion ?? "Otros",
       });
+      const [topRes, bottomRes] = await Promise.all([
+        fetchTopProductosGlobal({ dias_atras: effectiveDays, p_hasta: hastaParam, p_orden: "TOP", p_limite: 5 }),
+        fetchTopProductosGlobal({ dias_atras: effectiveDays, p_hasta: hastaParam, p_orden: "BOTTOM", p_limite: 5 }),
+      ]);
+      setTop5(topRes.map(toGlobal));
+      setBottom5(bottomRes.map(toGlobal));
+      setLoading(false);
+    }
+    fetch();
+  }, [days, customFrom, customTo]);
+
 
       const rows = ((data as any[]) ?? []).filter((r: any) => {
         const categoria = String(r.categoria ?? "").toUpperCase();
