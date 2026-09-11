@@ -33,6 +33,28 @@ function Barra({ row }: { row: Tienda }) {
 function ErrorBox({ error }: { error: unknown }) {
   return <p role="alert" className="border border-destructive/30 p-3 text-sm text-destructive">{String((error as { message?: string })?.message ?? error)}</p>;
 }
+function Migas({ coleccion, tienda, onClick }: { coleccion: string | null; tienda: string | null; onClick: (key: "coleccion" | "tienda") => void }) {
+  type Nivel = { label: string; key?: "coleccion" | "tienda"; active: boolean };
+  const niveles: Nivel[] = ([
+    { label: "Colecciones", active: !coleccion },
+    { label: coleccion ?? "", key: "coleccion", active: !!coleccion && !tienda },
+    { label: tienda ?? "", key: "tienda", active: !!tienda },
+  ] as Nivel[]).filter((n) => n.label);
+  return (
+    <nav aria-label="breadcrumb" className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+      {niveles.map((n, i) => (
+        <span key={n.label + i} className="flex items-center gap-2">
+          {i > 0 && <ChevronRight className="h-4 w-4" />}
+          {n.key && !n.active ? (
+            <Button variant="link" size="sm" className="h-auto p-0 text-muted-foreground hover:text-foreground" onClick={() => onClick(n.key!)}>{n.label}</Button>
+          ) : (
+            <span className={cn("font-medium", n.active && "text-foreground")}>{n.label}</span>
+          )}
+        </span>
+      ))}
+    </nav>
+  );
+}
 function Recorrido({ row }: { row: Embudo }) {
   const totalExistencias = (row.stock_tienda ?? 0) + (row.stock_online ?? 0) + (row.stock_outlet ?? 0) + (row.stock_bodega ?? 0);
   const items: [string, number, string?, boolean?, boolean?][] = [
@@ -103,6 +125,9 @@ export default function DistribucionCoberturaPage() {
   const selectedStore = tiendasQ.data?.find(t => t.location_id === location);
   return <SidebarProvider><div className="flex min-h-screen w-full bg-background"><AppSidebar /><main className="min-w-0 flex-1">
     <header className="flex items-center gap-3 border-b border-border p-4 sm:px-6"><SidebarTrigger /><h1 className="text-lg font-semibold">Distribución</h1></header>
+    <div className="px-4 pb-2 pt-3 sm:px-6">
+      <Migas coleccion={coleccion === "all" ? null : coleccion} tienda={location ? (selectedStore?.tienda ?? location) : null} onClick={key => update(key, key === "coleccion" ? "all" : "")} />
+    </div>
     <div className="space-y-8 p-4 sm:p-6">
       <div className="flex flex-wrap items-end gap-3">{([["coleccion", "Colección", coleccion, [...new Set([...(opcionesQ.data?.colecciones ?? []), ...(embudoQ.data ?? []).map(r => r.coleccion), ...(coleccion !== "all" ? [coleccion] : [])])]], ["linea", "Línea", linea, [...new Set([...(opcionesQ.data?.lineas ?? []), ...(linea !== "all" ? [linea] : [])])]]] as [string, string, string, string[]][]).map(([key, label, value, options]) => <div key={key} className="space-y-1"><label className="text-xs text-muted-foreground" htmlFor={`filter-${key}`}>{label}</label><Select value={value} onValueChange={v => update(key, v)}><SelectTrigger id={`filter-${key}`} className="w-[200px]"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">{key === "coleccion" ? "Todas las colecciones" : "Todas las líneas"}</SelectItem>{options.filter(Boolean).map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent></Select></div>)}
         <div className="space-y-1"><label htmlFor="filter-window" className="text-xs text-muted-foreground">Ventana</label><Select value={String(ventana)} onValueChange={v => update("ventana", v)}><SelectTrigger id="filter-window" className="w-[140px]"><SelectValue /></SelectTrigger><SelectContent>{ventanas.map(v => <SelectItem key={v} value={String(v)}>{v} días</SelectItem>)}</SelectContent></Select></div>
