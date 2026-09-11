@@ -109,6 +109,74 @@ function fetchComportamientoProducto(params: {
   return promise;
 }
 
+/* ── Fuente única de rankings Top/Bottom ──
+   Los tres bloques del Resumen Ejecutivo (Top/Bottom 5 de marca, tablas de
+   Zona y de Canal) consumen reporte_top_productos_global. El orden y el
+   recorte vienen de la RPC: nunca se ordena ni se filtra en cliente. */
+async function fetchTopProductosGlobal(params: {
+  dias_atras: number;
+  p_hasta: string | null;
+  p_orden: "TOP" | "BOTTOM";
+  p_limite: number;
+  p_canal?: string | null;
+  p_location_id?: string | null;
+}): Promise<ProductRow[]> {
+  const { data, error } = await supabase.rpc("reporte_top_productos_global" as any, {
+    dias_atras: params.dias_atras,
+    p_canal: params.p_canal ?? null,
+    p_categoria: null,
+    p_orden: params.p_orden,
+    p_limite: params.p_limite,
+    p_hasta: params.p_hasta,
+    p_location_id: params.p_location_id ?? null,
+  });
+  if (error) {
+    if (import.meta.env.DEV) console.error("Error en reporte_top_productos_global:", error);
+    return [];
+  }
+  const semanas = Math.max(params.dias_atras / 7, 1);
+  return ((data as any[]) ?? []).map((r: any) => {
+    const und = toNumber(r.und_total);
+    const stock = toNumber(r.stock_venta_directa);
+    const base = und + stock;
+    const velocidad = und / semanas;
+    return {
+      foto: r.foto ?? null,
+      producto: r.producto ?? "—",
+      sku: r.sku ?? null,
+      categoria: r.categoria ?? null,
+      clasificacion: r.clasificacion ?? null,
+      unidades_vendidas: und,
+      precio_promedio: und > 0 ? toNumber(r.venta_neta) / und : 0,
+      stock_disponible: stock,
+      sell_through_pct: base > 0 ? (und / base) * 100 : 0,
+      wos: velocidad > 0 ? stock / velocidad : 0,
+      coleccion: r.coleccion ?? "Otros",
+    } as ProductRow;
+  });
+}
+
+/** Enlace a Desempeño de Productos propagando TODO el contexto activo. */
+function buildDesempenoUrl(opts: {
+  orden: "TOP" | "BOTTOM";
+  days: number;
+  canal?: string | null;
+  locationId?: string | null;
+  customFrom?: Date;
+  customTo?: Date;
+}): string {
+  const p = new URLSearchParams();
+  p.set("orden", opts.orden);
+  p.set("days", String(resolveDays(opts.days)));
+  if (opts.canal) p.set("canal", opts.canal);
+  if (opts.locationId) p.set("location", opts.locationId);
+  if (opts.customFrom && opts.customTo) {
+    p.set("from", _toDateStr(opts.customFrom));
+    p.set("to", _toDateStr(opts.customTo));
+  }
+  return `/desempeno-productos?${p.toString()}`;
+}
+
 interface SkuDetailRow {
   sku: string;
   unidades_vendidas: number;
