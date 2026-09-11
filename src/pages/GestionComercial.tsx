@@ -445,6 +445,10 @@ export default function GestionComercialPage() {
               </div>
             )}
 
+            {/* ── Seguimiento de estrategias aplicadas ── */}
+            <EstrategiasSeguimiento anio={anio} mes={mes} refreshKey={segKey} />
+
+
             {/* ── Nivel 2: tarjetas de todas las entidades ── */}
             {!loading && visibles.length > 0 && (
               <div>
