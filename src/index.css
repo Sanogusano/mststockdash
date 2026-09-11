@@ -130,3 +130,7 @@
     @apply text-danger border-danger/30 bg-danger/10;
   }
 }
+
+@layer utilities {
+  .distribution-mix { color: hsl(var(--chart-4)); background-color: hsl(var(--chart-4) / 0.1); }
+}

@@ -69,7 +69,7 @@ const analisisLinea360Item: NavItem = { title: "Análisis de Rotación por Líne
 
 const coberturaItem: NavItem = { title: "Cobertura de Distribución", url: "/cobertura", icon: Layers, description: "¿Llegó bien repartido a las tiendas?", module: "producto.cobertura_distribucion", action: "view" };
 
-const distribucionItem: NavItem = { title: "Distribución y Cobertura", url: "/distribucion", icon: Layers, description: "¿Qué tiendas se quedan cortas y cuáles acumulan?", module: "dashboards.salud_producto", action: "view" };
+const distribucionItem: NavItem = { title: "Distribución", url: "/distribucion", icon: Layers, description: "¿Qué tiendas se quedan cortas y cuáles acumulan?", module: "dashboards.salud_producto", action: "view" };
 
 const productoItems: NavItem[] = [
   saludProductoItem,
