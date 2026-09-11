@@ -538,7 +538,7 @@ export default function GestionComercialPage() {
 
       <Sheet open={!!sel} onOpenChange={(o) => !o && setSel(null)}>
         <SheetContent side="right" className="w-full sm:max-w-2xl overflow-y-auto">
-          {sel && <DetalleTienda fila={sel} anio={anio} mes={mes} />}
+          {sel && <DetalleTienda fila={sel} anio={anio} mes={mes} onAplicada={() => setSegKey((k) => k + 1)} />}
         </SheetContent>
       </Sheet>
     </SidebarProvider>
