@@ -34,18 +34,19 @@ function ErrorBox({ error }: { error: unknown }) {
   return <p role="alert" className="border border-destructive/30 p-3 text-sm text-destructive">{String((error as { message?: string })?.message ?? error)}</p>;
 }
 function Migas({ coleccion, tienda, onClick }: { coleccion: string | null; tienda: string | null; onClick: (key: "coleccion" | "tienda") => void }) {
-  const niveles: { label: string; key?: "coleccion" | "tienda"; active: boolean }[] = [
+  type Nivel = { label: string; key?: "coleccion" | "tienda"; active: boolean };
+  const niveles: Nivel[] = ([
     { label: "Colecciones", active: !coleccion },
     { label: coleccion ?? "", key: "coleccion", active: !!coleccion && !tienda },
     { label: tienda ?? "", key: "tienda", active: !!tienda },
-  ].filter((n) => n.label);
+  ] as Nivel[]).filter((n) => n.label);
   return (
     <nav aria-label="breadcrumb" className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
       {niveles.map((n, i) => (
         <span key={n.label + i} className="flex items-center gap-2">
           {i > 0 && <ChevronRight className="h-4 w-4" />}
           {n.key && !n.active ? (
-            <Button variant="link" size="sm" className="h-auto p-0 text-muted-foreground hover:text-foreground" onClick={() => onClick(n.key! as "coleccion" | "tienda")}>{n.label}</Button>
+            <Button variant="link" size="sm" className="h-auto p-0 text-muted-foreground hover:text-foreground" onClick={() => onClick(n.key!)}>{n.label}</Button>
           ) : (
             <span className={cn("font-medium", n.active && "text-foreground")}>{n.label}</span>
           )}
