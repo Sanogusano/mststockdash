@@ -82,9 +82,9 @@ export default function DistribucionCoberturaPage() {
   const opcionesQ = useQuery({ queryKey: ["distribucion-filtros-catalogo"], queryFn: async () => {
     const collections = new Set<string>(); const lines = new Set<string>();
     for (let from = 0; ; from += 1000) {
-      const { data, error } = await supabase.from("product_catalog").select("collection_season,category").order("sku").range(from, from + 999);
+      const { data, error } = await supabase.from("product_catalog").select("collection_season,category,categoria_padre").order("sku").range(from, from + 999);
       if (error) throw error;
-      (data ?? []).forEach(r => { if (r.collection_season) collections.add(r.collection_season); if (r.category && !["BOLSA", "INSUMOS"].includes(r.category.toUpperCase())) lines.add(r.category); });
+      (data ?? []).forEach(r => { if (r.collection_season) collections.add(r.collection_season); if (r.category && !["BOLSA", "INSUMOS", "FRAGANCE", "GIFT CARDS", "NFT"].includes(r.category.toUpperCase())) lines.add(r.categoria_padre ?? r.category.toUpperCase()); });
       if (!data || data.length < 1000) break;
     }
     return { colecciones: [...collections].sort(), lineas: [...lines].sort() };
