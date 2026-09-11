@@ -34,7 +34,7 @@ const resumenItem: NavItem = { title: "Resumen Ejecutivo", url: "/", icon: Trend
 const presupuestoItem: NavItem = { title: "Presupuesto", url: "/presupuestos", icon: Target, description: "Metas de venta", module: "dashboards.presupuestos", action: "view" };
 const rendimientoTiendasItem: NavItem = { title: "Rendimiento Tiendas", url: "/rendimiento-red", icon: Store, description: "Same-store, maduración y eficiencia", module: "dashboards.rendimiento_red", action: "view" };
 const saludProductoItem: NavItem = { title: "Salud de Producto", url: "/producto", icon: Tag, description: "Sell-through & WOS", module: "dashboards.salud_producto", action: "view" };
-const desempenoLineaItem: NavItem = { title: "Salud por Línea", url: "/lineas", icon: Layers, description: "Categorías & canales", module: "dashboards.desempeno_linea", action: "view" };
+const desempenoLineaItem: NavItem = { title: "Salud por Línea", url: "/lineas", icon: Activity, description: "Categorías & canales", module: "dashboards.desempeno_linea", action: "view" };
 const cierreColeccionItem: NavItem = { title: "Comportamiento de Colecciones", url: "/cierre-coleccion", icon: Archive, description: "Desempeño por colección & remanentes", module: "producto.cierre_coleccion", action: "view" };
 
 
@@ -49,7 +49,7 @@ const producto360Item: NavItem = { title: "Análisis de producto", url: "/analis
 
 const mapaProductoItem: NavItem = { title: "Mapa de producto", url: "/mapa-producto", icon: ScatterChart, description: "Evacuación contra calidad de venta", module: "dashboards.salud_producto", action: "view" };
 
-const linea360Item: NavItem = { title: "Análisis por línea", url: "/analisis-linea", icon: Layers, description: "Evacuación, calidad de venta y stock agregados por línea", module: "dashboards.salud_producto", action: "view" };
+const linea360Item: NavItem = { title: "Análisis por línea", url: "/analisis-linea", icon: LineChart, description: "Evacuación, calidad de venta y stock agregados por línea", module: "dashboards.salud_producto", action: "view" };
 
 const saludPublicacionItem: NavItem = { title: "Salud de publicación", url: "/salud-publicacion", icon: Globe, description: "Diagnóstico del canal online", module: "dashboards.salud_producto", action: "view" };
 
