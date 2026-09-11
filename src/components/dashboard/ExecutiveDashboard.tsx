@@ -116,6 +116,7 @@ function fetchComportamientoProducto(params: {
 async function fetchTopProductosGlobal(params: {
   dias_atras: number;
   p_hasta: string | null;
+  p_desde?: string | null;
   p_orden: "TOP" | "BOTTOM";
   p_limite: number;
   p_canal?: string | null;
@@ -128,6 +129,7 @@ async function fetchTopProductosGlobal(params: {
     p_orden: params.p_orden,
     p_limite: params.p_limite,
     p_hasta: params.p_hasta,
+    p_desde: params.p_desde ?? null,
     p_location_id: params.p_location_id ?? null,
   });
   if (error) {
@@ -1238,11 +1240,11 @@ function ChannelPanel({ days, canal, showLocationFilter, locationFilter, compari
             });
           })(),
           fetchTopProductosGlobal({
-            dias_atras: effectiveDays, p_hasta: hastaParam, p_orden: "TOP",
+            dias_atras: effectiveDays, p_hasta: hastaParam, p_desde: customFrom ? _toDateStr(customFrom) : null, p_orden: "TOP",
             p_limite: 20, p_canal: canal, p_location_id: locParam,
           }),
           fetchTopProductosGlobal({
-            dias_atras: effectiveDays, p_hasta: hastaParam, p_orden: "BOTTOM",
+            dias_atras: effectiveDays, p_hasta: hastaParam, p_desde: customFrom ? _toDateStr(customFrom) : null, p_orden: "BOTTOM",
             p_limite: 20, p_canal: canal, p_location_id: locParam,
           }),
           // Fetch m² for the selected location or all relevant locations
@@ -1481,8 +1483,8 @@ function BrandTopBottomProducts({ days, customFrom, customTo }: { days: number; 
         coleccion: r.coleccion ?? "Otros",
       });
       const [topRes, bottomRes] = await Promise.all([
-        fetchTopProductosGlobal({ dias_atras: effectiveDays, p_hasta: hastaParam, p_orden: "TOP", p_limite: 5 }),
-        fetchTopProductosGlobal({ dias_atras: effectiveDays, p_hasta: hastaParam, p_orden: "BOTTOM", p_limite: 5 }),
+        fetchTopProductosGlobal({ dias_atras: effectiveDays, p_hasta: hastaParam, p_desde: customFrom ? _toDateStr(customFrom) : null, p_orden: "TOP", p_limite: 5 }),
+        fetchTopProductosGlobal({ dias_atras: effectiveDays, p_hasta: hastaParam, p_desde: customFrom ? _toDateStr(customFrom) : null, p_orden: "BOTTOM", p_limite: 5 }),
       ]);
       setTop5(topRes.map(toGlobal));
       setBottom5(bottomRes.map(toGlobal));
@@ -1875,11 +1877,11 @@ function ZonePanel({ days, locationFilter, comparisonPeriod = "previous", custom
         (() => { const cr = resolveComparisonRange(days, comparisonPeriod, customFrom, customTo); return supabase.rpc("reporte_kpis_por_rango" as any, { p_desde: toDateStr(cr.from), p_hasta: toDateStr(cr.to), p_canal: canal, p_location_id: locParam, p_zona: zonaParam }); })(),
         supabase.rpc("reporte_ranking_tiendas", { dias_atras: effectiveDays, p_canal: canal, p_hasta: hastaParam }),
         fetchTopProductosGlobal({
-          dias_atras: effectiveDays, p_hasta: hastaParam, p_orden: "TOP",
+          dias_atras: effectiveDays, p_hasta: hastaParam, p_desde: customFrom ? _toDateStr(customFrom) : null, p_orden: "TOP",
           p_limite: 20, p_canal: canal, p_location_id: locParam,
         }),
         fetchTopProductosGlobal({
-          dias_atras: effectiveDays, p_hasta: hastaParam, p_orden: "BOTTOM",
+          dias_atras: effectiveDays, p_hasta: hastaParam, p_desde: customFrom ? _toDateStr(customFrom) : null, p_orden: "BOTTOM",
           p_limite: 20, p_canal: canal, p_location_id: locParam,
         }),
         locParam
