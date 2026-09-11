@@ -3099,6 +3099,63 @@ export type Database = {
         }
         Relationships: []
       }
+      mv_cobertura_producto_tienda: {
+        Row: {
+          coleccion: string | null
+          dias_desde_llegada: number | null
+          dias_ultima_venta: number | null
+          en_ventana: boolean | null
+          estado: string | null
+          fecha_llegada: string | null
+          foto: string | null
+          linea: string | null
+          location_id: string | null
+          pct_evacuado: number | null
+          product_id: string | null
+          stock_actual: number | null
+          tienda: string | null
+          tipo_tienda: string | null
+          titulo: string | null
+          uds_recibidas: number | null
+          uds_vendidas: number | null
+        }
+        Relationships: []
+      }
+      mv_distribucion_sku_tienda: {
+        Row: {
+          coleccion: string | null
+          desenlace: string | null
+          dias_en_red: number | null
+          fecha_llegada: string | null
+          genero_norm: string | null
+          linea: string | null
+          location_id: string | null
+          n_envios: number | null
+          precio: number | null
+          primera_salida: string | null
+          primera_salida_outlet: string | null
+          primera_venta: string | null
+          product_id: string | null
+          producto: string | null
+          sell_through: number | null
+          sku: string | null
+          stock_actual: number | null
+          talla: string | null
+          tienda: string | null
+          tipo_tienda: string | null
+          uds_a_otra_tienda: number | null
+          uds_a_outlet: number | null
+          uds_dia: number | null
+          uds_recibidas: number | null
+          uds_salieron: number | null
+          uds_vendidas: number | null
+          uds_vendidas_full: number | null
+          ultima_entrada: string | null
+          ultima_venta: string | null
+          valor_vendido: number | null
+        }
+        Relationships: []
+      }
       mv_producto_clasificacion: {
         Row: {
           anio: number | null
@@ -4416,6 +4473,7 @@ export type Database = {
           transacciones: number
         }[]
       }
+      refrescar_cobertura: { Args: never; Returns: string }
       refresh_producto_clasificacion: { Args: never; Returns: undefined }
       registrar_trafico: {
         Args: { p_location_id: string; p_registros: Json; p_token: string }
@@ -5220,6 +5278,64 @@ export type Database = {
           wos: number
         }[]
       }
+      reporte_diagnostico_sobrestock: {
+        Args: {
+          p_coleccion?: string
+          p_dias_ventana?: number
+          p_linea?: string
+        }
+        Returns: {
+          accion: string
+          causa: string
+          coleccion: string
+          demanda_perdida: number
+          dias_en_red: number
+          foto: string
+          linea: string
+          product_id: string
+          producto: string
+          sell_through: number
+          st_talla_peor: number
+          stock_actual: number
+          talla_peor: string
+          tallas_sanas: number
+          tallas_total: number
+          tiendas_agotadas: number
+          tiendas_con_exceso: number
+          tiendas_total: number
+          uds_recibidas: number
+          uds_redistribuibles: number
+          uds_vendidas: number
+          valor_en_juego: number
+        }[]
+      }
+      reporte_distribucion_demanda_perdida: {
+        Args: {
+          p_coleccion?: string
+          p_dias_ventana?: number
+          p_linea?: string
+          p_location_id?: string
+        }
+        Returns: {
+          coleccion: string
+          demanda_perdida: number
+          dias_agotado: number
+          linea: string
+          location_id: string
+          precio: number
+          product_id: string
+          producto: string
+          sell_through: number
+          sku: string
+          talla: string
+          tienda: string
+          tipo_tienda: string
+          uds_dia: number
+          uds_recibidas: number
+          uds_vendidas: number
+          valor_perdido: number
+        }[]
+      }
       reporte_eficiencia_actual: {
         Args: { p_dias?: number }
         Returns: {
@@ -5398,6 +5514,26 @@ export type Database = {
           venta_promedio_semana: number
         }[]
       }
+      reporte_oportunidad_redistribucion: {
+        Args: { p_coleccion?: string; p_dias_ventana?: number }
+        Returns: {
+          coleccion: string
+          dias_agotado: number
+          linea: string
+          precio: number
+          product_id: string
+          producto: string
+          sell_through_origen: number
+          sku: string
+          stock_disponible: number
+          talla: string
+          tienda_falto: string
+          tienda_sobra: string
+          uds_movibles: number
+          uds_perdidas: number
+          valor_oportunidad: number
+        }[]
+      }
       reporte_pareto_categorias: {
         Args: {
           dias_atras: number
@@ -5469,6 +5605,35 @@ export type Database = {
           sku: string
           sucursal: string
           tipo_venta: string
+        }[]
+      }
+      reporte_perfil_tienda_distribucion: {
+        Args: {
+          p_coleccion?: string
+          p_dias_ventana?: number
+          p_linea?: string
+        }
+        Returns: {
+          demanda_perdida: number
+          indice_asignacion: number
+          location_id: string
+          pct_agotados: number
+          pct_exceso: number
+          perfil: string
+          recomendacion: string
+          sell_through: number
+          skus_agotados: number
+          skus_con_exceso: number
+          skus_maduros: number
+          skus_recibidos: number
+          stock_actual: number
+          tienda: string
+          tipo_tienda: string
+          uds_recibidas: number
+          uds_sobrantes: number
+          uds_vendidas: number
+          valor_perdido: number
+          valor_sobrante: number
         }[]
       }
       reporte_presupuesto_por_canal: {
