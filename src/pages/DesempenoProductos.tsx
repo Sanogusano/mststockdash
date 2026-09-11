@@ -201,7 +201,7 @@ export default function DesempenoProductosPage() {
       setLoading(false);
     }
     fetch();
-  }, [days, canal, catFilter, orden, topN]);
+  }, [days, canal, catFilter, orden, topN, locationId, fromQP, toQP]);
 
   // Sincronizar filtros rápidos con la URL
   useEffect(() => {
