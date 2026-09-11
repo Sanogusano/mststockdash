@@ -34,14 +34,16 @@ function ErrorBox({ error }: { error: unknown }) {
   return <p role="alert" className="border border-destructive/30 p-3 text-sm text-destructive">{String((error as { message?: string })?.message ?? error)}</p>;
 }
 function Recorrido({ row }: { row: Embudo }) {
+  const totalExistencias = (row.stock_tienda ?? 0) + (row.stock_online ?? 0) + (row.stock_outlet ?? 0) + (row.stock_bodega ?? 0);
   const items: [string, number, string?, boolean?][] = [
     ["Producido", row.producido], ["Distribuido", row.distribuido, `a ${entero(row.tiendas_alcanzadas)} tiendas`],
     ["Vendido", row.vendido_total, pct(row.pct_vendido)], ["Precio pleno", row.vendido_full, undefined, true],
     ["Promoción", row.vendido_promo, undefined, true], ["Rebajado", row.vendido_rebaja, undefined, true],
     ["En tienda", row.stock_tienda, `${cop(row.valor_parado)} parados`], ["En online", row.stock_online],
     ["En outlet", row.stock_outlet], ["En bodega", row.stock_bodega],
+    ["Total existencias", totalExistencias, undefined, false, true],
   ];
-  return <dl className="space-y-2 text-sm">{items.map(([label, value, hint, child], i) => <div key={label} className={cn("grid grid-cols-[1fr_auto] gap-x-3", i > 0 && "border-l border-border pl-3", child && "ml-4 text-xs text-muted-foreground")}><dt>{label}</dt><dd className="font-medium tabular-nums">{entero(value)}</dd>{hint && <dd className="col-span-2 text-right text-[11px] text-muted-foreground">{hint}</dd>}</div>)}</dl>;
+  return <dl className="space-y-2 text-sm">{items.map(([label, value, hint, child, total], i) => <div key={label} className={cn("grid grid-cols-[1fr_auto] gap-x-3", i > 0 && !total && "border-l border-border pl-3", child && "ml-4 text-xs text-muted-foreground", total && "border-t border-border pt-2 mt-2 font-semibold")}><dt>{label}</dt><dd className="font-medium tabular-nums">{entero(value)}</dd>{hint && <dd className="col-span-2 text-right text-[11px] text-muted-foreground">{hint}</dd>}</div>)}</dl>;
 }
 const embudoColumns: [keyof Embudo, string][] = [["coleccion", "Colección"], ["producido", "Producido"], ["distribuido", "Distribuido"], ["tiendas_alcanzadas", "Tiendas"], ["vendido_total", "Vendido"], ["pct_vendido", "% Vendido"], ["pct_sin_rebaja", "% Sin rebaja"], ["vendido_full", "Precio pleno"], ["vendido_promo", "Promoción"], ["vendido_rebaja", "Rebajado"], ["stock_tienda", "En tienda"], ["valor_parado", "Valor parado ($ COP)"], ["stock_online", "En online"], ["stock_outlet", "En outlet"], ["stock_bodega", "En bodega"], ["antiguedad_ponderada", "Días ponderados"], ["n_drops", "Drops"], ["primer_drop", "Primer drop"], ["ultimo_drop", "Último drop"]];
 const tiendaColumns: [keyof Tienda, string][] = [["tienda", "Tienda"], ["conclusion", "Conclusión"], ["accion", "Acción"], ["valor_parado", "Valor parado ($ COP)"], ["pct_agotados", "% Agotados"], ["pct_parados", "% Parados"], ["uds_recibidas", "Recibidas"], ["uds_vendidas", "Vendidas"], ["uds_salieron", "Salieron"], ["uds_a_outlet", "A outlet"], ["stock_actual", "Stock"], ["sell_through", "Sell-through (%)"]];
