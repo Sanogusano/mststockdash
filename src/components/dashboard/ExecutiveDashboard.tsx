@@ -1277,29 +1277,8 @@ function ChannelPanel({ days, canal, showLocationFilter, locationFilter, compari
           setChannelM2(relevantLocs.reduce((s: number, r: any) => s + (r.dimension_m2 ?? 0), 0));
         }
 
-        if (topRes.error) console.error("Error en reporte_ejecutivo_productos (TOP):", topRes.error);
-        if (topRes.data) {
-          setTopProducts((topRes.data as any[]).map((r: any) => ({
-            foto: r.foto ?? null, producto: r.producto ?? "—", sku: r.sku ?? null,
-            categoria: r.categoria ?? null, clasificacion: r.clasificacion ?? null,
-            unidades_vendidas: r.unidades_vendidas ?? 0, precio_promedio: r.precio_prom_venta ?? 0,
-            stock_disponible: r.stock_disponible ?? 0,
-            sell_through_pct: r.sell_through_pct ?? 0, wos: r.wos ?? 0,
-            coleccion: r.coleccion ?? "Otros",
-          } as ProductRow)));
-        }
-
-        if (bottomRes.error) console.error("Error en reporte_ejecutivo_productos (BOTTOM):", bottomRes.error);
-        if (bottomRes.data) {
-          setBottomProducts((bottomRes.data as any[]).map((r: any) => ({
-            foto: r.foto ?? null, producto: r.producto ?? "—", sku: r.sku ?? null,
-            categoria: r.categoria ?? null, clasificacion: r.clasificacion ?? null,
-            unidades_vendidas: r.unidades_vendidas ?? 0, precio_promedio: r.precio_prom_venta ?? 0,
-            stock_disponible: r.stock_disponible ?? 0,
-            sell_through_pct: r.sell_through_pct ?? 0, wos: r.wos ?? 0,
-            coleccion: r.coleccion ?? "Otros",
-          } as ProductRow)));
-        }
+        setTopProducts(topRes);
+        setBottomProducts(bottomRes);
       } catch (err) {
         console.error("Error inesperado en fetchAll:", err);
       }
