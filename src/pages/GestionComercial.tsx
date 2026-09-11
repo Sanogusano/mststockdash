@@ -220,6 +220,7 @@ export default function GestionComercialPage() {
   const [error, setError] = useState<string | null>(null);
   
   const [sel, setSel] = useState<Fila | null>(null);
+  const [segKey, setSegKey] = useState(0);
   const [zona, setZona] = useState<string>("todas");
   const [tienda, setTienda] = useState<string>("todas");
 
