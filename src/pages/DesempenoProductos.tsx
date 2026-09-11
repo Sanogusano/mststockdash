@@ -190,6 +190,7 @@ export default function DesempenoProductosPage() {
         p_orden: orden,
         p_limite: topN,
         p_hasta: hastaParam,
+        p_desde: fromQP,
         p_location_id: locationId,
       });
       if (err) {
@@ -520,7 +521,9 @@ export default function DesempenoProductosPage() {
                           </TableCell>
                           <TableCell>
                             <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-semibold whitespace-nowrap ${
-                              row.clasificacion?.includes("Full Price")
+                              row.clasificacion?.includes("Sin ventas")
+                                ? "bg-muted text-muted-foreground"
+                                : row.clasificacion?.includes("Full Price")
                                 ? "bg-emerald-500/10 text-emerald-600"
                                 : row.clasificacion?.includes("Rebajas")
                                 ? "bg-blue-500/10 text-blue-600"
