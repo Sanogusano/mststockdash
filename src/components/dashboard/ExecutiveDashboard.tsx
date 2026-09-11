@@ -1519,7 +1519,8 @@ function BrandTopBottomProducts({ days, customFrom, customTo }: { days: number; 
             <div className="text-right shrink-0">
               <p className="text-xs font-semibold text-foreground">{(item.und_total ?? 0).toLocaleString()} uds</p>
               <span className={`text-[10px] font-medium ${
-                item.clasificacion?.includes("Full Price") ? "text-emerald-600" 
+                item.clasificacion?.includes("Sin ventas") ? "text-muted-foreground"
+                : item.clasificacion?.includes("Full Price") ? "text-emerald-600" 
                 : item.clasificacion?.includes("Rebajas") ? "text-destructive" 
                 : "text-warning"
               }`}>
