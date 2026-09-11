@@ -1221,7 +1221,7 @@ function ChannelPanel({ days, canal, showLocationFilter, locationFilter, compari
       if (!isValidDays(days)) return;
       setLoading(true);
       const locParam = selectedLocation === "all" ? null : selectedLocation;
-      const canalFiltro = canal === "digital" ? "DIGITAL" : canal === "outlets" ? "OUTLET" : "TIENDAS";
+      
       const { dias_atras: effectiveDays, p_hasta: hastaParam } = buildRpcDateParams(days, customFrom, customTo);
 
       try {
