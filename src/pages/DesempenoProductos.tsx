@@ -156,6 +156,11 @@ export default function DesempenoProductosPage() {
   const orden = searchParams.get("orden") === "BOTTOM" ? "BOTTOM" : "TOP";
   const daysQP = searchParams.get("days");
   const initialDays = daysQP && Number(daysQP) > 0 ? Number(daysQP) : THIS_MONTH_SENTINEL;
+  const locationId = searchParams.get("location") || null;
+  const fromQP = searchParams.get("from");
+  const toQP = searchParams.get("to");
+  const rangeFrom = fromQP ? new Date(`${fromQP}T00:00:00`) : undefined;
+  const rangeTo = toQP ? new Date(`${toQP}T00:00:00`) : undefined;
 
   const [days, setDays] = useState<number>(initialDays);
   const [canal, setCanal] = useState(initialCanal);
