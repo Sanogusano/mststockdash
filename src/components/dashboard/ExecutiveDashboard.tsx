@@ -435,7 +435,8 @@ function ProductTable({ data, title, exportFilename, days, canalFiltro, location
                     <td className="px-3 py-3 text-right font-semibold">{(row.unidades_vendidas ?? 0).toLocaleString()}</td>
                     <td className="px-3 py-3 min-w-[120px]">
                       <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-semibold whitespace-nowrap ${
-                        row.clasificacion?.includes("Full Price") ? "bg-emerald-500/10 text-emerald-600"
+                        row.clasificacion?.includes("Sin ventas") ? "bg-muted text-muted-foreground"
+                        : row.clasificacion?.includes("Full Price") ? "bg-emerald-500/10 text-emerald-600"
                         : row.clasificacion?.includes("Rebajas") ? "bg-destructive/10 text-destructive"
                         : "bg-warning/10 text-warning"
                       }`}>
