@@ -1914,15 +1914,8 @@ function ZonePanel({ days, locationFilter, comparisonPeriod = "previous", custom
         setZoneMetrics(null);
       }
 
-      const mapProduct = (r: any): ProductRow => ({
-        foto: r.foto ?? null, producto: r.producto ?? "—", sku: r.sku ?? null,
-        categoria: r.categoria ?? null, clasificacion: r.clasificacion ?? null,
-        unidades_vendidas: r.unidades_vendidas ?? 0, precio_promedio: r.precio_prom_venta ?? 0,
-        stock_disponible: r.stock_disponible ?? 0, sell_through_pct: r.sell_through_pct ?? 0, wos: r.wos ?? 0,
-        coleccion: r.coleccion ?? "Otros",
-      });
-      if (topRes.data) setTopProducts((topRes.data as any[]).map(mapProduct));
-      if (bottomRes.data) setBottomProducts((bottomRes.data as any[]).map(mapProduct));
+      setTopProducts(topRes);
+      setBottomProducts(bottomRes);
       setLoading(false);
     }
     fetchAll();
