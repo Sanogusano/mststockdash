@@ -1872,11 +1872,13 @@ function ZonePanel({ days, locationFilter, comparisonPeriod = "previous", custom
         buildKpiCall(days, effectiveDays, { p_canal: canal, p_location_id: locParam, p_zona: zonaParam, customFrom, customTo }),
         (() => { const cr = resolveComparisonRange(days, comparisonPeriod, customFrom, customTo); return supabase.rpc("reporte_kpis_por_rango" as any, { p_desde: toDateStr(cr.from), p_hasta: toDateStr(cr.to), p_canal: canal, p_location_id: locParam, p_zona: zonaParam }); })(),
         supabase.rpc("reporte_ranking_tiendas", { dias_atras: effectiveDays, p_canal: canal, p_hasta: hastaParam }),
-        supabase.rpc("reporte_ejecutivo_productos" as any, {
-          dias_atras: effectiveDays, canal_filtro: canalFiltro, location_filtro: locParam, orden: "TOP", limite: 20, zona_filtro: zonaParam, p_hasta: hastaParam,
+        fetchTopProductosGlobal({
+          dias_atras: effectiveDays, p_hasta: hastaParam, p_orden: "TOP",
+          p_limite: 20, p_canal: canal, p_location_id: locParam,
         }),
-        supabase.rpc("reporte_ejecutivo_productos" as any, {
-          dias_atras: effectiveDays, canal_filtro: canalFiltro, location_filtro: locParam, orden: "BOTTOM", limite: 20, zona_filtro: zonaParam, p_hasta: hastaParam,
+        fetchTopProductosGlobal({
+          dias_atras: effectiveDays, p_hasta: hastaParam, p_orden: "BOTTOM",
+          p_limite: 20, p_canal: canal, p_location_id: locParam,
         }),
         locParam
           ? supabase.from("locations").select("dimension_m2").eq("location_id", locParam)
