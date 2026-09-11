@@ -545,7 +545,7 @@ export default function GestionComercialPage() {
   );
 }
 
-function DetalleTienda({ fila, anio, mes }: { fila: Fila; anio: number; mes: number }) {
+function DetalleTienda({ fila, anio, mes, onAplicada }: { fila: Fila; anio: number; mes: number; onAplicada?: () => void }) {
   const [diag, setDiag] = useState<Diag | null>(null);
   const [prods, setProds] = useState<Prod[]>([]);
   const [equipo, setEquipo] = useState<EquipoRow[]>([]);
