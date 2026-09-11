@@ -1236,21 +1236,13 @@ function ChannelPanel({ days, canal, showLocationFilter, locationFilter, compari
               p_location_id: locParam,
             });
           })(),
-          supabase.rpc("reporte_ejecutivo_productos", {
-            dias_atras: effectiveDays,
-            canal_filtro: canalFiltro,
-            location_filtro: locParam,
-            orden: "TOP",
-            limite: 20,
-            p_hasta: hastaParam,
+          fetchTopProductosGlobal({
+            dias_atras: effectiveDays, p_hasta: hastaParam, p_orden: "TOP",
+            p_limite: 20, p_canal: canal, p_location_id: locParam,
           }),
-          supabase.rpc("reporte_ejecutivo_productos", {
-            dias_atras: effectiveDays,
-            canal_filtro: canalFiltro,
-            location_filtro: locParam,
-            orden: "BOTTOM",
-            limite: 20,
-            p_hasta: hastaParam,
+          fetchTopProductosGlobal({
+            dias_atras: effectiveDays, p_hasta: hastaParam, p_orden: "BOTTOM",
+            p_limite: 20, p_canal: canal, p_location_id: locParam,
           }),
           // Fetch m² for the selected location or all relevant locations
           locParam
