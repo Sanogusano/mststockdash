@@ -1534,7 +1534,7 @@ function BrandTopBottomProducts({ days, customFrom, customTo }: { days: number; 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
       {renderList(top5, <TrendingUp className="h-4 w-4 text-emerald-600" />, "Top 5 Más Vendidos", "text-emerald-600",
-        () => navigate(`/desempeno-productos?orden=TOP&days=${resolveDays(days)}`))}
+        () => navigate(buildDesempenoUrl({ orden: "TOP", days, customFrom, customTo })))}
       {renderList(bottom5, <TrendingDown className="h-4 w-4 text-destructive" />, "Top 5 Menor Rotación", "text-destructive",
         () => navigate(`/desempeno-productos?orden=BOTTOM&days=${resolveDays(days)}`))}
     </div>
