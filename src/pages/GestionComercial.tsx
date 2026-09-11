@@ -9,6 +9,7 @@ import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { Siren, AlertTriangle, Users, UserRound, Receipt, ShoppingBag, Package, Store, Globe, Lightbulb, CalendarDays, Layers } from "lucide-react";
+import { EstrategiasSugeridas, EstrategiasSeguimiento } from "@/components/dashboard/EstrategiasPanel";
 
 /**
  * Accionables — lista priorizada de puntos de venta lejos de cumplir,
@@ -220,6 +221,7 @@ export default function GestionComercialPage() {
   const [error, setError] = useState<string | null>(null);
   
   const [sel, setSel] = useState<Fila | null>(null);
+  const [segKey, setSegKey] = useState(0);
   const [zona, setZona] = useState<string>("todas");
   const [tienda, setTienda] = useState<string>("todas");
 
@@ -445,6 +447,10 @@ export default function GestionComercialPage() {
               </div>
             )}
 
+            {/* ── Seguimiento de estrategias aplicadas ── */}
+            <EstrategiasSeguimiento anio={anio} mes={mes} refreshKey={segKey} />
+
+
             {/* ── Nivel 2: tarjetas de todas las entidades ── */}
             {!loading && visibles.length > 0 && (
               <div>
@@ -538,14 +544,14 @@ export default function GestionComercialPage() {
 
       <Sheet open={!!sel} onOpenChange={(o) => !o && setSel(null)}>
         <SheetContent side="right" className="w-full sm:max-w-2xl overflow-y-auto">
-          {sel && <DetalleTienda fila={sel} anio={anio} mes={mes} />}
+          {sel && <DetalleTienda fila={sel} anio={anio} mes={mes} onAplicada={() => setSegKey((k) => k + 1)} />}
         </SheetContent>
       </Sheet>
     </SidebarProvider>
   );
 }
 
-function DetalleTienda({ fila, anio, mes }: { fila: Fila; anio: number; mes: number }) {
+function DetalleTienda({ fila, anio, mes, onAplicada }: { fila: Fila; anio: number; mes: number; onAplicada?: () => void }) {
   const [diag, setDiag] = useState<Diag | null>(null);
   const [prods, setProds] = useState<Prod[]>([]);
   const [equipo, setEquipo] = useState<EquipoRow[]>([]);
@@ -1143,11 +1149,15 @@ function DetalleTienda({ fila, anio, mes }: { fila: Fila; anio: number; mes: num
       {!loading && diag && (
         esTienda ? (
           <Tabs value={tab} onValueChange={setTab}>
-            <TabsList className="w-full grid grid-cols-3">
+            <TabsList className="w-full grid grid-cols-4">
               <TabsTrigger value="diagnostico">Diagnóstico</TabsTrigger>
               <TabsTrigger value="producto">Producto</TabsTrigger>
               <TabsTrigger value="equipo">Equipo</TabsTrigger>
+              <TabsTrigger value="estrategias">Estrategias</TabsTrigger>
             </TabsList>
+            <TabsContent value="estrategias" className="mt-4">
+              <EstrategiasSugeridas clave={fila.clave ?? fila.nombre} fecha={fechaCorte} onAplicada={onAplicada} />
+            </TabsContent>
             <TabsContent value="diagnostico" className="mt-4">
               {Diagnostico}
             </TabsContent>
@@ -1256,12 +1266,16 @@ function DetalleTienda({ fila, anio, mes }: { fila: Fila; anio: number; mes: num
           </Tabs>
         ) : (
           <Tabs value={tab === "equipo" ? "diagnostico" : tab} onValueChange={setTab}>
-            <TabsList className="w-full grid grid-cols-2">
+            <TabsList className="w-full grid grid-cols-3">
               <TabsTrigger value="diagnostico">Diagnóstico</TabsTrigger>
               <TabsTrigger value="producto">Producto</TabsTrigger>
+              <TabsTrigger value="estrategias">Estrategias</TabsTrigger>
             </TabsList>
             <TabsContent value="diagnostico" className="mt-4">{Diagnostico}</TabsContent>
             <TabsContent value="producto" className="mt-4">{PanelProducto}</TabsContent>
+            <TabsContent value="estrategias" className="mt-4">
+              <EstrategiasSugeridas clave={fila.clave ?? fila.nombre} fecha={fechaCorte} onAplicada={onAplicada} />
+            </TabsContent>
           </Tabs>
         )
       )}
