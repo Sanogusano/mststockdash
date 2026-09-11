@@ -109,6 +109,74 @@ function fetchComportamientoProducto(params: {
   return promise;
 }
 
+/* ── Fuente única de rankings Top/Bottom ──
+   Los tres bloques del Resumen Ejecutivo (Top/Bottom 5 de marca, tablas de
+   Zona y de Canal) consumen reporte_top_productos_global. El orden y el
+   recorte vienen de la RPC: nunca se ordena ni se filtra en cliente. */
+async function fetchTopProductosGlobal(params: {
+  dias_atras: number;
+  p_hasta: string | null;
+  p_orden: "TOP" | "BOTTOM";
+  p_limite: number;
+  p_canal?: string | null;
+  p_location_id?: string | null;
+}): Promise<ProductRow[]> {
+  const { data, error } = await supabase.rpc("reporte_top_productos_global" as any, {
+    dias_atras: params.dias_atras,
+    p_canal: params.p_canal ?? null,
+    p_categoria: null,
+    p_orden: params.p_orden,
+    p_limite: params.p_limite,
+    p_hasta: params.p_hasta,
+    p_location_id: params.p_location_id ?? null,
+  });
+  if (error) {
+    if (import.meta.env.DEV) console.error("Error en reporte_top_productos_global:", error);
+    return [];
+  }
+  const semanas = Math.max(params.dias_atras / 7, 1);
+  return ((data as any[]) ?? []).map((r: any) => {
+    const und = toNumber(r.und_total);
+    const stock = toNumber(r.stock_venta_directa);
+    const base = und + stock;
+    const velocidad = und / semanas;
+    return {
+      foto: r.foto ?? null,
+      producto: r.producto ?? "—",
+      sku: r.sku ?? null,
+      categoria: r.categoria ?? null,
+      clasificacion: r.clasificacion ?? null,
+      unidades_vendidas: und,
+      precio_promedio: und > 0 ? toNumber(r.venta_neta) / und : 0,
+      stock_disponible: stock,
+      sell_through_pct: base > 0 ? (und / base) * 100 : 0,
+      wos: velocidad > 0 ? stock / velocidad : 0,
+      coleccion: r.coleccion ?? "Otros",
+    } as ProductRow;
+  });
+}
+
+/** Enlace a Desempeño de Productos propagando TODO el contexto activo. */
+function buildDesempenoUrl(opts: {
+  orden: "TOP" | "BOTTOM";
+  days: number;
+  canal?: string | null;
+  locationId?: string | null;
+  customFrom?: Date;
+  customTo?: Date;
+}): string {
+  const p = new URLSearchParams();
+  p.set("orden", opts.orden);
+  p.set("days", String(resolveDays(opts.days)));
+  if (opts.canal) p.set("canal", opts.canal);
+  if (opts.locationId) p.set("location", opts.locationId);
+  if (opts.customFrom && opts.customTo) {
+    p.set("from", _toDateStr(opts.customFrom));
+    p.set("to", _toDateStr(opts.customTo));
+  }
+  return `/desempeno-productos?${p.toString()}`;
+}
+
 interface SkuDetailRow {
   sku: string;
   unidades_vendidas: number;
@@ -367,7 +435,8 @@ function ProductTable({ data, title, exportFilename, days, canalFiltro, location
                     <td className="px-3 py-3 text-right font-semibold">{(row.unidades_vendidas ?? 0).toLocaleString()}</td>
                     <td className="px-3 py-3 min-w-[120px]">
                       <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-semibold whitespace-nowrap ${
-                        row.clasificacion?.includes("Full Price") ? "bg-emerald-500/10 text-emerald-600"
+                        row.clasificacion?.includes("Sin ventas") ? "bg-muted text-muted-foreground"
+                        : row.clasificacion?.includes("Full Price") ? "bg-emerald-500/10 text-emerald-600"
                         : row.clasificacion?.includes("Rebajas") ? "bg-destructive/10 text-destructive"
                         : "bg-warning/10 text-warning"
                       }`}>
@@ -1153,7 +1222,7 @@ function ChannelPanel({ days, canal, showLocationFilter, locationFilter, compari
       if (!isValidDays(days)) return;
       setLoading(true);
       const locParam = selectedLocation === "all" ? null : selectedLocation;
-      const canalFiltro = canal === "digital" ? "DIGITAL" : canal === "outlets" ? "OUTLET" : "TIENDAS";
+      
       const { dias_atras: effectiveDays, p_hasta: hastaParam } = buildRpcDateParams(days, customFrom, customTo);
 
       try {
@@ -1168,21 +1237,13 @@ function ChannelPanel({ days, canal, showLocationFilter, locationFilter, compari
               p_location_id: locParam,
             });
           })(),
-          supabase.rpc("reporte_ejecutivo_productos", {
-            dias_atras: effectiveDays,
-            canal_filtro: canalFiltro,
-            location_filtro: locParam,
-            orden: "TOP",
-            limite: 20,
-            p_hasta: hastaParam,
+          fetchTopProductosGlobal({
+            dias_atras: effectiveDays, p_hasta: hastaParam, p_orden: "TOP",
+            p_limite: 20, p_canal: canal, p_location_id: locParam,
           }),
-          supabase.rpc("reporte_ejecutivo_productos", {
-            dias_atras: effectiveDays,
-            canal_filtro: canalFiltro,
-            location_filtro: locParam,
-            orden: "BOTTOM",
-            limite: 20,
-            p_hasta: hastaParam,
+          fetchTopProductosGlobal({
+            dias_atras: effectiveDays, p_hasta: hastaParam, p_orden: "BOTTOM",
+            p_limite: 20, p_canal: canal, p_location_id: locParam,
           }),
           // Fetch m² for the selected location or all relevant locations
           locParam
@@ -1217,29 +1278,8 @@ function ChannelPanel({ days, canal, showLocationFilter, locationFilter, compari
           setChannelM2(relevantLocs.reduce((s: number, r: any) => s + (r.dimension_m2 ?? 0), 0));
         }
 
-        if (topRes.error) console.error("Error en reporte_ejecutivo_productos (TOP):", topRes.error);
-        if (topRes.data) {
-          setTopProducts((topRes.data as any[]).map((r: any) => ({
-            foto: r.foto ?? null, producto: r.producto ?? "—", sku: r.sku ?? null,
-            categoria: r.categoria ?? null, clasificacion: r.clasificacion ?? null,
-            unidades_vendidas: r.unidades_vendidas ?? 0, precio_promedio: r.precio_prom_venta ?? 0,
-            stock_disponible: r.stock_disponible ?? 0,
-            sell_through_pct: r.sell_through_pct ?? 0, wos: r.wos ?? 0,
-            coleccion: r.coleccion ?? "Otros",
-          } as ProductRow)));
-        }
-
-        if (bottomRes.error) console.error("Error en reporte_ejecutivo_productos (BOTTOM):", bottomRes.error);
-        if (bottomRes.data) {
-          setBottomProducts((bottomRes.data as any[]).map((r: any) => ({
-            foto: r.foto ?? null, producto: r.producto ?? "—", sku: r.sku ?? null,
-            categoria: r.categoria ?? null, clasificacion: r.clasificacion ?? null,
-            unidades_vendidas: r.unidades_vendidas ?? 0, precio_promedio: r.precio_prom_venta ?? 0,
-            stock_disponible: r.stock_disponible ?? 0,
-            sell_through_pct: r.sell_through_pct ?? 0, wos: r.wos ?? 0,
-            coleccion: r.coleccion ?? "Otros",
-          } as ProductRow)));
-        }
+        setTopProducts(topRes);
+        setBottomProducts(bottomRes);
       } catch (err) {
         console.error("Error inesperado en fetchAll:", err);
       }
@@ -1432,51 +1472,25 @@ function BrandTopBottomProducts({ days, customFrom, customTo }: { days: number; 
       if (!isValidDays(days)) return;
       setLoading(true);
       const { dias_atras: effectiveDays, p_hasta: hastaParam } = buildRpcDateParams(days, customFrom, customTo);
-      const data = await fetchComportamientoProducto({
-        dias_atras: effectiveDays,
-        p_location_id: null,
-        p_hasta: hastaParam,
-      });
-
-      const rows = ((data as any[]) ?? []).filter((r: any) => {
-        const categoria = String(r.categoria ?? "").toUpperCase();
-        const producto = String(r.producto ?? "").toUpperCase();
-        return !categoria.includes("INSUMOS") && !categoria.includes("BOLSA") && !producto.includes("BOLSA");
-      });
-
-      setTop5([...rows]
-        .filter((r: any) => toNumber(r.und_vendidas) > 0)
-        .sort((a: any, b: any) => toNumber(b.und_vendidas) - toNumber(a.und_vendidas))
-        .slice(0, 5)
-        .map((r: any) => ({
+      const toGlobal = (r: ProductRow): GlobalProductRow => ({
         foto: r.foto ?? null,
         producto: r.producto ?? null,
         categoria: r.categoria ?? null,
-        und_total: r.und_vendidas ?? 0,
+        und_total: r.unidades_vendidas ?? 0,
         clasificacion: r.clasificacion ?? null,
         coleccion: r.coleccion ?? "Otros",
-      })));
-
-      setBottom5([...rows]
-        .filter((r: any) => toNumber(r.stock_tiendas) + toNumber(r.stock_digital) > 0)
-        .sort((a: any, b: any) => {
-          const sellThroughDiff = toNumber(a.sell_through_pct) - toNumber(b.sell_through_pct);
-          if (Math.abs(sellThroughDiff) > 0.01) return sellThroughDiff;
-          return toNumber(b.wos) - toNumber(a.wos);
-        })
-        .slice(0, 5)
-        .map((r: any) => ({
-        foto: r.foto ?? null,
-        producto: r.producto ?? null,
-        categoria: r.categoria ?? null,
-        und_total: r.und_vendidas ?? 0,
-        clasificacion: r.clasificacion ?? null,
-        coleccion: r.coleccion ?? "Otros",
-      })));
+      });
+      const [topRes, bottomRes] = await Promise.all([
+        fetchTopProductosGlobal({ dias_atras: effectiveDays, p_hasta: hastaParam, p_orden: "TOP", p_limite: 5 }),
+        fetchTopProductosGlobal({ dias_atras: effectiveDays, p_hasta: hastaParam, p_orden: "BOTTOM", p_limite: 5 }),
+      ]);
+      setTop5(topRes.map(toGlobal));
+      setBottom5(bottomRes.map(toGlobal));
       setLoading(false);
     }
     fetch();
   }, [days, customFrom, customTo]);
+
 
   if (loading) return <LoadingState rows={2} />;
 
@@ -1505,7 +1519,8 @@ function BrandTopBottomProducts({ days, customFrom, customTo }: { days: number; 
             <div className="text-right shrink-0">
               <p className="text-xs font-semibold text-foreground">{(item.und_total ?? 0).toLocaleString()} uds</p>
               <span className={`text-[10px] font-medium ${
-                item.clasificacion?.includes("Full Price") ? "text-emerald-600" 
+                item.clasificacion?.includes("Sin ventas") ? "text-muted-foreground"
+                : item.clasificacion?.includes("Full Price") ? "text-emerald-600" 
                 : item.clasificacion?.includes("Rebajas") ? "text-destructive" 
                 : "text-warning"
               }`}>
@@ -1521,9 +1536,9 @@ function BrandTopBottomProducts({ days, customFrom, customTo }: { days: number; 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
       {renderList(top5, <TrendingUp className="h-4 w-4 text-emerald-600" />, "Top 5 Más Vendidos", "text-emerald-600",
-        () => navigate(`/desempeno-productos?orden=TOP&days=${resolveDays(days)}`))}
+        () => navigate(buildDesempenoUrl({ orden: "TOP", days, customFrom, customTo })))}
       {renderList(bottom5, <TrendingDown className="h-4 w-4 text-destructive" />, "Top 5 Menor Rotación", "text-destructive",
-        () => navigate(`/desempeno-productos?orden=BOTTOM&days=${resolveDays(days)}`))}
+        () => navigate(buildDesempenoUrl({ orden: "BOTTOM", days, customFrom, customTo })))}
     </div>
   );
 }
@@ -1859,11 +1874,13 @@ function ZonePanel({ days, locationFilter, comparisonPeriod = "previous", custom
         buildKpiCall(days, effectiveDays, { p_canal: canal, p_location_id: locParam, p_zona: zonaParam, customFrom, customTo }),
         (() => { const cr = resolveComparisonRange(days, comparisonPeriod, customFrom, customTo); return supabase.rpc("reporte_kpis_por_rango" as any, { p_desde: toDateStr(cr.from), p_hasta: toDateStr(cr.to), p_canal: canal, p_location_id: locParam, p_zona: zonaParam }); })(),
         supabase.rpc("reporte_ranking_tiendas", { dias_atras: effectiveDays, p_canal: canal, p_hasta: hastaParam }),
-        supabase.rpc("reporte_ejecutivo_productos" as any, {
-          dias_atras: effectiveDays, canal_filtro: canalFiltro, location_filtro: locParam, orden: "TOP", limite: 20, zona_filtro: zonaParam, p_hasta: hastaParam,
+        fetchTopProductosGlobal({
+          dias_atras: effectiveDays, p_hasta: hastaParam, p_orden: "TOP",
+          p_limite: 20, p_canal: canal, p_location_id: locParam,
         }),
-        supabase.rpc("reporte_ejecutivo_productos" as any, {
-          dias_atras: effectiveDays, canal_filtro: canalFiltro, location_filtro: locParam, orden: "BOTTOM", limite: 20, zona_filtro: zonaParam, p_hasta: hastaParam,
+        fetchTopProductosGlobal({
+          dias_atras: effectiveDays, p_hasta: hastaParam, p_orden: "BOTTOM",
+          p_limite: 20, p_canal: canal, p_location_id: locParam,
         }),
         locParam
           ? supabase.from("locations").select("dimension_m2").eq("location_id", locParam)
@@ -1899,15 +1916,8 @@ function ZonePanel({ days, locationFilter, comparisonPeriod = "previous", custom
         setZoneMetrics(null);
       }
 
-      const mapProduct = (r: any): ProductRow => ({
-        foto: r.foto ?? null, producto: r.producto ?? "—", sku: r.sku ?? null,
-        categoria: r.categoria ?? null, clasificacion: r.clasificacion ?? null,
-        unidades_vendidas: r.unidades_vendidas ?? 0, precio_promedio: r.precio_prom_venta ?? 0,
-        stock_disponible: r.stock_disponible ?? 0, sell_through_pct: r.sell_through_pct ?? 0, wos: r.wos ?? 0,
-        coleccion: r.coleccion ?? "Otros",
-      });
-      if (topRes.data) setTopProducts((topRes.data as any[]).map(mapProduct));
-      if (bottomRes.data) setBottomProducts((bottomRes.data as any[]).map(mapProduct));
+      setTopProducts(topRes);
+      setBottomProducts(bottomRes);
       setLoading(false);
     }
     fetchAll();

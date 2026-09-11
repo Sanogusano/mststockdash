@@ -5709,6 +5709,7 @@ export type Database = {
           p_desde?: string
           p_hasta?: string
           p_limite?: number
+          p_location_id?: string
           p_orden?: string
         }
         Returns: {

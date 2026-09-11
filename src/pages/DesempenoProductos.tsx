@@ -156,6 +156,11 @@ export default function DesempenoProductosPage() {
   const orden = searchParams.get("orden") === "BOTTOM" ? "BOTTOM" : "TOP";
   const daysQP = searchParams.get("days");
   const initialDays = daysQP && Number(daysQP) > 0 ? Number(daysQP) : THIS_MONTH_SENTINEL;
+  const locationId = searchParams.get("location") || null;
+  const fromQP = searchParams.get("from");
+  const toQP = searchParams.get("to");
+  const rangeFrom = fromQP ? new Date(`${fromQP}T00:00:00`) : undefined;
+  const rangeTo = toQP ? new Date(`${toQP}T00:00:00`) : undefined;
 
   const [days, setDays] = useState<number>(initialDays);
   const [canal, setCanal] = useState(initialCanal);
@@ -175,7 +180,7 @@ export default function DesempenoProductosPage() {
     async function fetch() {
       setLoading(true);
       setError(null);
-      const { dias_atras: effectiveDays, p_hasta: hastaParam } = buildRpcDateParams(days);
+      const { dias_atras: effectiveDays, p_hasta: hastaParam } = buildRpcDateParams(days, rangeFrom, rangeTo);
       const canalParam = canal === "all" ? null : canal;
       const catParam = catFilter === "all" ? null : catFilter;
       const { data: rows, error: err } = await supabase.rpc("reporte_top_productos_global" as any, {
@@ -185,6 +190,7 @@ export default function DesempenoProductosPage() {
         p_orden: orden,
         p_limite: topN,
         p_hasta: hastaParam,
+        p_location_id: locationId,
       });
       if (err) {
         setError(err.message);
@@ -195,7 +201,7 @@ export default function DesempenoProductosPage() {
       setLoading(false);
     }
     fetch();
-  }, [days, canal, catFilter, orden, topN]);
+  }, [days, canal, catFilter, orden, topN, locationId, fromQP, toQP]);
 
   // Sincronizar filtros rápidos con la URL
   useEffect(() => {
