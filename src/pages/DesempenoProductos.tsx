@@ -180,7 +180,7 @@ export default function DesempenoProductosPage() {
     async function fetch() {
       setLoading(true);
       setError(null);
-      const { dias_atras: effectiveDays, p_hasta: hastaParam } = buildRpcDateParams(days);
+      const { dias_atras: effectiveDays, p_hasta: hastaParam } = buildRpcDateParams(days, rangeFrom, rangeTo);
       const canalParam = canal === "all" ? null : canal;
       const catParam = catFilter === "all" ? null : catFilter;
       const { data: rows, error: err } = await supabase.rpc("reporte_top_productos_global" as any, {
@@ -190,6 +190,7 @@ export default function DesempenoProductosPage() {
         p_orden: orden,
         p_limite: topN,
         p_hasta: hastaParam,
+        p_location_id: locationId,
       });
       if (err) {
         setError(err.message);
