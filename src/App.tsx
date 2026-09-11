@@ -32,7 +32,6 @@ import PresupuestosPage from "./pages/Presupuestos";
 import IncentivosPage from "./pages/Incentivos";
 import CierreColeccionPage from "./pages/CierreColeccion";
 import ReporteRebajasPage from "./pages/ReporteRebajas";
-import CoberturaDistribucionPage from "./pages/CoberturaDistribucion";
 import DistribucionCoberturaPage from "./pages/DistribucionCobertura";
 
 import RendimientoVendedoresPage from "./pages/RendimientoVendedores";
@@ -102,7 +101,6 @@ const App = () => (
           <Route path="/analisis-producto" element={<Guard module="dashboards.salud_producto" action="view"><Producto360Page /></Guard>} />
           <Route path="/mapa-producto" element={<Guard module="dashboards.salud_producto" action="view"><MapaProductoPage /></Guard>} />
           <Route path="/analisis-linea-360" element={<Guard module="dashboards.desempeno_linea" action="view"><AnalisisLinea360Page /></Guard>} />
-          <Route path="/cobertura" element={<Guard module="dashboards.salud_producto" action="view"><CoberturaDistribucionPage /></Guard>} />
           <Route path="/distribucion" element={<Guard module="dashboards.salud_producto" action="view"><DistribucionCoberturaPage /></Guard>} />
           <Route path="/analisis-linea" element={<Guard module="dashboards.salud_producto" action="view"><Linea360Page /></Guard>} />
           <Route path="/top-productos" element={<Guard module="dashboards.inventario_salud" action="view"><TopProductosPage /></Guard>} />

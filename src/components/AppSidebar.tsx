@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { LineChart, BarChart3, TrendingUp, ArrowLeftRight, Package, Tag, Layers, Target, Zap, Trophy, Archive, Users, Calculator, UserCog, Briefcase, ChevronDown, Settings, MapPin, Upload, LogOut, Truck, Shield, Store, Banknote, LayoutDashboard, CreditCard, MessageCircle, AlertTriangle, RefreshCw, Sparkles, Search, LayoutGrid, TrendingDown, Globe, Gauge, ScatterChart, Siren, Database } from "lucide-react";
+import { LineChart, BarChart3, TrendingUp, ArrowLeftRight, Package, Tag, Layers, Target, Zap, Trophy, Archive, Users, Calculator, UserCog, Briefcase, ChevronDown, Settings, MapPin, Upload, LogOut, Truck, Shield, Store, Banknote, LayoutDashboard, CreditCard, MessageCircle, AlertTriangle, RefreshCw, Sparkles, Search, LayoutGrid, TrendingDown, Globe, Gauge, ScatterChart, Siren, Database, Split } from "lucide-react";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useAuth } from "@/hooks/useAuth";
 import { useUserPermissions } from "@/hooks/useUserPermissions";
@@ -67,15 +67,13 @@ const zoomProductoItems: NavItem[] = [
 
 const analisisLinea360Item: NavItem = { title: "Análisis de Rotación por Línea", url: "/analisis-linea-360", icon: Layers, description: "Precio, descuento, stock y salud por colección y línea", module: "dashboards.desempeno_linea", action: "view" };
 
-const coberturaItem: NavItem = { title: "Cobertura de Distribución", url: "/cobertura", icon: Layers, description: "¿Llegó bien repartido a las tiendas?", module: "producto.cobertura_distribucion", action: "view" };
 
-const distribucionItem: NavItem = { title: "Distribución", url: "/distribucion", icon: Layers, description: "¿Qué tiendas se quedan cortas y cuáles acumulan?", module: "dashboards.salud_producto", action: "view" };
+const distribucionItem: NavItem = { title: "Distribución", url: "/distribucion", icon: Split, description: "¿Qué tiendas se quedan cortas y cuáles acumulan?", module: "dashboards.salud_producto", action: "view" };
 
 const productoItems: NavItem[] = [
   saludProductoItem,
   desempenoLineaItem,
   analisisLinea360Item,
-  coberturaItem,
   distribucionItem,
 ];
 
