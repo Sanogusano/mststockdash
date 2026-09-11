@@ -35,7 +35,7 @@ function ErrorBox({ error }: { error: unknown }) {
 }
 function Recorrido({ row }: { row: Embudo }) {
   const totalExistencias = (row.stock_tienda ?? 0) + (row.stock_online ?? 0) + (row.stock_outlet ?? 0) + (row.stock_bodega ?? 0);
-  const items: [string, number, string?, boolean?][] = [
+  const items: [string, number, string?, boolean?, boolean?][] = [
     ["Producido", row.producido], ["Distribuido", row.distribuido, `a ${entero(row.tiendas_alcanzadas)} tiendas`],
     ["Vendido", row.vendido_total, pct(row.pct_vendido)], ["Precio pleno", row.vendido_full, undefined, true],
     ["Promoción", row.vendido_promo, undefined, true], ["Rebajado", row.vendido_rebaja, undefined, true],
