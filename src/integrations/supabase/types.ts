@@ -5309,6 +5309,26 @@ export type Database = {
           valor_en_juego: number
         }[]
       }
+      reporte_distribucion_curva_tallas: {
+        Args: { p_coleccion?: string; p_linea?: string; p_location_id?: string }
+        Returns: {
+          orden: number
+          pct_agotada: number
+          pct_de_la_venta: number
+          pct_del_surtido: number
+          sell_through: number
+          skus: number
+          skus_agotados: number
+          skus_con_stock: number
+          st_vs_promedio: number
+          stock_actual: number
+          sugerencia: string
+          talla: string
+          uds_recibidas: number
+          uds_vendidas: number
+          veredicto: string
+        }[]
+      }
       reporte_distribucion_demanda_perdida: {
         Args: {
           p_coleccion?: string
@@ -5333,6 +5353,65 @@ export type Database = {
           uds_dia: number
           uds_recibidas: number
           uds_vendidas: number
+          valor_perdido: number
+        }[]
+      }
+      reporte_distribucion_embudo: {
+        Args: { p_coleccion?: string; p_linea?: string }
+        Returns: {
+          antiguedad_ponderada: number
+          coleccion: string
+          distribuido: number
+          n_drops: number
+          pct_full: number
+          pct_parado_tienda: number
+          pct_sin_rebaja: number
+          pct_vendido: number
+          primer_drop: string
+          producido: number
+          stock_bodega: number
+          stock_online: number
+          stock_outlet: number
+          stock_tienda: number
+          tiendas_alcanzadas: number
+          ultimo_drop: string
+          valor_parado: number
+          vendido_full: number
+          vendido_online: number
+          vendido_outlet: number
+          vendido_promo: number
+          vendido_rebaja: number
+          vendido_tienda: number
+          vendido_total: number
+        }[]
+      }
+      reporte_distribucion_tiendas: {
+        Args: {
+          p_coleccion?: string
+          p_dias_ventana?: number
+          p_linea?: string
+        }
+        Returns: {
+          accion: string
+          conclusion: string
+          demanda_perdida: number
+          location_id: string
+          pct_agotados: number
+          pct_parados: number
+          sell_through: number
+          skus_agotados: number
+          skus_maduros: number
+          skus_parados: number
+          skus_recibidos: number
+          stock_actual: number
+          tienda: string
+          tipo_tienda: string
+          uds_a_outlet: number
+          uds_paradas: number
+          uds_recibidas: number
+          uds_salieron: number
+          uds_vendidas: number
+          valor_parado: number
           valor_perdido: number
         }[]
       }
