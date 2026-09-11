@@ -6,4 +6,5 @@
 
 - [x] Sustituir Distribución por embudo, tiendas y curva de tallas con RPC existentes y filtros URL.
 - [x] Exportar cada nivel a Excel y PDF sin calcular métricas en cliente.
-- [ ] Verificar presentación y exportaciones del módulo Distribución.
+- [x] Verificar compilación y exportaciones PDF/Excel con datos de prueba; PDF revisado visualmente sin cortes ni superposiciones.
+- [ ] Verificar navegación autenticada de Distribución: bloqueada por Supabase externo sin sesión de prueba disponible.
