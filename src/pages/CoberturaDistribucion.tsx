@@ -213,7 +213,7 @@ export default function CoberturaDistribucionPage() {
   const resumenQ = useQuery({
     queryKey: ["cobertura_resumen", DIAS],
     queryFn: async () => {
-      const { data, error } = await supabase.rpc("reporte_cobertura_resumen", { p_dias_ventana: DIAS });
+      const { data, error } = await (supabase.rpc as any)("reporte_cobertura_resumen", { p_dias_ventana: DIAS });
       if (error) throw error;
       return (data ?? []) as unknown as ResumenRow[];
     },
@@ -224,7 +224,7 @@ export default function CoberturaDistribucionPage() {
     queryKey: ["cobertura_productos", coleccion, DIAS],
     enabled: !!coleccion,
     queryFn: async () => {
-      const { data, error } = await supabase.rpc("reporte_cobertura_coleccion", {
+      const { data, error } = await (supabase.rpc as any)("reporte_cobertura_coleccion", {
         p_coleccion: coleccion,
         p_linea: null,
         p_product_id: null,
@@ -240,7 +240,7 @@ export default function CoberturaDistribucionPage() {
     queryKey: ["cobertura_tiendas", coleccion, linea, DIAS],
     enabled: !!coleccion,
     queryFn: async () => {
-      const { data, error } = await supabase.rpc("reporte_cobertura_tiendas", {
+      const { data, error } = await (supabase.rpc as any)("reporte_cobertura_tiendas", {
         p_coleccion: coleccion,
         p_linea: linea === "all" ? null : linea,
         p_dias_ventana: DIAS,
@@ -255,7 +255,7 @@ export default function CoberturaDistribucionPage() {
     queryKey: ["cobertura_detalle", productId, DIAS],
     enabled: !!productId,
     queryFn: async () => {
-      const { data, error } = await supabase.rpc("reporte_cobertura_coleccion", {
+      const { data, error } = await (supabase.rpc as any)("reporte_cobertura_coleccion", {
         p_coleccion: null,
         p_linea: null,
         p_product_id: productId,
