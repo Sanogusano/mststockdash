@@ -9,6 +9,7 @@ import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { Siren, AlertTriangle, Users, UserRound, Receipt, ShoppingBag, Package, Store, Globe, Lightbulb, CalendarDays, Layers } from "lucide-react";
+import { EstrategiasSugeridas, EstrategiasSeguimiento } from "@/components/dashboard/EstrategiasPanel";
 
 /**
  * Accionables — lista priorizada de puntos de venta lejos de cumplir,
