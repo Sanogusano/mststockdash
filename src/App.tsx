@@ -33,6 +33,7 @@ import IncentivosPage from "./pages/Incentivos";
 import CierreColeccionPage from "./pages/CierreColeccion";
 import ReporteRebajasPage from "./pages/ReporteRebajas";
 import CoberturaDistribucionPage from "./pages/CoberturaDistribucion";
+import DistribucionCoberturaPage from "./pages/DistribucionCobertura";
 
 import RendimientoVendedoresPage from "./pages/RendimientoVendedores";
 import ComisionesPage from "./pages/Comisiones";
