@@ -1491,46 +1491,6 @@ function BrandTopBottomProducts({ days, customFrom, customTo }: { days: number; 
   }, [days, customFrom, customTo]);
 
 
-      const rows = ((data as any[]) ?? []).filter((r: any) => {
-        const categoria = String(r.categoria ?? "").toUpperCase();
-        const producto = String(r.producto ?? "").toUpperCase();
-        return !categoria.includes("INSUMOS") && !categoria.includes("BOLSA") && !producto.includes("BOLSA");
-      });
-
-      setTop5([...rows]
-        .filter((r: any) => toNumber(r.und_vendidas) > 0)
-        .sort((a: any, b: any) => toNumber(b.und_vendidas) - toNumber(a.und_vendidas))
-        .slice(0, 5)
-        .map((r: any) => ({
-        foto: r.foto ?? null,
-        producto: r.producto ?? null,
-        categoria: r.categoria ?? null,
-        und_total: r.und_vendidas ?? 0,
-        clasificacion: r.clasificacion ?? null,
-        coleccion: r.coleccion ?? "Otros",
-      })));
-
-      setBottom5([...rows]
-        .filter((r: any) => toNumber(r.stock_tiendas) + toNumber(r.stock_digital) > 0)
-        .sort((a: any, b: any) => {
-          const sellThroughDiff = toNumber(a.sell_through_pct) - toNumber(b.sell_through_pct);
-          if (Math.abs(sellThroughDiff) > 0.01) return sellThroughDiff;
-          return toNumber(b.wos) - toNumber(a.wos);
-        })
-        .slice(0, 5)
-        .map((r: any) => ({
-        foto: r.foto ?? null,
-        producto: r.producto ?? null,
-        categoria: r.categoria ?? null,
-        und_total: r.und_vendidas ?? 0,
-        clasificacion: r.clasificacion ?? null,
-        coleccion: r.coleccion ?? "Otros",
-      })));
-      setLoading(false);
-    }
-    fetch();
-  }, [days, customFrom, customTo]);
-
   if (loading) return <LoadingState rows={2} />;
 
   const renderList = (items: GlobalProductRow[], icon: React.ReactNode, title: string, color: string, onClick: () => void) => (
