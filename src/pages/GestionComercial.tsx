@@ -1256,12 +1256,16 @@ function DetalleTienda({ fila, anio, mes }: { fila: Fila; anio: number; mes: num
           </Tabs>
         ) : (
           <Tabs value={tab === "equipo" ? "diagnostico" : tab} onValueChange={setTab}>
-            <TabsList className="w-full grid grid-cols-2">
+            <TabsList className="w-full grid grid-cols-3">
               <TabsTrigger value="diagnostico">Diagnóstico</TabsTrigger>
               <TabsTrigger value="producto">Producto</TabsTrigger>
+              <TabsTrigger value="estrategias">Estrategias</TabsTrigger>
             </TabsList>
             <TabsContent value="diagnostico" className="mt-4">{Diagnostico}</TabsContent>
             <TabsContent value="producto" className="mt-4">{PanelProducto}</TabsContent>
+            <TabsContent value="estrategias" className="mt-4">
+              <EstrategiasSugeridas clave={fila.clave ?? fila.nombre} fecha={fechaCorte} onAplicada={onAplicada} />
+            </TabsContent>
           </Tabs>
         )
       )}
