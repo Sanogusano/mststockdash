@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { useSearchParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
@@ -8,7 +8,7 @@ import { AppSidebar } from "@/components/AppSidebar";
 import { Button } from "@/components/ui/button";
 import { LoadingState, EmptyState } from "@/components/dashboard/LoadingState";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ChevronRight, Download, FileText, Globe, Store } from "lucide-react";
+import { ChevronRight, Download, FileText, Globe, Package, Store, TrendingUp } from "lucide-react";
 import { exportarExcel, exportarPDF, nombreArchivo, type Celda } from "@/lib/distribucion-export";
 import { cn } from "@/lib/utils";
 
@@ -16,6 +16,7 @@ type Tienda = Database["public"]["Functions"]["reporte_asignacion_tienda"]["Retu
 type LineaRow = Database["public"]["Functions"]["reporte_asignacion_lineas"]["Returns"][number];
 type CurvaRow = Database["public"]["Functions"]["reporte_asignacion_curva"]["Returns"][number];
 type ResumenRow = Database["public"]["Functions"]["reporte_asignacion_resumen"]["Returns"][number];
+type BrechaRow = Database["public"]["Functions"]["reporte_asignacion_brecha"]["Returns"][number];
 
 const num = (v: number | string | null | undefined) => (v == null ? 0 : Number(v));
 const entero = (n: number | string | null | undefined) =>
