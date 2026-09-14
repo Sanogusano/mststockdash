@@ -1244,6 +1244,136 @@ export type Database = {
         }
         Relationships: []
       }
+      mayorista_clientes: {
+        Row: {
+          activo: boolean
+          actualizado_en: string
+          es_padre: boolean
+          netsuite_id: string
+          nombre: string
+          padre_id: string | null
+          padre_nombre: string | null
+        }
+        Insert: {
+          activo?: boolean
+          actualizado_en?: string
+          es_padre?: boolean
+          netsuite_id: string
+          nombre: string
+          padre_id?: string | null
+          padre_nombre?: string | null
+        }
+        Update: {
+          activo?: boolean
+          actualizado_en?: string
+          es_padre?: boolean
+          netsuite_id?: string
+          nombre?: string
+          padre_id?: string | null
+          padre_nombre?: string | null
+        }
+        Relationships: []
+      }
+      mayorista_facturas: {
+        Row: {
+          anulada: boolean
+          cliente_id: string | null
+          descuento: number | null
+          fecha: string
+          iva: number | null
+          nota_credito: string | null
+          padre_id: string | null
+          sincronizado_en: string
+          subtotal: number | null
+          total: number | null
+          tranid: string
+          transaction_id: string
+          vendedor_ns: string | null
+        }
+        Insert: {
+          anulada?: boolean
+          cliente_id?: string | null
+          descuento?: number | null
+          fecha: string
+          iva?: number | null
+          nota_credito?: string | null
+          padre_id?: string | null
+          sincronizado_en?: string
+          subtotal?: number | null
+          total?: number | null
+          tranid: string
+          transaction_id: string
+          vendedor_ns?: string | null
+        }
+        Update: {
+          anulada?: boolean
+          cliente_id?: string | null
+          descuento?: number | null
+          fecha?: string
+          iva?: number | null
+          nota_credito?: string | null
+          padre_id?: string | null
+          sincronizado_en?: string
+          subtotal?: number | null
+          total?: number | null
+          tranid?: string
+          transaction_id?: string
+          vendedor_ns?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mayorista_facturas_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "mayorista_clientes"
+            referencedColumns: ["netsuite_id"]
+          },
+        ]
+      }
+      mayorista_lineas: {
+        Row: {
+          descuento_linea: number | null
+          id: number
+          item_id: string | null
+          linea: number | null
+          neto: number | null
+          precio_unitario: number | null
+          sku: string | null
+          tranid: string
+          unidades: number
+        }
+        Insert: {
+          descuento_linea?: number | null
+          id?: number
+          item_id?: string | null
+          linea?: number | null
+          neto?: number | null
+          precio_unitario?: number | null
+          sku?: string | null
+          tranid: string
+          unidades: number
+        }
+        Update: {
+          descuento_linea?: number | null
+          id?: number
+          item_id?: string | null
+          linea?: number | null
+          neto?: number | null
+          precio_unitario?: number | null
+          sku?: string | null
+          tranid?: string
+          unidades?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mayorista_lineas_tranid_fkey"
+            columns: ["tranid"]
+            isOneToOne: false
+            referencedRelation: "mayorista_facturas"
+            referencedColumns: ["tranid"]
+          },
+        ]
+      }
       netsuite_facturas: {
         Row: {
           base_gravable: number | null
@@ -1790,6 +1920,7 @@ export type Database = {
           financial_status: string | null
           is_facturado: boolean | null
           location_id: string | null
+          netsuite_seller_id: string | null
           order_number: string
           origen: string
           payment_authorization: string | null
@@ -1809,6 +1940,7 @@ export type Database = {
           financial_status?: string | null
           is_facturado?: boolean | null
           location_id?: string | null
+          netsuite_seller_id?: string | null
           order_number: string
           origen?: string
           payment_authorization?: string | null
@@ -1828,6 +1960,7 @@ export type Database = {
           financial_status?: string | null
           is_facturado?: boolean | null
           location_id?: string | null
+          netsuite_seller_id?: string | null
           order_number?: string
           origen?: string
           payment_authorization?: string | null
@@ -2375,6 +2508,7 @@ export type Database = {
           id: string
           is_active: boolean | null
           location_id: string | null
+          netsuite_employee_id: string | null
           nombre: string
           rol: string
           shopify_user_id: string
@@ -2389,6 +2523,7 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           location_id?: string | null
+          netsuite_employee_id?: string | null
           nombre: string
           rol?: string
           shopify_user_id: string
@@ -2403,6 +2538,7 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           location_id?: string | null
+          netsuite_employee_id?: string | null
           nombre?: string
           rol?: string
           shopify_user_id?: string
@@ -2796,6 +2932,42 @@ export type Database = {
             referencedColumns: ["user_id"]
           },
         ]
+      }
+      ventas_descartadas: {
+        Row: {
+          descartado_at: string
+          fecha_corte: string | null
+          fecha_pedido: string | null
+          id: number
+          location_id: string | null
+          order_number: string | null
+          shopify_order_id: string
+          tienda: string | null
+          total_price: number | null
+        }
+        Insert: {
+          descartado_at?: string
+          fecha_corte?: string | null
+          fecha_pedido?: string | null
+          id?: number
+          location_id?: string | null
+          order_number?: string | null
+          shopify_order_id: string
+          tienda?: string | null
+          total_price?: number | null
+        }
+        Update: {
+          descartado_at?: string
+          fecha_corte?: string | null
+          fecha_pedido?: string | null
+          id?: number
+          location_id?: string | null
+          order_number?: string | null
+          shopify_order_id?: string
+          tienda?: string | null
+          total_price?: number | null
+        }
+        Relationships: []
       }
       whatsapp_consultas: {
         Row: {
@@ -4392,6 +4564,7 @@ export type Database = {
           venta: number
         }[]
       }
+      mayorista_resolver_padres: { Args: never; Returns: number }
       mejor_dia_semana: {
         Args: { p_clave: string; p_dias?: number }
         Returns: {
@@ -5813,6 +5986,19 @@ export type Database = {
           ingresos_netos: number
           ordenes: number
           unidades: number
+        }[]
+      }
+      reporte_ventas_netsuite_csv: {
+        Args: { p_desde: string; p_hasta: string }
+        Returns: {
+          factura: string
+          fecha: string
+          items: number
+          iva: number
+          sucursal: string
+          unidades: number
+          valor_sin_iva: number
+          valor_total: number
         }[]
       }
       reporte_ventas_por_canal: {
