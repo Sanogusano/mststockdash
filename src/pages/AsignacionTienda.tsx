@@ -8,13 +8,14 @@ import { AppSidebar } from "@/components/AppSidebar";
 import { Button } from "@/components/ui/button";
 import { LoadingState, EmptyState } from "@/components/dashboard/LoadingState";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ChevronRight, Download, FileText } from "lucide-react";
+import { ChevronRight, Download, FileText, Globe, Store } from "lucide-react";
 import { exportarExcel, exportarPDF, nombreArchivo, type Celda } from "@/lib/distribucion-export";
 import { cn } from "@/lib/utils";
 
 type Tienda = Database["public"]["Functions"]["reporte_asignacion_tienda"]["Returns"][number];
 type LineaRow = Database["public"]["Functions"]["reporte_asignacion_lineas"]["Returns"][number];
 type CurvaRow = Database["public"]["Functions"]["reporte_asignacion_curva"]["Returns"][number];
+type ResumenRow = Database["public"]["Functions"]["reporte_asignacion_resumen"]["Returns"][number];
 
 const num = (v: number | string | null | undefined) => (v == null ? 0 : Number(v));
 const entero = (n: number | string | null | undefined) =>
@@ -154,15 +155,81 @@ function Curva({ coleccion, locationId, linea }: { coleccion: string; locationId
   );
 }
 
-const tiendaColumns: [string, string][] = [
-  ["tienda", "Tienda"], ["tipo_tienda", "Tipo"], ["pct_refs", "% Referencias"], ["refs_asignadas", "Refs asignadas"], ["refs_coleccion", "Refs colección"],
-  ["pct_skus", "% SKU"], ["skus_asignados", "SKU asignados"], ["skus_coleccion", "SKU colección"],
-  ["lineas_asignadas", "Líneas asignadas"], ["lineas_coleccion", "Líneas colección"],
-  ["drops", "Drops"], ["primer_drop", "Primer drop"], ["ultimo_drop", "Último drop"],
-  ["uds_asignadas", "Asignadas"], ["uds_por_referencia", "Uds/ref"],
-  ["uds_vendidas", "Vendido"], ["pct_vendido", "% Vendido"], ["uds_a_outlet", "A outlet"], ["pct_a_outlet", "% A outlet"],
-  ["uds_a_otra_tienda", "A otra tienda"], ["uds_en_piso", "En piso"], ["pct_en_piso", "% En piso"],
+function BarraGenero({ label, asig, vend, st }: { label: string; asig: number; vend: number; st: number | null }) {
+  if (asig <= 0) return null;
+  return (
+    <div className="space-y-0.5">
+      <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+        <span>{label}</span>
+        <span className="tabular-nums">{entero(vend)} / {entero(asig)} · {pct(st)}</span>
+      </div>
+      <div className="h-1.5 w-full rounded bg-muted">
+        <div className="h-full rounded bg-primary" style={{ width: `${Math.min(100, (vend / Math.max(1, asig)) * 100)}%` }} />
+      </div>
+    </div>
+  );
+}
+
+function TarjetaTienda({ r, onClick }: { r: ResumenRow; onClick: () => void }) {
+  const esOnline = (r.tipo_tienda ?? "").toLowerCase() === "online";
+  const Icono = esOnline ? Globe : Store;
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="flex w-full flex-col gap-3 rounded-lg border border-border p-4 text-left transition-colors hover:border-primary hover:bg-muted/40"
+    >
+      <div className="flex items-start gap-3">
+        <span className="mt-0.5 rounded bg-muted p-2 text-muted-foreground"><Icono className="h-4 w-4" /></span>
+        <div className="min-w-0 flex-1">
+          <p className="truncate font-medium">{r.tienda}</p>
+          <p className="text-xs text-muted-foreground">
+            {[r.tipo_tienda, r.zona].filter(Boolean).join(" · ") || "—"} · {entero(r.colecciones)} colecciones
+          </p>
+        </div>
+        <div className="text-right">
+          <p className="text-lg font-semibold tabular-nums">{pct(r.sell_through)}</p>
+          <p className="text-[11px] text-muted-foreground">sell-through</p>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground">
+        <p>Refs <span className="tabular-nums text-foreground">{entero(r.refs_asignadas)}/{entero(r.refs_universo)}</span> · {pct(r.pct_refs)}</p>
+        <p>Líneas <span className="tabular-nums text-foreground">{entero(r.lineas_asignadas)}/{entero(r.lineas_universo)}</span></p>
+        <p>Asignadas <span className="tabular-nums text-foreground">{entero(r.uds_asignadas)}</span></p>
+        <p>Vendidas <span className="tabular-nums text-foreground">{entero(r.uds_vendidas)}</span></p>
+        <p>En piso <span className="tabular-nums text-foreground">{entero(r.uds_en_piso)}</span></p>
+        <p>Uds/ref <span className="tabular-nums text-foreground">{dec(r.uds_por_referencia)}</span></p>
+        <p className="col-span-2">RDV semanal <span className="tabular-nums text-foreground">{dec(r.rdv_semanal)}</span></p>
+      </div>
+
+      <div className="space-y-1 text-xs">
+        {r.mejor_coleccion && (
+          <p className="text-muted-foreground">Mejor: <span className="font-medium text-foreground">{r.mejor_coleccion}</span> <span className="font-medium text-success tabular-nums">{pct(r.mejor_st)}</span></p>
+        )}
+        {r.peor_coleccion && (
+          <p className="text-muted-foreground">Peor: <span className="font-medium text-foreground">{r.peor_coleccion}</span> <span className="font-medium text-warning tabular-nums">{pct(r.peor_st)}</span></p>
+        )}
+      </div>
+
+      <div className="space-y-1.5">
+        <BarraGenero label="Hombre" asig={num(r.hombre_asig)} vend={num(r.hombre_vend)} st={r.hombre_st} />
+        <BarraGenero label="Mujer" asig={num(r.mujer_asig)} vend={num(r.mujer_vend)} st={r.mujer_st} />
+        <BarraGenero label="Unisex" asig={num(r.unisex_asig)} vend={num(r.unisex_vend)} st={r.unisex_st} />
+      </div>
+    </button>
+  );
+}
+
+const resumenColumns: [string, string][] = [
+  ["tienda", "Tienda"], ["tipo_tienda", "Tipo"], ["zona", "Zona"], ["colecciones", "Colecciones"],
+  ["refs_asignadas", "Refs asignadas"], ["refs_universo", "Refs universo"], ["pct_refs", "% Referencias"],
+  ["lineas_asignadas", "Líneas asignadas"], ["lineas_universo", "Líneas universo"],
+  ["uds_asignadas", "Asignadas"], ["uds_vendidas", "Vendidas"], ["uds_en_piso", "En piso"],
+  ["sell_through", "Sell-through (%)"], ["uds_por_referencia", "Uds/ref"], ["rdv_semanal", "RDV semanal"],
+  ["mejor_coleccion", "Mejor colección"], ["mejor_st", "Mejor ST (%)"], ["peor_coleccion", "Peor colección"], ["peor_st", "Peor ST (%)"],
 ];
+
 const lineaColumns: [string, string][] = [
   ["linea", "Línea"], ["referencias", "Referencias"], ["drops", "Drops"], ["uds_por_referencia", "Uds/ref"],
   ["uds_asignadas", "Asignadas"], ["uds_vendidas", "Vendidas"], ["sell_through", "Sell-through (%)"],
@@ -201,18 +268,26 @@ export default function AsignacionTiendaPage() {
   };
 
   const coleccionesQ = useQuery({
-    queryKey: ["asignacion-colecciones"],
+    queryKey: ["asignacion-colecciones-embudo"],
     queryFn: async () => {
-      const set = new Set<string>();
-      for (let from = 0; ; from += 1000) {
-        const { data, error } = await supabase.from("product_catalog").select("collection_season").order("sku").range(from, from + 999);
-        if (error) throw error;
-        (data ?? []).forEach((r) => { if (r.collection_season) set.add(r.collection_season); });
-        if (!data || data.length < 1000) break;
-      }
-      return [...set].sort();
+      const { data, error } = await supabase.rpc("reporte_distribucion_embudo", { p_coleccion: null, p_linea: null });
+      if (error) throw error;
+      return [...(data ?? [])]
+        .sort((a, b) => num(a.antiguedad_ponderada) - num(b.antiguedad_ponderada))
+        .map((r) => r.coleccion)
+        .filter((c): c is string => !!c);
     },
     staleTime: 600000,
+  });
+
+  const resumenQ = useQuery({
+    queryKey: ["asignacion-resumen", coleccion],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("reporte_asignacion_resumen", { p_coleccion: coleccion || null });
+      if (error) throw error;
+      return [...(data ?? [])].sort((a, b) => num(b.uds_asignadas) - num(a.uds_asignadas));
+    },
+    staleTime: 300000,
   });
 
   const tiendasQ = useQuery({
@@ -276,19 +351,39 @@ export default function AsignacionTiendaPage() {
               </div>
               <div className="space-y-1">
                 <label className="text-xs text-muted-foreground" htmlFor="filtro-tienda">Tienda</label>
-                <Select value={locationId || "all"} onValueChange={(v) => setKeys({ tienda: v })} disabled={!coleccion}>
+                <Select value={locationId || "all"} onValueChange={(v) => setKeys({ tienda: v })}>
                   <SelectTrigger id="filtro-tienda" className="w-[220px]"><SelectValue placeholder="Todas" /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">Todas las tiendas</SelectItem>
-                    {(tiendasQ.data ?? []).map((t) => <SelectItem key={t.location_id} value={t.location_id}>{t.tienda}</SelectItem>)}
+                    {(resumenQ.data ?? []).map((t) => <SelectItem key={t.location_id} value={t.location_id}>{t.tienda}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
             </div>
             {coleccionesQ.error && <ErrorBox error={coleccionesQ.error} />}
 
-            {!coleccion ? (
-              <EmptyState message="Selecciona una colección para ver la asignación por tienda" />
+            {!locationId ? (
+              resumenQ.isLoading ? (
+                <LoadingState />
+              ) : resumenQ.error ? (
+                <ErrorBox error={resumenQ.error} />
+              ) : !resumenQ.data?.length ? (
+                <EmptyState message="Sin tiendas con asignación" />
+              ) : (
+                <section className="space-y-4">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <h2 className="text-base font-semibold">Tiendas · {coleccion || "Todas las colecciones"}</h2>
+                    <Exportaciones title="Resumen tiendas" columns={resumenColumns} rows={resumenQ.data} subtitle={subtitle} />
+                  </div>
+                  <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                    {resumenQ.data.map((r) => (
+                      <TarjetaTienda key={r.location_id} r={r} onClick={() => setKeys({ tienda: r.location_id })} />
+                    ))}
+                  </div>
+                </section>
+              )
+            ) : !coleccion ? (
+              <EmptyState message="Selecciona una colección para ver el detalle de esta tienda" />
             ) : tiendasQ.isLoading ? (
               <LoadingState />
             ) : tiendasQ.error ? (
@@ -355,33 +450,7 @@ export default function AsignacionTiendaPage() {
                 </section>
               </div>
             ) : (
-              <section className="space-y-4">
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                  <h2 className="text-base font-semibold">Tiendas · {coleccion}</h2>
-                  <Exportaciones title="Tiendas" columns={tiendaColumns} rows={tiendasQ.data} subtitle={subtitle} />
-                </div>
-                <ul className="divide-y divide-border rounded-lg border border-border">
-                  {tiendasQ.data.map((t: Tienda) => (
-                    <li key={t.location_id} className="flex flex-wrap items-center gap-4 p-4">
-                      <div className="min-w-[200px] flex-1">
-                        <Button variant="link" className="h-auto whitespace-normal p-0 text-left font-medium" onClick={() => setKeys({ tienda: t.location_id })}>
-                          {t.tienda}
-                        </Button>
-                        <p className="text-xs text-muted-foreground">
-                          {pct(t.pct_refs)} refs · {pct(t.pct_skus)} SKU · {entero(t.drops)} drops · {dec(t.uds_por_referencia)} uds/ref
-                        </p>
-                      </div>
-                      <BarraDestino row={t} />
-                      <div className="min-w-[150px] text-right">
-                        <p className="text-sm font-medium tabular-nums">{entero(t.uds_asignadas)} asignadas</p>
-                        <p className="text-xs text-muted-foreground">
-                          {pct(t.pct_vendido)} vendido · {pct(t.pct_en_piso)} en piso
-                        </p>
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-              </section>
+              <EmptyState message="Esta tienda no tiene asignación en la colección seleccionada" />
             )}
           </div>
         </main>
