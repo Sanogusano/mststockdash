@@ -8,7 +8,7 @@ import { AppSidebar } from "@/components/AppSidebar";
 import { Button } from "@/components/ui/button";
 import { LoadingState, EmptyState } from "@/components/dashboard/LoadingState";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ChevronRight, Download, FileText } from "lucide-react";
+import { ChevronRight, Download, FileText, Globe, Store } from "lucide-react";
 import { exportarExcel, exportarPDF, nombreArchivo, type Celda } from "@/lib/distribucion-export";
 import { cn } from "@/lib/utils";
 
