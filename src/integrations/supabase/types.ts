@@ -3296,10 +3296,14 @@ export type Database = {
           uds_a_otra_tienda: number | null
           uds_a_outlet: number | null
           uds_dia: number | null
+          uds_fuera_ventana: number | null
+          uds_full: number | null
+          uds_promo: number | null
+          uds_rebaja: number | null
           uds_recibidas: number | null
           uds_salieron: number | null
           uds_vendidas: number | null
-          uds_vendidas_full: number | null
+          uds_vendidas_total: number | null
           ultima_entrada: string | null
           ultima_venta: string | null
           valor_vendido: number | null
@@ -4713,6 +4717,31 @@ export type Database = {
           wos: number
         }[]
       }
+      reporte_asignacion_brecha: {
+        Args: {
+          p_coleccion?: string
+          p_dimension?: string
+          p_location_id?: string
+          p_minimo?: number
+        }
+        Returns: {
+          brecha: number
+          dimension: string
+          pct_brecha: number
+          refs_agotadas: number
+          refs_evaluadas: number
+          refs_sanas: number
+          refs_sobradas: number
+          sell_through: number
+          uds_asignadas: number
+          uds_en_piso: number
+          uds_exceso: number
+          uds_faltante: number
+          uds_vendidas: number
+          valor: string
+          veredicto: string
+        }[]
+      }
       reporte_asignacion_curva: {
         Args: { p_coleccion: string; p_linea?: string; p_location_id: string }
         Returns: {
@@ -4743,6 +4772,7 @@ export type Database = {
       reporte_asignacion_resumen: {
         Args: { p_coleccion?: string }
         Returns: {
+          brecha: number
           colecciones: number
           hombre_asig: number
           hombre_st: number
@@ -4755,22 +4785,37 @@ export type Database = {
           mujer_asig: number
           mujer_st: number
           mujer_vend: number
+          pct_brecha: number
+          pct_full: number
+          pct_promo: number
+          pct_rebaja: number
           pct_refs: number
           peor_coleccion: string
           peor_st: number
           rdv_semanal: number
+          refs_agotadas: number
           refs_asignadas: number
+          refs_evaluadas: number
+          refs_sanas: number
+          refs_sobradas: number
           refs_universo: number
           sell_through: number
           tienda: string
           tipo_tienda: string
           uds_asignadas: number
           uds_en_piso: number
+          uds_exceso: number
+          uds_faltante: number
+          uds_fuera_ventana: number
+          uds_full: number
           uds_por_referencia: number
+          uds_promo: number
+          uds_rebaja: number
           uds_vendidas: number
           unisex_asig: number
           unisex_st: number
           unisex_vend: number
+          veredicto_brecha: string
           zona: string
         }[]
       }
