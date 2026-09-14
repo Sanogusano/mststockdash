@@ -428,13 +428,20 @@ function Exportaciones({ title, columns, rows, subtitle }: { title: string; colu
 
 export default function AsignacionTiendaPage() {
   const [params, setParams] = useSearchParams();
+  const navigate = useNavigate();
+  const { locationId: rutaLocationId } = useParams<{ locationId: string }>();
   const coleccion = params.get("coleccion") || "";
-  const locationId = params.get("tienda") || "";
+  const locationId = rutaLocationId || "";
 
   const setKeys = (entries: Record<string, string | null>) => {
     const next = new URLSearchParams(params);
     Object.entries(entries).forEach(([k, v]) => { if (!v || v === "all") next.delete(k); else next.set(k, v); });
     setParams(next);
+  };
+
+  const irATienda = (id: string | null) => {
+    const qs = params.toString();
+    navigate(`/asignacion${id ? `/${id}` : ""}${qs ? `?${qs}` : ""}`);
   };
 
   const coleccionesQ = useQuery({
