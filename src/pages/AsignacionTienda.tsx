@@ -530,7 +530,7 @@ export default function AsignacionTiendaPage() {
               </div>
               <div className="space-y-1">
                 <label className="text-xs text-muted-foreground" htmlFor="filtro-tienda">Tienda</label>
-                <Select value={locationId || "all"} onValueChange={(v) => setKeys({ tienda: v })}>
+                <Select value={locationId || "all"} onValueChange={(v) => irATienda(v === "all" ? null : v)}>
                   <SelectTrigger id="filtro-tienda" className="w-[220px]"><SelectValue placeholder="Todas" /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">Todas las tiendas</SelectItem>
