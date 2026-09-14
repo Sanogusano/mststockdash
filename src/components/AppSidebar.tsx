@@ -70,11 +70,14 @@ const analisisLinea360Item: NavItem = { title: "Análisis de Rotación por Líne
 
 const distribucionItem: NavItem = { title: "Distribución", url: "/distribucion", icon: Split, description: "¿Qué tiendas se quedan cortas y cuáles acumulan?", module: "dashboards.salud_producto", action: "view" };
 
+const asignacionItem: NavItem = { title: "Asignación por Tienda", url: "/asignacion", icon: PackageOpen, description: "Qué surtido recibió cada tienda y qué hizo con él", module: "dashboards.salud_producto", action: "view" };
+
 const productoItems: NavItem[] = [
   saludProductoItem,
   desempenoLineaItem,
   analisisLinea360Item,
   distribucionItem,
+  asignacionItem,
 ];
 
 const productoBottomItems: NavItem[] = [cierreColeccionItem];
