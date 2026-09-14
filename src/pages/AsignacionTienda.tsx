@@ -231,8 +231,20 @@ function TarjetaTienda({ r, onClick }: { r: ResumenRow; onClick: () => void }) {
           </p>
         </div>
         <div className="text-right">
-          <p className={cn("text-3xl font-semibold leading-none tabular-nums", colorST(r.sell_through))}>{pct(r.sell_through)}</p>
-          <p className="mt-1 text-[11px] text-muted-foreground">sell-through</p>
+          <div className="flex items-start justify-end gap-4">
+            <div>
+              <p className={cn("text-3xl font-semibold leading-none tabular-nums", colorST(r.sell_through))}>{pct(r.sell_through)}</p>
+              <p className="mt-1 text-[11px] font-medium text-foreground">Sell-through 120 días</p>
+              <p className="text-[10px] text-muted-foreground">vendido en su ventana comercial</p>
+            </div>
+            {num(r.uds_asignadas) > 0 && (
+              <div>
+                <p className={cn("text-xl font-semibold leading-none tabular-nums", colorST(acumPct))}>{pct(acumPct)}</p>
+                <p className="mt-1 text-[11px] font-medium text-foreground">Sell-through acumulado</p>
+                <p className="text-[10px] text-muted-foreground">incluye venta posterior a la ventana</p>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
