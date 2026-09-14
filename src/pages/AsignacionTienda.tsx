@@ -518,6 +518,10 @@ export default function AsignacionTiendaPage() {
   });
 
   const detalle = (tiendasQ.data ?? []).find((t) => t.location_id === locationId) ?? null;
+  const resumenTienda = (resumenQ.data ?? []).find((t) => t.location_id === locationId) ?? null;
+  const acumPctDetalle = resumenTienda && num(resumenTienda.uds_asignadas) > 0
+    ? ((num(resumenTienda.uds_vendidas) + num(resumenTienda.uds_fuera_ventana)) / num(resumenTienda.uds_asignadas)) * 100
+    : null;
 
   const lineasQ = useQuery({
     queryKey: ["asignacion-lineas", coleccion, locationId],
