@@ -398,6 +398,10 @@ const resumenColumns: [string, string][] = [
   ["uds_asignadas", "Asignadas"], ["uds_vendidas", "Vendidas"], ["uds_en_piso", "En piso"],
   ["sell_through", "Sell-through (%)"], ["uds_por_referencia", "Uds/ref"], ["rdv_semanal", "RDV semanal"],
   ["mejor_coleccion", "Mejor colección"], ["mejor_st", "Mejor ST (%)"], ["peor_coleccion", "Peor colección"], ["peor_st", "Peor ST (%)"],
+  ["uds_full", "Uds full"], ["pct_full", "% Full"], ["uds_promo", "Uds promo"], ["pct_promo", "% Promo"],
+  ["uds_rebaja", "Uds rebaja"], ["pct_rebaja", "% Rebaja"], ["uds_fuera_ventana", "Fuera de ventana"],
+  ["refs_evaluadas", "Refs evaluadas"], ["refs_sanas", "Refs sanas"], ["refs_agotadas", "Refs agotadas"], ["refs_sobradas", "Refs sobradas"],
+  ["uds_exceso", "Exceso"], ["uds_faltante", "Faltante"], ["brecha", "Brecha"], ["pct_brecha", "% Brecha"], ["veredicto_brecha", "Veredicto"],
 ];
 
 const lineaColumns: [string, string][] = [
