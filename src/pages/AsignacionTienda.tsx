@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ChevronRight, Download, FileText, Globe, Store } from "lucide-react";
 import { exportarExcel, exportarPDF, nombreArchivo, type Celda } from "@/lib/distribucion-export";
 import { cn } from "@/lib/utils";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 type Tienda = Database["public"]["Functions"]["reporte_asignacion_tienda"]["Returns"][number];
 type LineaRow = Database["public"]["Functions"]["reporte_asignacion_lineas"]["Returns"][number];
@@ -234,14 +235,26 @@ function TarjetaTienda({ r, onClick }: { r: ResumenRow; onClick: () => void }) {
           <div className="flex items-start justify-end gap-4">
             <div>
               <p className={cn("text-3xl font-semibold leading-none tabular-nums", colorST(r.sell_through))}>{pct(r.sell_through)}</p>
-              <p className="mt-1 text-[11px] font-medium text-foreground">Sell-through 120 días</p>
-              <p className="text-[10px] text-muted-foreground">vendido en su ventana comercial</p>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <p className="mt-1 inline-block cursor-help text-[11px] font-medium text-foreground underline decoration-muted-foreground/30 underline-offset-2">ST 120d</p>
+                </TooltipTrigger>
+                <TooltipContent side="top" className="max-w-xs text-xs leading-relaxed">
+                  Sell-through 120 días: vendido dentro de la ventana comercial.
+                </TooltipContent>
+              </Tooltip>
             </div>
             {num(r.uds_asignadas) > 0 && (
               <div>
                 <p className={cn("text-xl font-semibold leading-none tabular-nums", colorST(acumPct))}>{pct(acumPct)}</p>
-                <p className="mt-1 text-[11px] font-medium text-foreground">Sell-through acumulado</p>
-                <p className="text-[10px] text-muted-foreground">incluye venta posterior a la ventana</p>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <p className="mt-1 inline-block cursor-help text-[11px] font-medium text-foreground underline decoration-muted-foreground/30 underline-offset-2">ST acum.</p>
+                  </TooltipTrigger>
+                  <TooltipContent side="top" className="max-w-xs text-xs leading-relaxed">
+                    Sell-through acumulado: incluye la venta posterior a los 120 días.
+                  </TooltipContent>
+                </Tooltip>
               </div>
             )}
           </div>
@@ -505,6 +518,10 @@ export default function AsignacionTiendaPage() {
   });
 
   const detalle = (tiendasQ.data ?? []).find((t) => t.location_id === locationId) ?? null;
+  const resumenTienda = (resumenQ.data ?? []).find((t) => t.location_id === locationId) ?? null;
+  const acumPctDetalle = resumenTienda && num(resumenTienda.uds_asignadas) > 0
+    ? ((num(resumenTienda.uds_vendidas) + num(resumenTienda.uds_fuera_ventana)) / num(resumenTienda.uds_asignadas)) * 100
+    : null;
 
   const lineasQ = useQuery({
     queryKey: ["asignacion-lineas", coleccion, locationId],
@@ -612,6 +629,22 @@ export default function AsignacionTiendaPage() {
                     <Cubrimiento titulo="SKU asignados" parte={detalle.skus_asignados} total={detalle.skus_coleccion} />
                     <Cubrimiento titulo="Líneas asignadas" parte={detalle.lineas_asignadas} total={detalle.lineas_coleccion} />
                   </div>
+                  {resumenTienda && (
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      <div className="rounded-lg border border-border p-4">
+                        <p className="text-xs text-muted-foreground">Sell-through 120 días</p>
+                        <p className={cn("mt-1 text-2xl font-semibold leading-none tabular-nums", colorST(resumenTienda.sell_through))}>{pct(resumenTienda.sell_through)}</p>
+                        <p className="mt-1 text-[11px] text-muted-foreground">vendido dentro de la ventana comercial</p>
+                      </div>
+                      {acumPctDetalle != null && (
+                        <div className="rounded-lg border border-border p-4">
+                          <p className="text-xs text-muted-foreground">Sell-through acumulado</p>
+                          <p className={cn("mt-1 text-2xl font-semibold leading-none tabular-nums", colorST(acumPctDetalle))}>{pct(acumPctDetalle)}</p>
+                          <p className="mt-1 text-[11px] text-muted-foreground">incluye la venta posterior a los 120 días</p>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </section>
 
                 <section className="space-y-2">
