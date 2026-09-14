@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ChevronRight, Download, FileText, Globe, Store } from "lucide-react";
 import { exportarExcel, exportarPDF, nombreArchivo, type Celda } from "@/lib/distribucion-export";
 import { cn } from "@/lib/utils";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 type Tienda = Database["public"]["Functions"]["reporte_asignacion_tienda"]["Returns"][number];
 type LineaRow = Database["public"]["Functions"]["reporte_asignacion_lineas"]["Returns"][number];
