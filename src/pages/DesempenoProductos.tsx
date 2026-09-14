@@ -1,4 +1,5 @@
 import { ProductSkuBreakdown } from "@/components/dashboard/ProductSkuBreakdown";
+import { isValidDays } from "@/lib/validation";
 import { Fragment, useState, useEffect, useMemo } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
