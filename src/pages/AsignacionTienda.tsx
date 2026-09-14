@@ -15,6 +15,7 @@ import { cn } from "@/lib/utils";
 type Tienda = Database["public"]["Functions"]["reporte_asignacion_tienda"]["Returns"][number];
 type LineaRow = Database["public"]["Functions"]["reporte_asignacion_lineas"]["Returns"][number];
 type CurvaRow = Database["public"]["Functions"]["reporte_asignacion_curva"]["Returns"][number];
+type ResumenRow = Database["public"]["Functions"]["reporte_asignacion_resumen"]["Returns"][number];
 
 const num = (v: number | string | null | undefined) => (v == null ? 0 : Number(v));
 const entero = (n: number | string | null | undefined) =>
