@@ -155,6 +155,81 @@ function Curva({ coleccion, locationId, linea }: { coleccion: string; locationId
   );
 }
 
+function BarraGenero({ label, asig, vend, st }: { label: string; asig: number; vend: number; st: number | null }) {
+  if (asig <= 0) return null;
+  return (
+    <div className="space-y-0.5">
+      <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+        <span>{label}</span>
+        <span className="tabular-nums">{entero(vend)} / {entero(asig)} · {pct(st)}</span>
+      </div>
+      <div className="h-1.5 w-full rounded bg-muted">
+        <div className="h-full rounded bg-primary" style={{ width: `${Math.min(100, (vend / Math.max(1, asig)) * 100)}%` }} />
+      </div>
+    </div>
+  );
+}
+
+function TarjetaTienda({ r, onClick }: { r: ResumenRow; onClick: () => void }) {
+  const esOnline = (r.tipo_tienda ?? "").toLowerCase() === "online";
+  const Icono = esOnline ? Globe : Store;
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="flex w-full flex-col gap-3 rounded-lg border border-border p-4 text-left transition-colors hover:border-primary hover:bg-muted/40"
+    >
+      <div className="flex items-start gap-3">
+        <span className="mt-0.5 rounded bg-muted p-2 text-muted-foreground"><Icono className="h-4 w-4" /></span>
+        <div className="min-w-0 flex-1">
+          <p className="truncate font-medium">{r.tienda}</p>
+          <p className="text-xs text-muted-foreground">
+            {[r.tipo_tienda, r.zona].filter(Boolean).join(" · ") || "—"} · {entero(r.colecciones)} colecciones
+          </p>
+        </div>
+        <div className="text-right">
+          <p className="text-lg font-semibold tabular-nums">{pct(r.sell_through)}</p>
+          <p className="text-[11px] text-muted-foreground">sell-through</p>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground">
+        <p>Refs <span className="tabular-nums text-foreground">{entero(r.refs_asignadas)}/{entero(r.refs_universo)}</span> · {pct(r.pct_refs)}</p>
+        <p>Líneas <span className="tabular-nums text-foreground">{entero(r.lineas_asignadas)}/{entero(r.lineas_universo)}</span></p>
+        <p>Asignadas <span className="tabular-nums text-foreground">{entero(r.uds_asignadas)}</span></p>
+        <p>Vendidas <span className="tabular-nums text-foreground">{entero(r.uds_vendidas)}</span></p>
+        <p>En piso <span className="tabular-nums text-foreground">{entero(r.uds_en_piso)}</span></p>
+        <p>Uds/ref <span className="tabular-nums text-foreground">{dec(r.uds_por_referencia)}</span></p>
+        <p className="col-span-2">RDV semanal <span className="tabular-nums text-foreground">{dec(r.rdv_semanal)}</span></p>
+      </div>
+
+      <div className="space-y-1 text-xs">
+        {r.mejor_coleccion && (
+          <p className="text-muted-foreground">Mejor: <span className="font-medium text-foreground">{r.mejor_coleccion}</span> <span className="font-medium text-success tabular-nums">{pct(r.mejor_st)}</span></p>
+        )}
+        {r.peor_coleccion && (
+          <p className="text-muted-foreground">Peor: <span className="font-medium text-foreground">{r.peor_coleccion}</span> <span className="font-medium text-warning tabular-nums">{pct(r.peor_st)}</span></p>
+        )}
+      </div>
+
+      <div className="space-y-1.5">
+        <BarraGenero label="Hombre" asig={num(r.hombre_asig)} vend={num(r.hombre_vend)} st={r.hombre_st} />
+        <BarraGenero label="Mujer" asig={num(r.mujer_asig)} vend={num(r.mujer_vend)} st={r.mujer_st} />
+        <BarraGenero label="Unisex" asig={num(r.unisex_asig)} vend={num(r.unisex_vend)} st={r.unisex_st} />
+      </div>
+    </button>
+  );
+}
+
+const resumenColumns: [string, string][] = [
+  ["tienda", "Tienda"], ["tipo_tienda", "Tipo"], ["zona", "Zona"], ["colecciones", "Colecciones"],
+  ["refs_asignadas", "Refs asignadas"], ["refs_universo", "Refs universo"], ["pct_refs", "% Referencias"],
+  ["lineas_asignadas", "Líneas asignadas"], ["lineas_universo", "Líneas universo"],
+  ["uds_asignadas", "Asignadas"], ["uds_vendidas", "Vendidas"], ["uds_en_piso", "En piso"],
+  ["sell_through", "Sell-through (%)"], ["uds_por_referencia", "Uds/ref"], ["rdv_semanal", "RDV semanal"],
+  ["mejor_coleccion", "Mejor colección"], ["mejor_st", "Mejor ST (%)"], ["peor_coleccion", "Peor colección"], ["peor_st", "Peor ST (%)"],
+];
+
 const tiendaColumns: [string, string][] = [
   ["tienda", "Tienda"], ["tipo_tienda", "Tipo"], ["pct_refs", "% Referencias"], ["refs_asignadas", "Refs asignadas"], ["refs_coleccion", "Refs colección"],
   ["pct_skus", "% SKU"], ["skus_asignados", "SKU asignados"], ["skus_coleccion", "SKU colección"],
