@@ -4713,6 +4713,61 @@ export type Database = {
           wos: number
         }[]
       }
+      reporte_asignacion_curva: {
+        Args: { p_coleccion: string; p_linea?: string; p_location_id: string }
+        Returns: {
+          linea: string
+          orden: number
+          sell_through: number
+          talla: string
+          uds_asignadas: number
+          uds_en_piso: number
+          uds_vendidas: number
+          veredicto: string
+        }[]
+      }
+      reporte_asignacion_lineas: {
+        Args: { p_coleccion: string; p_limite?: number; p_location_id: string }
+        Returns: {
+          drops: number
+          linea: string
+          referencias: number
+          sell_through: number
+          uds_a_outlet: number
+          uds_asignadas: number
+          uds_en_piso: number
+          uds_por_referencia: number
+          uds_vendidas: number
+        }[]
+      }
+      reporte_asignacion_tienda: {
+        Args: { p_coleccion: string; p_location_id?: string }
+        Returns: {
+          drops: number
+          lineas_asignadas: number
+          lineas_coleccion: number
+          location_id: string
+          pct_a_outlet: number
+          pct_en_piso: number
+          pct_refs: number
+          pct_skus: number
+          pct_vendido: number
+          primer_drop: string
+          refs_asignadas: number
+          refs_coleccion: number
+          skus_asignados: number
+          skus_coleccion: number
+          tienda: string
+          tipo_tienda: string
+          uds_a_otra_tienda: number
+          uds_a_outlet: number
+          uds_asignadas: number
+          uds_en_piso: number
+          uds_por_referencia: number
+          uds_vendidas: number
+          ultimo_drop: string
+        }[]
+      }
       reporte_baja_rotacion_outlet: {
         Args: {
           p_sell_through_umbral?: number
