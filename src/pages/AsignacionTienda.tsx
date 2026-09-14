@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -133,29 +133,40 @@ function Curva({ coleccion, locationId, linea }: { coleccion: string; locationId
   if (q.error) return <ErrorBox error={q.error} />;
   if (!q.data?.length) return <p className="text-xs text-muted-foreground">Sin curva de tallas para esta línea.</p>;
 
-  const max = Math.max(1, ...q.data.map((r) => num(r.uds_asignadas)));
+  const max = Math.max(1, ...q.data.map((r) => Math.max(num(r.uds_asignadas), num(r.uds_vendidas))));
   return (
-    <div className="flex gap-3 overflow-x-auto pb-1">
-      {q.data.map((r: CurvaRow) => (
-        <div key={r.talla} className="min-w-[54px] shrink-0 text-center">
-          <p className="text-[11px] tabular-nums text-muted-foreground">{entero(r.uds_asignadas)}</p>
-          <div className="flex h-24 items-end justify-center gap-1">
-            <div className="w-3 rounded-t bg-muted" style={{ height: `${(num(r.uds_asignadas) / max) * 100}%` }} title={`Asignadas ${entero(r.uds_asignadas)}`} />
-            <div
-              className={cn("w-3 rounded-t", colorVeredicto(r.veredicto))}
-              style={{ height: `${(num(r.uds_vendidas) / max) * 100}%` }}
-              title={`Vendidas ${entero(r.uds_vendidas)} · ${r.veredicto ?? ""}`}
-            />
-          </div>
-          <p className={cn("text-[11px] font-medium tabular-nums", textoVeredicto(r.veredicto))}>{entero(r.uds_vendidas)}</p>
-          <p className="text-xs font-medium">{r.talla}</p>
-          <p className="text-[10px] text-muted-foreground">{pct(r.sell_through)}</p>
-          <p className="text-[10px] text-muted-foreground">quedan {entero(r.uds_en_piso)}</p>
-        </div>
-      ))}
+    <div className="space-y-2 rounded-md border border-border/60 bg-muted/20 p-3">
+      <p className="text-xs font-medium text-muted-foreground">Curva de tallas · {linea}</p>
+      <div className="flex gap-3 overflow-x-auto pb-1">
+        {q.data.map((r: CurvaRow) => {
+          const enPiso = num(r.uds_en_piso);
+          return (
+            <div key={r.talla} className="min-w-[60px] shrink-0 text-center">
+              <p className="text-[11px] tabular-nums text-muted-foreground">{entero(r.uds_asignadas)}</p>
+              <div className="flex h-24 items-end justify-center gap-1">
+                <div
+                  className="w-3.5 rounded-t bg-muted-foreground/30"
+                  style={{ height: `${(num(r.uds_asignadas) / max) * 100}%` }}
+                  title={`Asignadas ${entero(r.uds_asignadas)}`}
+                />
+                <div
+                  className={cn("w-3.5 rounded-t", colorVeredicto(r.veredicto))}
+                  style={{ height: `${(num(r.uds_vendidas) / max) * 100}%` }}
+                  title={`Vendidas ${entero(r.uds_vendidas)} · ${r.veredicto ?? ""}`}
+                />
+              </div>
+              <p className={cn("mt-1 text-[11px] font-medium tabular-nums", textoVeredicto(r.veredicto))}>{entero(r.uds_vendidas)}</p>
+              <p className="text-xs font-bold">{r.talla}</p>
+              <p className="text-[10px] tabular-nums text-muted-foreground">{pct(r.sell_through)}</p>
+              <p className="text-[10px] text-muted-foreground">{enPiso <= 0 ? "agotada" : `quedan ${entero(enPiso)}`}</p>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }
+
 
 function BarraGenero({ label, asig, vend, st }: { label: string; asig: number; vend: number; st: number | null }) {
   if (asig <= 0) return null;
@@ -501,6 +512,18 @@ export default function AsignacionTiendaPage() {
     },
     staleTime: 600000,
   });
+
+  // En el detalle de una tienda las RPC exigen colección: usar la más reciente si no hay ninguna en la URL.
+  const primeraColeccion = coleccionesQ.data?.[0];
+  useEffect(() => {
+    if (locationId && !coleccion && primeraColeccion) {
+      const next = new URLSearchParams(params);
+      next.set("coleccion", primeraColeccion);
+      setParams(next, { replace: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [locationId, coleccion, primeraColeccion]);
+
 
   const resumenQ = useQuery({
     queryKey: ["asignacion-resumen", coleccion],
