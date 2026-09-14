@@ -513,6 +513,18 @@ export default function AsignacionTiendaPage() {
     staleTime: 600000,
   });
 
+  // En el detalle de una tienda las RPC exigen colección: usar la más reciente si no hay ninguna en la URL.
+  const primeraColeccion = coleccionesQ.data?.[0];
+  useEffect(() => {
+    if (locationId && !coleccion && primeraColeccion) {
+      const next = new URLSearchParams(params);
+      next.set("coleccion", primeraColeccion);
+      setParams(next, { replace: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [locationId, coleccion, primeraColeccion]);
+
+
   const resumenQ = useQuery({
     queryKey: ["asignacion-resumen", coleccion],
     queryFn: async () => {
