@@ -629,6 +629,22 @@ export default function AsignacionTiendaPage() {
                     <Cubrimiento titulo="SKU asignados" parte={detalle.skus_asignados} total={detalle.skus_coleccion} />
                     <Cubrimiento titulo="Líneas asignadas" parte={detalle.lineas_asignadas} total={detalle.lineas_coleccion} />
                   </div>
+                  {resumenTienda && (
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      <div className="rounded-lg border border-border p-4">
+                        <p className="text-xs text-muted-foreground">Sell-through 120 días</p>
+                        <p className={cn("mt-1 text-2xl font-semibold leading-none tabular-nums", colorST(resumenTienda.sell_through))}>{pct(resumenTienda.sell_through)}</p>
+                        <p className="mt-1 text-[11px] text-muted-foreground">vendido dentro de la ventana comercial</p>
+                      </div>
+                      {acumPctDetalle != null && (
+                        <div className="rounded-lg border border-border p-4">
+                          <p className="text-xs text-muted-foreground">Sell-through acumulado</p>
+                          <p className={cn("mt-1 text-2xl font-semibold leading-none tabular-nums", colorST(acumPctDetalle))}>{pct(acumPctDetalle)}</p>
+                          <p className="mt-1 text-[11px] text-muted-foreground">incluye la venta posterior a los 120 días</p>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </section>
 
                 <section className="space-y-2">
