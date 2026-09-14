@@ -8,7 +8,7 @@ import { AppSidebar } from "@/components/AppSidebar";
 import { Button } from "@/components/ui/button";
 import { LoadingState, EmptyState } from "@/components/dashboard/LoadingState";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ChevronRight, Download, FileText, Globe, Package, Store, TrendingUp } from "lucide-react";
+import { ChevronRight, Download, FileText, Globe, Store } from "lucide-react";
 import { exportarExcel, exportarPDF, nombreArchivo, type Celda } from "@/lib/distribucion-export";
 import { cn } from "@/lib/utils";
 
@@ -214,6 +214,8 @@ function BarraPrecios({ r }: { r: ResumenRow }) {
 function TarjetaTienda({ r, onClick }: { r: ResumenRow; onClick: () => void }) {
   const esOnline = (r.tipo_tienda ?? "").toLowerCase() === "online";
   const Icono = esOnline ? Globe : Store;
+  const asig = Math.max(1, num(r.uds_asignadas));
+  const acumPct = ((num(r.uds_vendidas) + num(r.uds_fuera_ventana)) / asig) * 100;
   return (
     <button
       type="button"
@@ -229,8 +231,20 @@ function TarjetaTienda({ r, onClick }: { r: ResumenRow; onClick: () => void }) {
           </p>
         </div>
         <div className="text-right">
-          <p className={cn("text-3xl font-semibold leading-none tabular-nums", colorST(r.sell_through))}>{pct(r.sell_through)}</p>
-          <p className="mt-1 text-[11px] text-muted-foreground">sell-through</p>
+          <div className="flex items-start justify-end gap-4">
+            <div>
+              <p className={cn("text-3xl font-semibold leading-none tabular-nums", colorST(r.sell_through))}>{pct(r.sell_through)}</p>
+              <p className="mt-1 text-[11px] font-medium text-foreground">Sell-through 120 días</p>
+              <p className="text-[10px] text-muted-foreground">vendido en su ventana comercial</p>
+            </div>
+            {num(r.uds_asignadas) > 0 && (
+              <div>
+                <p className={cn("text-xl font-semibold leading-none tabular-nums", colorST(acumPct))}>{pct(acumPct)}</p>
+                <p className="mt-1 text-[11px] font-medium text-foreground">Sell-through acumulado</p>
+                <p className="text-[10px] text-muted-foreground">incluye venta posterior a la ventana</p>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
@@ -244,15 +258,23 @@ function TarjetaTienda({ r, onClick }: { r: ResumenRow; onClick: () => void }) {
       <BarraPrecios r={r} />
 
       <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs">
-        <span className="flex items-center gap-1.5">
-          <Package className="h-3.5 w-3.5 text-muted-foreground" />
+        <span className="flex items-center gap-1.5" title="Unidades vendidas dentro de los 120 días">
+          <span className="inline-block h-2.5 w-2.5 rounded-sm bg-success" />
           <span className="tabular-nums font-medium">{entero(r.uds_vendidas)}</span>
-          <span className="text-muted-foreground">de {entero(r.uds_asignadas)} · {entero(r.uds_en_piso)} en piso</span>
+          <span className="text-muted-foreground">en ventana</span>
         </span>
-        <span className="flex items-center gap-1.5">
-          <TrendingUp className="h-3.5 w-3.5 text-muted-foreground" />
-          <span className="tabular-nums font-medium">{dec(r.rdv_semanal)}</span>
-          <span className="text-muted-foreground">RDV semanal</span>
+        <span className="flex items-center gap-1.5" title="Unidades vendidas después de los 120 días">
+          <span className="inline-block h-2.5 w-2.5 rounded-sm bg-warning" />
+          <span className="tabular-nums font-medium">{entero(r.uds_fuera_ventana)}</span>
+          <span className="text-muted-foreground">fuera de ventana</span>
+        </span>
+        <span className="flex items-center gap-1.5" title="Unidades aún en piso">
+          <span className="inline-block h-2.5 w-2.5 rounded-sm bg-muted-foreground/40" />
+          <span className="tabular-nums font-medium">{entero(r.uds_en_piso)}</span>
+          <span className="text-muted-foreground">en piso</span>
+        </span>
+        <span className="ml-auto flex items-center gap-1 text-[11px] text-muted-foreground">
+          de <span className="tabular-nums font-medium text-foreground">{entero(r.uds_asignadas)}</span> asignadas
         </span>
       </div>
 
@@ -260,7 +282,7 @@ function TarjetaTienda({ r, onClick }: { r: ResumenRow; onClick: () => void }) {
         <p>Refs {entero(r.refs_asignadas)}/{entero(r.refs_universo)} · {pct(r.pct_refs)}</p>
         <p>Líneas {entero(r.lineas_asignadas)}/{entero(r.lineas_universo)}</p>
         <p>Uds/ref {dec(r.uds_por_referencia)}</p>
-        <p>Fuera de ventana {entero(r.uds_fuera_ventana)}</p>
+        <p>RDV {dec(r.rdv_semanal)}/sem</p>
         <p>Exceso {entero(r.uds_exceso)}</p>
         <p>Faltante {entero(r.uds_faltante)}</p>
         <p className="col-span-2">
