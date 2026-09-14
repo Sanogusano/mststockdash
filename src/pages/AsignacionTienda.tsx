@@ -491,10 +491,12 @@ export default function AsignacionTiendaPage() {
     staleTime: 300000,
   });
 
-  const subtitle = `${coleccion || "Sin colección"}${detalle ? ` · ${detalle.tienda}` : ""}`;
+  const nombreTienda =
+    detalle?.tienda ?? (resumenQ.data ?? []).find((t) => t.location_id === locationId)?.tienda ?? "";
+  const subtitle = `${coleccion || "Todas las colecciones"}${nombreTienda ? ` · ${nombreTienda}` : ""}`;
   const migas = [
-    { label: "Tiendas", onClick: locationId ? () => setKeys({ tienda: null }) : undefined },
-    ...(detalle ? [{ label: detalle.tienda }] : locationId ? [{ label: "Detalle de tienda" }] : []),
+    { label: "Tiendas", onClick: locationId ? () => irATienda(null) : undefined },
+    ...(locationId ? [{ label: nombreTienda || "Detalle de tienda" }] : []),
   ];
 
   const maxLinea = Math.max(1, ...(lineasQ.data ?? []).map((r) => num(r.uds_asignadas)));
