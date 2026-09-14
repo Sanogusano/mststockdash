@@ -4740,6 +4740,40 @@ export type Database = {
           uds_vendidas: number
         }[]
       }
+      reporte_asignacion_resumen: {
+        Args: { p_coleccion?: string }
+        Returns: {
+          colecciones: number
+          hombre_asig: number
+          hombre_st: number
+          hombre_vend: number
+          lineas_asignadas: number
+          lineas_universo: number
+          location_id: string
+          mejor_coleccion: string
+          mejor_st: number
+          mujer_asig: number
+          mujer_st: number
+          mujer_vend: number
+          pct_refs: number
+          peor_coleccion: string
+          peor_st: number
+          rdv_semanal: number
+          refs_asignadas: number
+          refs_universo: number
+          sell_through: number
+          tienda: string
+          tipo_tienda: string
+          uds_asignadas: number
+          uds_en_piso: number
+          uds_por_referencia: number
+          uds_vendidas: number
+          unisex_asig: number
+          unisex_st: number
+          unisex_vend: number
+          zona: string
+        }[]
+      }
       reporte_asignacion_tienda: {
         Args: { p_coleccion: string; p_location_id?: string }
         Returns: {
@@ -6003,6 +6037,7 @@ export type Database = {
           p_limite?: number
           p_location_id?: string
           p_orden?: string
+          p_zona?: string
         }
         Returns: {
           categoria: string
