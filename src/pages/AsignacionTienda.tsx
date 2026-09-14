@@ -223,43 +223,47 @@ function TarjetaTienda({ r, onClick }: { r: ResumenRow; onClick: () => void }) {
       onClick={onClick}
       className="flex w-full flex-col gap-3 rounded-lg border border-border p-4 text-left transition-colors hover:border-primary hover:bg-muted/40"
     >
-      <div className="flex items-start gap-3">
-        <span className="mt-0.5 rounded bg-muted p-2 text-muted-foreground"><Icono className="h-4 w-4" /></span>
-        <div className="flex min-w-0 flex-1 items-start gap-3">
+      <div className="space-y-3">
+        <div className="flex items-start gap-3">
+          <span className="mt-0.5 rounded bg-muted p-2 text-muted-foreground"><Icono className="h-4 w-4" /></span>
           <div className="min-w-0 flex-1">
-            <p className="truncate font-medium">{r.tienda}</p>
-            <p className="truncate text-[11px] text-muted-foreground">
+            <p className="break-words font-medium leading-snug">{r.tienda}</p>
+            <p className="text-[11px] text-muted-foreground">
               {[r.tipo_tienda, r.zona].filter(Boolean).join(" · ") || "—"} · {entero(r.colecciones)} colecciones
             </p>
           </div>
-          <div className="w-32 shrink-0 text-right">
-            <div className="flex items-start justify-end gap-4">
-              <div>
-                <p className={cn("text-3xl font-semibold leading-none tabular-nums", colorST(r.sell_through))}>{pct(r.sell_through)}</p>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <p className="mt-1 inline-block cursor-help text-[11px] font-medium text-foreground underline decoration-muted-foreground/30 underline-offset-2">ST 120d</p>
-                  </TooltipTrigger>
-                  <TooltipContent side="top" className="max-w-xs text-xs leading-relaxed">
-                    Sell-through 120 días: vendido dentro de la ventana comercial.
-                  </TooltipContent>
-                </Tooltip>
-              </div>
-              {num(r.uds_asignadas) > 0 && (
-                <div>
-                  <p className={cn("text-xl font-semibold leading-none tabular-nums", colorST(acumPct))}>{pct(acumPct)}</p>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <p className="mt-1 inline-block cursor-help text-[11px] font-medium text-foreground underline decoration-muted-foreground/30 underline-offset-2">ST acum.</p>
-                    </TooltipTrigger>
-                    <TooltipContent side="top" className="max-w-xs text-xs leading-relaxed">
-                      Sell-through acumulado: incluye la venta posterior a los 120 días.
-                    </TooltipContent>
-                  </Tooltip>
-                </div>
-              )}
-            </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <p className={cn("text-2xl font-semibold leading-none tabular-nums", colorST(r.sell_through))}>{pct(r.sell_through)}</p>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <p className="mt-1 inline-block cursor-help text-[11px] font-medium text-foreground underline decoration-muted-foreground/30 underline-offset-2">ST 120d</p>
+              </TooltipTrigger>
+              <TooltipContent side="top" className="max-w-xs text-xs leading-relaxed">
+                Sell-through 120 días: vendido dentro de la ventana comercial.
+              </TooltipContent>
+            </Tooltip>
           </div>
+          {num(r.uds_asignadas) > 0 ? (
+            <div>
+              <p className={cn("text-2xl font-semibold leading-none tabular-nums", colorST(acumPct))}>{pct(acumPct)}</p>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <p className="mt-1 inline-block cursor-help text-[11px] font-medium text-foreground underline decoration-muted-foreground/30 underline-offset-2">ST acum.</p>
+                </TooltipTrigger>
+                <TooltipContent side="top" className="max-w-xs text-xs leading-relaxed">
+                  Sell-through acumulado: incluye la venta posterior a los 120 días.
+                </TooltipContent>
+              </Tooltip>
+            </div>
+          ) : (
+            <div>
+              <p className="text-2xl font-semibold leading-none tabular-nums text-muted-foreground">—</p>
+              <p className="mt-1 text-[11px] font-medium text-muted-foreground">ST acum.</p>
+            </div>
+          )}
         </div>
       </div>
 
