@@ -631,6 +631,8 @@ export default function AsignacionTiendaPage() {
             ) : (
               <EmptyState message="Esta tienda no tiene asignación en la colección seleccionada" />
             )}
+
+            <BloqueBrecha coleccion={coleccion} locationId={locationId || null} subtitle={subtitle} />
           </div>
         </main>
       </div>
