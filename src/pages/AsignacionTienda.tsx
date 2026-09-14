@@ -360,11 +360,11 @@ export default function AsignacionTiendaPage() {
               </div>
               <div className="space-y-1">
                 <label className="text-xs text-muted-foreground" htmlFor="filtro-tienda">Tienda</label>
-                <Select value={locationId || "all"} onValueChange={(v) => setKeys({ tienda: v })} disabled={!coleccion}>
+                <Select value={locationId || "all"} onValueChange={(v) => setKeys({ tienda: v })}>
                   <SelectTrigger id="filtro-tienda" className="w-[220px]"><SelectValue placeholder="Todas" /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">Todas las tiendas</SelectItem>
-                    {(tiendasQ.data ?? []).map((t) => <SelectItem key={t.location_id} value={t.location_id}>{t.tienda}</SelectItem>)}
+                    {(resumenQ.data ?? []).map((t) => <SelectItem key={t.location_id} value={t.location_id}>{t.tienda}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
