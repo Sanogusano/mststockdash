@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { LineChart, BarChart3, TrendingUp, ArrowLeftRight, Package, Tag, Layers, Target, Zap, Trophy, Archive, Users, Calculator, UserCog, Briefcase, ChevronDown, Settings, MapPin, Upload, LogOut, Truck, Shield, Store, Banknote, LayoutDashboard, CreditCard, MessageCircle, AlertTriangle, RefreshCw, Sparkles, Search, LayoutGrid, TrendingDown, Globe, Gauge, ScatterChart, Siren, Database, Split, Activity, PackageOpen } from "lucide-react";
+import { LineChart, BarChart3, TrendingUp, ArrowLeftRight, Package, Tag, Layers, Target, Zap, Trophy, Archive, Users, Calculator, UserCog, Briefcase, ChevronDown, Settings, MapPin, Upload, LogOut, Truck, Shield, Store, Banknote, LayoutDashboard, CreditCard, MessageCircle, AlertTriangle, RefreshCw, Sparkles, Search, LayoutGrid, TrendingDown, Globe, Gauge, ScatterChart, Siren, Database, Split, Activity, Scale } from "lucide-react";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useAuth } from "@/hooks/useAuth";
 import { useUserPermissions } from "@/hooks/useUserPermissions";
@@ -70,7 +70,7 @@ const analisisLinea360Item: NavItem = { title: "Análisis de Rotación por Líne
 
 const distribucionItem: NavItem = { title: "Distribución", url: "/distribucion", icon: Split, description: "¿Qué tiendas se quedan cortas y cuáles acumulan?", module: "dashboards.salud_producto", action: "view" };
 
-const asignacionItem: NavItem = { title: "Asignación por Tienda", url: "/asignacion", icon: PackageOpen, description: "Qué surtido recibió cada tienda y qué hizo con él", module: "dashboards.salud_producto", action: "view" };
+const asignacionItem: NavItem = { title: "Asignación por Tienda", url: "/asignacion", icon: Scale, description: "Qué surtido recibió cada tienda y qué hizo con él", module: "producto.asignacion", action: "view" };
 
 const productoItems: NavItem[] = [
   saludProductoItem,

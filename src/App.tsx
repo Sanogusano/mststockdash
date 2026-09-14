@@ -103,8 +103,8 @@ const App = () => (
           <Route path="/mapa-producto" element={<Guard module="dashboards.salud_producto" action="view"><MapaProductoPage /></Guard>} />
           <Route path="/analisis-linea-360" element={<Guard module="dashboards.desempeno_linea" action="view"><AnalisisLinea360Page /></Guard>} />
           <Route path="/distribucion" element={<Guard module="dashboards.salud_producto" action="view"><DistribucionCoberturaPage /></Guard>} />
-          <Route path="/asignacion" element={<Guard module="dashboards.salud_producto" action="view"><AsignacionTiendaPage /></Guard>} />
-          <Route path="/asignacion/:locationId" element={<Guard module="dashboards.salud_producto" action="view"><AsignacionTiendaPage /></Guard>} />
+          <Route path="/asignacion" element={<Guard module="producto.asignacion" action="view"><AsignacionTiendaPage /></Guard>} />
+          <Route path="/asignacion/:locationId" element={<Guard module="producto.asignacion" action="view"><AsignacionTiendaPage /></Guard>} />
           <Route path="/analisis-linea" element={<Guard module="dashboards.salud_producto" action="view"><Linea360Page /></Guard>} />
           <Route path="/top-productos" element={<Guard module="dashboards.inventario_salud" action="view"><TopProductosPage /></Guard>} />
           <Route path="/reporte-rebajas" element={<Guard module="dashboards.inventario_salud" action="view"><ReporteRebajasPage /></Guard>} />
