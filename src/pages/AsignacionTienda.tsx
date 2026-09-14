@@ -214,6 +214,8 @@ function BarraPrecios({ r }: { r: ResumenRow }) {
 function TarjetaTienda({ r, onClick }: { r: ResumenRow; onClick: () => void }) {
   const esOnline = (r.tipo_tienda ?? "").toLowerCase() === "online";
   const Icono = esOnline ? Globe : Store;
+  const asig = Math.max(1, num(r.uds_asignadas));
+  const acumPct = ((num(r.uds_vendidas) + num(r.uds_fuera_ventana)) / asig) * 100;
   return (
     <button
       type="button"
