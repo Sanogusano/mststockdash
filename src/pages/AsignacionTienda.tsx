@@ -371,8 +371,28 @@ export default function AsignacionTiendaPage() {
             </div>
             {coleccionesQ.error && <ErrorBox error={coleccionesQ.error} />}
 
-            {!coleccion ? (
-              <EmptyState message="Selecciona una colección para ver la asignación por tienda" />
+            {!locationId ? (
+              resumenQ.isLoading ? (
+                <LoadingState />
+              ) : resumenQ.error ? (
+                <ErrorBox error={resumenQ.error} />
+              ) : !resumenQ.data?.length ? (
+                <EmptyState message="Sin tiendas con asignación" />
+              ) : (
+                <section className="space-y-4">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <h2 className="text-base font-semibold">Tiendas · {coleccion || "Todas las colecciones"}</h2>
+                    <Exportaciones title="Resumen tiendas" columns={resumenColumns} rows={resumenQ.data} subtitle={subtitle} />
+                  </div>
+                  <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                    {resumenQ.data.map((r) => (
+                      <TarjetaTienda key={r.location_id} r={r} onClick={() => setKeys({ tienda: r.location_id })} />
+                    ))}
+                  </div>
+                </section>
+              )
+            ) : !coleccion ? (
+              <EmptyState message="Selecciona una colección para ver el detalle de esta tienda" />
             ) : tiendasQ.isLoading ? (
               <LoadingState />
             ) : tiendasQ.error ? (
