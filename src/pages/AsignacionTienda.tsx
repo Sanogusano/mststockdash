@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { useSearchParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
@@ -8,7 +8,7 @@ import { AppSidebar } from "@/components/AppSidebar";
 import { Button } from "@/components/ui/button";
 import { LoadingState, EmptyState } from "@/components/dashboard/LoadingState";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ChevronRight, Download, FileText, Globe, Store } from "lucide-react";
+import { ChevronRight, Download, FileText, Globe, Package, Store, TrendingUp } from "lucide-react";
 import { exportarExcel, exportarPDF, nombreArchivo, type Celda } from "@/lib/distribucion-export";
 import { cn } from "@/lib/utils";
 
@@ -16,6 +16,7 @@ type Tienda = Database["public"]["Functions"]["reporte_asignacion_tienda"]["Retu
 type LineaRow = Database["public"]["Functions"]["reporte_asignacion_lineas"]["Returns"][number];
 type CurvaRow = Database["public"]["Functions"]["reporte_asignacion_curva"]["Returns"][number];
 type ResumenRow = Database["public"]["Functions"]["reporte_asignacion_resumen"]["Returns"][number];
+type BrechaRow = Database["public"]["Functions"]["reporte_asignacion_brecha"]["Returns"][number];
 
 const num = (v: number | string | null | undefined) => (v == null ? 0 : Number(v));
 const entero = (n: number | string | null | undefined) =>
@@ -170,6 +171,46 @@ function BarraGenero({ label, asig, vend, st }: { label: string; asig: number; v
   );
 }
 
+const colorST = (v: number | null) => {
+  const n = num(v);
+  return n >= 60 ? "text-success" : n >= 40 ? "text-primary" : n >= 25 ? "text-warning" : "text-destructive";
+};
+
+const estiloVeredicto = (v: string | null) => {
+  const s = (v ?? "").toUpperCase();
+  if (s.includes("EXCESO") || s.includes("SOBRA")) return "border-destructive/40 bg-destructive/10 text-destructive";
+  if (s.includes("FALTA")) return "border-warning/40 bg-warning/10 text-warning";
+  if (s.includes("SANO") || s.includes("AJUST") || s.includes("EQUILIBR")) return "border-success/40 bg-success/10 text-success";
+  return "border-border bg-muted text-muted-foreground";
+};
+
+/** Mezcla de precios: full (azul) · promo (verde) · rebaja (ámbar). */
+function BarraPrecios({ r }: { r: ResumenRow }) {
+  const segmentos = [
+    { label: "Full", p: num(r.pct_full), uds: num(r.uds_full), color: "bg-primary" },
+    { label: "Promo", p: num(r.pct_promo), uds: num(r.uds_promo), color: "bg-success" },
+    { label: "Rebaja", p: num(r.pct_rebaja), uds: num(r.uds_rebaja), color: "bg-warning" },
+  ];
+  if (segmentos.every((s) => s.p <= 0)) return null;
+  return (
+    <div>
+      <div className="flex h-2 w-full overflow-hidden rounded bg-muted">
+        {segmentos.map((s) => (
+          <div key={s.label} className={s.color} style={{ width: `${Math.max(0, s.p)}%` }} title={`${s.label}: ${entero(s.uds)} (${pct(s.p)})`} />
+        ))}
+      </div>
+      <p className="mt-1 flex flex-wrap gap-x-3 text-[11px] text-muted-foreground">
+        {segmentos.filter((s) => s.p > 0).map((s) => (
+          <span key={s.label} className="flex items-center gap-1">
+            <span className={cn("inline-block h-2 w-2 rounded-sm", s.color)} />
+            {s.label} {pct(s.p)}
+          </span>
+        ))}
+      </p>
+    </div>
+  );
+}
+
 function TarjetaTienda({ r, onClick }: { r: ResumenRow; onClick: () => void }) {
   const esOnline = (r.tipo_tienda ?? "").toLowerCase() === "online";
   const Icono = esOnline ? Globe : Store;
@@ -183,32 +224,53 @@ function TarjetaTienda({ r, onClick }: { r: ResumenRow; onClick: () => void }) {
         <span className="mt-0.5 rounded bg-muted p-2 text-muted-foreground"><Icono className="h-4 w-4" /></span>
         <div className="min-w-0 flex-1">
           <p className="truncate font-medium">{r.tienda}</p>
-          <p className="text-xs text-muted-foreground">
+          <p className="text-[11px] text-muted-foreground">
             {[r.tipo_tienda, r.zona].filter(Boolean).join(" · ") || "—"} · {entero(r.colecciones)} colecciones
           </p>
         </div>
         <div className="text-right">
-          <p className="text-lg font-semibold tabular-nums">{pct(r.sell_through)}</p>
-          <p className="text-[11px] text-muted-foreground">sell-through</p>
+          <p className={cn("text-3xl font-semibold leading-none tabular-nums", colorST(r.sell_through))}>{pct(r.sell_through)}</p>
+          <p className="mt-1 text-[11px] text-muted-foreground">sell-through</p>
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground">
-        <p>Refs <span className="tabular-nums text-foreground">{entero(r.refs_asignadas)}/{entero(r.refs_universo)}</span> · {pct(r.pct_refs)}</p>
-        <p>Líneas <span className="tabular-nums text-foreground">{entero(r.lineas_asignadas)}/{entero(r.lineas_universo)}</span></p>
-        <p>Asignadas <span className="tabular-nums text-foreground">{entero(r.uds_asignadas)}</span></p>
-        <p>Vendidas <span className="tabular-nums text-foreground">{entero(r.uds_vendidas)}</span></p>
-        <p>En piso <span className="tabular-nums text-foreground">{entero(r.uds_en_piso)}</span></p>
-        <p>Uds/ref <span className="tabular-nums text-foreground">{dec(r.uds_por_referencia)}</span></p>
-        <p className="col-span-2">RDV semanal <span className="tabular-nums text-foreground">{dec(r.rdv_semanal)}</span></p>
+      {r.veredicto_brecha && (
+        <span className={cn("inline-flex w-fit items-center gap-2 rounded border px-2 py-0.5 text-[11px] font-medium", estiloVeredicto(r.veredicto_brecha))}>
+          {r.veredicto_brecha}
+          <span className="tabular-nums">{pct(r.pct_brecha)}</span>
+        </span>
+      )}
+
+      <BarraPrecios r={r} />
+
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs">
+        <span className="flex items-center gap-1.5">
+          <Package className="h-3.5 w-3.5 text-muted-foreground" />
+          <span className="tabular-nums font-medium">{entero(r.uds_vendidas)}</span>
+          <span className="text-muted-foreground">de {entero(r.uds_asignadas)} · {entero(r.uds_en_piso)} en piso</span>
+        </span>
+        <span className="flex items-center gap-1.5">
+          <TrendingUp className="h-3.5 w-3.5 text-muted-foreground" />
+          <span className="tabular-nums font-medium">{dec(r.rdv_semanal)}</span>
+          <span className="text-muted-foreground">RDV semanal</span>
+        </span>
       </div>
 
-      <div className="space-y-1 text-xs">
+      <div className="grid grid-cols-2 gap-x-3 gap-y-0.5 text-[11px] text-muted-foreground">
+        <p>Refs {entero(r.refs_asignadas)}/{entero(r.refs_universo)} · {pct(r.pct_refs)}</p>
+        <p>Líneas {entero(r.lineas_asignadas)}/{entero(r.lineas_universo)}</p>
+        <p>Uds/ref {dec(r.uds_por_referencia)}</p>
+        <p>Fuera de ventana {entero(r.uds_fuera_ventana)}</p>
+        <p>Exceso {entero(r.uds_exceso)}</p>
+        <p>Faltante {entero(r.uds_faltante)}</p>
+        <p className="col-span-2">
+          Refs: {entero(r.refs_sanas)} sanas · {entero(r.refs_agotadas)} agotadas · {entero(r.refs_sobradas)} sobradas de {entero(r.refs_evaluadas)}
+        </p>
         {r.mejor_coleccion && (
-          <p className="text-muted-foreground">Mejor: <span className="font-medium text-foreground">{r.mejor_coleccion}</span> <span className="font-medium text-success tabular-nums">{pct(r.mejor_st)}</span></p>
+          <p className="col-span-2">Mejor: <span className="text-foreground">{r.mejor_coleccion}</span> <span className="font-medium text-success tabular-nums">{pct(r.mejor_st)}</span></p>
         )}
         {r.peor_coleccion && (
-          <p className="text-muted-foreground">Peor: <span className="font-medium text-foreground">{r.peor_coleccion}</span> <span className="font-medium text-warning tabular-nums">{pct(r.peor_st)}</span></p>
+          <p className="col-span-2">Peor: <span className="text-foreground">{r.peor_coleccion}</span> <span className="font-medium text-warning tabular-nums">{pct(r.peor_st)}</span></p>
         )}
       </div>
 
@@ -221,6 +283,114 @@ function TarjetaTienda({ r, onClick }: { r: ResumenRow; onClick: () => void }) {
   );
 }
 
+const DIMENSIONES: { key: string; label: string }[] = [
+  { key: "linea", label: "Por línea" },
+  { key: "genero", label: "Por género" },
+  { key: "coleccion", label: "Por colección" },
+];
+
+const brechaColumns: [string, string][] = [
+  ["valor", "Valor"], ["uds_asignadas", "Asignadas"], ["uds_vendidas", "Vendidas"], ["uds_en_piso", "En piso"],
+  ["sell_through", "Sell-through (%)"], ["uds_exceso", "Exceso"], ["uds_faltante", "Faltante"],
+  ["brecha", "Brecha"], ["pct_brecha", "% Brecha"], ["veredicto", "Veredicto"],
+  ["refs_evaluadas", "Refs evaluadas"], ["refs_sanas", "Refs sanas"], ["refs_agotadas", "Refs agotadas"], ["refs_sobradas", "Refs sobradas"],
+];
+
+function BloqueBrecha({ coleccion, locationId, subtitle }: { coleccion: string; locationId: string | null; subtitle: string }) {
+  const [dimension, setDimension] = useState("linea");
+  const q = useQuery({
+    queryKey: ["asignacion-brecha", dimension, coleccion, locationId],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("reporte_asignacion_brecha", {
+        p_dimension: dimension,
+        p_location_id: locationId ?? undefined,
+        p_coleccion: coleccion || undefined,
+        p_minimo: 50,
+      });
+      if (error) throw error;
+      return [...(data ?? [])].sort((a, b) => num(b.uds_exceso) - num(a.uds_exceso));
+    },
+    staleTime: 300000,
+  });
+
+  const max = Math.max(1, ...(q.data ?? []).map((r) => Math.max(num(r.uds_exceso), num(r.uds_faltante))));
+
+  return (
+    <section className="space-y-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h2 className="text-base font-semibold">Dónde está el exceso</h2>
+          <p className="text-xs text-muted-foreground">Unidades sobrantes frente a unidades que hicieron falta.</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="flex rounded-md border border-border p-0.5">
+            {DIMENSIONES.map((d) => (
+              <Button
+                key={d.key}
+                variant={dimension === d.key ? "secondary" : "ghost"}
+                size="sm"
+                className="h-7"
+                onClick={() => setDimension(d.key)}
+              >
+                {d.label}
+              </Button>
+            ))}
+          </div>
+          <Exportaciones title="Brecha" columns={brechaColumns} rows={q.data ?? []} subtitle={subtitle} />
+        </div>
+      </div>
+
+      {q.isLoading ? <LoadingState /> : q.error ? <ErrorBox error={q.error} /> : !q.data?.length ? (
+        <EmptyState message="Sin datos de brecha para esta selección" />
+      ) : (
+        <ul className="space-y-3">
+          {q.data.map((r: BrechaRow) => {
+            const exceso = num(r.uds_exceso);
+            const faltante = num(r.uds_faltante);
+            const razon = faltante > 0 ? exceso / faltante : null;
+            return (
+              <li key={r.valor} className="flex flex-wrap items-center gap-4 rounded-lg border border-border p-3">
+                <div className="min-w-[220px] flex-1">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="font-medium">{r.valor}</p>
+                    <span className={cn("rounded border px-2 py-0.5 text-[11px] font-medium", estiloVeredicto(r.veredicto))}>
+                      {r.veredicto} · {pct(r.pct_brecha)}
+                    </span>
+                  </div>
+                  <div className="mt-2 space-y-1">
+                    <div className="flex items-center gap-2">
+                      <span className="w-16 text-[11px] text-muted-foreground">Exceso</span>
+                      <div className="h-2.5 flex-1 rounded bg-muted">
+                        <div className="h-full rounded bg-destructive" style={{ width: `${(exceso / max) * 100}%` }} />
+                      </div>
+                      <span className="w-20 text-right text-xs font-medium tabular-nums text-destructive">{entero(exceso)}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="w-16 text-[11px] text-muted-foreground">Faltante</span>
+                      <div className="h-2.5 flex-1 rounded bg-muted">
+                        <div className="h-full rounded bg-warning" style={{ width: `${(faltante / max) * 100}%` }} />
+                      </div>
+                      <span className="w-20 text-right text-xs font-medium tabular-nums text-warning">{entero(faltante)}</span>
+                    </div>
+                  </div>
+                </div>
+                <div className="min-w-[150px] text-right text-xs text-muted-foreground">
+                  <p className="text-sm font-medium tabular-nums text-foreground">{pct(r.sell_through)}</p>
+                  <p>sell-through</p>
+                  {razon != null && (
+                    <p className="mt-1">Exceso vs faltante <span className="font-medium text-foreground tabular-nums">{dec(razon)} a 1</span></p>
+                  )}
+                  <p className="mt-1">{entero(r.uds_vendidas)} de {entero(r.uds_asignadas)} · {entero(r.uds_en_piso)} en piso</p>
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </section>
+  );
+}
+
 const resumenColumns: [string, string][] = [
   ["tienda", "Tienda"], ["tipo_tienda", "Tipo"], ["zona", "Zona"], ["colecciones", "Colecciones"],
   ["refs_asignadas", "Refs asignadas"], ["refs_universo", "Refs universo"], ["pct_refs", "% Referencias"],
@@ -228,6 +398,10 @@ const resumenColumns: [string, string][] = [
   ["uds_asignadas", "Asignadas"], ["uds_vendidas", "Vendidas"], ["uds_en_piso", "En piso"],
   ["sell_through", "Sell-through (%)"], ["uds_por_referencia", "Uds/ref"], ["rdv_semanal", "RDV semanal"],
   ["mejor_coleccion", "Mejor colección"], ["mejor_st", "Mejor ST (%)"], ["peor_coleccion", "Peor colección"], ["peor_st", "Peor ST (%)"],
+  ["uds_full", "Uds full"], ["pct_full", "% Full"], ["uds_promo", "Uds promo"], ["pct_promo", "% Promo"],
+  ["uds_rebaja", "Uds rebaja"], ["pct_rebaja", "% Rebaja"], ["uds_fuera_ventana", "Fuera de ventana"],
+  ["refs_evaluadas", "Refs evaluadas"], ["refs_sanas", "Refs sanas"], ["refs_agotadas", "Refs agotadas"], ["refs_sobradas", "Refs sobradas"],
+  ["uds_exceso", "Exceso"], ["uds_faltante", "Faltante"], ["brecha", "Brecha"], ["pct_brecha", "% Brecha"], ["veredicto_brecha", "Veredicto"],
 ];
 
 const lineaColumns: [string, string][] = [
@@ -258,13 +432,20 @@ function Exportaciones({ title, columns, rows, subtitle }: { title: string; colu
 
 export default function AsignacionTiendaPage() {
   const [params, setParams] = useSearchParams();
+  const navigate = useNavigate();
+  const { locationId: rutaLocationId } = useParams<{ locationId: string }>();
   const coleccion = params.get("coleccion") || "";
-  const locationId = params.get("tienda") || "";
+  const locationId = rutaLocationId || "";
 
   const setKeys = (entries: Record<string, string | null>) => {
     const next = new URLSearchParams(params);
     Object.entries(entries).forEach(([k, v]) => { if (!v || v === "all") next.delete(k); else next.set(k, v); });
     setParams(next);
+  };
+
+  const irATienda = (id: string | null) => {
+    const qs = params.toString();
+    navigate(`/asignacion${id ? `/${id}` : ""}${qs ? `?${qs}` : ""}`);
   };
 
   const coleccionesQ = useQuery({
@@ -314,10 +495,12 @@ export default function AsignacionTiendaPage() {
     staleTime: 300000,
   });
 
-  const subtitle = `${coleccion || "Sin colección"}${detalle ? ` · ${detalle.tienda}` : ""}`;
+  const nombreTienda =
+    detalle?.tienda ?? (resumenQ.data ?? []).find((t) => t.location_id === locationId)?.tienda ?? "";
+  const subtitle = `${coleccion || "Todas las colecciones"}${nombreTienda ? ` · ${nombreTienda}` : ""}`;
   const migas = [
-    { label: "Tiendas", onClick: locationId ? () => setKeys({ tienda: null }) : undefined },
-    ...(detalle ? [{ label: detalle.tienda }] : locationId ? [{ label: "Detalle de tienda" }] : []),
+    { label: "Tiendas", onClick: locationId ? () => irATienda(null) : undefined },
+    ...(locationId ? [{ label: nombreTienda || "Detalle de tienda" }] : []),
   ];
 
   const maxLinea = Math.max(1, ...(lineasQ.data ?? []).map((r) => num(r.uds_asignadas)));
@@ -351,7 +534,7 @@ export default function AsignacionTiendaPage() {
               </div>
               <div className="space-y-1">
                 <label className="text-xs text-muted-foreground" htmlFor="filtro-tienda">Tienda</label>
-                <Select value={locationId || "all"} onValueChange={(v) => setKeys({ tienda: v })}>
+                <Select value={locationId || "all"} onValueChange={(v) => irATienda(v === "all" ? null : v)}>
                   <SelectTrigger id="filtro-tienda" className="w-[220px]"><SelectValue placeholder="Todas" /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">Todas las tiendas</SelectItem>
@@ -377,7 +560,7 @@ export default function AsignacionTiendaPage() {
                   </div>
                   <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                     {resumenQ.data.map((r) => (
-                      <TarjetaTienda key={r.location_id} r={r} onClick={() => setKeys({ tienda: r.location_id })} />
+                      <TarjetaTienda key={r.location_id} r={r} onClick={() => irATienda(r.location_id)} />
                     ))}
                   </div>
                 </section>
@@ -452,6 +635,8 @@ export default function AsignacionTiendaPage() {
             ) : (
               <EmptyState message="Esta tienda no tiene asignación en la colección seleccionada" />
             )}
+
+            <BloqueBrecha coleccion={coleccion} locationId={locationId || null} subtitle={subtitle} />
           </div>
         </main>
       </div>
