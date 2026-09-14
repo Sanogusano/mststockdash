@@ -277,18 +277,26 @@ export default function AsignacionTiendaPage() {
   };
 
   const coleccionesQ = useQuery({
-    queryKey: ["asignacion-colecciones"],
+    queryKey: ["asignacion-colecciones-embudo"],
     queryFn: async () => {
-      const set = new Set<string>();
-      for (let from = 0; ; from += 1000) {
-        const { data, error } = await supabase.from("product_catalog").select("collection_season").order("sku").range(from, from + 999);
-        if (error) throw error;
-        (data ?? []).forEach((r) => { if (r.collection_season) set.add(r.collection_season); });
-        if (!data || data.length < 1000) break;
-      }
-      return [...set].sort();
+      const { data, error } = await supabase.rpc("reporte_distribucion_embudo", { p_coleccion: null, p_linea: null });
+      if (error) throw error;
+      return [...(data ?? [])]
+        .sort((a, b) => num(a.antiguedad_ponderada) - num(b.antiguedad_ponderada))
+        .map((r) => r.coleccion)
+        .filter((c): c is string => !!c);
     },
     staleTime: 600000,
+  });
+
+  const resumenQ = useQuery({
+    queryKey: ["asignacion-resumen", coleccion],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("reporte_asignacion_resumen", { p_coleccion: coleccion || null });
+      if (error) throw error;
+      return [...(data ?? [])].sort((a, b) => num(b.uds_asignadas) - num(a.uds_asignadas));
+    },
+    staleTime: 300000,
   });
 
   const tiendasQ = useQuery({
