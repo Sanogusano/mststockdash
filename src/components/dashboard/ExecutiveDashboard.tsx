@@ -1,3 +1,4 @@
+import { fetchProductSkuDetails } from "@/lib/product-sku-details";
 import { useEffect, useState, Fragment } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -169,7 +170,7 @@ function buildDesempenoUrl(opts: {
 }): string {
   const p = new URLSearchParams();
   p.set("orden", opts.orden);
-  p.set("days", String(resolveDays(opts.days)));
+  p.set("days", String(opts.days));
   if (opts.canal) p.set("canal", opts.canal);
   if (opts.locationId) p.set("location", opts.locationId);
   if (opts.customFrom && opts.customTo) {
@@ -349,6 +350,9 @@ function ProductTable({ data, title, exportFilename, days, canalFiltro, location
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [skuDetails, setSkuDetails] = useState<SkuDetailRow[]>([]);
   const [skuLoading, setSkuLoading] = useState(false);
+  const [skuError, setSkuError] = useState<string | null>(null);
+  const navigate = useNavigate();
+  useEffect(() => { setExpandedId(null); setSkuDetails([]); }, [data, days, canalFiltro, locationFiltro, customFrom, customTo]);
 
   if (!data.length) return <EmptyState message="Sin datos para mostrar." />;
 
@@ -375,15 +379,13 @@ function ProductTable({ data, title, exportFilename, days, canalFiltro, location
     }
     setExpandedId(productId);
     setSkuLoading(true);
-    const { dias_atras: effectiveDays, p_hasta: hastaParam } = buildRpcDateParams(days, customFrom, customTo);
-    const { data: rows } = await supabase.rpc("reporte_detalle_skus_producto" as any, {
-      dias_atras: effectiveDays,
-      p_product_id: productId,
-      canal_filtro: canalFiltro || null,
-      location_filtro: locationFiltro || null,
-      p_hasta: hastaParam,
-    });
-    setSkuDetails((rows ?? []) as unknown as SkuDetailRow[]);
+    setSkuDetails([]);
+    setSkuError(null);
+    try {
+      setSkuDetails(await fetchProductSkuDetails(productId, days, canalFiltro, locationFiltro, customFrom, customTo));
+    } catch (error) {
+      setSkuError(error instanceof Error ? error.message : String(error));
+    }
     setSkuLoading(false);
   };
 
@@ -391,6 +393,11 @@ function ProductTable({ data, title, exportFilename, days, canalFiltro, location
     <div className="glass-card overflow-hidden">
       <div className="flex items-center justify-between px-5 py-4 border-b border-border">
         <h3 className="text-sm font-semibold text-foreground">{title}</h3>
+        <Button variant="link" size="sm" onClick={() => navigate(buildDesempenoUrl({
+          orden: title.startsWith("Bottom") ? "BOTTOM" : "TOP", days,
+          canal: canalFiltro === "DIGITAL" ? "digital" : canalFiltro === "OUTLET" ? "outlets" : canalFiltro ? "tiendas" : null,
+          locationId: locationFiltro, customFrom, customTo,
+        }))}>Ver reporte completo</Button>
         <ExportButtons data={exportData as unknown as Record<string, unknown>[]} filename={exportFilename} title={title} />
       </div>
       <div className="overflow-x-auto">
@@ -411,14 +418,14 @@ function ProductTable({ data, title, exportFilename, days, canalFiltro, location
           <tbody>
           {data.map((row, i) => {
               const { name } = extractNameColor(row.producto);
-              const isExpanded = expandedId === row.sku;
+              const isExpanded = expandedId === row.producto;
               const stVal = row.sell_through_pct ?? 0;
               const stColor = stVal > 70 ? "bg-emerald-500" : stVal >= 30 ? "bg-amber-500" : "bg-destructive";
               return (
-                <Fragment key={row.sku ?? i}>
+                <Fragment key={row.producto ?? i}>
                   <tr
                     className={cn("border-b border-border/50 hover:bg-muted/20 transition-colors cursor-pointer", isExpanded && "bg-muted/30")}
-                    onClick={() => handleRowClick(row.sku)}
+                    onClick={() => handleRowClick(row.producto)}
                   >
                     <td className="px-3 py-3 text-center font-bold text-muted-foreground">{i + 1}</td>
                     <td className="px-3 py-3">
@@ -462,6 +469,8 @@ function ProductTable({ data, title, exportFilename, days, canalFiltro, location
                           <p className="text-xs font-semibold text-muted-foreground mb-2">📦 Desglose por SKU</p>
                           {skuLoading ? (
                             <div className="py-4 text-center text-xs text-muted-foreground">Cargando...</div>
+                          ) : skuError ? (
+                            <p role="alert" className="text-destructive">{skuError}</p>
                           ) : !skuDetails.length ? (
                             <div className="py-4 text-center text-xs text-muted-foreground">Sin SKUs</div>
                           ) : (
@@ -1433,7 +1442,7 @@ function ChannelPanel({ days, canal, showLocationFilter, locationFilter, compari
         title="Top 20 — Más Vendidos"
         exportFilename={`top20_${canal}_${days}d`}
         days={days}
-        canalFiltro={canal === "digital" ? "DIGITAL" : "POS"}
+        canalFiltro={canal === "digital" ? "DIGITAL" : canal === "outlets" ? "OUTLET" : "TIENDAS"}
         locationFiltro={locParam}
         customFrom={customFrom}
         customTo={customTo}
@@ -1444,7 +1453,7 @@ function ChannelPanel({ days, canal, showLocationFilter, locationFilter, compari
         title="Bottom 20 — Menor Rotación (con stock)"
         exportFilename={`bottom20_${canal}_${days}d`}
         days={days}
-        canalFiltro={canal === "digital" ? "DIGITAL" : "POS"}
+        canalFiltro={canal === "digital" ? "DIGITAL" : canal === "outlets" ? "OUTLET" : "TIENDAS"}
         locationFiltro={locParam}
         customFrom={customFrom}
         customTo={customTo}
@@ -1865,6 +1874,7 @@ function ZonePanel({ days, locationFilter, comparisonPeriod = "previous", custom
   useEffect(() => { setSelectedLocation("all"); }, [selectedZone]);
 
   useEffect(() => {
+    let active = true;
     async function fetchAll() {
       if (!isValidDays(days)) return;
       setLoading(true);
@@ -1892,6 +1902,7 @@ function ZonePanel({ days, locationFilter, comparisonPeriod = "previous", custom
           : supabase.rpc("reporte_metricas_zona" as any, { dias_atras: effectiveDays, p_canal: canal, p_zona: zonaParam, p_hasta: hastaParam }),
       ]);
 
+      if (!active) return;
       const emptyKpi = normalizeKpiData({});
       if (kpiRes.data && (kpiRes.data as any[]).length > 0) setKpis(normalizeKpiData((kpiRes.data as any[])[0]));
       else setKpis(emptyKpi);
@@ -1923,6 +1934,7 @@ function ZonePanel({ days, locationFilter, comparisonPeriod = "previous", custom
       setLoading(false);
     }
     fetchAll();
+    return () => { active = false; };
   }, [days, canal, selectedLocation, selectedZone, comparisonPeriod, customFrom, customTo]);
 
   if (loading) return <LoadingState rows={6} />;

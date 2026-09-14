@@ -1,4 +1,5 @@
-import { useState, useEffect, useMemo } from "react";
+import { ProductSkuBreakdown } from "@/components/dashboard/ProductSkuBreakdown";
+import { Fragment, useState, useEffect, useMemo } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
@@ -150,7 +151,7 @@ function getLifetimeInfo(semanas: number | null, primeraVenta: string | null) {
 }
 
 export default function DesempenoProductosPage() {
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   const initialCanal = searchParams.get("canal") || "all";
   const orden = searchParams.get("orden") === "BOTTOM" ? "BOTTOM" : "TOP";
@@ -162,8 +163,16 @@ export default function DesempenoProductosPage() {
   const rangeFrom = fromQP ? new Date(`${fromQP}T00:00:00`) : undefined;
   const rangeTo = toQP ? new Date(`${toQP}T00:00:00`) : undefined;
 
-  const [days, setDays] = useState<number>(initialDays);
-  const [canal, setCanal] = useState(initialCanal);
+  const days = initialDays;
+  const canal = initialCanal;
+  const updateParams = (values: Record<string, string | null>) => setSearchParams(prev => {
+    const next = new URLSearchParams(prev);
+    Object.entries(values).forEach(([key, value]) => value === null ? next.delete(key) : next.set(key, value));
+    return next;
+  });
+  const setDays = (value: number) => updateParams({ days: String(value), from: null, to: null });
+  const setCanal = (value: string) => updateParams({ canal: value });
+  const [expandedProduct, setExpandedProduct] = useState<string | null>(null);
   const [catFilter, setCatFilter] = useState("all");
   const initialSemana = searchParams.get("semana") || "all";
   const initialMezcla = searchParams.get("mezcla") || "all";
@@ -177,6 +186,8 @@ export default function DesempenoProductosPage() {
   const [selectedProduct, setSelectedProduct] = useState<{ foto: string; producto: string; sku: string; categoria: string } | null>(null);
 
   useEffect(() => {
+    let active = true;
+    setExpandedProduct(null);
     async function fetch() {
       setLoading(true);
       setError(null);
@@ -193,6 +204,7 @@ export default function DesempenoProductosPage() {
         p_desde: fromQP,
         p_location_id: locationId,
       });
+      if (!active) return;
       if (err) {
         setError(err.message);
         setData([]);
@@ -202,6 +214,7 @@ export default function DesempenoProductosPage() {
       setLoading(false);
     }
     fetch();
+    return () => { active = false; };
   }, [days, canal, catFilter, orden, topN, locationId, fromQP, toQP]);
 
   // Sincronizar filtros rápidos con la URL
@@ -303,7 +316,7 @@ export default function DesempenoProductosPage() {
                 <p className="text-[10px] sm:text-xs text-muted-foreground">{orden === "BOTTOM" ? "Productos con menor rotación, mezcla de precios y stock actualizado" : "Ranking por unidades vendidas, mezcla de precios y stock actualizado"}</p>
               </div>
             </div>
-            <TimeFilter value={days} onChange={setDays} />
+            <TimeFilter value={days} onChange={setDays} customFrom={rangeFrom} customTo={rangeTo} onCustomRangeChange={(from, to) => updateParams({ from: from.toLocaleDateString("en-CA"), to: to.toLocaleDateString("en-CA") })} />
           </header>
           <div className="flex-1 px-4 sm:px-6 py-4 sm:py-6 space-y-4">
             {/* Filters */}
@@ -449,12 +462,9 @@ export default function DesempenoProductosPage() {
                     </TableHeader>
                     <TableBody>
                       {filtered.map((row, i) => (
-                        <TableRow
-                          key={`${row.producto}-${i}`}
+                        <Fragment key={`${row.producto}-${i}`}><TableRow
                           className="cursor-pointer hover:bg-muted/40"
-                          onClick={() => setSelectedProduct({
-                            foto: row.foto, producto: row.producto, sku: row.sku, categoria: row.categoria,
-                          })}
+                          onClick={() => setExpandedProduct(expandedProduct === row.producto ? null : row.producto)}
                         >
                           <TableCell className="text-center text-sm font-bold text-muted-foreground">{i + 1}</TableCell>
                           <TableCell>
@@ -549,6 +559,11 @@ export default function DesempenoProductosPage() {
                             </div>
                           </TableCell>
                         </TableRow>
+                        {expandedProduct === row.producto && <TableRow><TableCell colSpan={7} className="bg-muted/20">
+                          <ProductSkuBreakdown product={row.producto} days={days} canal={canal} location={locationId} from={rangeFrom} to={rangeTo} />
+                          <Button variant="link" size="sm" onClick={() => setSelectedProduct(row)}>Ver detalle por tienda</Button>
+                        </TableCell></TableRow>}
+                        </Fragment>
                       ))}
                     </TableBody>
                   </Table>

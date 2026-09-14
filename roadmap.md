@@ -8,3 +8,7 @@
 - [x] Exportar cada nivel a Excel y PDF sin calcular métricas en cliente.
 - [x] Verificar compilación y exportaciones PDF/Excel con datos de prueba; PDF revisado visualmente sin cortes ni superposiciones.
 - [ ] Verificar navegación autenticada de Distribución: bloqueada por Supabase externo sin sesión de prueba disponible.
+
+- [x] Restaurar desglose SKU por título e identificadores reales y enlaces con filtros.
+- [x] Proteger rankings por tienda contra respuestas anteriores y conservar fechas en URL.
+- [ ] Ranking agregado por zona: requiere ampliar la RPC (no admite zona ni lista de tiendas); pendiente autorización.
