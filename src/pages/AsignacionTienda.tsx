@@ -258,15 +258,23 @@ function TarjetaTienda({ r, onClick }: { r: ResumenRow; onClick: () => void }) {
       <BarraPrecios r={r} />
 
       <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs">
-        <span className="flex items-center gap-1.5">
-          <Package className="h-3.5 w-3.5 text-muted-foreground" />
+        <span className="flex items-center gap-1.5" title="Unidades vendidas dentro de los 120 días">
+          <span className="inline-block h-2.5 w-2.5 rounded-sm bg-success" />
           <span className="tabular-nums font-medium">{entero(r.uds_vendidas)}</span>
-          <span className="text-muted-foreground">de {entero(r.uds_asignadas)} · {entero(r.uds_en_piso)} en piso</span>
+          <span className="text-muted-foreground">en ventana</span>
         </span>
-        <span className="flex items-center gap-1.5">
-          <TrendingUp className="h-3.5 w-3.5 text-muted-foreground" />
-          <span className="tabular-nums font-medium">{dec(r.rdv_semanal)}</span>
-          <span className="text-muted-foreground">RDV semanal</span>
+        <span className="flex items-center gap-1.5" title="Unidades vendidas después de los 120 días">
+          <span className="inline-block h-2.5 w-2.5 rounded-sm bg-warning" />
+          <span className="tabular-nums font-medium">{entero(r.uds_fuera_ventana)}</span>
+          <span className="text-muted-foreground">fuera de ventana</span>
+        </span>
+        <span className="flex items-center gap-1.5" title="Unidades aún en piso">
+          <span className="inline-block h-2.5 w-2.5 rounded-sm bg-muted-foreground/40" />
+          <span className="tabular-nums font-medium">{entero(r.uds_en_piso)}</span>
+          <span className="text-muted-foreground">en piso</span>
+        </span>
+        <span className="ml-auto flex items-center gap-1 text-[11px] text-muted-foreground">
+          de <span className="tabular-nums font-medium text-foreground">{entero(r.uds_asignadas)}</span> asignadas
         </span>
       </div>
 
@@ -274,7 +282,7 @@ function TarjetaTienda({ r, onClick }: { r: ResumenRow; onClick: () => void }) {
         <p>Refs {entero(r.refs_asignadas)}/{entero(r.refs_universo)} · {pct(r.pct_refs)}</p>
         <p>Líneas {entero(r.lineas_asignadas)}/{entero(r.lineas_universo)}</p>
         <p>Uds/ref {dec(r.uds_por_referencia)}</p>
-        <p>Fuera de ventana {entero(r.uds_fuera_ventana)}</p>
+        <p>RDV {dec(r.rdv_semanal)}/sem</p>
         <p>Exceso {entero(r.uds_exceso)}</p>
         <p>Faltante {entero(r.uds_faltante)}</p>
         <p className="col-span-2">
