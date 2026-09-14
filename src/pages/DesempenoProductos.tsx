@@ -156,7 +156,7 @@ export default function DesempenoProductosPage() {
   const initialCanal = searchParams.get("canal") || "all";
   const orden = searchParams.get("orden") === "BOTTOM" ? "BOTTOM" : "TOP";
   const daysQP = searchParams.get("days");
-  const initialDays = daysQP && Number(daysQP) > 0 ? Number(daysQP) : THIS_MONTH_SENTINEL;
+  const initialDays = daysQP !== null && isValidDays(Number(daysQP)) ? Number(daysQP) : THIS_MONTH_SENTINEL;
   const locationId = searchParams.get("location") || null;
   const fromQP = searchParams.get("from");
   const toQP = searchParams.get("to");
