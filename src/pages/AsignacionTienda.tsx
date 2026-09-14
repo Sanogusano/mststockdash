@@ -556,7 +556,7 @@ export default function AsignacionTiendaPage() {
                   </div>
                   <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                     {resumenQ.data.map((r) => (
-                      <TarjetaTienda key={r.location_id} r={r} onClick={() => setKeys({ tienda: r.location_id })} />
+                      <TarjetaTienda key={r.location_id} r={r} onClick={() => irATienda(r.location_id)} />
                     ))}
                   </div>
                 </section>
