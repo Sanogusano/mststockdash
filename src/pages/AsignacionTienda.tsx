@@ -225,38 +225,40 @@ function TarjetaTienda({ r, onClick }: { r: ResumenRow; onClick: () => void }) {
     >
       <div className="flex items-start gap-3">
         <span className="mt-0.5 rounded bg-muted p-2 text-muted-foreground"><Icono className="h-4 w-4" /></span>
-        <div className="min-w-0 flex-1">
-          <p className="truncate font-medium">{r.tienda}</p>
-          <p className="text-[11px] text-muted-foreground">
-            {[r.tipo_tienda, r.zona].filter(Boolean).join(" · ") || "—"} · {entero(r.colecciones)} colecciones
-          </p>
-        </div>
-        <div className="text-right">
-          <div className="flex items-start justify-end gap-4">
-            <div>
-              <p className={cn("text-3xl font-semibold leading-none tabular-nums", colorST(r.sell_through))}>{pct(r.sell_through)}</p>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <p className="mt-1 inline-block cursor-help text-[11px] font-medium text-foreground underline decoration-muted-foreground/30 underline-offset-2">ST 120d</p>
-                </TooltipTrigger>
-                <TooltipContent side="top" className="max-w-xs text-xs leading-relaxed">
-                  Sell-through 120 días: vendido dentro de la ventana comercial.
-                </TooltipContent>
-              </Tooltip>
-            </div>
-            {num(r.uds_asignadas) > 0 && (
+        <div className="flex min-w-0 flex-1 items-start gap-3">
+          <div className="min-w-0 flex-1">
+            <p className="truncate font-medium">{r.tienda}</p>
+            <p className="truncate text-[11px] text-muted-foreground">
+              {[r.tipo_tienda, r.zona].filter(Boolean).join(" · ") || "—"} · {entero(r.colecciones)} colecciones
+            </p>
+          </div>
+          <div className="w-32 shrink-0 text-right">
+            <div className="flex items-start justify-end gap-4">
               <div>
-                <p className={cn("text-xl font-semibold leading-none tabular-nums", colorST(acumPct))}>{pct(acumPct)}</p>
+                <p className={cn("text-3xl font-semibold leading-none tabular-nums", colorST(r.sell_through))}>{pct(r.sell_through)}</p>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <p className="mt-1 inline-block cursor-help text-[11px] font-medium text-foreground underline decoration-muted-foreground/30 underline-offset-2">ST acum.</p>
+                    <p className="mt-1 inline-block cursor-help text-[11px] font-medium text-foreground underline decoration-muted-foreground/30 underline-offset-2">ST 120d</p>
                   </TooltipTrigger>
                   <TooltipContent side="top" className="max-w-xs text-xs leading-relaxed">
-                    Sell-through acumulado: incluye la venta posterior a los 120 días.
+                    Sell-through 120 días: vendido dentro de la ventana comercial.
                   </TooltipContent>
                 </Tooltip>
               </div>
-            )}
+              {num(r.uds_asignadas) > 0 && (
+                <div>
+                  <p className={cn("text-xl font-semibold leading-none tabular-nums", colorST(acumPct))}>{pct(acumPct)}</p>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <p className="mt-1 inline-block cursor-help text-[11px] font-medium text-foreground underline decoration-muted-foreground/30 underline-offset-2">ST acum.</p>
+                    </TooltipTrigger>
+                    <TooltipContent side="top" className="max-w-xs text-xs leading-relaxed">
+                      Sell-through acumulado: incluye la venta posterior a los 120 días.
+                    </TooltipContent>
+                  </Tooltip>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>
