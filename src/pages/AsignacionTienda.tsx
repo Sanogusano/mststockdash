@@ -230,15 +230,6 @@ const resumenColumns: [string, string][] = [
   ["mejor_coleccion", "Mejor colección"], ["mejor_st", "Mejor ST (%)"], ["peor_coleccion", "Peor colección"], ["peor_st", "Peor ST (%)"],
 ];
 
-const tiendaColumns: [string, string][] = [
-  ["tienda", "Tienda"], ["tipo_tienda", "Tipo"], ["pct_refs", "% Referencias"], ["refs_asignadas", "Refs asignadas"], ["refs_coleccion", "Refs colección"],
-  ["pct_skus", "% SKU"], ["skus_asignados", "SKU asignados"], ["skus_coleccion", "SKU colección"],
-  ["lineas_asignadas", "Líneas asignadas"], ["lineas_coleccion", "Líneas colección"],
-  ["drops", "Drops"], ["primer_drop", "Primer drop"], ["ultimo_drop", "Último drop"],
-  ["uds_asignadas", "Asignadas"], ["uds_por_referencia", "Uds/ref"],
-  ["uds_vendidas", "Vendido"], ["pct_vendido", "% Vendido"], ["uds_a_outlet", "A outlet"], ["pct_a_outlet", "% A outlet"],
-  ["uds_a_otra_tienda", "A otra tienda"], ["uds_en_piso", "En piso"], ["pct_en_piso", "% En piso"],
-];
 const lineaColumns: [string, string][] = [
   ["linea", "Línea"], ["referencias", "Referencias"], ["drops", "Drops"], ["uds_por_referencia", "Uds/ref"],
   ["uds_asignadas", "Asignadas"], ["uds_vendidas", "Vendidas"], ["sell_through", "Sell-through (%)"],
