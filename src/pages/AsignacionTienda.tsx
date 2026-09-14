@@ -459,33 +459,7 @@ export default function AsignacionTiendaPage() {
                 </section>
               </div>
             ) : (
-              <section className="space-y-4">
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                  <h2 className="text-base font-semibold">Tiendas · {coleccion}</h2>
-                  <Exportaciones title="Tiendas" columns={tiendaColumns} rows={tiendasQ.data} subtitle={subtitle} />
-                </div>
-                <ul className="divide-y divide-border rounded-lg border border-border">
-                  {tiendasQ.data.map((t: Tienda) => (
-                    <li key={t.location_id} className="flex flex-wrap items-center gap-4 p-4">
-                      <div className="min-w-[200px] flex-1">
-                        <Button variant="link" className="h-auto whitespace-normal p-0 text-left font-medium" onClick={() => setKeys({ tienda: t.location_id })}>
-                          {t.tienda}
-                        </Button>
-                        <p className="text-xs text-muted-foreground">
-                          {pct(t.pct_refs)} refs · {pct(t.pct_skus)} SKU · {entero(t.drops)} drops · {dec(t.uds_por_referencia)} uds/ref
-                        </p>
-                      </div>
-                      <BarraDestino row={t} />
-                      <div className="min-w-[150px] text-right">
-                        <p className="text-sm font-medium tabular-nums">{entero(t.uds_asignadas)} asignadas</p>
-                        <p className="text-xs text-muted-foreground">
-                          {pct(t.pct_vendido)} vendido · {pct(t.pct_en_piso)} en piso
-                        </p>
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-              </section>
+              <EmptyState message="Esta tienda no tiene asignación en la colección seleccionada" />
             )}
           </div>
         </main>
