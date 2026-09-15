@@ -3516,12 +3516,15 @@ export type Database = {
           category: string | null
           coleccion: string | null
           coleccion_confiable: boolean | null
+          dias_a_primera_venta: number | null
           dias_en_venta: number | null
+          dias_sin_vender: number | null
           estado_online: string | null
           estado_tallas: string | null
           estuvo_en_online: boolean | null
           estuvo_en_tienda: boolean | null
           fecha_inicio: string | null
+          fecha_llegada: string | null
           genero: string | null
           genero_norm: string | null
           image_url: string | null
@@ -3737,6 +3740,21 @@ export type Database = {
           semanas_en_venta: number | null
           tipo: string | null
           title: string | null
+        }
+        Relationships: []
+      }
+      producto_llegada: {
+        Row: {
+          dias_a_primera_venta: number | null
+          dias_sin_vender: number | null
+          dias_subestimados: number | null
+          fecha_inicio_efectiva: string | null
+          fecha_llegada: string | null
+          fecha_primera_venta: string | null
+          fecha_ultima_venta: string | null
+          product_id: string | null
+          semanas_vida_efectiva: number | null
+          ya_vendio: boolean | null
         }
         Relationships: []
       }
