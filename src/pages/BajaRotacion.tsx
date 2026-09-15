@@ -74,6 +74,13 @@ const NIVEL_LABELS: Record<string, { label: string; emoji: string; className: st
   "sin distribuir": { label: "Sin distribuir", emoji: "📦", className: "bg-violet-100 text-violet-800 border-violet-300" },
 };
 
+const CANALES = [
+  { key: "linea", icon: Store, label: "Tiendas de línea" },
+  { key: "outlet", icon: Tag, label: "Outlet" },
+  { key: "digital", icon: Globe, label: "Digital / CEDI" },
+  { key: "bodega", icon: Pause, label: "Bodega (sin exhibir)" },
+] as const;
+
 
 function pct(n: number) {
   return `${(Number(n) || 0).toFixed(1)}%`;
@@ -200,6 +207,13 @@ export default function BajaRotacionPage() {
   const [incluirNoDistribuidos, setIncluirNoDistribuidos] = useState<boolean>(() => searchParams.get("nodistribuidos") === "true");
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [page, setPage] = useState<number>(1);
+
+  useEffect(() => {
+    if (!incluirNoDistribuidos && nivel === "sin distribuir") {
+      setNivel("todos");
+      setPage(1);
+    }
+  }, [incluirNoDistribuidos, nivel]);
 
   const toggleExpand = (id: string) => {
     setExpanded((prev) => {
@@ -460,11 +474,12 @@ export default function BajaRotacionPage() {
   };
 
   return (
+    <TooltipProvider delayDuration={200}>
     <SidebarProvider>
       <div className="flex min-h-screen w-full bg-background">
         <AppSidebar />
         <main className="flex-1 min-w-0 flex flex-col">
-          <header className="flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4 border-b border-border sticky top-0 bg-background/90 backdrop-blur-sm z-10">
+          <header className="flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4 border-b border-border sticky top-0 bg-background/90 backdrop-blur-sm z-20">
             <div className="flex items-center gap-3">
               <SidebarTrigger className="text-muted-foreground hover:text-foreground" />
               <div>
@@ -494,11 +509,12 @@ export default function BajaRotacionPage() {
             </p>
 
             {/* Tarjetas de nivel — filtro rápido */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className={`grid grid-cols-1 gap-4 sm:grid-cols-2 ${incluirNoDistribuidos ? "lg:grid-cols-4" : "lg:grid-cols-3"}`}>
               {([
                 { key: "atencion", label: "🟡 Atención", icon: AlertTriangle, text: "text-yellow-700", ring: "ring-yellow-400 bg-yellow-50", hint: "cobertura bajo 17 semanas" },
                 { key: "critico", label: "🔴 Crítico", icon: AlertCircle, text: "text-red-700", ring: "ring-red-400 bg-red-50", hint: "cobertura entre 17 y 32 semanas" },
                 { key: "liquidar", label: "⚫ Liquidar", icon: CircleOff, text: "text-neutral-700", ring: "ring-neutral-500 bg-neutral-100", hint: "cobertura sobre 32 semanas" },
+                ...(incluirNoDistribuidos ? [{ key: "sin distribuir", label: "📦 Sin distribuir", icon: CircleOff, text: "text-violet-700", ring: "ring-violet-400 bg-violet-50", hint: "aún no enviado a tienda" }] as const : []),
               ] as const).map((n) => {
                 const c = counts[n.key as keyof typeof counts];
                 const active = nivel === n.key;
@@ -527,23 +543,21 @@ export default function BajaRotacionPage() {
                 );
               })}
             </div>
+            {nivel !== "todos" && (
+              <Button
+                type="button"
+                variant="link"
+                size="sm"
+                className="h-auto p-0 text-xs"
+                onClick={() => { setNivel("todos"); setPage(1); }}
+              >
+                Quitar filtro de nivel
+              </Button>
+            )}
 
             {/* Filtros */}
             <Card>
-              <CardContent className="pt-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
-                <div className="space-y-1.5">
-                  <label className="text-xs font-medium text-muted-foreground">Nivel</label>
-                  <Select value={nivel} onValueChange={(v) => { setNivel(v); setPage(1); }}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="todos">Todos</SelectItem>
-                      <SelectItem value="atencion">🟡 Atención</SelectItem>
-                      <SelectItem value="critico">🔴 Crítico</SelectItem>
-                      <SelectItem value="liquidar">⚫ Liquidar</SelectItem>
-                      <SelectItem value="sin distribuir">📦 Sin distribuir</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+              <CardContent className="grid grid-cols-1 gap-4 pt-6 md:grid-cols-2 lg:grid-cols-4">
                 <div className="space-y-1.5">
                   <label className="text-xs font-medium text-muted-foreground">Colección</label>
                   <Select value={coleccion} onValueChange={(v) => { setColeccion(v); setPage(1); }}>
@@ -579,18 +593,20 @@ export default function BajaRotacionPage() {
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="space-y-1.5">
-                  <label className="text-xs font-medium text-muted-foreground">Incluir rebajas</label>
-                  <div className="flex items-center gap-2 h-9">
-                    <Switch checked={incluirRebajas} onCheckedChange={(v) => { setIncluirRebajas(v); setPage(1); }} />
-                    <span className="text-xs text-muted-foreground">{incluirRebajas ? "Sí" : "No"}</span>
+                <div className="space-y-3">
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-medium text-muted-foreground">Incluir rebajas</label>
+                    <div className="flex h-7 items-center gap-2">
+                      <Switch checked={incluirRebajas} onCheckedChange={(v) => { setIncluirRebajas(v); setPage(1); }} />
+                      <span className="text-xs text-muted-foreground">{incluirRebajas ? "Sí" : "No"}</span>
+                    </div>
                   </div>
-                </div>
-                <div className="space-y-1.5">
-                  <label className="text-xs font-medium text-muted-foreground">Incluir no distribuidos</label>
-                  <div className="flex items-center gap-2 h-9">
-                    <Switch checked={incluirNoDistribuidos} onCheckedChange={(v) => { setIncluirNoDistribuidos(v); setPage(1); }} />
-                    <span className="text-xs text-muted-foreground">{incluirNoDistribuidos ? "Sí" : "No"}</span>
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-medium text-muted-foreground">Incluir no distribuidos</label>
+                    <div className="flex h-7 items-center gap-2">
+                      <Switch checked={incluirNoDistribuidos} onCheckedChange={(v) => { setIncluirNoDistribuidos(v); setPage(1); }} />
+                      <span className="text-xs text-muted-foreground">{incluirNoDistribuidos ? "Sí" : "No"}</span>
+                    </div>
                   </div>
                 </div>
               </CardContent>
@@ -618,25 +634,24 @@ export default function BajaRotacionPage() {
                     Sin productos que cumplan los filtros.
                   </div>
                 ) : (
-                  <div className="overflow-x-auto">
-                    <Table>
-                      <TableHeader>
+                  <div className="overflow-x-auto rounded-md border border-border">
+                    <Table className="min-w-[1480px]">
+                      <TableHeader className="sticky top-0 z-10 bg-background">
                         <TableRow>
                           <TableHead className="w-8"></TableHead>
-                          <TableHead className="w-16">Foto</TableHead>
-                          <TableHead>Producto</TableHead>
-                          <TableHead>Categoría</TableHead>
-                          <TableHead className="text-center">Tallas</TableHead>
-                          <TableHead className="text-right">Días rot.</TableHead>
-                          <TableHead className="text-right">U. vend.</TableHead>
-                          <TableHead className="text-right">Stock</TableHead>
-                          <TableHead className="text-right">Sell-through</TableHead>
-                          <TableHead className="text-right">Vel/sem</TableHead>
-                          <TableHead className="text-right">Precio</TableHead>
-                          <TableHead className="text-right">Dcto. actual</TableHead>
-                          <TableHead className="text-right">Dcto. sugerido</TableHead>
-                          <TableHead>Nivel</TableHead>
-                          <TableHead>Acción sugerida</TableHead>
+                          <TableHead className="w-[76px]">Foto</TableHead>
+                          <TableHead className="min-w-[230px]">Producto</TableHead>
+                          <TableHead className="min-w-[110px]">Categoría</TableHead>
+                          <TableHead className="w-[80px] text-center">Tallas</TableHead>
+                          <TableHead className="w-[92px] text-right">Días rot.</TableHead>
+                          <TableHead className="w-[80px] text-right">U. vend.</TableHead>
+                          <TableHead className="min-w-[150px] text-right">Stock</TableHead>
+                          <TableHead className="w-[110px] text-right">Sell-through</TableHead>
+                          <TableHead className="w-[82px] text-right">Vel/sem</TableHead>
+                          <TableHead className="min-w-[118px] text-right">Precio</TableHead>
+                          <TableHead className="w-[104px] text-right">Dcto. sug.</TableHead>
+                          <TableHead className="w-[118px]">Nivel</TableHead>
+                          <TableHead className="min-w-[210px]">Acción sugerida</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -648,7 +663,7 @@ export default function BajaRotacionPage() {
 
                           return (
                             <Fragment key={r.product_id}>
-                              <TableRow className="cursor-pointer" onClick={() => toggleExpand(r.product_id)}>
+                              <TableRow className="cursor-pointer align-top" onClick={() => toggleExpand(r.product_id)}>
                                 <TableCell className="p-2">
                                   {isOpen ? (
                                     <ChevronDown className="h-4 w-4 text-muted-foreground" />
@@ -662,10 +677,10 @@ export default function BajaRotacionPage() {
                                       src={img}
                                       alt={r.titulo}
                                       loading="lazy"
-                                      className="h-12 w-12 rounded object-cover border border-border bg-muted"
+                                      className="h-14 w-14 shrink-0 aspect-square rounded object-cover border border-border bg-muted"
                                     />
                                   ) : (
-                                    <div className="h-12 w-12 rounded border border-dashed border-border bg-muted" />
+                                    <div className="h-14 w-14 shrink-0 aspect-square rounded border border-dashed border-border bg-muted" />
                                   )}
                                 </TableCell>
                                 <TableCell>
@@ -688,34 +703,39 @@ export default function BajaRotacionPage() {
                                   {!r.fue_distribuido ? (
                                     <span className="text-violet-700 font-medium">Sin distribuir</span>
                                   ) : r.dias_en_tienda != null ? (
-                                    <TooltipProvider>
-                                      <Tooltip>
-                                        <TooltipTrigger asChild>
-                                          <span className="tabular-nums cursor-help border-b border-dotted border-muted-foreground/40">
-                                            {r.dias_en_tienda}
-                                          </span>
-                                        </TooltipTrigger>
-                                        <TooltipContent>
-                                          {fmtFecha(r.fecha_llegada_tienda)
-                                            ? `Llegó a tienda el ${fmtFecha(r.fecha_llegada_tienda)}`
-                                            : "Contado desde el despacho a tienda"}
-                                          {fmtFecha(r.primera_venta) ? ` · primera venta ${fmtFecha(r.primera_venta)}` : ""}
-                                        </TooltipContent>
-                                      </Tooltip>
-                                    </TooltipProvider>
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <span className="tabular-nums cursor-help border-b border-dotted border-muted-foreground/40">
+                                          {r.dias_en_tienda}
+                                        </span>
+                                      </TooltipTrigger>
+                                      <TooltipContent>
+                                        {fmtFecha(r.fecha_llegada_tienda)
+                                          ? `Llegó a tienda el ${fmtFecha(r.fecha_llegada_tienda)}`
+                                          : "Contado desde el despacho a tienda"}
+                                        {fmtFecha(r.primera_venta) ? ` · primera venta ${fmtFecha(r.primera_venta)}` : ""}
+                                      </TooltipContent>
+                                    </Tooltip>
                                   ) : (
                                     <span className="text-muted-foreground">—</span>
 
                                   )}
                                 </TableCell>
-                                <TableCell className="text-right text-xs">{r.unidades_vendidas}</TableCell>
+                                <TableCell className="text-right text-xs tabular-nums">{r.unidades_vendidas}</TableCell>
                                 <TableCell className="text-right text-xs whitespace-nowrap">
                                   <div className="font-semibold tabular-nums">{fmtInt(r.stock_actual)}</div>
                                   <div className="flex items-center justify-end gap-2 text-[10px] text-muted-foreground tabular-nums">
-                                    <span className="flex items-center gap-0.5"><Store className="h-3 w-3" />{fmtInt(r.stock_linea ?? 0)}</span>
-                                    <span className="flex items-center gap-0.5"><Tag className="h-3 w-3" />{fmtInt(r.stock_outlet ?? 0)}</span>
-                                    <span className="flex items-center gap-0.5"><Globe className="h-3 w-3" />{fmtInt(r.stock_digital ?? 0)}</span>
-                                    <span className="flex items-center gap-0.5"><Pause className="h-3 w-3" />{fmtInt(r.stock_bodega ?? 0)}</span>
+                                    {CANALES.map(({ key, icon: Icon, label }) => (
+                                      <Tooltip key={key}>
+                                        <TooltipTrigger asChild>
+                                          <span className="flex cursor-help items-center gap-0.5">
+                                            <Icon className="h-3 w-3" />
+                                            {fmtInt(r[`stock_${key}` as keyof Row] as number)}
+                                          </span>
+                                        </TooltipTrigger>
+                                        <TooltipContent>{label}</TooltipContent>
+                                      </Tooltip>
+                                    ))}
                                   </div>
                                 </TableCell>
                                 <TableCell className="text-right">
@@ -727,25 +747,17 @@ export default function BajaRotacionPage() {
                                     {pct(r.sell_through)}
                                   </span>
                                 </TableCell>
-                                <TableCell className="text-right text-xs">
+                                <TableCell className="text-right text-xs tabular-nums">
                                   {fmtNum2(r.velocidad_semanal)}
                                 </TableCell>
 
-                                <TableCell className="text-right text-xs">
+                                <TableCell className="text-right text-xs tabular-nums">
                                   <div className="font-medium">{fmtCOP(r.precio_actual)}</div>
                                   {r.es_rebaja && r.precio_original > r.precio_actual && (
-                                    <div className="text-[10px] text-muted-foreground line-through">
-                                      {fmtCOP(r.precio_original)}
+                                    <div className="flex items-center justify-end gap-1 text-[10px]">
+                                      <span className="text-muted-foreground line-through">{fmtCOP(r.precio_original)}</span>
+                                      <span className="text-orange-700">-{pct(r.descuento_actual)}</span>
                                     </div>
-                                  )}
-                                </TableCell>
-                                <TableCell className="text-right text-xs">
-                                  {r.es_rebaja ? (
-                                    <span className="inline-flex px-2 py-0.5 rounded-full text-xs font-medium border bg-orange-100 text-orange-800 border-orange-300">
-                                      -{pct(r.descuento_actual)}
-                                    </span>
-                                  ) : (
-                                    <span className="text-muted-foreground">—</span>
                                   )}
                                 </TableCell>
                                 <TableCell className="text-right">
@@ -764,13 +776,18 @@ export default function BajaRotacionPage() {
                                     <Badge variant="outline">{r.nivel}</Badge>
                                   )}
                                 </TableCell>
-                                <TableCell className="text-xs text-muted-foreground max-w-[220px]">
-                                  {r.accion}
+                                <TableCell className="text-xs text-muted-foreground">
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <span className="line-clamp-2 cursor-help">{r.accion}</span>
+                                    </TooltipTrigger>
+                                    <TooltipContent className="max-w-xs">{r.accion}</TooltipContent>
+                                  </Tooltip>
                                 </TableCell>
                               </TableRow>
                               {isOpen && (
                                 <TableRow className="bg-muted/30 hover:bg-muted/30">
-                                  <TableCell colSpan={15} className="py-3">
+                                  <TableCell colSpan={14} className="py-3">
                                     <div className="space-y-2">
                                       <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
                                         Stock por talla y canal
@@ -796,20 +813,17 @@ export default function BajaRotacionPage() {
                                                   <span className="opacity-60">·</span>
                                                   <span>{t.stock}</span>
                                                 </div>
-                                                <div className="flex items-center gap-1 text-[10px] font-normal opacity-90">
-                                                  <span className="inline-flex items-center gap-0.5 px-1 py-0.5 rounded bg-background/60 border border-border">
-                                                    🏪 {t.linea}
-                                                  </span>
-                                                  <span className="inline-flex items-center gap-0.5 px-1 py-0.5 rounded bg-background/60 border border-border">
-                                                    🏷️ {t.outlet}
-                                                  </span>
-                                                  <span className="inline-flex items-center gap-0.5 px-1 py-0.5 rounded bg-background/60 border border-border">
-                                                    🌐 {t.digital}
-                                                  </span>
-                                                  <span className="inline-flex items-center gap-0.5 px-1 py-0.5 rounded bg-background/60 border border-border">
-                                                    🏭 {t.bodega}
-
-                                                  </span>
+                                                 <div className="flex items-center gap-1 text-[10px] font-normal opacity-90">
+                                                   {CANALES.map(({ key, icon: Icon, label }) => (
+                                                     <Tooltip key={key}>
+                                                       <TooltipTrigger asChild>
+                                                         <span className="inline-flex cursor-help items-center gap-0.5 rounded border border-border bg-background/60 px-1 py-0.5">
+                                                           <Icon className="h-3 w-3" /> {t[key]}
+                                                         </span>
+                                                       </TooltipTrigger>
+                                                       <TooltipContent>{label}</TooltipContent>
+                                                     </Tooltip>
+                                                   ))}
                                                 </div>
                                               </div>
                                             );
@@ -825,33 +839,33 @@ export default function BajaRotacionPage() {
                         })}
                       </TableBody>
                     </Table>
-                    {totalPages > 1 && (
-                      <div className="flex items-center justify-between gap-3 pt-4 text-xs text-muted-foreground">
-                        <span>
-                          Página {currentPage} de {totalPages} · {fmtInt(filtered.length)} productos
-                        </span>
-                        <div className="flex items-center gap-2">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            disabled={currentPage <= 1}
-                            onClick={() => setPage(currentPage - 1)}
-                          >
-                            Anterior
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            disabled={currentPage >= totalPages}
-                            onClick={() => setPage(currentPage + 1)}
-                          >
-                            Siguiente
-                          </Button>
-                        </div>
-                      </div>
-                    )}
                   </div>
                 )}
+                 {filtered.length > 0 && totalPages > 1 && (
+                   <div className="flex items-center justify-between gap-3 pt-4 text-xs text-muted-foreground">
+                     <span>
+                       Página {currentPage} de {totalPages} · {fmtInt(filtered.length)} productos
+                     </span>
+                     <div className="flex items-center gap-2">
+                       <Button
+                         size="sm"
+                         variant="outline"
+                         disabled={currentPage <= 1}
+                         onClick={() => setPage(currentPage - 1)}
+                       >
+                         Anterior
+                       </Button>
+                       <Button
+                         size="sm"
+                         variant="outline"
+                         disabled={currentPage >= totalPages}
+                         onClick={() => setPage(currentPage + 1)}
+                       >
+                         Siguiente
+                       </Button>
+                     </div>
+                   </div>
+                 )}
 
               </CardContent>
             </Card>
@@ -859,5 +873,6 @@ export default function BajaRotacionPage() {
         </main>
       </div>
     </SidebarProvider>
+    </TooltipProvider>
   );
 }
