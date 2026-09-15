@@ -12,3 +12,5 @@
 - [x] Restaurar desglose SKU por título e identificadores reales y enlaces con filtros.
 - [x] Proteger rankings por tienda contra respuestas anteriores y conservar fechas en URL.
 - [ ] Ranking agregado por zona: requiere ampliar la RPC (no admite zona ni lista de tiendas); pendiente autorización.
+
+- [x] Refactorizar la presentación de Baja Rotación: tabla amplia, fotos cuadradas, tarjetas de nivel, tooltips, cabecera fija y paginación independiente.
