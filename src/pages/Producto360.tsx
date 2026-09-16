@@ -9,11 +9,16 @@ import { HeaderTooltip } from "@/components/HeaderTooltip";
 import { ProductoDetallePanel } from "@/components/dashboard/ProductoDetallePanel";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, Download, Package, Store, ShoppingBag, HelpCircle, X, RotateCcw, CircleCheck, PauseCircle } from "lucide-react";
+import { Search, Download, FileText, Package, Store, ShoppingBag, HelpCircle, X, RotateCcw, CircleCheck, PauseCircle } from "lucide-react";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import * as XLSX from "xlsx";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
+import monasteryLogoWhite from "@/assets/monastery-logo-white.png";
+import { toast } from "sonner";
+
 
 /**
  * Análisis de producto — pantalla consolidada.
@@ -160,7 +165,71 @@ const FILTRO_DIAGNOSTICO: Record<string, string> = {
   "En curso": "EN CURSO",
 };
 
+/** Analisis de Producto Monastery YYYY-MM-DD HHmm (hora Bogotá) */
+const nombreArchivo = () => {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    year: "numeric", month: "2-digit", day: "2-digit",
+    hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "America/Bogota",
+  }).formatToParts(new Date());
+  const g = (t: string) => parts.find((p) => p.type === t)?.value ?? "";
+  return `Analisis de Producto Monastery ${g("year")}-${g("month")}-${g("day")} ${g("hour")}${g("minute")}`;
+};
+
+const generadoEl = () => {
+  const d = new Date();
+  const f = d.toLocaleDateString("es-CO", { day: "2-digit", month: "long", year: "numeric", timeZone: "America/Bogota" });
+  const h = d.toLocaleTimeString("es-CO", { hour: "2-digit", minute: "2-digit", timeZone: "America/Bogota" });
+  return `${f}, ${h}`;
+};
+
+async function getLogoBase64(): Promise<string> {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => {
+      const canvas = document.createElement("canvas");
+      canvas.width = img.width;
+      canvas.height = img.height;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) { resolve(""); return; }
+      ctx.drawImage(img, 0, 0);
+      resolve(canvas.toDataURL("image/png"));
+    };
+    img.onerror = () => resolve("");
+    img.src = monasteryLogoWhite;
+  });
+}
+
+/** Miniatura de Shopify: inserta _100x100 antes de la extensión. */
+function miniatura(url: string) {
+  if (!url.includes("cdn.shopify.com")) return url;
+  return url.replace(/(\.[a-zA-Z]+)(\?|$)/, "_100x100$1$2");
+}
+
+/** Carga una imagen y la devuelve en base64 (70x70 JPEG). "" si falla. */
+async function urlToBase64(url: string): Promise<string> {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => {
+      try {
+        const canvas = document.createElement("canvas");
+        canvas.width = 70; canvas.height = 70;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) { resolve(""); return; }
+        ctx.drawImage(img, 0, 0, 70, 70);
+        resolve(canvas.toDataURL("image/jpeg", 0.7));
+      } catch { resolve(""); }
+    };
+    img.onerror = () => resolve("");
+    img.src = url;
+  });
+}
+
+const MAX_PDF = 300;
+
 function Ayuda({ onClose }: { onClose: () => void }) {
+
   return (
     <div className="rounded-lg border bg-muted/30 p-4 text-sm space-y-3 relative">
       <button onClick={onClose}
@@ -216,6 +285,8 @@ export default function Producto360() {
   const [foco, setFoco] = useState("all");
   const [orden, setOrden] = useState<"sin_evacuar" | "meta_asc" | "meta_desc" | "rdv_desc" | "producido">("sin_evacuar");
   const [ayuda, setAyuda] = useState(false);
+  const [pdfProgreso, setPdfProgreso] = useState<{ hecho: number; total: number } | null>(null);
+
 
   // Filtros por querystring (ej. desde Análisis por línea):
   // /analisis-producto?categoria=T-SHIRT&genero=HOMBRE&diagnostico=Repetir
@@ -339,6 +410,128 @@ export default function Producto360() {
     XLSX.writeFile(wb, "analisis-producto.xlsx");
   };
 
+  const exportarPDF = async () => {
+    if (!filtrados.length || pdfProgreso) return;
+    const lista = filtrados.slice(0, MAX_PDF);
+    if (filtrados.length > MAX_PDF) {
+      toast.info(`Se exportan los primeros ${MAX_PDF} productos. El Excel trae el resto.`);
+    }
+
+    setPdfProgreso({ hecho: 0, total: lista.length });
+    try {
+      // Precarga de fotos en lotes de 10
+      const fotos = new Map<string, string>();
+      for (let i = 0; i < lista.length; i += 10) {
+        const lote = lista.slice(i, i + 10);
+        const b64s = await Promise.all(
+          lote.map((r) => (r.image_url ? urlToBase64(miniatura(r.image_url)) : Promise.resolve("")))
+        );
+        lote.forEach((r, j) => { if (b64s[j]) fotos.set(r.product_id, b64s[j]); });
+        setPdfProgreso({ hecho: Math.min(i + 10, lista.length), total: lista.length });
+      }
+
+      const logoB64 = await getLogoBase64();
+      const generated = generadoEl();
+      const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "letter" });
+      const pageW = doc.internal.pageSize.getWidth();
+      const margin = 14;
+
+      doc.setFillColor(15, 15, 15);
+      doc.rect(0, 0, pageW, 30, "F");
+      if (logoB64) {
+        try { doc.addImage(logoB64, "PNG", margin, 4, 50, 22); } catch { /* sin logo */ }
+      }
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(13);
+      doc.setFont("helvetica", "bold");
+      doc.text("Análisis de producto", pageW - margin, 11, { align: "right" });
+      doc.setFontSize(7.5);
+      doc.setFont("helvetica", "normal");
+      const filtrosTxt = [
+        coleccion === "all" ? null : `Colección: ${coleccion}`,
+        categoria === "all" ? null : `Categoría: ${categoria}`,
+        foco === "all" ? null : `Diagnóstico: ${foco}`,
+      ].filter(Boolean).join(" · ");
+      doc.text(
+        `${nf(lista.length)} productos${filtrados.length > MAX_PDF ? ` de ${nf(filtrados.length)}` : ""}${filtrosTxt ? ` · ${filtrosTxt}` : ""}`,
+        pageW - margin, 17.5, { align: "right" }
+      );
+      doc.text("Índice 1,00 = evacúa a tiempo · RDV 1,00× = al ritmo de sus pares", pageW - margin, 23, { align: "right" });
+      doc.setTextColor(0, 0, 0);
+
+      autoTable(doc, {
+        startY: 35,
+        head: [[
+          "Foto", "Producto", "Colección", "Producido", "Vendido 120d", "Sin evacuar",
+          "Índice meta", "RDV", "% sin liquidar", "Cobertura", "ST total", "Diagnóstico",
+        ]],
+        body: lista.map((r) => [
+          "",
+          r.title ?? "-",
+          r.coleccion ?? "-",
+          nf(r.producido),
+          nf(r.uds_120d),
+          nf(r.sin_evacuar),
+          r.indice_meta == null ? "—" : nf(r.indice_meta, 2),
+          r.indice_total == null ? "—" : `${nf(r.indice_total / 100, 2)}×`,
+          r.pct_venta_sana == null ? "—" : `${nf(r.pct_venta_sana, 0)}%`,
+          r.cobertura ?? "-",
+          r.st_total == null ? "—" : `${nf(r.st_total, 0)}%`,
+          r.diagnostico ?? "-",
+        ]),
+        styles: { fontSize: 6.4, cellPadding: 1.3, valign: "middle" },
+        headStyles: { fillColor: [15, 15, 15], textColor: 255, fontStyle: "bold", fontSize: 6.4 },
+        alternateRowStyles: { fillColor: [245, 245, 248] },
+        margin: { left: margin, right: margin, top: 14, bottom: 14 },
+        showHead: "everyPage",
+        columnStyles: {
+          0: { cellWidth: 14, minCellHeight: 14 },
+          1: { cellWidth: 45 },
+          3: { halign: "right" }, 4: { halign: "right" }, 5: { halign: "right" },
+          6: { halign: "right" }, 7: { halign: "right" }, 8: { halign: "right" },
+          10: { halign: "right" },
+          11: { cellWidth: 30 },
+        },
+        didParseCell: (data) => {
+          if (data.section !== "body") return;
+          const row = lista[data.row.index];
+          if (!row) return;
+          if (data.column.index === 5 && Number(row.sin_evacuar ?? 0) > 0) {
+            data.cell.styles.textColor = [220, 38, 38];
+            data.cell.styles.fontStyle = "bold";
+          }
+        },
+        didDrawCell: (data) => {
+          if (data.section !== "body" || data.column.index !== 0) return;
+          const row = lista[data.row.index];
+          const b64 = row ? fotos.get(row.product_id) : undefined;
+          if (!b64) return;
+          try { doc.addImage(b64, "JPEG", data.cell.x + 1, data.cell.y + 1, 12, 12); } catch { /* foto rota */ }
+        },
+      });
+
+      const pageH = doc.internal.pageSize.getHeight();
+      const total = doc.getNumberOfPages();
+      for (let i = 1; i <= total; i++) {
+        doc.setPage(i);
+        doc.setFontSize(7);
+        doc.setFont("helvetica", "normal");
+        doc.setTextColor(120, 120, 120);
+        doc.setDrawColor(200, 200, 210);
+        doc.line(margin, pageH - 10, pageW - margin, pageH - 10);
+        doc.text("MST-Retail Intelligence · powered by Selliq", margin, pageH - 6);
+        doc.text(generated, pageW / 2, pageH - 6, { align: "center" });
+        doc.text(`Página ${i} de ${total}`, pageW - margin, pageH - 6, { align: "right" });
+      }
+
+      doc.save(`${nombreArchivo()}.pdf`);
+    } finally {
+      setPdfProgreso(null);
+    }
+  };
+
+
+
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full">
@@ -410,6 +603,13 @@ export default function Producto360() {
                       onClick={exportar} disabled={!filtrados.length}>
                 <Download className="h-4 w-4 mr-1.5" />Excel
               </Button>
+
+              <Button variant="outline" size="sm"
+                      onClick={exportarPDF} disabled={!filtrados.length || !!pdfProgreso}>
+                <FileText className="h-4 w-4 mr-1.5" />
+                {pdfProgreso ? `Generando… ${pdfProgreso.hecho} de ${pdfProgreso.total}` : "PDF"}
+              </Button>
+
             </div>
 
             {loading ? (
