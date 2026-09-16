@@ -5,6 +5,7 @@ interface StatusBadgeProps {
 export function StatusBadge({ label }: StatusBadgeProps) {
   const getVariant = (text: string) => {
     const t = text.toUpperCase();
+    if (t.includes("SIN LIBERAR")) return "status-unreleased";
     if (t.includes("ÓPTIMO") || t.includes("OPTIMO") || t.includes("SUFICIENTE") || t.includes("TOP PERFORMER")) {
       return "status-optimal";
     }

@@ -5046,6 +5046,10 @@ export type Database = {
           p_sku_filter?: string
         }
         Returns: {
+          bod_exportaciones: number
+          bod_principal: number
+          bod_reserva: number
+          bod_tiendas: number
           categoria: string
           clasificacion: string
           coleccion: string
@@ -5054,8 +5058,11 @@ export type Database = {
           producto: string
           sell_through_pct: number
           sku: string
+          st_total: number
           stock_digital: number
+          stock_standby: number
           stock_tiendas: number
+          stock_total: number
           und_full_price: number
           und_promo: number
           und_rebajas: number
