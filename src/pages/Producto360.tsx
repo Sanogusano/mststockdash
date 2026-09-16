@@ -9,11 +9,16 @@ import { HeaderTooltip } from "@/components/HeaderTooltip";
 import { ProductoDetallePanel } from "@/components/dashboard/ProductoDetallePanel";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, Download, Package, Store, ShoppingBag, HelpCircle, X, RotateCcw, CircleCheck, PauseCircle } from "lucide-react";
+import { Search, Download, FileText, Package, Store, ShoppingBag, HelpCircle, X, RotateCcw, CircleCheck, PauseCircle } from "lucide-react";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import * as XLSX from "xlsx";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
+import monasteryLogoWhite from "@/assets/monastery-logo-white.png";
+import { toast } from "sonner";
+
 
 /**
  * Análisis de producto — pantalla consolidada.
