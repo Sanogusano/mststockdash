@@ -12,6 +12,13 @@ export interface ComportamientoPDFRow {
   und_promo: number;
   stock_tiendas: number;
   stock_digital: number;
+  stock_standby: number;
+  stock_total: number;
+  st_total: number;
+  bod_principal: number;
+  bod_reserva: number;
+  bod_tiendas: number;
+  bod_exportaciones: number;
   sell_through_pct: number;
 }
 
@@ -44,7 +51,7 @@ export async function exportComportamientoProductoPDF(
 ) {
   if (!rows.length) return;
 
-  const doc = new jsPDF({ orientation: "landscape", unit: "pt", format: "a4" });
+  const doc = new jsPDF({ orientation: "landscape", unit: "pt", format: "a3" });
 
   doc.setFont("helvetica", "bold");
   doc.setFontSize(14);
@@ -76,7 +83,13 @@ export async function exportComportamientoProductoPDF(
       "Promo",
       "Stock Tiendas",
       "Stock Digital",
+      "Stock Stand-by",
       "Stock Total",
+      "ST Total",
+      "Principal",
+      "Reserva Distribuidores",
+      "Tiendas Monastery",
+      "Exportaciones",
       "Sell-Through %",
     ]],
     body: rows.map((r) => [
@@ -88,7 +101,13 @@ export async function exportComportamientoProductoPDF(
       (r.und_promo ?? 0).toLocaleString("es-CO"),
       (r.stock_tiendas ?? 0).toLocaleString("es-CO"),
       (r.stock_digital ?? 0).toLocaleString("es-CO"),
-      ((r.stock_tiendas ?? 0) + (r.stock_digital ?? 0)).toLocaleString("es-CO"),
+      (r.stock_standby ?? 0).toLocaleString("es-CO"),
+      (r.stock_total ?? 0).toLocaleString("es-CO"),
+      `${r.st_total ?? 0}%`,
+      (r.bod_principal ?? 0).toLocaleString("es-CO"),
+      (r.bod_reserva ?? 0).toLocaleString("es-CO"),
+      (r.bod_tiendas ?? 0).toLocaleString("es-CO"),
+      (r.bod_exportaciones ?? 0).toLocaleString("es-CO"),
       `${r.sell_through_pct ?? 0}%`,
     ]),
     styles: { fontSize: 8, cellPadding: 4, minCellHeight: ROW_H, valign: "middle", font: "helvetica" },
@@ -105,6 +124,12 @@ export async function exportComportamientoProductoPDF(
       7: { halign: "right" },
       8: { halign: "right", fontStyle: "bold" },
       9: { halign: "right" },
+      10: { halign: "right" },
+      11: { halign: "right" },
+      12: { halign: "right" },
+      13: { halign: "right" },
+      14: { halign: "right" },
+      15: { halign: "right" },
     },
     didDrawCell: (data) => {
       if (data.section === "body" && data.column.index === 0) {

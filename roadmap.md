@@ -14,3 +14,5 @@
 - [ ] Ranking agregado por zona: requiere ampliar la RPC (no admite zona ni lista de tiendas); pendiente autorización.
 
 - [x] Refactorizar la presentación de Baja Rotación: tabla amplia, fotos cuadradas, tarjetas de nivel, tooltips, cabecera fija y paginación independiente.
+
+- [x] Mostrar stand-by, ST total, desglose de bodegas y estado Sin liberar en Salud de Producto y sus exportaciones, conservando la carga y ventas.

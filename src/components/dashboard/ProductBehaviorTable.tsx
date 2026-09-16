@@ -7,7 +7,7 @@ import { StatusBadge } from "./StatusBadge";
 import { ProductDetailDrawer } from "./ProductDetailDrawer";
 import { exportToCSV } from "@/lib/csv-export";
 import { exportComportamientoProductoPDF } from "@/lib/comportamiento-producto-pdf";
-import { Search, Download, FileText, Tag } from "lucide-react";
+import { Search, Download, FileText, Tag, Pause } from "lucide-react";
 import { CollectionBadge } from "./CollectionBadge";
 import { ProductImageThumb } from "./ProductImageThumb";
 
@@ -27,7 +27,7 @@ import {
 
 const PAGE_SIZE = 15;
 
-interface ProductRow {
+interface ProductBehaviorRow {
   foto: string;
   sku: string;
   producto: string;
@@ -35,6 +35,13 @@ interface ProductRow {
   und_vendidas: number;
   stock_tiendas: number;
   stock_digital: number;
+  stock_standby: number;
+  stock_total: number;
+  st_total: number;
+  bod_principal: number;
+  bod_reserva: number;
+  bod_tiendas: number;
+  bod_exportaciones: number;
   clasificacion: string;
   sell_through_pct: number;
   wos: number;
@@ -51,6 +58,7 @@ const WOS_FILTERS = [
   { value: "optimal", label: "🟢 Óptimo (4-12 sem)" },
   { value: "overstock", label: "🔴 Sobrestock (>12 sem)" },
   { value: "stagnant", label: "🔴 Estancado (0 ventas)" },
+  { value: "unreleased", label: "⚫ SIN LIBERAR" },
 ];
 
 const ST_FILTERS = [
@@ -105,7 +113,7 @@ function SalesBreakdownBars({ full, rebajas, promo, total }: { full: number; reb
 export function ProductBehaviorTable({ days, initialWosFilter, initialLocationId, customFrom, customTo }: { days: number; initialWosFilter?: string; initialLocationId?: string; customFrom?: Date; customTo?: Date }) {
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(0);
-  const [selectedProduct, setSelectedProduct] = useState<ProductRow | null>(null);
+  const [selectedProduct, setSelectedProduct] = useState<ProductBehaviorRow | null>(null);
   const [wosFilter, setWosFilter] = useState(initialWosFilter ?? "all");
   const [stFilter, setStFilter] = useState("all");
   const [canalFilter, setCanalFilter] = useState("all");
@@ -150,7 +158,7 @@ export function ProductBehaviorTable({ days, initialWosFilter, initialLocationId
       if (locationId !== "all") params.p_location_id = locationId;
       const { data, error } = await supabase.rpc("reporte_comportamiento_producto", params);
       if (error) throw new Error(error.message);
-      return (data ?? []) as ProductRow[];
+      return (data ?? []) as ProductBehaviorRow[];
     },
     staleTime: 5 * 60 * 1000,
     retry: 1,
@@ -160,6 +168,7 @@ export function ProductBehaviorTable({ days, initialWosFilter, initialLocationId
     let all = data ?? [];
     if (wosFilter !== "all") {
       all = all.filter((r) => {
+        if (wosFilter === "unreleased") return r.estado_salud.includes("SIN LIBERAR");
         if (wosFilter === "stagnant") return r.estado_salud.includes("ESTANCADO");
         if (wosFilter === "risk") return r.wos > 0 && r.wos < 4;
         if (wosFilter === "optimal") return r.wos >= 4 && r.wos <= 12;
@@ -197,6 +206,13 @@ export function ProductBehaviorTable({ days, initialWosFilter, initialLocationId
         "Und. Promo": r.und_promo ?? 0,
         "Stock Tiendas": r.stock_tiendas,
         "Stock Digital": r.stock_digital,
+        "Stock Stand-by": r.stock_standby ?? 0,
+        "Stock Total": r.stock_total ?? 0,
+        "ST Total": r.st_total ?? 0,
+        "Principal": r.bod_principal ?? 0,
+        "Reserva Distribuidores": r.bod_reserva ?? 0,
+        "Tiendas Monastery": r.bod_tiendas ?? 0,
+        "Exportaciones": r.bod_exportaciones ?? 0,
         "Sell-Through %": r.sell_through_pct,
         WOS: r.wos,
         "Estado Salud": r.estado_salud,
@@ -219,6 +235,14 @@ export function ProductBehaviorTable({ days, initialWosFilter, initialLocationId
         und_promo: r.und_promo ?? 0,
         stock_tiendas: r.stock_tiendas ?? 0,
         stock_digital: r.stock_digital ?? 0,
+        stock_standby: r.stock_standby ?? 0,
+        stock_total: r.stock_total ?? 0,
+        st_total: r.st_total ?? 0,
+        bod_principal: r.bod_principal ?? 0,
+        bod_reserva: r.bod_reserva ?? 0,
+        bod_tiendas: r.bod_tiendas ?? 0,
+        bod_exportaciones: r.bod_exportaciones ?? 0,
+
         sell_through_pct: r.sell_through_pct ?? 0,
       })),
       "comportamiento_producto",
@@ -233,6 +257,7 @@ export function ProductBehaviorTable({ days, initialWosFilter, initialLocationId
   };
 
   return (
+    <TooltipProvider delayDuration={200}>
     <div className="space-y-4">
       {/* Filters row 1 */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 flex-wrap">
@@ -356,6 +381,7 @@ export function ProductBehaviorTable({ days, initialWosFilter, initialLocationId
                   const reb = row.und_rebajas ?? 0;
                   const promo = row.und_promo ?? 0;
                   const isFull = full >= (reb + promo);
+                  const showStandby = locationId === "all" && row.stock_standby > 0;
 
                   return (
                     <TableRow key={row.sku} className="cursor-pointer" onClick={() => setSelectedProduct(row)}>
@@ -395,8 +421,27 @@ export function ProductBehaviorTable({ days, initialWosFilter, initialLocationId
 
                       <TableCell>
                         <div className="space-y-0.5 text-sm">
-                          <p>🏪 <span className="font-medium">{(row.stock_tiendas ?? 0).toLocaleString()}</span></p>
-                          <p>📦 <span className="font-medium">{(row.stock_digital ?? 0).toLocaleString()}</span></p>
+                          <p><Tooltip><TooltipTrigger asChild><span tabIndex={0} aria-label="En tiendas (piso de venta)">🏪</span></TooltipTrigger><TooltipContent>En tiendas (piso de venta)</TooltipContent></Tooltip> <span className="font-medium">{(row.stock_tiendas ?? 0).toLocaleString()}</span></p>
+                          <p><Tooltip><TooltipTrigger asChild><span tabIndex={0} aria-label="Digital / CEDI">📦</span></TooltipTrigger><TooltipContent>Digital / CEDI</TooltipContent></Tooltip> <span className="font-medium">{(row.stock_digital ?? 0).toLocaleString()}</span></p>
+                          {showStandby && (
+                            <div className="flex items-center gap-1 text-muted-foreground">
+                              <Tooltip>
+                                <TooltipTrigger asChild><span tabIndex={0} aria-label="Stand-by: detenido en bodega, no disponible para venta"><Pause className="h-4 w-4" /></span></TooltipTrigger>
+                                <TooltipContent className="max-w-xs">
+                                  <p>Stand-by: detenido en bodega, no disponible para venta</p>
+                                  {([
+                                    ["Principal", row.bod_principal],
+                                    ["Reserva Distribuidores", row.bod_reserva],
+                                    ["Tiendas Monastery", row.bod_tiendas],
+                                    ["Exportaciones", row.bod_exportaciones],
+                                  ] as const).filter(([, value]) => value > 0).map(([label, value]) => (
+                                    <p key={label}>{label}: {value.toLocaleString("es-CO")}</p>
+                                  ))}
+                                </TooltipContent>
+                              </Tooltip>
+                              <span className="font-medium">{row.stock_standby.toLocaleString("es-CO")}</span>
+                            </div>
+                          )}
                         </div>
                       </TableCell>
 
@@ -409,6 +454,12 @@ export function ProductBehaviorTable({ days, initialWosFilter, initialLocationId
                           />
                           <span className="text-sm font-medium text-foreground w-12 text-right">{row.sell_through_pct ?? 0}%</span>
                         </div>
+                        {showStandby && (
+                          <Tooltip>
+                            <TooltipTrigger asChild><span tabIndex={0} className="text-xs text-muted-foreground">ST total {row.st_total ?? 0}%</span></TooltipTrigger>
+                            <TooltipContent className="max-w-xs">Sell-through actual mide contra lo disponible en venta; ST total incluye el inventario detenido en bodega.</TooltipContent>
+                          </Tooltip>
+                        )}
                       </TableCell>
 
                       <TableCell>
@@ -436,5 +487,6 @@ export function ProductBehaviorTable({ days, initialWosFilter, initialLocationId
       </div>
       <ProductDetailDrawer product={selectedProduct} days={resolvedDays} onClose={() => setSelectedProduct(null)} />
     </div>
+    </TooltipProvider>
   );
 }

@@ -58,6 +58,10 @@
     --sidebar-border: 220 13% 91%;
     --sidebar-ring: 230 65% 55%;
 
+    --unreleased-background: 0 0% 90%;
+    --unreleased-foreground: 0 0% 15%;
+    --unreleased-border: 0 0% 64%;
+
     /* ── Semaphore ── */
     --success: 152 60% 40%;
     --success-foreground: 152 60% 95%;
@@ -116,6 +120,12 @@
 @layer utilities {
   .glass-card {
     @apply bg-card border border-border rounded-xl shadow-sm;
+  }
+
+  .status-unreleased {
+    background-color: hsl(var(--unreleased-background));
+    color: hsl(var(--unreleased-foreground));
+    border-color: hsl(var(--unreleased-border));
   }
 
   .status-optimal {
