@@ -165,7 +165,71 @@ const FILTRO_DIAGNOSTICO: Record<string, string> = {
   "En curso": "EN CURSO",
 };
 
+/** Analisis de Producto Monastery YYYY-MM-DD HHmm (hora Bogotá) */
+const nombreArchivo = () => {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    year: "numeric", month: "2-digit", day: "2-digit",
+    hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "America/Bogota",
+  }).formatToParts(new Date());
+  const g = (t: string) => parts.find((p) => p.type === t)?.value ?? "";
+  return `Analisis de Producto Monastery ${g("year")}-${g("month")}-${g("day")} ${g("hour")}${g("minute")}`;
+};
+
+const generadoEl = () => {
+  const d = new Date();
+  const f = d.toLocaleDateString("es-CO", { day: "2-digit", month: "long", year: "numeric", timeZone: "America/Bogota" });
+  const h = d.toLocaleTimeString("es-CO", { hour: "2-digit", minute: "2-digit", timeZone: "America/Bogota" });
+  return `${f}, ${h}`;
+};
+
+async function getLogoBase64(): Promise<string> {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => {
+      const canvas = document.createElement("canvas");
+      canvas.width = img.width;
+      canvas.height = img.height;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) { resolve(""); return; }
+      ctx.drawImage(img, 0, 0);
+      resolve(canvas.toDataURL("image/png"));
+    };
+    img.onerror = () => resolve("");
+    img.src = monasteryLogoWhite;
+  });
+}
+
+/** Miniatura de Shopify: inserta _100x100 antes de la extensión. */
+function miniatura(url: string) {
+  if (!url.includes("cdn.shopify.com")) return url;
+  return url.replace(/(\.[a-zA-Z]+)(\?|$)/, "_100x100$1$2");
+}
+
+/** Carga una imagen y la devuelve en base64 (70x70 JPEG). "" si falla. */
+async function urlToBase64(url: string): Promise<string> {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => {
+      try {
+        const canvas = document.createElement("canvas");
+        canvas.width = 70; canvas.height = 70;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) { resolve(""); return; }
+        ctx.drawImage(img, 0, 0, 70, 70);
+        resolve(canvas.toDataURL("image/jpeg", 0.7));
+      } catch { resolve(""); }
+    };
+    img.onerror = () => resolve("");
+    img.src = url;
+  });
+}
+
+const MAX_PDF = 300;
+
 function Ayuda({ onClose }: { onClose: () => void }) {
+
   return (
     <div className="rounded-lg border bg-muted/30 p-4 text-sm space-y-3 relative">
       <button onClick={onClose}
