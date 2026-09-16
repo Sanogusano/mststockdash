@@ -603,6 +603,13 @@ export default function Producto360() {
                       onClick={exportar} disabled={!filtrados.length}>
                 <Download className="h-4 w-4 mr-1.5" />Excel
               </Button>
+
+              <Button variant="outline" size="sm"
+                      onClick={exportarPDF} disabled={!filtrados.length || !!pdfProgreso}>
+                <FileText className="h-4 w-4 mr-1.5" />
+                {pdfProgreso ? `Generando… ${pdfProgreso.hecho} de ${pdfProgreso.total}` : "PDF"}
+              </Button>
+
             </div>
 
             {loading ? (
