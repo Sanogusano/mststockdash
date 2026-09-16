@@ -285,6 +285,8 @@ export default function Producto360() {
   const [foco, setFoco] = useState("all");
   const [orden, setOrden] = useState<"sin_evacuar" | "meta_asc" | "meta_desc" | "rdv_desc" | "producido">("sin_evacuar");
   const [ayuda, setAyuda] = useState(false);
+  const [pdfProgreso, setPdfProgreso] = useState<{ hecho: number; total: number } | null>(null);
+
 
   // Filtros por querystring (ej. desde Análisis por línea):
   // /analisis-producto?categoria=T-SHIRT&genero=HOMBRE&diagnostico=Repetir
