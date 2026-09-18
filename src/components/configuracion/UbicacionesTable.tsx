@@ -23,6 +23,7 @@ export interface UbicacionGestion {
   zona: string | null;
   dimension_m2: number | null;
   location_activa: boolean;
+  es_punto_venta: boolean | null;
   netsuite_location_name: string | null;
   codigo_oracle: number | null;
   mapeo_tipo: "origen_destino" | "solo_destino" | "ignorar" | null;
