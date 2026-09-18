@@ -211,7 +211,34 @@ export default function ConfiguracionNotificacionesPage() {
     onError: (e: any) => toast.error(e.message ?? "Error al eliminar"),
   });
 
+  const { data: crons = [], isLoading: cronsLoading } = useQuery({
+    queryKey: ["whatsapp-crons"],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("whatsapp_crons_listar" as any);
+      if (error) throw error;
+      return ((data ?? []) as unknown as WhatsappCron[]).sort((a, b) => a.jobid - b.jobid);
+    },
+    enabled: allowed,
+  });
+
+  const toggleCronMut = useMutation({
+    mutationFn: async (vars: { jobname: string; horario_bogota: string; activo: boolean }) => {
+      const { data, error } = await supabase.rpc("whatsapp_cron_toggle" as any, {
+        p_jobname: vars.jobname,
+        p_activo: vars.activo,
+      });
+      if (error) throw error;
+      return data as unknown as { jobname: string; activo: boolean };
+    },
+    onSuccess: (_, vars) => {
+      toast.success(`Envío de las ${vars.horario_bogota} ${vars.activo ? "activado" : "desactivado"}`);
+      qc.invalidateQueries({ queryKey: ["whatsapp-crons"] });
+    },
+    onError: (e: any) => toast.error(e.message ?? "Error al cambiar el envío programado"),
+  });
+
   const openNew = () => {
+
     setEditing(null);
     setForm(emptyForm);
     setModalOpen(true);
