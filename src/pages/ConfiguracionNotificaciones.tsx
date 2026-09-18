@@ -524,8 +524,8 @@ export default function ConfiguracionNotificacionesPage() {
         </main>
       </div>
 
-
       {/* Modal agregar/editar */}
+
       <Dialog open={modalOpen} onOpenChange={(o) => (o ? setModalOpen(true) : closeModal())}>
         <DialogContent>
           <DialogHeader>
