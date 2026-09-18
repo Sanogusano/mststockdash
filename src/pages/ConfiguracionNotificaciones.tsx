@@ -102,6 +102,29 @@ function formatNumero(n: string) {
   return `+${n}`;
 }
 
+interface WhatsappCron {
+  jobid: number;
+  jobname: string;
+  schedule: string;
+  horario_bogota: string;
+  activo: boolean;
+}
+
+const CRON_LABEL: Record<string, string> = {
+  "cierre-anterior": "Cierre del día anterior",
+  "cierre-dia": "Cierre del día",
+  "11am": "Corte de 11 AM",
+  "2pm": "Corte de 2 PM",
+  "5pm": "Corte de 5 PM",
+  "8pm": "Corte de 8 PM",
+  "11pm": "Corte de 11 PM",
+};
+
+function friendlyCronName(jobname: string) {
+  return CRON_LABEL[jobname] ?? jobname;
+}
+
+
 export default function ConfiguracionNotificacionesPage() {
   const navigate = useNavigate();
   const qc = useQueryClient();
