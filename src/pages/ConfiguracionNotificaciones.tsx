@@ -459,9 +459,71 @@ export default function ConfiguracionNotificacionesPage() {
                 </div>
               </CardContent>
             </Card>
+
+            <Card>
+              <CardHeader>
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                    <Clock className="h-5 w-5 text-primary" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-xl">Envíos programados</CardTitle>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Horarios en que el reporte se envía automáticamente a los destinatarios.
+                    </p>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="border rounded-lg">
+                  {cronsLoading ? (
+                    <div className="py-8 text-center text-muted-foreground">Cargando...</div>
+                  ) : crons.length === 0 ? (
+                    <div className="py-8 text-center text-muted-foreground">
+                      No hay envíos programados.
+                    </div>
+                  ) : (
+                    <div className="divide-y">
+                      {crons.map((c) => (
+                        <div
+                          key={c.jobid}
+                          className="flex items-center justify-between px-4 py-3 gap-4"
+                        >
+                          <div className="min-w-0">
+                            <p className="text-base font-semibold">{c.horario_bogota}</p>
+                            <p className="text-sm text-muted-foreground truncate">
+                              {friendlyCronName(c.jobname)}
+                            </p>
+                          </div>
+                          <Switch
+                            checked={c.activo}
+                            onCheckedChange={(v) =>
+                              toggleCronMut.mutate({
+                                jobname: c.jobname,
+                                horario_bogota: c.horario_bogota,
+                                activo: v,
+                              })
+                            }
+                            disabled={
+                              toggleCronMut.isPending &&
+                              toggleCronMut.variables?.jobname === c.jobname
+                            }
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                <p className="text-xs text-muted-foreground mt-3">
+                  Cada envío consume el webhook de Zenvia. La recomendación del equipo es mantener
+                  activos solo los cortes de 8 AM y 5 PM.
+                </p>
+              </CardContent>
+            </Card>
           </div>
         </main>
       </div>
+
 
       {/* Modal agregar/editar */}
       <Dialog open={modalOpen} onOpenChange={(o) => (o ? setModalOpen(true) : closeModal())}>
