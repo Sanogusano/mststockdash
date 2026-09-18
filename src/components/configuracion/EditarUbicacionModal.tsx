@@ -77,6 +77,7 @@ export function EditarUbicacionModal({ ubicacion, open, onOpenChange }: Props) {
   const [zona, setZona] = useState("");
   const [dimensionM2, setDimensionM2] = useState("");
   const [isActive, setIsActive] = useState(true);
+  const [esPuntoVenta, setEsPuntoVenta] = useState(true);
 
   // netsuite mapping
   const [netsuiteName, setNetsuiteName] = useState("");
@@ -110,6 +111,7 @@ export function EditarUbicacionModal({ ubicacion, open, onOpenChange }: Props) {
     setZona(str(ubicacion.zona));
     setDimensionM2(str(ubicacion.dimension_m2));
     setIsActive(ubicacion.location_activa ?? true);
+    setEsPuntoVenta(ubicacion.es_punto_venta ?? true);
     setNetsuiteName(str(ubicacion.netsuite_location_name));
     setCodigoOracle(str(ubicacion.codigo_oracle));
     setMapeoTipo(str(ubicacion.mapeo_tipo));
@@ -144,6 +146,7 @@ export function EditarUbicacionModal({ ubicacion, open, onOpenChange }: Props) {
       put("p_zona", zona, u.zona);
       put("p_dimension_m2", numOrNull(dimensionM2), u.dimension_m2);
       put("p_is_active", isActive, u.location_activa ?? true);
+      put("p_es_punto_venta", esPuntoVenta, u.es_punto_venta ?? true);
 
       put("p_netsuite_name", netsuiteName, u.netsuite_location_name);
       put("p_codigo_oracle", numOrNull(codigoOracle), u.codigo_oracle);
@@ -257,6 +260,16 @@ export function EditarUbicacionModal({ ubicacion, open, onOpenChange }: Props) {
                 </p>
               </div>
               <Switch checked={isActive} onCheckedChange={setIsActive} />
+            </div>
+            <div className="flex items-center justify-between gap-4 p-3 rounded-md border border-border">
+              <div>
+                <Label className="text-sm font-medium">Punto de venta</Label>
+                <p className="text-xs text-muted-foreground">
+                  Vende al público. Desmárcalo para bodegas y CEDIs: su inventario cuenta como
+                  stand-by, no como piso de venta.
+                </p>
+              </div>
+              <Switch checked={esPuntoVenta} onCheckedChange={setEsPuntoVenta} />
             </div>
           </div>
 

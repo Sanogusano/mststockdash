@@ -23,6 +23,7 @@ export interface UbicacionGestion {
   zona: string | null;
   dimension_m2: number | null;
   location_activa: boolean;
+  es_punto_venta: boolean | null;
   netsuite_location_name: string | null;
   codigo_oracle: number | null;
   mapeo_tipo: "origen_destino" | "solo_destino" | "ignorar" | null;
@@ -93,6 +94,7 @@ export function UbicacionesTable({ data, loading, onEditar, onAsignarCodigo }: P
               <TableHead>Nombre</TableHead>
               <TableHead>Tier</TableHead>
               <TableHead>Tipo</TableHead>
+              <TableHead>Uso</TableHead>
               <TableHead>Oracle</TableHead>
               <TableHead>MOD</TableHead>
               <TableHead>WOS</TableHead>
@@ -106,7 +108,7 @@ export function UbicacionesTable({ data, loading, onEditar, onAsignarCodigo }: P
           <TableBody>
             {Array.from({ length: 8 }).map((_, i) => (
               <TableRow key={i}>
-                {Array.from({ length: 11 }).map((_, j) => (
+                {Array.from({ length: 12 }).map((_, j) => (
                   <TableCell key={j}>
                     <Skeleton className="h-4 w-full" />
                   </TableCell>
@@ -137,6 +139,7 @@ export function UbicacionesTable({ data, loading, onEditar, onAsignarCodigo }: P
             <TableHead className="font-semibold">Nombre</TableHead>
             <TableHead className="font-semibold">Tier</TableHead>
             <TableHead className="font-semibold">Tipo</TableHead>
+            <TableHead className="font-semibold">Uso</TableHead>
             <TableHead className="font-semibold">Oracle</TableHead>
             <TableHead className="font-semibold text-right">MOD</TableHead>
             <TableHead className="font-semibold text-right">WOS</TableHead>
@@ -171,6 +174,23 @@ export function UbicacionesTable({ data, loading, onEditar, onAsignarCodigo }: P
                   <span className="text-sm text-muted-foreground">
                     {u.tipo_tienda ?? "—"}
                   </span>
+                </TableCell>
+                <TableCell>
+                  {u.es_punto_venta ? (
+                    <Badge
+                      variant="outline"
+                      className="font-medium bg-emerald-500/15 text-emerald-700 border-emerald-500/30"
+                    >
+                      Punto de venta
+                    </Badge>
+                  ) : (
+                    <Badge
+                      variant="outline"
+                      className="font-medium bg-muted text-muted-foreground border-border"
+                    >
+                      Bodega
+                    </Badge>
+                  )}
                 </TableCell>
                 <TableCell>
                   {u.codigo_oracle ? (
