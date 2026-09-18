@@ -10,6 +10,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import {
   Select,
   SelectContent,
@@ -21,6 +22,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { AlertTriangle } from "lucide-react";
+import { Link } from "react-router-dom";
 
 interface Props {
   open: boolean;
@@ -43,11 +45,15 @@ export function NuevaSucursalModal({ open, onOpenChange }: Props) {
   const [nombre, setNombre] = useState("");
   const [tipoTienda, setTipoTienda] = useState<string>("");
   const [zona, setZona] = useState<string>("");
+  const [fuente, setFuente] = useState<"shopify" | "netsuite">("netsuite");
   const [locationId, setLocationId] = useState("");
   const [locationIdEdited, setLocationIdEdited] = useState(false);
   const [netsuiteName, setNetsuiteName] = useState("");
   const [codigoOracle, setCodigoOracle] = useState("");
   const [capacidad, setCapacidad] = useState("");
+  const [esPuntoVenta, setEsPuntoVenta] = useState(true);
+
+  const esShopify = fuente === "shopify";
 
   // Zonas existentes
   const { data: zonas = [] } = useQuery({
@@ -64,26 +70,46 @@ export function NuevaSucursalModal({ open, onOpenChange }: Props) {
   });
 
   useEffect(() => {
-    if (!locationIdEdited) {
+    if (!esShopify && !locationIdEdited) {
       setLocationId(slugify(nombre));
     }
-  }, [nombre, locationIdEdited]);
+  }, [nombre, locationIdEdited, esShopify]);
+
+  // Al cambiar la fuente, el ID se reinicia según el modo elegido
+  useEffect(() => {
+    if (esShopify) {
+      setLocationId("");
+      setLocationIdEdited(false);
+    } else {
+      setLocationIdEdited(false);
+      setLocationId(slugify(nombre));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fuente]);
 
   useEffect(() => {
     if (!open) {
       setNombre("");
       setTipoTienda("");
       setZona("");
+      setFuente("netsuite");
       setLocationId("");
       setLocationIdEdited(false);
       setNetsuiteName("");
       setCodigoOracle("");
       setCapacidad("");
+      setEsPuntoVenta(true);
     }
   }, [open]);
 
+  const idNumericoInvalido = esShopify && locationId.trim() !== "" && !/^\d+$/.test(locationId.trim());
+
   const mutation = useMutation({
     mutationFn: async () => {
+      if (esShopify && !/^\d+$/.test(locationId.trim())) {
+        throw new Error("Con Shopify POS el Location ID debe ser el ID numérico de Shopify");
+      }
+
       // Validar unicidad de location_id
       const { data: existing } = await supabase
         .from("locations")
@@ -108,19 +134,34 @@ export function NuevaSucursalModal({ open, onOpenChange }: Props) {
         p_netsuite_name: netsuiteName || null,
         p_netsuite_code: codigoOracle ? Number(codigoOracle) : null,
         p_capacidad: capacidad ? Number(capacidad) : null,
-      });
+        p_es_punto_venta: esPuntoVenta,
+      } as any);
       if (error) throw error;
       return data;
     },
     onSuccess: () => {
       toast.success(`Ubicación "${nombre}" creada correctamente`);
+      if (!esShopify && esPuntoVenta) {
+        toast.info("Falta definir su fuente de ventas", {
+          description:
+            "Activa Nxt Sale y fija la fecha de corte en Configuración → Fuente de Ventas.",
+          duration: 10000,
+          action: {
+            label: "Abrir",
+            onClick: () => {
+              window.location.href = "/configuracion/fuente-ventas";
+            },
+          },
+        });
+      }
       queryClient.invalidateQueries({ queryKey: ["ubicaciones-gestion"] });
       onOpenChange(false);
     },
     onError: (err: any) => toast.error(err.message ?? "Error al crear ubicación"),
   });
 
-  const canSubmit = nombre.trim() && tipoTienda && locationId.trim();
+  const canSubmit =
+    nombre.trim() && tipoTienda && locationId.trim() && !idNumericoInvalido;
   const isOutlet = tipoTienda === "OUTLET";
 
   return (
@@ -181,6 +222,18 @@ export function NuevaSucursalModal({ open, onOpenChange }: Props) {
             </div>
           </div>
 
+          {/* Punto de venta */}
+          <div className="flex items-center justify-between gap-4 p-3 rounded-md border border-border">
+            <div>
+              <Label className="text-sm font-medium">Punto de venta</Label>
+              <p className="text-xs text-muted-foreground">
+                Vende al público. Desmárcalo para bodegas y CEDIs: su inventario cuenta como
+                stand-by, no como piso de venta.
+              </p>
+            </div>
+            <Switch checked={esPuntoVenta} onCheckedChange={setEsPuntoVenta} />
+          </div>
+
           {isOutlet && (
             <div className="flex items-start gap-2 p-3 rounded-md bg-orange-500/10 border border-orange-500/30 text-orange-800">
               <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
@@ -190,6 +243,19 @@ export function NuevaSucursalModal({ open, onOpenChange }: Props) {
               </p>
             </div>
           )}
+
+          <div className="space-y-2">
+            <Label htmlFor="fuente">Fuente de ventas</Label>
+            <Select value={fuente} onValueChange={(v) => setFuente(v as "shopify" | "netsuite")}>
+              <SelectTrigger id="fuente">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="shopify">Shopify POS</SelectItem>
+                <SelectItem value="netsuite">Nxt Sale (NetSuite)</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
 
           <div className="space-y-2">
             <Label htmlFor="locid">
@@ -202,13 +268,37 @@ export function NuevaSucursalModal({ open, onOpenChange }: Props) {
                 setLocationId(e.target.value);
                 setLocationIdEdited(true);
               }}
-              placeholder="tienda_nueva_cali"
+              placeholder={esShopify ? "ID numérico de Shopify" : "tienda_nueva_cali"}
               className="font-mono text-sm"
+              inputMode={esShopify ? "numeric" : "text"}
             />
-            <p className="text-[11px] text-muted-foreground">
-              Auto-generado desde el nombre. Editable. Solo minúsculas, números y guiones bajos.
-            </p>
+            {esShopify ? (
+              <p
+                className={`text-[11px] ${idNumericoInvalido ? "text-red-600" : "text-muted-foreground"}`}
+              >
+                {idNumericoInvalido
+                  ? "Solo dígitos: es la llave con la que llegan los webhooks de Shopify."
+                  : "Cópialo del panel de Shopify: Configuración → Ubicaciones."}
+              </p>
+            ) : (
+              <p className="text-[11px] text-muted-foreground">
+                Auto-generado desde el nombre. Editable. Solo minúsculas, números y guiones bajos.
+              </p>
+            )}
           </div>
+
+          {!esShopify && esPuntoVenta && (
+            <div className="flex items-start gap-2 p-3 rounded-md bg-sky-500/10 border border-sky-500/30 text-sky-900">
+              <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
+              <p className="text-xs">
+                Tras crearla, activa Nxt Sale y fija la fecha de corte en{" "}
+                <Link to="/configuracion/fuente-ventas" className="underline font-medium">
+                  Configuración → Fuente de Ventas
+                </Link>
+                .
+              </p>
+            </div>
+          )}
 
           <div className="space-y-2">
             <Label htmlFor="nsname">Nombre NetSuite</Label>
