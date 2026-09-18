@@ -238,11 +238,11 @@ export default function ConfiguracionNotificacionesPage() {
   });
 
   const openNew = () => {
-
     setEditing(null);
     setForm(emptyForm);
     setModalOpen(true);
   };
+
 
   const openEdit = (d: Destinatario) => {
     setEditing(d);
