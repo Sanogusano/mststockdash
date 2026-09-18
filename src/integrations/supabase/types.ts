@@ -3988,6 +3988,7 @@ export type Database = {
           dimension_m2: number | null
           es_cedi: boolean | null
           es_outlet: boolean | null
+          es_punto_venta: boolean | null
           estado_config: string | null
           location_activa: boolean | null
           location_id: string | null
@@ -4064,33 +4065,62 @@ export type Database = {
         Args: { p_incentivo_id: string }
         Returns: undefined
       }
-      actualizar_ubicacion: {
-        Args: {
-          p_allocation_activa?: boolean
-          p_capacidad_max?: number
-          p_codigo_oracle?: number
-          p_colchon_cedi?: number
-          p_dimension_m2?: number
-          p_es_cedi?: boolean
-          p_es_outlet?: boolean
-          p_is_active?: boolean
-          p_location_id: string
-          p_mapeo_notas?: string
-          p_mapeo_tipo?: string
-          p_mod_default?: number
-          p_mod_por_categoria?: Json
-          p_netsuite_name?: string
-          p_nombre?: string
-          p_puede_destino?: boolean
-          p_puede_origen?: boolean
-          p_tier?: string
-          p_tipo_tienda?: string
-          p_wos_objetivo?: number
-          p_wos_objetivo_por_categoria?: Json
-          p_zona?: string
-        }
-        Returns: Json
-      }
+      actualizar_ubicacion:
+        | {
+            Args: {
+              p_allocation_activa?: boolean
+              p_capacidad_max?: number
+              p_codigo_oracle?: number
+              p_colchon_cedi?: number
+              p_dimension_m2?: number
+              p_es_cedi?: boolean
+              p_es_outlet?: boolean
+              p_is_active?: boolean
+              p_location_id: string
+              p_mapeo_notas?: string
+              p_mapeo_tipo?: string
+              p_mod_default?: number
+              p_mod_por_categoria?: Json
+              p_netsuite_name?: string
+              p_nombre?: string
+              p_puede_destino?: boolean
+              p_puede_origen?: boolean
+              p_tier?: string
+              p_tipo_tienda?: string
+              p_wos_objetivo?: number
+              p_wos_objetivo_por_categoria?: Json
+              p_zona?: string
+            }
+            Returns: Json
+          }
+        | {
+            Args: {
+              p_allocation_activa?: boolean
+              p_capacidad_max?: number
+              p_codigo_oracle?: number
+              p_colchon_cedi?: number
+              p_dimension_m2?: number
+              p_es_cedi?: boolean
+              p_es_outlet?: boolean
+              p_es_punto_venta?: boolean
+              p_is_active?: boolean
+              p_location_id: string
+              p_mapeo_notas?: string
+              p_mapeo_tipo?: string
+              p_mod_default?: number
+              p_mod_por_categoria?: Json
+              p_netsuite_name?: string
+              p_nombre?: string
+              p_puede_destino?: boolean
+              p_puede_origen?: boolean
+              p_tier?: string
+              p_tipo_tienda?: string
+              p_wos_objetivo?: number
+              p_wos_objetivo_por_categoria?: Json
+              p_zona?: string
+            }
+            Returns: Json
+          }
       aplicar_conciliacion_netsuite: {
         Args: never
         Returns: {
@@ -4192,18 +4222,32 @@ export type Database = {
           uds_periodo: number
         }[]
       }
-      crear_ubicacion_completa: {
-        Args: {
-          p_capacidad?: number
-          p_location_id: string
-          p_netsuite_code?: number
-          p_netsuite_name?: string
-          p_nombre: string
-          p_tipo_tienda: string
-          p_zona?: string
-        }
-        Returns: string
-      }
+      crear_ubicacion_completa:
+        | {
+            Args: {
+              p_capacidad?: number
+              p_location_id: string
+              p_netsuite_code?: number
+              p_netsuite_name?: string
+              p_nombre: string
+              p_tipo_tienda: string
+              p_zona?: string
+            }
+            Returns: string
+          }
+        | {
+            Args: {
+              p_capacidad?: number
+              p_es_punto_venta?: boolean
+              p_location_id: string
+              p_netsuite_code?: number
+              p_netsuite_name?: string
+              p_nombre: string
+              p_tipo_tienda: string
+              p_zona?: string
+            }
+            Returns: string
+          }
       crecimiento_mom: {
         Args: { p_anio?: number; p_mes?: number }
         Returns: {
