@@ -1997,6 +1997,45 @@ export type Database = {
           },
         ]
       }
+      orders_borradas_respaldo: {
+        Row: {
+          borrado_at: string
+          created_at_original: string | null
+          financial_status: string | null
+          id: number
+          location_id: string | null
+          motivo: string | null
+          order_number: string | null
+          origen: string | null
+          shopify_order_id: string | null
+          total_price: number | null
+        }
+        Insert: {
+          borrado_at?: string
+          created_at_original?: string | null
+          financial_status?: string | null
+          id?: number
+          location_id?: string | null
+          motivo?: string | null
+          order_number?: string | null
+          origen?: string | null
+          shopify_order_id?: string | null
+          total_price?: number | null
+        }
+        Update: {
+          borrado_at?: string
+          created_at_original?: string | null
+          financial_status?: string | null
+          id?: number
+          location_id?: string | null
+          motivo?: string | null
+          order_number?: string | null
+          origen?: string | null
+          shopify_order_id?: string | null
+          total_price?: number | null
+        }
+        Relationships: []
+      }
       parametros_comerciales: {
         Row: {
           clave: string
@@ -2062,6 +2101,7 @@ export type Database = {
           anio: number
           created_at: string | null
           id: string
+          location_id: string | null
           mes: number
           monto: number
           nombre_identificador: string
@@ -2072,6 +2112,7 @@ export type Database = {
           anio: number
           created_at?: string | null
           id?: string
+          location_id?: string | null
           mes: number
           monto?: number
           nombre_identificador: string
@@ -2082,13 +2123,36 @@ export type Database = {
           anio?: number
           created_at?: string | null
           id?: string
+          location_id?: string | null
           mes?: number
           monto?: number
           nombre_identificador?: string
           tipo?: string
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "presupuestos_config_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["location_id"]
+          },
+          {
+            foreignKeyName: "presupuestos_config_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "v_locations_allocation_config"
+            referencedColumns: ["location_id"]
+          },
+          {
+            foreignKeyName: "presupuestos_config_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "v_ubicaciones_gestion"
+            referencedColumns: ["location_id"]
+          },
+        ]
       }
       proceso_ejecucion_log: {
         Row: {
@@ -6448,6 +6512,23 @@ export type Database = {
           tienda: string
           venta: number
           zona: string
+        }[]
+      }
+      whatsapp_cron_toggle: {
+        Args: { p_activo: boolean; p_jobname: string }
+        Returns: {
+          activo: boolean
+          jobname: string
+        }[]
+      }
+      whatsapp_crons_listar: {
+        Args: never
+        Returns: {
+          activo: boolean
+          horario_bogota: string
+          jobid: number
+          jobname: string
+          schedule: string
         }[]
       }
       whatsapp_cumplimiento_mes: {
