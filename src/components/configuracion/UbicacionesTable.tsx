@@ -94,6 +94,7 @@ export function UbicacionesTable({ data, loading, onEditar, onAsignarCodigo }: P
               <TableHead>Nombre</TableHead>
               <TableHead>Tier</TableHead>
               <TableHead>Tipo</TableHead>
+              <TableHead>Uso</TableHead>
               <TableHead>Oracle</TableHead>
               <TableHead>MOD</TableHead>
               <TableHead>WOS</TableHead>
@@ -107,7 +108,7 @@ export function UbicacionesTable({ data, loading, onEditar, onAsignarCodigo }: P
           <TableBody>
             {Array.from({ length: 8 }).map((_, i) => (
               <TableRow key={i}>
-                {Array.from({ length: 11 }).map((_, j) => (
+                {Array.from({ length: 12 }).map((_, j) => (
                   <TableCell key={j}>
                     <Skeleton className="h-4 w-full" />
                   </TableCell>
@@ -138,6 +139,7 @@ export function UbicacionesTable({ data, loading, onEditar, onAsignarCodigo }: P
             <TableHead className="font-semibold">Nombre</TableHead>
             <TableHead className="font-semibold">Tier</TableHead>
             <TableHead className="font-semibold">Tipo</TableHead>
+            <TableHead className="font-semibold">Uso</TableHead>
             <TableHead className="font-semibold">Oracle</TableHead>
             <TableHead className="font-semibold text-right">MOD</TableHead>
             <TableHead className="font-semibold text-right">WOS</TableHead>
