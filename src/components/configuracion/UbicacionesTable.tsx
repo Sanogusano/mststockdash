@@ -176,6 +176,23 @@ export function UbicacionesTable({ data, loading, onEditar, onAsignarCodigo }: P
                   </span>
                 </TableCell>
                 <TableCell>
+                  {u.es_punto_venta ? (
+                    <Badge
+                      variant="outline"
+                      className="font-medium bg-emerald-500/15 text-emerald-700 border-emerald-500/30"
+                    >
+                      Punto de venta
+                    </Badge>
+                  ) : (
+                    <Badge
+                      variant="outline"
+                      className="font-medium bg-muted text-muted-foreground border-border"
+                    >
+                      Bodega
+                    </Badge>
+                  )}
+                </TableCell>
+                <TableCell>
                   {u.codigo_oracle ? (
                     <span className="font-mono text-sm">{u.codigo_oracle}</span>
                   ) : (
