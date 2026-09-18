@@ -2933,6 +2933,48 @@ export type Database = {
           },
         ]
       }
+      ventas_anuladas_netsuite: {
+        Row: {
+          detectado_at: string
+          fecha_factura: string | null
+          id: number
+          location_id: string | null
+          motivo: string
+          nota_credito_id: string | null
+          nota_credito_tranid: string | null
+          shopify_order_id: string | null
+          tienda: string | null
+          total_price: number | null
+          tranid: string
+        }
+        Insert: {
+          detectado_at?: string
+          fecha_factura?: string | null
+          id?: number
+          location_id?: string | null
+          motivo?: string
+          nota_credito_id?: string | null
+          nota_credito_tranid?: string | null
+          shopify_order_id?: string | null
+          tienda?: string | null
+          total_price?: number | null
+          tranid: string
+        }
+        Update: {
+          detectado_at?: string
+          fecha_factura?: string | null
+          id?: number
+          location_id?: string | null
+          motivo?: string
+          nota_credito_id?: string | null
+          nota_credito_tranid?: string | null
+          shopify_order_id?: string | null
+          tienda?: string | null
+          total_price?: number | null
+          tranid?: string
+        }
+        Relationships: []
+      }
       ventas_descartadas: {
         Row: {
           descartado_at: string
