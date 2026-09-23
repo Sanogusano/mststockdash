@@ -207,7 +207,7 @@ export default function ReporteFacturacionPage() {
           </div>
           <div className="flex items-center gap-3 justify-between">
             <label className="flex items-center gap-2 text-sm"><Switch checked={soloPend} onCheckedChange={setSoloPend} />Solo pendientes</label>
-            {canExport && <Button variant="outline" size="sm" onClick={exportar} disabled={!filtrados.length}><Download className="h-4 w-4 mr-1" />Excel</Button>}
+            {canExport && <Button variant="outline" size="sm" onClick={exportar} disabled={!filtrados.length || exportando !== null}><Download className="h-4 w-4 mr-1" />{exportando !== null ? `Preparando… ${fmtInt(exportando)} filas` : "Excel"}</Button>}
           </div>
         </div>
 
@@ -225,6 +225,8 @@ export default function ReporteFacturacionPage() {
         </div>
         {cardFiltro && <button className="text-xs text-primary underline mb-4" onClick={() => setCardFiltro(null)}>Quitar filtro de estado</button>}
 
+        {resumenQ.error && <p className="text-sm text-destructive my-4">Error resumen: {(resumenQ.error as any).message}</p>}
+        {topeAlcanzado && <p className="text-sm text-amber-700 my-2">La búsqueda alcanzó el tope de {TOPE} filas; refina el texto para ver todos los resultados.</p>}
         {q.error && <p className="text-sm text-destructive my-4">Error: {(q.error as any).message}</p>}
         {q.isLoading ? <Skeleton className="h-96 w-full mt-4" /> : (
           <div className="overflow-x-auto rounded-md border border-border mt-4">
@@ -273,9 +275,9 @@ export default function ReporteFacturacionPage() {
           </div>
         )}
 
-        {filtrados.length > 0 && totalPages > 1 && (
+        {!s && totalPedidos > 0 && (
           <div className="flex items-center justify-between mt-4 text-sm">
-            <span className="text-muted-foreground">{fmtInt(filtrados.length)} pedidos · página {page} de {totalPages}</span>
+            <span className="text-muted-foreground">Página {page} · {fmtInt(totalPedidos)} pedidos en total</span>
             <div className="flex gap-2">
               <Button variant="outline" size="sm" disabled={page === 1} onClick={() => setPage(page - 1)}>Anterior</Button>
               <Button variant="outline" size="sm" disabled={page === totalPages} onClick={() => setPage(page + 1)}>Siguiente</Button>
