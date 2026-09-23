@@ -51,6 +51,7 @@ import AlertasDistribucionPage from "./pages/AlertasDistribucion";
 import FinanzasDashboardPage from "./pages/finanzas/FinanzasDashboard";
 import AddiPage from "./pages/finanzas/AddiPage";
 import ComposicionIngresosPage from "./pages/finanzas/ComposicionIngresosPage";
+import ReporteFacturacionPage from "./pages/finanzas/ReporteFacturacionPage";
 import { WompiPage, MercadoPagoPage, SistecreditoPage } from "./pages/finanzas/PasarelaPlaceholder";
 
 
@@ -122,7 +123,7 @@ const App = () => (
 
           {/* ===== Finanzas ===== */}
           <Route path="/finanzas" element={<Guard module="finanzas.view" action="view"><FinanzasDashboardPage /></Guard>} />
-          
+          <Route path="/finanzas/reporte-facturacion" element={<Guard module="financiero.reporte_facturacion" action="view"><ReporteFacturacionPage /></Guard>} />
           <Route path="/finanzas/composicion-ingresos" element={<Guard module="finanzas.view" action="view"><ComposicionIngresosPage /></Guard>} />
           <Route path="/finanzas/addi" element={<Guard module="finanzas.addi" action="view"><AddiPage /></Guard>} />
           <Route path="/finanzas/wompi" element={<Guard module="finanzas.wompi" action="view"><WompiPage /></Guard>} />

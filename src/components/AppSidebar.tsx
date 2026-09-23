@@ -115,6 +115,7 @@ const logisticaItems: NavItem[] = [
 const finanzasItems: NavItem[] = [
   { title: "Dashboard Financiero", url: "/finanzas", icon: LayoutDashboard, description: "Vista general", module: "finanzas.view", action: "view" },
   { title: "Composición Ingresos", url: "/finanzas/composicion-ingresos", icon: BarChart3, description: "Ingresos por canal y método", module: "finanzas.view", action: "view" },
+  { title: "Reporte de Facturación", url: "/finanzas/reporte-facturacion", icon: LayoutDashboard, description: "Pendientes por facturar", module: "financiero.reporte_facturacion", action: "view" },
   { title: "Conciliación Addi", url: "/finanzas/addi", icon: CreditCard, description: "Addi", module: "finanzas.addi", action: "view" },
   { title: "Conciliación Wompi", url: "/finanzas/wompi", icon: CreditCard, description: "Wompi", module: "finanzas.wompi", action: "view" },
   { title: "Conciliación Mercado Pago", url: "/finanzas/mercadopago", icon: CreditCard, description: "MP", module: "finanzas.mercadopago", action: "view" },
