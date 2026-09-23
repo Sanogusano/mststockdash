@@ -59,12 +59,44 @@ export default function ReporteFacturacionPage() {
   const { isAdmin } = useUserRole();
   const canExport = useHasPermission({ module: "financiero.reporte_facturacion", action: "export" }) || isAdmin;
 
-  const q = useQuery({
-    queryKey: ["reporte-facturacion", desde, hasta, soloPend],
+  const [exportando, setExportando] = useState<number | null>(null);
+  const [canalesVistos, setCanalesVistos] = useState<string[]>([]);
+  const pCanal = canal === "todos" ? null : canal;
+  const s = busqueda.trim();
+  const TOPE = 500;
+
+  const resumenQ = useQuery({
+    queryKey: ["reporte-facturacion-resumen", desde, hasta, pCanal],
     queryFn: async () => {
-      const { data, error } = await (supabase.rpc as any)("reporte_pendientes_facturacion", {
-        p_desde: desde, p_hasta: hasta, p_solo_pendientes: soloPend, p_canal: null,
+      const { data, error } = await (supabase.rpc as any)("resumen_pendientes_facturacion", {
+        p_desde: desde, p_hasta: hasta, p_canal: pCanal,
       });
+      if (error) throw error;
+      return (data ?? []) as { estado_facturacion: string; pedidos: number; venta_neta: number; articulos: number; dias_max: number }[];
+    },
+  });
+
+  const buildQuery = () => {
+    let qb = (supabase.rpc as any)("reporte_pendientes_facturacion", {
+      p_desde: desde, p_hasta: hasta, p_solo_pendientes: soloPend, p_canal: pCanal,
+    });
+    const estados: Record<CardKey, string> = {
+      pendiente: "PENDIENTE POR FACTURAR", sin_dian: "Facturado sin emitir a DIAN",
+      anulado: "Anulado por nota credito", facturado: "Facturado",
+    };
+    if (cardFiltro) qb = qb.eq("estado_facturacion", estados[cardFiltro]);
+    if (s) {
+      const t = s.replace(/[,()*]/g, "");
+      qb = qb.or(`pedido.ilike.*${t}*,numero_factura.ilike.*${t}*`);
+    }
+    return qb.order("fecha_pedido", { ascending: false, nullsFirst: false }).order("pedido", { ascending: true });
+  };
+
+  const q = useQuery({
+    queryKey: ["reporte-facturacion", desde, hasta, soloPend, pCanal, cardFiltro, s, page],
+    queryFn: async () => {
+      const qb = buildQuery();
+      const { data, error } = s ? await qb.range(0, TOPE - 1) : await qb.range((page - 1) * PAGE, (page - 1) * PAGE + PAGE - 1);
       if (error) throw error;
       return (data ?? []) as Row[];
     },
@@ -79,48 +111,63 @@ export default function ReporteFacturacionPage() {
     },
   });
 
-  const canales = useMemo(() => Array.from(new Set((q.data ?? []).map((r) => r.canal).filter(Boolean) as string[])).sort(), [q.data]);
-
-  const base = useMemo(() => {
-    const s = busqueda.trim().toLowerCase();
-    return (q.data ?? []).filter((r) => {
-      if (canal !== "todos" && r.canal !== canal) return false;
-      if (s && !(r.pedido ?? "").toLowerCase().includes(s) && !(r.numero_factura ?? "").toLowerCase().includes(s)) return false;
-      return true;
-    });
-  }, [q.data, canal, busqueda]);
+  useEffect(() => {
+    const nuevos = (q.data ?? []).map((r) => r.canal).filter(Boolean) as string[];
+    if (nuevos.some((c) => !canalesVistos.includes(c)))
+      setCanalesVistos((prev) => Array.from(new Set([...prev, ...nuevos])).sort());
+  }, [q.data]); // eslint-disable-line react-hooks/exhaustive-deps
+  const canales = canalesVistos;
 
   const resumen = useMemo(() => {
     const out = {} as Record<CardKey, { n: number; v: number }>;
     (Object.keys(CARD_ESTADO) as CardKey[]).forEach((k) => {
-      const rows = base.filter((r) => CARD_ESTADO[k](r.estado_facturacion ?? ""));
-      out[k] = { n: rows.length, v: rows.reduce((a, r) => a + Number(r.venta_neta ?? 0), 0) };
+      const rows = (resumenQ.data ?? []).filter((r) => CARD_ESTADO[k](r.estado_facturacion ?? ""));
+      out[k] = { n: rows.reduce((a, r) => a + Number(r.pedidos ?? 0), 0), v: rows.reduce((a, r) => a + Number(r.venta_neta ?? 0), 0) };
     });
     return out;
-  }, [base]);
+  }, [resumenQ.data]);
 
-  const filtrados = useMemo(() => {
-    const rows = cardFiltro ? base.filter((r) => CARD_ESTADO[cardFiltro](r.estado_facturacion ?? "")) : base;
-    return [...rows].sort((a, b) => (b.fecha_pedido ?? "").localeCompare(a.fecha_pedido ?? ""));
-  }, [base, cardFiltro]);
+  const totalPedidos = useMemo(() => {
+    if (cardFiltro) return resumen[cardFiltro].n;
+    if (soloPend) return resumen.pendiente.n;
+    return (resumenQ.data ?? []).reduce((a, r) => a + Number(r.pedidos ?? 0), 0);
+  }, [resumen, resumenQ.data, cardFiltro, soloPend]);
+
+  const filtrados = q.data ?? [];
+  const topeAlcanzado = !!s && filtrados.length >= TOPE;
 
   useEffect(() => setPage(1), [desde, hasta, soloPend, canal, busqueda, cardFiltro]);
-  const totalPages = Math.max(1, Math.ceil(filtrados.length / PAGE));
-  const pageRows = filtrados.slice((page - 1) * PAGE, page * PAGE);
+  const totalPages = Math.max(1, Math.ceil(totalPedidos / PAGE));
+  const pageRows = filtrados;
 
-  const exportar = () => {
-    exportToXLS(
-      filtrados.map((r) => ({
-        Estado: r.estado_facturacion ?? "", Canal: r.canal ?? "", Pedido: r.pedido ?? "", Sucursal: r.sucursal ?? "",
-        "Fecha pedido": r.fecha_pedido ?? "", Colaborador: r.colaborador ?? "", Factura: r.numero_factura ?? "",
-        "Fecha factura": r.fecha_factura ?? "", "N° POS": r.numero_pos ?? "",
-        DIAN: r.emitida_dian ? "Emitida" : r.numero_factura ? "Sin CUFE" : "", "Nota crédito": r.nota_credito ?? "",
-        "Venta neta": Number(r.venta_neta ?? 0), Impuesto: Number(r.impuesto ?? 0), Descuento: Number(r.descuento ?? 0),
-        Artículos: Number(r.articulos ?? 0), "Días sin facturar": r.dias_sin_facturar ?? "",
-      })),
-      `Reporte de facturacion ${hoyBogota()}`,
-      "Facturación",
-    );
+  const exportar = async () => {
+    setExportando(0);
+    try {
+      const all: Row[] = [];
+      for (let off = 0; ; off += 1000) {
+        const { data, error } = await buildQuery().range(off, off + 999);
+        if (error) throw error;
+        all.push(...((data ?? []) as Row[]));
+        setExportando(all.length);
+        if (!data || data.length < 1000) break;
+      }
+      exportToXLS(
+        all.map((r) => ({
+          Estado: r.estado_facturacion ?? "", Canal: r.canal ?? "", Pedido: r.pedido ?? "", Sucursal: r.sucursal ?? "",
+          "Fecha pedido": r.fecha_pedido ?? "", Colaborador: r.colaborador ?? "", Factura: r.numero_factura ?? "",
+          "Fecha factura": r.fecha_factura ?? "", "N° POS": r.numero_pos ?? "",
+          DIAN: r.emitida_dian ? "Emitida" : r.numero_factura ? "Sin CUFE" : "", "Nota crédito": r.nota_credito ?? "",
+          "Venta neta": Number(r.venta_neta ?? 0), Impuesto: Number(r.impuesto ?? 0), Descuento: Number(r.descuento ?? 0),
+          Artículos: Number(r.articulos ?? 0), "Días sin facturar": r.dias_sin_facturar ?? "",
+        })),
+        `Reporte de facturacion ${hoyBogota()}`,
+        "Facturación",
+      );
+    } catch (e: any) {
+      alert(`Error al exportar: ${e?.message ?? e}`);
+    } finally {
+      setExportando(null);
+    }
   };
 
   const cards: { key: CardKey; title: string; cls: string }[] = [
@@ -160,7 +207,7 @@ export default function ReporteFacturacionPage() {
           </div>
           <div className="flex items-center gap-3 justify-between">
             <label className="flex items-center gap-2 text-sm"><Switch checked={soloPend} onCheckedChange={setSoloPend} />Solo pendientes</label>
-            {canExport && <Button variant="outline" size="sm" onClick={exportar} disabled={!filtrados.length}><Download className="h-4 w-4 mr-1" />Excel</Button>}
+            {canExport && <Button variant="outline" size="sm" onClick={exportar} disabled={!filtrados.length || exportando !== null}><Download className="h-4 w-4 mr-1" />{exportando !== null ? `Preparando… ${fmtInt(exportando)} filas` : "Excel"}</Button>}
           </div>
         </div>
 
@@ -178,6 +225,8 @@ export default function ReporteFacturacionPage() {
         </div>
         {cardFiltro && <button className="text-xs text-primary underline mb-4" onClick={() => setCardFiltro(null)}>Quitar filtro de estado</button>}
 
+        {resumenQ.error && <p className="text-sm text-destructive my-4">Error resumen: {(resumenQ.error as any).message}</p>}
+        {topeAlcanzado && <p className="text-sm text-amber-700 my-2">La búsqueda alcanzó el tope de {TOPE} filas; refina el texto para ver todos los resultados.</p>}
         {q.error && <p className="text-sm text-destructive my-4">Error: {(q.error as any).message}</p>}
         {q.isLoading ? <Skeleton className="h-96 w-full mt-4" /> : (
           <div className="overflow-x-auto rounded-md border border-border mt-4">
@@ -226,9 +275,9 @@ export default function ReporteFacturacionPage() {
           </div>
         )}
 
-        {filtrados.length > 0 && totalPages > 1 && (
+        {!s && totalPedidos > 0 && (
           <div className="flex items-center justify-between mt-4 text-sm">
-            <span className="text-muted-foreground">{fmtInt(filtrados.length)} pedidos · página {page} de {totalPages}</span>
+            <span className="text-muted-foreground">Página {page} · {fmtInt(totalPedidos)} pedidos en total</span>
             <div className="flex gap-2">
               <Button variant="outline" size="sm" disabled={page === 1} onClick={() => setPage(page - 1)}>Anterior</Button>
               <Button variant="outline" size="sm" disabled={page === totalPages} onClick={() => setPage(page + 1)}>Siguiente</Button>

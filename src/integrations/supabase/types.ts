@@ -6440,6 +6440,16 @@ export type Database = {
         }[]
       }
       resolver_sku_traslados: { Args: never; Returns: number }
+      resumen_pendientes_facturacion: {
+        Args: { p_canal?: string; p_desde: string; p_hasta: string }
+        Returns: {
+          articulos: number
+          dias_max: number
+          estado_facturacion: string
+          pedidos: number
+          venta_neta: number
+        }[]
+      }
       rpc_inv_ejec_alertas: {
         Args: { p_fecha?: string }
         Returns: {
