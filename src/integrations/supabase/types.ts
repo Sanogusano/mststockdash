@@ -532,6 +532,24 @@ export type Database = {
         }
         Relationships: []
       }
+      coleccion_no_remapear: {
+        Row: {
+          collection_season: string
+          creado_en: string
+          motivo: string | null
+        }
+        Insert: {
+          collection_season: string
+          creado_en?: string
+          motivo?: string | null
+        }
+        Update: {
+          collection_season?: string
+          creado_en?: string
+          motivo?: string | null
+        }
+        Relationships: []
+      }
       collection_calendar: {
         Row: {
           anio: number | null
@@ -2179,7 +2197,9 @@ export type Database = {
         Row: {
           categoria_padre: string | null
           category: string | null
+          coleccion_ns: string | null
           collection_season: string | null
+          collection_season_shopify: string | null
           color: string | null
           compare_at_price: number | null
           fecha_cargue_inventario: string | null
@@ -2199,7 +2219,9 @@ export type Database = {
         Insert: {
           categoria_padre?: string | null
           category?: string | null
+          coleccion_ns?: string | null
           collection_season?: string | null
+          collection_season_shopify?: string | null
           color?: string | null
           compare_at_price?: number | null
           fecha_cargue_inventario?: string | null
@@ -2219,7 +2241,9 @@ export type Database = {
         Update: {
           categoria_padre?: string | null
           category?: string | null
+          coleccion_ns?: string | null
           collection_season?: string | null
+          collection_season_shopify?: string | null
           color?: string | null
           compare_at_price?: number | null
           fecha_cargue_inventario?: string | null
@@ -2999,10 +3023,13 @@ export type Database = {
       }
       ventas_anuladas_netsuite: {
         Row: {
+          cobertura: number | null
           detectado_at: string
           fecha_factura: string | null
+          fecha_nota: string | null
           id: number
           location_id: string | null
+          monto_nota: number | null
           motivo: string
           nota_credito_id: string | null
           nota_credito_tranid: string | null
@@ -3012,10 +3039,13 @@ export type Database = {
           tranid: string
         }
         Insert: {
+          cobertura?: number | null
           detectado_at?: string
           fecha_factura?: string | null
+          fecha_nota?: string | null
           id?: number
           location_id?: string | null
+          monto_nota?: number | null
           motivo?: string
           nota_credito_id?: string | null
           nota_credito_tranid?: string | null
@@ -3025,10 +3055,13 @@ export type Database = {
           tranid: string
         }
         Update: {
+          cobertura?: number | null
           detectado_at?: string
           fecha_factura?: string | null
+          fecha_nota?: string | null
           id?: number
           location_id?: string | null
+          monto_nota?: number | null
           motivo?: string
           nota_credito_id?: string | null
           nota_credito_tranid?: string | null
@@ -6015,6 +6048,38 @@ export type Database = {
           sku: string
           sucursal: string
           tipo_venta: string
+        }[]
+      }
+      reporte_pendientes_facturacion: {
+        Args: {
+          p_canal?: string
+          p_desde: string
+          p_hasta: string
+          p_solo_pendientes?: boolean
+        }
+        Returns: {
+          articulos: number
+          canal: string
+          colaborador: string
+          cufe: string
+          descuento: number
+          dias_sin_facturar: number
+          emitida_dian: boolean
+          estado_facturacion: string
+          estado_pago: string
+          fecha_factura: string
+          fecha_nota: string
+          fecha_pedido: string
+          impuesto: number
+          nota_credito: string
+          numero_factura: string
+          numero_pos: string
+          pedido: string
+          sucursal: string
+          tiene_nota: boolean
+          venta_bruta: number
+          venta_neta: number
+          venta_total: number
         }[]
       }
       reporte_presupuesto_por_canal: {
