@@ -6632,6 +6632,15 @@ export type Database = {
         }[]
       }
       top5_articulos_hoy: { Args: { p_fecha?: string }; Returns: Json }
+      ubicaciones_reporte_facturacion: {
+        Args: { p_desde: string; p_hasta: string; p_zona?: string }
+        Returns: {
+          location_id: string
+          nombre: string
+          pedidos: number
+          zona: string
+        }[]
+      }
       upsert_product_catalog_safe: {
         Args: { products_json: Json }
         Returns: undefined
@@ -6782,6 +6791,13 @@ export type Database = {
           presupuesto_dia: number
           tienda: string
           uds: number
+          zona: string
+        }[]
+      }
+      zonas_reporte_facturacion: {
+        Args: { p_desde: string; p_hasta: string }
+        Returns: {
+          pedidos: number
           zona: string
         }[]
       }
