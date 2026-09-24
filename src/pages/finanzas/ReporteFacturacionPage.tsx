@@ -331,7 +331,7 @@ export default function ReporteFacturacionPage() {
           <div className="space-y-1">
             <Label className="text-xs">Zona</Label>
             <Select value={zona} onValueChange={setZona} disabled={zonasQ.isLoading}>
-              <SelectTrigger><SelectValue placeholder={zonasQ.isLoading ? "Cargando…" : undefined} /></SelectTrigger>
+              <SelectTrigger><SelectValue>{zonasQ.isLoading ? "Cargando…" : undefined}</SelectValue></SelectTrigger>
               <SelectContent>
                 <SelectItem value="todos">Todas</SelectItem>
                 {zonas.map((item) => (
@@ -348,7 +348,7 @@ export default function ReporteFacturacionPage() {
           <div className="space-y-1">
             <Label className="text-xs">Tienda</Label>
             <Select value={locationId} onValueChange={setLocationId} disabled={ubicacionesQ.isLoading}>
-              <SelectTrigger><SelectValue placeholder={ubicacionesQ.isLoading ? "Cargando…" : undefined} /></SelectTrigger>
+              <SelectTrigger><SelectValue>{ubicacionesQ.isLoading ? "Cargando…" : undefined}</SelectValue></SelectTrigger>
               <SelectContent>
                 <SelectItem value="todos">Todas</SelectItem>
                 {tiendas.map((t) => (

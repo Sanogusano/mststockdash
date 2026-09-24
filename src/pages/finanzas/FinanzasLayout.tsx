@@ -11,6 +11,7 @@ export function FinanzasLayout({ title, children, fullWidth = false, titleAccess
           <header className="flex items-center gap-3 px-4 sm:px-6 py-3 border-b border-border sticky top-0 bg-background/95 backdrop-blur-sm z-10 md:hidden">
             <SidebarTrigger className="text-muted-foreground hover:text-foreground" />
             <h2 className="text-base font-semibold text-foreground">{title}</h2>
+            {titleAccessory}
           </header>
           <div className={fullWidth ? "p-4 sm:p-6 md:p-8 w-full" : "p-4 sm:p-6 md:p-8 max-w-[1400px] mx-auto"}>
             <div className="hidden md:flex items-center gap-3 mb-1">
