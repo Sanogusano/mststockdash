@@ -31,6 +31,28 @@ type Row = {
 
 type CardKey = "pendiente" | "diferencia" | "fallo_dian" | "esperando" | "facturado";
 type SortKey = "fecha_pedido" | "venta_neta" | "diferencia_facturacion" | "dias_sin_facturar";
+type SortDir = "asc" | "desc";
+
+const comparar = (a: Row, b: Row, campo: SortKey, dir: SortDir) => {
+  const va = a?.[campo];
+  const vb = b?.[campo];
+
+  if (va == null && vb == null) return 0;
+  if (va == null) return 1;
+  if (vb == null) return -1;
+
+  let resultado: number;
+  if (campo === "fecha_pedido") {
+    resultado = String(va).localeCompare(String(vb));
+  } else if (typeof va === "number" || !Number.isNaN(Number(va))) {
+    resultado = Number(va) - Number(vb);
+  } else {
+    resultado = String(va).localeCompare(String(vb));
+  }
+
+  return dir === "asc" ? resultado : -resultado;
+};
+
 const CARD_ESTADO: Record<CardKey, (e: string) => boolean> = {
   pendiente: (e) => e === "PENDIENTE POR FACTURAR",
   diferencia: (e) => e === "Descuadre de valor",
@@ -73,7 +95,7 @@ export default function ReporteFacturacionPage() {
   const [cardFiltro, setCardFiltro] = useState<CardKey | null>(null);
   const [page, setPage] = useState(1);
   const [sortKey, setSortKey] = useState<SortKey>("fecha_pedido");
-  const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
+  const [sortDir, setSortDir] = useState<SortDir>("desc");
 
   const { isAdmin } = useUserRole();
   const canExport = useHasPermission({ module: "financiero.reporte_facturacion", action: "export" }) || isAdmin;
@@ -200,12 +222,18 @@ export default function ReporteFacturacionPage() {
     return (resumenQ.data ?? []).reduce((a, r) => a + Number(r.pedidos ?? 0), 0);
   }, [resumen, resumenQ.data, cardFiltro, soloPend]);
 
-  const filtrados = q.data ?? [];
-  const topeAlcanzado = !!s && filtrados.length >= TOPE;
+  const filasCargadas = q.data ?? [];
+  const topeAlcanzado = !!s && filasCargadas.length >= TOPE;
 
   useEffect(() => setPage(1), [desde, hasta, soloPend, canal, zona, locationId, busqueda, cardFiltro, sortKey, sortDir]);
   const totalPages = Math.max(1, Math.ceil(totalPedidos / PAGE));
-  const pageRows = filtrados;
+  const pageRows = useMemo(() => {
+    try {
+      return [...filasCargadas].sort((a, b) => comparar(a, b, sortKey, sortDir));
+    } catch {
+      return filasCargadas;
+    }
+  }, [filasCargadas, sortKey, sortDir]);
 
   const toggleSort = (key: SortKey) => {
     if (sortKey === key) setSortDir((d) => d === "asc" ? "desc" : "asc");
@@ -321,7 +349,7 @@ export default function ReporteFacturacionPage() {
           </div>
           <div className="flex items-center gap-3 justify-between">
             <label className="flex items-center gap-2 text-sm"><Switch checked={soloPend} onCheckedChange={setSoloPend} />Solo pendientes</label>
-            {canExport && <Button variant="outline" size="sm" onClick={exportar} disabled={!filtrados.length || exportando !== null}><Download className="h-4 w-4 mr-1" />{exportando !== null ? `Preparando… ${fmtInt(exportando)} filas` : "Excel"}</Button>}
+            {canExport && <Button variant="outline" size="sm" onClick={exportar} disabled={filasCargadas.length === 0 || exportando !== null}><Download className="h-4 w-4 mr-1" />{exportando !== null ? `Preparando… ${fmtInt(exportando)} filas` : "Excel"}</Button>}
           </div>
         </div>
 
