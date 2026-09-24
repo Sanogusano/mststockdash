@@ -1936,6 +1936,7 @@ export type Database = {
           checkout_token: string | null
           created_at: string
           financial_status: string | null
+          fulfillment_status: string | null
           is_facturado: boolean | null
           location_id: string | null
           netsuite_seller_id: string | null
@@ -1956,6 +1957,7 @@ export type Database = {
           checkout_token?: string | null
           created_at: string
           financial_status?: string | null
+          fulfillment_status?: string | null
           is_facturado?: boolean | null
           location_id?: string | null
           netsuite_seller_id?: string | null
@@ -1976,6 +1978,7 @@ export type Database = {
           checkout_token?: string | null
           created_at?: string
           financial_status?: string | null
+          fulfillment_status?: string | null
           is_facturado?: boolean | null
           location_id?: string | null
           netsuite_seller_id?: string | null
@@ -3018,6 +3021,50 @@ export type Database = {
             isOneToOne: true
             referencedRelation: "v_usuarios_gestion"
             referencedColumns: ["user_id"]
+          },
+        ]
+      }
+      vendedores_netsuite: {
+        Row: {
+          activo: boolean
+          actualizado_en: string
+          codigo_cajero: string
+          creado_en: string
+          es_vendedor: boolean
+          id: number
+          netsuite_employee_id: string | null
+          nombre: string
+          staff_member_id: string | null
+        }
+        Insert: {
+          activo?: boolean
+          actualizado_en?: string
+          codigo_cajero: string
+          creado_en?: string
+          es_vendedor?: boolean
+          id?: number
+          netsuite_employee_id?: string | null
+          nombre: string
+          staff_member_id?: string | null
+        }
+        Update: {
+          activo?: boolean
+          actualizado_en?: string
+          codigo_cajero?: string
+          creado_en?: string
+          es_vendedor?: boolean
+          id?: number
+          netsuite_employee_id?: string | null
+          nombre?: string
+          staff_member_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vendedores_netsuite_staff_member_id_fkey"
+            columns: ["staff_member_id"]
+            isOneToOne: false
+            referencedRelation: "staff_members"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -4317,6 +4364,15 @@ export type Database = {
           productos: number
           tiene_venta: boolean
           uds_periodo: number
+        }[]
+      }
+      corte_datos_facturacion: {
+        Args: never
+        Returns: {
+          ultima_carga_archivo: string
+          ultima_factura: string
+          ultima_sync_netsuite: string
+          ultima_venta: string
         }[]
       }
       crear_ubicacion_completa:
@@ -6055,7 +6111,9 @@ export type Database = {
           p_canal?: string
           p_desde: string
           p_hasta: string
+          p_location_id?: string
           p_solo_pendientes?: boolean
+          p_zona?: string
         }
         Returns: {
           articulos: number
@@ -6064,22 +6122,28 @@ export type Database = {
           cufe: string
           descuento: number
           dias_sin_facturar: number
+          diferencia_facturacion: number
           emitida_dian: boolean
+          es_gift_card: boolean
+          estado_despacho: string
           estado_facturacion: string
           estado_pago: string
           fecha_factura: string
           fecha_nota: string
           fecha_pedido: string
           impuesto: number
+          metodo_pago: string
           nota_credito: string
           numero_factura: string
           numero_pos: string
           pedido: string
           sucursal: string
           tiene_nota: boolean
+          valor_facturado: number
           venta_bruta: number
           venta_neta: number
           venta_total: number
+          zona: string
         }[]
       }
       reporte_presupuesto_por_canal: {
@@ -6441,11 +6505,19 @@ export type Database = {
       }
       resolver_sku_traslados: { Args: never; Returns: number }
       resumen_pendientes_facturacion: {
-        Args: { p_canal?: string; p_desde: string; p_hasta: string }
+        Args: {
+          p_canal?: string
+          p_desde: string
+          p_hasta: string
+          p_location_id?: string
+          p_zona?: string
+        }
         Returns: {
           articulos: number
           dias_max: number
+          diferencia: number
           estado_facturacion: string
+          gift_cards: number
           pedidos: number
           venta_neta: number
         }[]
