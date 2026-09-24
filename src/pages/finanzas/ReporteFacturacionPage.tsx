@@ -237,7 +237,7 @@ export default function ReporteFacturacionPage() {
           Ventas hasta {fmtDateTime(corteQ.data?.ultima_venta)} · Facturas hasta {fmtDateTime(corteQ.data?.ultima_factura)} · Última sincronización {fmtDateTime(corteQ.data?.ultima_sync_netsuite)}.
         </p>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7 gap-4 mb-6 items-end">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-7 gap-4 mb-6 items-end">
           <div className="space-y-1"><Label className="text-xs">Desde</Label><Input type="date" value={desde} onChange={(e) => setDesde(e.target.value)} /></div>
           <div className="space-y-1"><Label className="text-xs">Hasta</Label><Input type="date" value={hasta} onChange={(e) => setHasta(e.target.value)} /></div>
           <div className="space-y-1">
@@ -279,7 +279,10 @@ export default function ReporteFacturacionPage() {
 
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-4 mb-2">
           {cards.map((c) => (
-            <Card key={c.key} onClick={() => setCardFiltro(cardFiltro === c.key ? null : c.key)}
+            <Card key={c.key} onClick={() => {
+              setCardFiltro(cardFiltro === c.key ? null : c.key);
+              if (c.key !== "pendiente") setSoloPend(false);
+            }}
               className={cn("cursor-pointer transition-shadow hover:shadow-md", c.cls, cardFiltro === c.key && "ring-2 ring-primary")}>
               <CardContent className="p-4">
                 <p className="text-xs font-medium">{c.title}</p>
@@ -299,8 +302,8 @@ export default function ReporteFacturacionPage() {
             <Table className="min-w-[2000px]">
               <TableHeader>
                 <TableRow>
-                  <TableHead className="sticky left-0 z-20 w-[190px] bg-background">Estado</TableHead>
-                  <TableHead className="sticky left-[190px] z-20 w-[150px] bg-background">Pedido</TableHead>
+                  <TableHead className="sticky left-0 z-20 w-[190px] min-w-[190px] max-w-[190px] bg-background">Estado</TableHead>
+                  <TableHead className="sticky left-[190px] z-20 w-[150px] min-w-[150px] max-w-[150px] bg-background">Pedido</TableHead>
                   <TableHead className="w-[105px]">Canal</TableHead><TableHead className="w-[110px]">Zona</TableHead><TableHead className="w-[170px]">Sucursal</TableHead>
                   <TableHead className="w-[125px]"><SortLabel field="fecha_pedido">Fecha pedido</SortLabel></TableHead>
                   <TableHead className="w-[145px]">Método pago</TableHead><TableHead className="w-[135px]">Despacho</TableHead><TableHead className="w-[150px]">Colaborador</TableHead>
@@ -316,8 +319,8 @@ export default function ReporteFacturacionPage() {
                   const e = r.estado_facturacion ?? "";
                   return (
                     <TableRow key={(r.pedido ?? "") + i}>
-                      <TableCell className="sticky left-0 z-10 w-[190px] bg-background"><span className={cn("inline-block text-xs px-2 py-0.5 rounded border whitespace-nowrap", badgeClass(e))}>{e}</span></TableCell>
-                      <TableCell className="sticky left-[190px] z-10 w-[150px] bg-background font-medium"><div className="flex flex-wrap items-center gap-1.5"><span>{r.pedido}</span>{r.es_gift_card && <span className="rounded border border-border bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground">Gift card</span>}</div></TableCell>
+                      <TableCell className="sticky left-0 z-10 w-[190px] min-w-[190px] max-w-[190px] bg-background"><span className={cn("inline-block text-xs px-2 py-0.5 rounded border whitespace-nowrap", badgeClass(e))}>{e}</span></TableCell>
+                      <TableCell className="sticky left-[190px] z-10 w-[150px] min-w-[150px] max-w-[150px] bg-background font-medium"><div className="flex flex-wrap items-center gap-1.5"><span>{r.pedido}</span>{r.es_gift_card && <span className="rounded border border-border bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground">Gift card</span>}</div></TableCell>
                       <TableCell>{r.canal}</TableCell>
                       <TableCell>{r.zona}</TableCell>
                       <TableCell>{r.sucursal}</TableCell>

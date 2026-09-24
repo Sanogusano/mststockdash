@@ -16,3 +16,5 @@
 - [x] Refactorizar la presentación de Baja Rotación: tabla amplia, fotos cuadradas, tarjetas de nivel, tooltips, cabecera fija y paginación independiente.
 
 - [x] Mostrar stand-by, ST total, desglose de bodegas y estado Sin liberar en Salud de Producto y sus exportaciones, conservando la carga y ventas.
+
+- [x] Actualizar Reporte de Facturación con filtros de zona/tienda, nuevos estados y columnas, corte automático, orden servidor y exportación completa.
