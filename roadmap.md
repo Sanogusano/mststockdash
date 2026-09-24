@@ -20,4 +20,4 @@
 - [x] Actualizar Reporte de Facturación con filtros de zona/tienda, nuevos estados y columnas, corte automático, orden servidor y exportación completa.
 - [x] Alimentar Zona y Tienda del Reporte de Facturación solo con ubicaciones que tuvieron pedidos en el rango activo.
 - [x] Proteger el ordenamiento del Reporte de Facturación ante nulos y desacoplar la descarga Excel del render de la tabla.
-- [x] Mostrar esqueletos en la carga inicial y señalar recargas del Reporte de Facturación sin ocultar datos previos.
+- [x] Reutilizar el preloader del Resumen Ejecutivo en la carga inicial y señalar recargas del Reporte de Facturación sin ocultar datos previos.

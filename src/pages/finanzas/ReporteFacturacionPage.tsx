@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { Skeleton } from "@/components/ui/skeleton";
+import { LoadingState } from "@/components/dashboard/LoadingState";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -376,15 +376,11 @@ export default function ReporteFacturacionPage() {
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-4 mb-2">
-          {resumenQ.isLoading ? cards.map((c) => (
-            <Card key={c.key}>
-              <CardContent className="p-4 space-y-2">
-                <Skeleton className="h-3 w-2/3" />
-                <Skeleton className="h-8 w-1/3" />
-                <Skeleton className="h-3 w-3/4" />
-              </CardContent>
-            </Card>
-          )) : cards.map((c) => (
+          {resumenQ.isLoading ? (
+            <div className="sm:col-span-2 xl:col-span-5">
+              <LoadingState rows={0} />
+            </div>
+          ) : cards.map((c) => (
             <Card key={c.key} onClick={() => {
               setCardFiltro(cardFiltro === c.key ? null : c.key);
               if (c.key !== "pendiente") setSoloPend(false);
@@ -419,21 +415,13 @@ export default function ReporteFacturacionPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {q.isLoading ? Array.from({ length: 8 }).map((_, rowIndex) => (
-                  <TableRow key={`skeleton-${rowIndex}`}>
-                    {Array.from({ length: 21 }).map((__, cellIndex) => (
-                      <TableCell
-                        key={cellIndex}
-                        className={cn(
-                          cellIndex === 0 && "sticky left-0 z-10 bg-background",
-                          cellIndex === 1 && "sticky left-[190px] z-10 bg-background",
-                        )}
-                      >
-                        <Skeleton className={cn("h-4", cellIndex === 0 ? "w-32" : cellIndex === 1 ? "w-24" : "w-full")} />
-                      </TableCell>
-                    ))}
+                {q.isLoading ? (
+                  <TableRow>
+                    <TableCell colSpan={21} className="p-0">
+                      <LoadingState rows={0} />
+                    </TableCell>
                   </TableRow>
-                )) : pageRows.length === 0 ? (
+                ) : pageRows.length === 0 ? (
                   <TableRow><TableCell colSpan={21} className="text-center text-muted-foreground py-8">Sin pedidos para los filtros seleccionados</TableCell></TableRow>
                 ) : pageRows.map((r, i) => {
                   const e = r.estado_facturacion ?? "";
