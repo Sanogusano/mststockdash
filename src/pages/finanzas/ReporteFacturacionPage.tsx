@@ -301,7 +301,16 @@ export default function ReporteFacturacionPage() {
 
   return (
     <TooltipProvider delayDuration={200}>
-      <FinanzasLayout title="Reporte de Facturación" fullWidth>
+      <FinanzasLayout
+        title="Reporte de Facturación"
+        fullWidth
+        titleAccessory={q.isFetching && !q.isLoading ? (
+          <span className="inline-flex items-center gap-2 text-xs font-normal text-muted-foreground" role="status">
+            <span className="h-2 w-2 rounded-full bg-primary animate-pulse" />
+            Actualizando…
+          </span>
+        ) : null}
+      >
         <p className="text-xs text-muted-foreground -mt-4 mb-6">
           Ventas hasta {fmtFechaSolo(corteQ.data?.ultima_venta)} · Facturas hasta {fmtFechaSolo(corteQ.data?.ultima_factura)} · Última sincronización {fmtDateTime(corteQ.data?.ultima_sync_netsuite)}.
         </p>
@@ -321,8 +330,8 @@ export default function ReporteFacturacionPage() {
           </div>
           <div className="space-y-1">
             <Label className="text-xs">Zona</Label>
-            <Select value={zona} onValueChange={setZona}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
+            <Select value={zona} onValueChange={setZona} disabled={zonasQ.isLoading}>
+              <SelectTrigger><SelectValue>{zonasQ.isLoading ? "Cargando…" : undefined}</SelectValue></SelectTrigger>
               <SelectContent>
                 <SelectItem value="todos">Todas</SelectItem>
                 {zonas.map((item) => (
@@ -338,8 +347,8 @@ export default function ReporteFacturacionPage() {
           </div>
           <div className="space-y-1">
             <Label className="text-xs">Tienda</Label>
-            <Select value={locationId} onValueChange={setLocationId}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
+            <Select value={locationId} onValueChange={setLocationId} disabled={ubicacionesQ.isLoading}>
+              <SelectTrigger><SelectValue>{ubicacionesQ.isLoading ? "Cargando…" : undefined}</SelectValue></SelectTrigger>
               <SelectContent>
                 <SelectItem value="todos">Todas</SelectItem>
                 {tiendas.map((t) => (
@@ -362,12 +371,20 @@ export default function ReporteFacturacionPage() {
           </div>
           <div className="flex items-center gap-3 justify-between">
             <label className="flex items-center gap-2 text-sm"><Switch checked={soloPend} onCheckedChange={setSoloPend} />Solo pendientes</label>
-            {canExport && <Button variant="outline" size="sm" onClick={exportar} disabled={filasCargadas.length === 0 || exportando !== null}><Download className="h-4 w-4 mr-1" />{exportando !== null ? `Preparando… ${fmtInt(exportando)} filas` : "Excel"}</Button>}
+            {canExport && <Button variant="outline" size="sm" onClick={exportar} disabled={filasCargadas.length === 0 || exportando !== null || q.isFetching}><Download className="h-4 w-4 mr-1" />{exportando !== null ? `Preparando… ${fmtInt(exportando)} filas` : "Excel"}</Button>}
           </div>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-4 mb-2">
-          {cards.map((c) => (
+          {resumenQ.isLoading ? cards.map((c) => (
+            <Card key={c.key}>
+              <CardContent className="p-4 space-y-2">
+                <Skeleton className="h-3 w-2/3" />
+                <Skeleton className="h-8 w-1/3" />
+                <Skeleton className="h-3 w-3/4" />
+              </CardContent>
+            </Card>
+          )) : cards.map((c) => (
             <Card key={c.key} onClick={() => {
               setCardFiltro(cardFiltro === c.key ? null : c.key);
               if (c.key !== "pendiente") setSoloPend(false);
@@ -386,8 +403,7 @@ export default function ReporteFacturacionPage() {
         {resumenQ.error && <p className="text-sm text-destructive my-4">Error resumen: {(resumenQ.error as any).message}</p>}
         {topeAlcanzado && <p className="text-sm text-amber-700 my-2">La búsqueda alcanzó el tope de {TOPE} filas; refina el texto para ver todos los resultados.</p>}
         {q.error && <p className="text-sm text-destructive my-4">Error: {(q.error as any).message}</p>}
-        {q.isLoading ? <Skeleton className="h-96 w-full mt-4" /> : (
-          <div className="overflow-x-auto rounded-md border border-border mt-4">
+        <div className={cn("overflow-x-auto rounded-md border border-border mt-4 transition-opacity", q.isFetching && !q.isLoading && "opacity-50")}>
             <Table className="min-w-[2000px]">
               <TableHeader>
                 <TableRow>
@@ -403,8 +419,23 @@ export default function ReporteFacturacionPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {pageRows.length === 0 && <TableRow><TableCell colSpan={21} className="text-center text-muted-foreground py-8">Sin pedidos para los filtros seleccionados</TableCell></TableRow>}
-                {pageRows.map((r, i) => {
+                {q.isLoading ? Array.from({ length: 8 }).map((_, rowIndex) => (
+                  <TableRow key={`skeleton-${rowIndex}`}>
+                    {Array.from({ length: 21 }).map((__, cellIndex) => (
+                      <TableCell
+                        key={cellIndex}
+                        className={cn(
+                          cellIndex === 0 && "sticky left-0 z-10 bg-background",
+                          cellIndex === 1 && "sticky left-[190px] z-10 bg-background",
+                        )}
+                      >
+                        <Skeleton className={cn("h-4", cellIndex === 0 ? "w-32" : cellIndex === 1 ? "w-24" : "w-full")} />
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                )) : pageRows.length === 0 ? (
+                  <TableRow><TableCell colSpan={21} className="text-center text-muted-foreground py-8">Sin pedidos para los filtros seleccionados</TableCell></TableRow>
+                ) : pageRows.map((r, i) => {
                   const e = r.estado_facturacion ?? "";
                   return (
                     <TableRow key={(r.pedido ?? "") + i}>
@@ -443,7 +474,6 @@ export default function ReporteFacturacionPage() {
               </TableBody>
             </Table>
           </div>
-        )}
 
         {!s && totalPedidos > 0 && (
           <div className="flex items-center justify-between mt-4 text-sm">
