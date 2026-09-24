@@ -97,10 +97,26 @@ export default function ReporteFacturacionPage() {
     },
   });
 
-  const locationsQ = useQuery({
-    queryKey: ["reporte-facturacion-locations"],
+  const zonasQ = useQuery({
+    queryKey: ["zonas-reporte-facturacion", desde, hasta],
     queryFn: async () => {
-      const { data, error } = await supabase.from("locations").select("location_id, name, zona").eq("is_active", true).order("name");
+      const { data, error } = await supabase.rpc("zonas_reporte_facturacion", {
+        p_desde: desde,
+        p_hasta: hasta,
+      });
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  const ubicacionesQ = useQuery({
+    queryKey: ["ubicaciones-reporte-facturacion", desde, hasta, pZona],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("ubicaciones_reporte_facturacion", {
+        p_desde: desde,
+        p_hasta: hasta,
+        p_zona: pZona,
+      });
       if (error) throw error;
       return data ?? [];
     },
@@ -148,10 +164,22 @@ export default function ReporteFacturacionPage() {
       setCanalesVistos((prev) => Array.from(new Set([...prev, ...nuevos])).sort());
   }, [q.data]); // eslint-disable-line react-hooks/exhaustive-deps
   const canales = canalesVistos;
-  const zonas = useMemo(() => Array.from(new Set((locationsQ.data ?? []).map((l) => l.zona).filter(Boolean) as string[])).sort(), [locationsQ.data]);
-  const tiendas = useMemo(() => (locationsQ.data ?? []).filter((l) => zona === "todos" || l.zona === zona), [locationsQ.data, zona]);
+  const zonas = zonasQ.data ?? [];
+  const tiendas = ubicacionesQ.data ?? [];
 
   useEffect(() => setLocationId("todos"), [zona]);
+
+  useEffect(() => {
+    if (zona !== "todos" && zonasQ.data && !zonasQ.data.some((item) => item.zona === zona)) {
+      setZona("todos");
+    }
+  }, [zona, zonasQ.data]);
+
+  useEffect(() => {
+    if (locationId !== "todos" && ubicacionesQ.data && !ubicacionesQ.data.some((item) => item.location_id === locationId)) {
+      setLocationId("todos");
+    }
+  }, [locationId, ubicacionesQ.data]);
 
   const resumen = useMemo(() => {
     const out = {} as Record<CardKey, { n: number; v: number; d: number }>;
@@ -254,14 +282,34 @@ export default function ReporteFacturacionPage() {
             <Label className="text-xs">Zona</Label>
             <Select value={zona} onValueChange={setZona}>
               <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent><SelectItem value="todos">Todas</SelectItem>{zonas.map((z) => <SelectItem key={z} value={z}>{z}</SelectItem>)}</SelectContent>
+              <SelectContent>
+                <SelectItem value="todos">Todas</SelectItem>
+                {zonas.map((item) => (
+                  <SelectItem key={item.zona} value={item.zona}>
+                    <span className="flex w-full min-w-48 items-center justify-between gap-4">
+                      <span>{item.zona}</span>
+                      <span className="text-xs tabular-nums text-muted-foreground">{fmtInt(item.pedidos)}</span>
+                    </span>
+                  </SelectItem>
+                ))}
+              </SelectContent>
             </Select>
           </div>
           <div className="space-y-1">
             <Label className="text-xs">Tienda</Label>
             <Select value={locationId} onValueChange={setLocationId}>
               <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent><SelectItem value="todos">Todas</SelectItem>{tiendas.map((t) => <SelectItem key={t.location_id} value={t.location_id}>{t.name}</SelectItem>)}</SelectContent>
+              <SelectContent>
+                <SelectItem value="todos">Todas</SelectItem>
+                {tiendas.map((t) => (
+                  <SelectItem key={t.location_id} value={t.location_id}>
+                    <span className="flex w-full min-w-64 items-center justify-between gap-4">
+                      <span>{t.nombre}</span>
+                      <span className="text-xs tabular-nums text-muted-foreground">{fmtInt(t.pedidos)}</span>
+                    </span>
+                  </SelectItem>
+                ))}
+              </SelectContent>
             </Select>
           </div>
           <div className="space-y-1">
