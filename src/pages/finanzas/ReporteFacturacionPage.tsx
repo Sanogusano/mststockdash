@@ -73,6 +73,19 @@ function badgeClass(e: string) {
   return "bg-secondary text-secondary-foreground border-border";
 }
 
+// Fechas sin hora ('2026-09-24'): partir el string para no caer al día anterior por UTC→Bogotá.
+const fechaLocal = (s: string | null | undefined) => {
+  if (!s) return null;
+  const [a, m, d] = String(s).slice(0, 10).split("-").map(Number);
+  if (!a || !m || !d) return null;
+  return new Date(a, m - 1, d);
+};
+
+const fmtFechaSolo = (s: string | null | undefined) => {
+  const d = fechaLocal(s);
+  return d ? d.toLocaleDateString("es-CO", { day: "2-digit", month: "2-digit", year: "numeric" }) : "—";
+};
+
 const fmtDateTime = (value: string | null | undefined) => value
   ? new Date(value).toLocaleString("es-CO", { timeZone: "America/Bogota", dateStyle: "medium", timeStyle: "short" })
   : "—";
@@ -290,7 +303,7 @@ export default function ReporteFacturacionPage() {
     <TooltipProvider delayDuration={200}>
       <FinanzasLayout title="Reporte de Facturación" fullWidth>
         <p className="text-xs text-muted-foreground -mt-4 mb-6">
-          Ventas hasta {fmtDateTime(corteQ.data?.ultima_venta)} · Facturas hasta {fmtDateTime(corteQ.data?.ultima_factura)} · Última sincronización {fmtDateTime(corteQ.data?.ultima_sync_netsuite)}.
+          Ventas hasta {fmtFechaSolo(corteQ.data?.ultima_venta)} · Facturas hasta {fmtFechaSolo(corteQ.data?.ultima_factura)} · Última sincronización {fmtDateTime(corteQ.data?.ultima_sync_netsuite)}.
         </p>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-7 gap-4 mb-6 items-end">
@@ -400,12 +413,12 @@ export default function ReporteFacturacionPage() {
                       <TableCell>{r.canal}</TableCell>
                       <TableCell>{r.zona}</TableCell>
                       <TableCell>{r.sucursal}</TableCell>
-                      <TableCell className="whitespace-nowrap">{fmtFecha(r.fecha_pedido)}</TableCell>
+                      <TableCell className="whitespace-nowrap">{fmtFechaSolo(r.fecha_pedido)}</TableCell>
                       <TableCell>{r.metodo_pago ?? "—"}</TableCell>
                       <TableCell>{r.estado_despacho ?? "—"}</TableCell>
                       <TableCell>{r.colaborador}</TableCell>
                       <TableCell>{r.numero_factura ?? "—"}</TableCell>
-                      <TableCell className="whitespace-nowrap">{r.fecha_factura ? fmtFecha(r.fecha_factura) : "—"}</TableCell>
+                      <TableCell className="whitespace-nowrap">{r.fecha_factura ? fmtFechaSolo(r.fecha_factura) : "—"}</TableCell>
                       <TableCell>{r.numero_pos ?? "—"}</TableCell>
                       <TableCell>
                         {r.emitida_dian ? (
@@ -416,7 +429,7 @@ export default function ReporteFacturacionPage() {
                             <TooltipContent>Factura sin CUFE</TooltipContent></Tooltip>
                         ) : "—"}
                       </TableCell>
-                      <TableCell>{r.nota_credito ? `${r.nota_credito}${r.fecha_nota ? " · " + fmtFecha(r.fecha_nota) : ""}` : "—"}</TableCell>
+                      <TableCell>{r.nota_credito ? `${r.nota_credito}${r.fecha_nota ? " · " + fmtFechaSolo(r.fecha_nota) : ""}` : "—"}</TableCell>
                       <TableCell className="text-right tabular-nums">{fmtCOP(r.venta_neta)}</TableCell>
                       <TableCell className="text-right tabular-nums">{fmtCOP(r.valor_facturado)}</TableCell>
                       <TableCell className={cn("text-right tabular-nums", Math.abs(Number(r.diferencia_facturacion ?? 0)) > Math.abs(Number(r.venta_neta ?? 0)) * 0.02 && "text-destructive font-semibold")}>{fmtSignedCOP(r.diferencia_facturacion)}</TableCell>
