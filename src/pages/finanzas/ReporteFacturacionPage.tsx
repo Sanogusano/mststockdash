@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Download, CheckCircle2, AlertTriangle, Search } from "lucide-react";
+import { Download, CheckCircle2, AlertTriangle, Search, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { FinanzasLayout } from "./FinanzasLayout";
 import { Card, CardContent } from "@/components/ui/card";
@@ -19,19 +19,23 @@ import { useUserRole } from "@/hooks/useUserRole";
 import { cn } from "@/lib/utils";
 
 type Row = {
-  canal: string | null; pedido: string | null; sucursal: string | null; fecha_pedido: string | null;
+  canal: string | null; zona: string | null; pedido: string | null; sucursal: string | null; fecha_pedido: string | null;
   estado_pago: string | null; colaborador: string | null; numero_factura: string | null;
   fecha_factura: string | null; numero_pos: string | null; cufe: string | null; emitida_dian: boolean | null;
   nota_credito: string | null; fecha_nota: string | null; tiene_nota: boolean | null;
   venta_bruta: number | null; descuento: number | null; venta_neta: number | null; impuesto: number | null;
   venta_total: number | null; articulos: number | null; estado_facturacion: string | null; dias_sin_facturar: number | null;
+  metodo_pago: string | null; estado_despacho: string | null; es_gift_card: boolean | null;
+  valor_facturado: number | null; diferencia_facturacion: number | null;
 };
 
-type CardKey = "pendiente" | "sin_dian" | "anulado" | "facturado";
+type CardKey = "pendiente" | "diferencia" | "fallo_dian" | "esperando" | "facturado";
+type SortKey = "fecha_pedido" | "venta_neta" | "diferencia_facturacion" | "dias_sin_facturar";
 const CARD_ESTADO: Record<CardKey, (e: string) => boolean> = {
   pendiente: (e) => e === "PENDIENTE POR FACTURAR",
-  sin_dian: (e) => e === "Facturado sin emitir a DIAN",
-  anulado: (e) => e === "Anulado por nota credito",
+  diferencia: (e) => e === "Descuadre de valor",
+  fallo_dian: (e) => e === "Fallo la emision a DIAN",
+  esperando: (e) => e === "Esperando despacho",
   facturado: (e) => e === "Facturado",
 };
 
@@ -39,22 +43,37 @@ const hoyBogota = () => new Date().toLocaleDateString("en-CA", { timeZone: "Amer
 const PAGE = 100;
 
 function badgeClass(e: string) {
-  if (e === "PENDIENTE POR FACTURAR") return "bg-destructive/10 text-destructive border-destructive/30";
-  if (e === "Facturado sin emitir a DIAN") return "bg-amber-100 text-amber-800 border-amber-300";
+  if (e === "PENDIENTE POR FACTURAR" || e === "Descuadre de valor") return "bg-destructive/10 text-destructive border-destructive/30";
+  if (e === "Fallo la emision a DIAN" || e === "Emision en proceso") return "bg-amber-100 text-amber-800 border-amber-300";
+  if (e === "Esperando despacho" || e.startsWith("No facturable")) return "bg-muted text-muted-foreground border-border";
   if (e === "Anulado por nota credito") return "bg-muted text-muted-foreground border-border";
   if (e === "Facturado") return "bg-emerald-100 text-emerald-800 border-emerald-300";
   return "bg-secondary text-secondary-foreground border-border";
 }
+
+const fmtDateTime = (value: string | null | undefined) => value
+  ? new Date(value).toLocaleString("es-CO", { timeZone: "America/Bogota", dateStyle: "medium", timeStyle: "short" })
+  : "—";
+
+const fmtSignedCOP = (value: number | null | undefined) => {
+  const n = Number(value ?? 0);
+  if (!n) return fmtCOP(0);
+  return `${n > 0 ? "+" : "−"}${fmtCOP(Math.abs(n))}`;
+};
 
 export default function ReporteFacturacionPage() {
   const hoy = hoyBogota();
   const [desde, setDesde] = useState(hoy.slice(0, 8) + "01");
   const [hasta, setHasta] = useState(hoy);
   const [canal, setCanal] = useState("todos");
+  const [zona, setZona] = useState("todos");
+  const [locationId, setLocationId] = useState("todos");
   const [soloPend, setSoloPend] = useState(false);
   const [busqueda, setBusqueda] = useState("");
   const [cardFiltro, setCardFiltro] = useState<CardKey | null>(null);
   const [page, setPage] = useState(1);
+  const [sortKey, setSortKey] = useState<SortKey>("fecha_pedido");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
 
   const { isAdmin } = useUserRole();
   const canExport = useHasPermission({ module: "financiero.reporte_facturacion", action: "export" }) || isAdmin;
@@ -62,38 +81,50 @@ export default function ReporteFacturacionPage() {
   const [exportando, setExportando] = useState<number | null>(null);
   const [canalesVistos, setCanalesVistos] = useState<string[]>([]);
   const pCanal = canal === "todos" ? null : canal;
+  const pZona = zona === "todos" ? null : zona;
+  const pLocationId = locationId === "todos" ? null : locationId;
   const s = busqueda.trim();
   const TOPE = 500;
 
   const resumenQ = useQuery({
-    queryKey: ["reporte-facturacion-resumen", desde, hasta, pCanal],
+    queryKey: ["reporte-facturacion-resumen", desde, hasta, pCanal, pZona, pLocationId],
     queryFn: async () => {
       const { data, error } = await (supabase.rpc as any)("resumen_pendientes_facturacion", {
-        p_desde: desde, p_hasta: hasta, p_canal: pCanal,
+        p_desde: desde, p_hasta: hasta, p_canal: pCanal, p_zona: pZona, p_location_id: pLocationId,
       });
       if (error) throw error;
-      return (data ?? []) as { estado_facturacion: string; pedidos: number; venta_neta: number; articulos: number; dias_max: number }[];
+      return (data ?? []) as { estado_facturacion: string; pedidos: number; venta_neta: number; articulos: number; dias_max: number; diferencia: number; gift_cards: number }[];
+    },
+  });
+
+  const locationsQ = useQuery({
+    queryKey: ["reporte-facturacion-locations"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("locations").select("location_id, name, zona").eq("is_active", true).order("name");
+      if (error) throw error;
+      return data ?? [];
     },
   });
 
   const buildQuery = () => {
     let qb = (supabase.rpc as any)("reporte_pendientes_facturacion", {
       p_desde: desde, p_hasta: hasta, p_solo_pendientes: soloPend, p_canal: pCanal,
+      p_zona: pZona, p_location_id: pLocationId,
     });
     const estados: Record<CardKey, string> = {
-      pendiente: "PENDIENTE POR FACTURAR", sin_dian: "Facturado sin emitir a DIAN",
-      anulado: "Anulado por nota credito", facturado: "Facturado",
+      pendiente: "PENDIENTE POR FACTURAR", diferencia: "Descuadre de valor",
+      fallo_dian: "Fallo la emision a DIAN", esperando: "Esperando despacho", facturado: "Facturado",
     };
     if (cardFiltro) qb = qb.eq("estado_facturacion", estados[cardFiltro]);
     if (s) {
       const t = s.replace(/[,()*]/g, "");
       qb = qb.or(`pedido.ilike.*${t}*,numero_factura.ilike.*${t}*`);
     }
-    return qb.order("fecha_pedido", { ascending: false, nullsFirst: false }).order("pedido", { ascending: true });
+    return qb.order(sortKey, { ascending: sortDir === "asc", nullsFirst: false }).order("pedido", { ascending: true });
   };
 
   const q = useQuery({
-    queryKey: ["reporte-facturacion", desde, hasta, soloPend, pCanal, cardFiltro, s, page],
+    queryKey: ["reporte-facturacion", desde, hasta, soloPend, pCanal, pZona, pLocationId, cardFiltro, s, page, sortKey, sortDir],
     queryFn: async () => {
       const qb = buildQuery();
       const { data, error } = s ? await qb.range(0, TOPE - 1) : await qb.range((page - 1) * PAGE, (page - 1) * PAGE + PAGE - 1);
@@ -102,12 +133,12 @@ export default function ReporteFacturacionPage() {
     },
   });
 
-  const ultimaCarga = useQuery({
-    queryKey: ["netsuite-facturas-ultima"],
+  const corteQ = useQuery({
+    queryKey: ["corte-datos-facturacion"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("netsuite_facturas").select("created_at").order("created_at", { ascending: false }).limit(1);
+      const { data, error } = await supabase.rpc("corte_datos_facturacion");
       if (error) throw error;
-      return data?.[0]?.created_at ?? null;
+      return data?.[0] ?? null;
     },
   });
 
@@ -117,12 +148,20 @@ export default function ReporteFacturacionPage() {
       setCanalesVistos((prev) => Array.from(new Set([...prev, ...nuevos])).sort());
   }, [q.data]); // eslint-disable-line react-hooks/exhaustive-deps
   const canales = canalesVistos;
+  const zonas = useMemo(() => Array.from(new Set((locationsQ.data ?? []).map((l) => l.zona).filter(Boolean) as string[])).sort(), [locationsQ.data]);
+  const tiendas = useMemo(() => (locationsQ.data ?? []).filter((l) => zona === "todos" || l.zona === zona), [locationsQ.data, zona]);
+
+  useEffect(() => setLocationId("todos"), [zona]);
 
   const resumen = useMemo(() => {
-    const out = {} as Record<CardKey, { n: number; v: number }>;
+    const out = {} as Record<CardKey, { n: number; v: number; d: number }>;
     (Object.keys(CARD_ESTADO) as CardKey[]).forEach((k) => {
       const rows = (resumenQ.data ?? []).filter((r) => CARD_ESTADO[k](r.estado_facturacion ?? ""));
-      out[k] = { n: rows.reduce((a, r) => a + Number(r.pedidos ?? 0), 0), v: rows.reduce((a, r) => a + Number(r.venta_neta ?? 0), 0) };
+      out[k] = {
+        n: rows.reduce((a, r) => a + Number(r.pedidos ?? 0), 0),
+        v: rows.reduce((a, r) => a + Number(r.venta_neta ?? 0), 0),
+        d: rows.reduce((a, r) => a + Number(r.diferencia ?? 0), 0),
+      };
     });
     return out;
   }, [resumenQ.data]);
@@ -136,9 +175,21 @@ export default function ReporteFacturacionPage() {
   const filtrados = q.data ?? [];
   const topeAlcanzado = !!s && filtrados.length >= TOPE;
 
-  useEffect(() => setPage(1), [desde, hasta, soloPend, canal, busqueda, cardFiltro]);
+  useEffect(() => setPage(1), [desde, hasta, soloPend, canal, zona, locationId, busqueda, cardFiltro, sortKey, sortDir]);
   const totalPages = Math.max(1, Math.ceil(totalPedidos / PAGE));
   const pageRows = filtrados;
+
+  const toggleSort = (key: SortKey) => {
+    if (sortKey === key) setSortDir((d) => d === "asc" ? "desc" : "asc");
+    else { setSortKey(key); setSortDir("desc"); }
+  };
+
+  const SortLabel = ({ field, children }: { field: SortKey; children: string }) => (
+    <Button variant="ghost" size="sm" className="h-8 px-1 font-medium" onClick={() => toggleSort(field)}>
+      {children}
+      {sortKey !== field ? <ArrowUpDown className="ml-1 h-3.5 w-3.5" /> : sortDir === "asc" ? <ArrowUp className="ml-1 h-3.5 w-3.5" /> : <ArrowDown className="ml-1 h-3.5 w-3.5" />}
+    </Button>
+  );
 
   const exportar = async () => {
     setExportando(0);
@@ -153,11 +204,12 @@ export default function ReporteFacturacionPage() {
       }
       exportToXLS(
         all.map((r) => ({
-          Estado: r.estado_facturacion ?? "", Canal: r.canal ?? "", Pedido: r.pedido ?? "", Sucursal: r.sucursal ?? "",
-          "Fecha pedido": r.fecha_pedido ?? "", Colaborador: r.colaborador ?? "", Factura: r.numero_factura ?? "",
+          Estado: r.estado_facturacion ?? "", Pedido: r.pedido ?? "", Canal: r.canal ?? "", Zona: r.zona ?? "", Sucursal: r.sucursal ?? "",
+          "Fecha pedido": r.fecha_pedido ?? "", "Método pago": r.metodo_pago ?? "", Despacho: r.estado_despacho ?? "", Colaborador: r.colaborador ?? "", Factura: r.numero_factura ?? "",
           "Fecha factura": r.fecha_factura ?? "", "N° POS": r.numero_pos ?? "",
           DIAN: r.emitida_dian ? "Emitida" : r.numero_factura ? "Sin CUFE" : "", "Nota crédito": r.nota_credito ?? "",
-          "Venta neta": Number(r.venta_neta ?? 0), Impuesto: Number(r.impuesto ?? 0), Descuento: Number(r.descuento ?? 0),
+          "Venta neta": Number(r.venta_neta ?? 0), "Valor facturado": Number(r.valor_facturado ?? 0), Diferencia: Number(r.diferencia_facturacion ?? 0),
+          Impuesto: Number(r.impuesto ?? 0), Descuento: Number(r.descuento ?? 0),
           Artículos: Number(r.articulos ?? 0), "Días sin facturar": r.dias_sin_facturar ?? "",
         })),
         `Reporte de facturacion ${hoyBogota()}`,
@@ -172,20 +224,20 @@ export default function ReporteFacturacionPage() {
 
   const cards: { key: CardKey; title: string; cls: string }[] = [
     { key: "pendiente", title: "Pendientes por facturar", cls: "border-destructive/40 text-destructive" },
-    { key: "sin_dian", title: "Facturado sin emitir a DIAN", cls: "border-amber-400 text-amber-700" },
-    { key: "anulado", title: "Anulados por nota crédito", cls: "text-foreground" },
+    { key: "diferencia", title: "Diferencias de facturación", cls: "border-destructive/40 text-destructive" },
+    { key: "fallo_dian", title: "Falló emisión DIAN", cls: "border-amber-400 text-amber-700" },
+    { key: "esperando", title: "Esperando despacho", cls: "text-muted-foreground" },
     { key: "facturado", title: "Total facturado", cls: "text-foreground" },
   ];
 
   return (
     <TooltipProvider delayDuration={200}>
-      <FinanzasLayout title="Reporte de Facturación">
+      <FinanzasLayout title="Reporte de Facturación" fullWidth>
         <p className="text-xs text-muted-foreground -mt-4 mb-6">
-          Las facturas se actualizan al cargar el archivo de NetSuite desde Facturas Oracle. Última carga:{" "}
-          {ultimaCarga.data ? new Date(ultimaCarga.data).toLocaleString("es-CO", { timeZone: "America/Bogota" }) : "—"}.
+          Ventas hasta {fmtDateTime(corteQ.data?.ultima_venta)} · Facturas hasta {fmtDateTime(corteQ.data?.ultima_factura)} · Última sincronización {fmtDateTime(corteQ.data?.ultima_sync_netsuite)}.
         </p>
 
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6 items-end">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-7 gap-4 mb-6 items-end">
           <div className="space-y-1"><Label className="text-xs">Desde</Label><Input type="date" value={desde} onChange={(e) => setDesde(e.target.value)} /></div>
           <div className="space-y-1"><Label className="text-xs">Hasta</Label><Input type="date" value={hasta} onChange={(e) => setHasta(e.target.value)} /></div>
           <div className="space-y-1">
@@ -196,6 +248,20 @@ export default function ReporteFacturacionPage() {
                 <SelectItem value="todos">Todos</SelectItem>
                 {canales.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
               </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1">
+            <Label className="text-xs">Zona</Label>
+            <Select value={zona} onValueChange={setZona}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent><SelectItem value="todos">Todas</SelectItem>{zonas.map((z) => <SelectItem key={z} value={z}>{z}</SelectItem>)}</SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1">
+            <Label className="text-xs">Tienda</Label>
+            <Select value={locationId} onValueChange={setLocationId}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent><SelectItem value="todos">Todas</SelectItem>{tiendas.map((t) => <SelectItem key={t.location_id} value={t.location_id}>{t.name}</SelectItem>)}</SelectContent>
             </Select>
           </div>
           <div className="space-y-1">
@@ -211,43 +277,56 @@ export default function ReporteFacturacionPage() {
           </div>
         </div>
 
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-2">
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-4 mb-2">
           {cards.map((c) => (
-            <Card key={c.key} onClick={() => setCardFiltro(cardFiltro === c.key ? null : c.key)}
+            <Card key={c.key} onClick={() => {
+              setCardFiltro(cardFiltro === c.key ? null : c.key);
+              if (c.key !== "pendiente") setSoloPend(false);
+            }}
               className={cn("cursor-pointer transition-shadow hover:shadow-md", c.cls, cardFiltro === c.key && "ring-2 ring-primary")}>
               <CardContent className="p-4">
                 <p className="text-xs font-medium">{c.title}</p>
                 <p className="text-2xl font-semibold tabular-nums">{fmtInt(resumen[c.key].n)}</p>
-                <p className="text-xs text-muted-foreground tabular-nums">{fmtCOP(resumen[c.key].v)} venta neta</p>
+                 <p className="text-xs text-muted-foreground tabular-nums">{c.key === "diferencia" ? `${fmtCOP(resumen[c.key].d)} en diferencias` : `${fmtCOP(resumen[c.key].v)} venta neta`}</p>
               </CardContent>
             </Card>
           ))}
         </div>
-        {cardFiltro && <button className="text-xs text-primary underline mb-4" onClick={() => setCardFiltro(null)}>Quitar filtro de estado</button>}
+        {cardFiltro && <Button variant="link" size="sm" className="h-auto px-0 mb-4" onClick={() => setCardFiltro(null)}>Quitar filtro de estado</Button>}
 
         {resumenQ.error && <p className="text-sm text-destructive my-4">Error resumen: {(resumenQ.error as any).message}</p>}
         {topeAlcanzado && <p className="text-sm text-amber-700 my-2">La búsqueda alcanzó el tope de {TOPE} filas; refina el texto para ver todos los resultados.</p>}
         {q.error && <p className="text-sm text-destructive my-4">Error: {(q.error as any).message}</p>}
         {q.isLoading ? <Skeleton className="h-96 w-full mt-4" /> : (
           <div className="overflow-x-auto rounded-md border border-border mt-4">
-            <Table className="min-w-[1700px]">
+            <Table className="min-w-[2000px]">
               <TableHeader>
                 <TableRow>
-                  {["Estado","Canal","Pedido","Sucursal","Fecha pedido","Colaborador","Factura","Fecha factura","N° POS","DIAN","Nota crédito"].map((h) => <TableHead key={h}>{h}</TableHead>)}
-                  {["Venta neta","Impuesto","Descuento","Artículos","Días sin facturar"].map((h) => <TableHead key={h} className="text-right">{h}</TableHead>)}
+                  <TableHead className="sticky left-0 z-20 w-[190px] min-w-[190px] max-w-[190px] bg-background">Estado</TableHead>
+                  <TableHead className="sticky left-[190px] z-20 w-[150px] min-w-[150px] max-w-[150px] bg-background">Pedido</TableHead>
+                  <TableHead className="w-[105px]">Canal</TableHead><TableHead className="w-[110px]">Zona</TableHead><TableHead className="w-[170px]">Sucursal</TableHead>
+                  <TableHead className="w-[125px]"><SortLabel field="fecha_pedido">Fecha pedido</SortLabel></TableHead>
+                  <TableHead className="w-[145px]">Método pago</TableHead><TableHead className="w-[135px]">Despacho</TableHead><TableHead className="w-[150px]">Colaborador</TableHead>
+                  <TableHead className="w-[120px]">Factura</TableHead><TableHead className="w-[120px]">Fecha factura</TableHead><TableHead className="w-[95px]">N° POS</TableHead><TableHead className="w-[70px]">DIAN</TableHead><TableHead className="w-[150px]">Nota crédito</TableHead>
+                  <TableHead className="w-[125px] text-right"><SortLabel field="venta_neta">Venta neta</SortLabel></TableHead><TableHead className="w-[135px] text-right">Valor facturado</TableHead>
+                  <TableHead className="w-[125px] text-right"><SortLabel field="diferencia_facturacion">Diferencia</SortLabel></TableHead><TableHead className="w-[115px] text-right">Impuesto</TableHead><TableHead className="w-[115px] text-right">Descuento</TableHead><TableHead className="w-[85px] text-right">Artículos</TableHead>
+                  <TableHead className="w-[135px] text-right"><SortLabel field="dias_sin_facturar">Días sin facturar</SortLabel></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {pageRows.length === 0 && <TableRow><TableCell colSpan={16} className="text-center text-muted-foreground py-8">Sin pedidos para los filtros seleccionados</TableCell></TableRow>}
+                {pageRows.length === 0 && <TableRow><TableCell colSpan={21} className="text-center text-muted-foreground py-8">Sin pedidos para los filtros seleccionados</TableCell></TableRow>}
                 {pageRows.map((r, i) => {
                   const e = r.estado_facturacion ?? "";
                   return (
                     <TableRow key={(r.pedido ?? "") + i}>
-                      <TableCell><span className={cn("inline-block text-xs px-2 py-0.5 rounded border whitespace-nowrap", badgeClass(e))}>{e}</span></TableCell>
+                      <TableCell className="sticky left-0 z-10 w-[190px] min-w-[190px] max-w-[190px] bg-background"><span className={cn("inline-block text-xs px-2 py-0.5 rounded border whitespace-nowrap", badgeClass(e))}>{e}</span></TableCell>
+                      <TableCell className="sticky left-[190px] z-10 w-[150px] min-w-[150px] max-w-[150px] bg-background font-medium"><div className="flex flex-wrap items-center gap-1.5"><span>{r.pedido}</span>{r.es_gift_card && <span className="rounded border border-border bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground">Gift card</span>}</div></TableCell>
                       <TableCell>{r.canal}</TableCell>
-                      <TableCell className="font-medium">{r.pedido}</TableCell>
+                      <TableCell>{r.zona}</TableCell>
                       <TableCell>{r.sucursal}</TableCell>
                       <TableCell className="whitespace-nowrap">{fmtFecha(r.fecha_pedido)}</TableCell>
+                      <TableCell>{r.metodo_pago ?? "—"}</TableCell>
+                      <TableCell>{r.estado_despacho ?? "—"}</TableCell>
                       <TableCell>{r.colaborador}</TableCell>
                       <TableCell>{r.numero_factura ?? "—"}</TableCell>
                       <TableCell className="whitespace-nowrap">{r.fecha_factura ? fmtFecha(r.fecha_factura) : "—"}</TableCell>
@@ -263,6 +342,8 @@ export default function ReporteFacturacionPage() {
                       </TableCell>
                       <TableCell>{r.nota_credito ? `${r.nota_credito}${r.fecha_nota ? " · " + fmtFecha(r.fecha_nota) : ""}` : "—"}</TableCell>
                       <TableCell className="text-right tabular-nums">{fmtCOP(r.venta_neta)}</TableCell>
+                      <TableCell className="text-right tabular-nums">{fmtCOP(r.valor_facturado)}</TableCell>
+                      <TableCell className={cn("text-right tabular-nums", Math.abs(Number(r.diferencia_facturacion ?? 0)) > Math.abs(Number(r.venta_neta ?? 0)) * 0.02 && "text-destructive font-semibold")}>{fmtSignedCOP(r.diferencia_facturacion)}</TableCell>
                       <TableCell className="text-right tabular-nums">{fmtCOP(r.impuesto)}</TableCell>
                       <TableCell className="text-right tabular-nums">{fmtCOP(r.descuento)}</TableCell>
                       <TableCell className="text-right tabular-nums">{fmtInt(r.articulos)}</TableCell>
