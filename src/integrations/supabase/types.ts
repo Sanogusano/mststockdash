@@ -6108,8 +6108,10 @@ export type Database = {
       }
       reporte_pendientes_facturacion: {
         Args: {
+          p_buscar?: string
           p_canal?: string
           p_desde: string
+          p_estado?: string
           p_hasta: string
           p_location_id?: string
           p_solo_pendientes?: boolean

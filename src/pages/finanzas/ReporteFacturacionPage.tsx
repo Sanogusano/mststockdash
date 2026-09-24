@@ -61,6 +61,14 @@ const CARD_ESTADO: Record<CardKey, (e: string) => boolean> = {
   facturado: (e) => e === "Facturado",
 };
 
+const ESTADO_POR_TARJETA: Record<CardKey, string> = {
+  pendiente: "PENDIENTE POR FACTURAR",
+  diferencia: "Descuadre de valor",
+  fallo_dian: "Fallo la emision a DIAN",
+  esperando: "Esperando despacho",
+  facturado: "Facturado",
+};
+
 const hoyBogota = () => new Date().toLocaleDateString("en-CA", { timeZone: "America/Bogota" });
 const PAGE = 100;
 
@@ -105,6 +113,7 @@ export default function ReporteFacturacionPage() {
   const [locationId, setLocationId] = useState("todos");
   const [soloPend, setSoloPend] = useState(false);
   const [busqueda, setBusqueda] = useState("");
+  const [busquedaDebounced, setBusquedaDebounced] = useState("");
   const [cardFiltro, setCardFiltro] = useState<CardKey | null>(null);
   const [page, setPage] = useState(1);
   const [sortKey, setSortKey] = useState<SortKey>("fecha_pedido");
@@ -118,8 +127,14 @@ export default function ReporteFacturacionPage() {
   const pCanal = canal === "todos" ? null : canal;
   const pZona = zona === "todos" ? null : zona;
   const pLocationId = locationId === "todos" ? null : locationId;
-  const s = busqueda.trim();
+  const pEstado = cardFiltro ? ESTADO_POR_TARJETA[cardFiltro] : null;
+  const s = busquedaDebounced.trim();
   const TOPE = 500;
+
+  useEffect(() => {
+    const timeout = window.setTimeout(() => setBusquedaDebounced(busqueda.trim()), 400);
+    return () => window.clearTimeout(timeout);
+  }, [busqueda]);
 
   const resumenQ = useQuery({
     queryKey: ["reporte-facturacion-resumen", desde, hasta, pCanal, pZona, pLocationId],
@@ -158,26 +173,16 @@ export default function ReporteFacturacionPage() {
   });
 
   const buildQuery = () => {
-    let qb = (supabase.rpc as any)("reporte_pendientes_facturacion", {
+    return (supabase.rpc as any)("reporte_pendientes_facturacion", {
       p_desde: desde, p_hasta: hasta, p_solo_pendientes: soloPend, p_canal: pCanal,
-      p_zona: pZona, p_location_id: pLocationId,
+      p_zona: pZona, p_location_id: pLocationId, p_estado: pEstado, p_buscar: s || null,
     });
-    const estados: Record<CardKey, string> = {
-      pendiente: "PENDIENTE POR FACTURAR", diferencia: "Descuadre de valor",
-      fallo_dian: "Fallo la emision a DIAN", esperando: "Esperando despacho", facturado: "Facturado",
-    };
-    if (cardFiltro) qb = qb.eq("estado_facturacion", estados[cardFiltro]);
-    if (s) {
-      const t = s.replace(/[,()*]/g, "");
-      qb = qb.or(`pedido.ilike.*${t}*,numero_factura.ilike.*${t}*`);
-    }
-    return qb.order(sortKey, { ascending: sortDir === "asc", nullsFirst: false }).order("pedido", { ascending: true });
   };
 
   const q = useQuery({
-    queryKey: ["reporte-facturacion", desde, hasta, soloPend, pCanal, pZona, pLocationId, cardFiltro, s, page, sortKey, sortDir],
+    queryKey: ["reporte-facturacion", desde, hasta, soloPend, pCanal, pZona, pLocationId, pEstado, s, page, sortKey, sortDir],
     queryFn: async () => {
-      const qb = buildQuery();
+      const qb = buildQuery().order(sortKey, { ascending: sortDir === "asc", nullsFirst: false }).order("pedido", { ascending: true });
       const { data, error } = s ? await qb.range(0, TOPE - 1) : await qb.range((page - 1) * PAGE, (page - 1) * PAGE + PAGE - 1);
       if (error) throw error;
       return (data ?? []) as Row[];
@@ -265,7 +270,10 @@ export default function ReporteFacturacionPage() {
     try {
       const all: Row[] = [];
       for (let off = 0; ; off += 1000) {
-        const { data, error } = await buildQuery().range(off, off + 999);
+        const { data, error } = await buildQuery()
+          .order(sortKey, { ascending: sortDir === "asc", nullsFirst: false })
+          .order("pedido", { ascending: true })
+          .range(off, off + 999);
         if (error) throw error;
         all.push(...((data ?? []) as Row[]));
         setExportando(all.length);
@@ -399,7 +407,7 @@ export default function ReporteFacturacionPage() {
         {resumenQ.error && <p className="text-sm text-destructive my-4">Error resumen: {(resumenQ.error as any).message}</p>}
         {topeAlcanzado && <p className="text-sm text-amber-700 my-2">La búsqueda alcanzó el tope de {TOPE} filas; refina el texto para ver todos los resultados.</p>}
         {q.error && <p className="text-sm text-destructive my-4">Error: {(q.error as any).message}</p>}
-        <div className={cn("overflow-x-auto rounded-md border border-border mt-4 transition-opacity", q.isFetching && !q.isLoading && "opacity-50")}>
+        <div className="overflow-x-auto rounded-md border border-border mt-4">
             <Table className="min-w-[2000px]">
               <TableHeader>
                 <TableRow>
