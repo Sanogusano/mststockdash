@@ -30,7 +30,7 @@ type Row = {
 };
 
 type CardKey = "pendiente" | "diferencia" | "fallo_dian" | "esperando" | "facturado";
-type SortKey = "fecha_pedido" | "venta_neta" | "diferencia_facturacion" | "dias_sin_facturar";
+type SortKey = "estado_facturacion" | "fecha_pedido" | "venta_total" | "diferencia_facturacion";
 type SortDir = "asc" | "desc";
 
 const comparar = (a: Row, b: Row, campo: SortKey, dir: SortDir) => {
@@ -97,12 +97,6 @@ const fmtFechaSolo = (s: string | null | undefined) => {
 const fmtDateTime = (value: string | null | undefined) => value
   ? new Date(value).toLocaleString("es-CO", { timeZone: "America/Bogota", dateStyle: "medium", timeStyle: "short" })
   : "—";
-
-const fmtSignedCOP = (value: number | null | undefined) => {
-  const n = Number(value ?? 0);
-  if (!n) return fmtCOP(0);
-  return `${n > 0 ? "+" : "−"}${fmtCOP(Math.abs(n))}`;
-};
 
 export default function ReporteFacturacionPage() {
   const hoy = hoyBogota();
@@ -285,7 +279,7 @@ export default function ReporteFacturacionPage() {
           "Fecha pedido": r.fecha_pedido ?? "", "Método pago": r.metodo_pago ?? "", Despacho: r.estado_despacho ?? "", Colaborador: r.colaborador ?? "", Factura: r.numero_factura ?? "",
           "Fecha factura": r.fecha_factura ?? "", "N° POS": r.numero_pos ?? "",
           DIAN: r.emitida_dian ? "Emitida" : r.numero_factura ? "Sin CUFE" : "", "Nota crédito": r.nota_credito ?? "",
-          "Venta neta": Number(r.venta_neta ?? 0), "Valor facturado": Number(r.valor_facturado ?? 0), Diferencia: Number(r.diferencia_facturacion ?? 0),
+           "Venta total": Number(r.venta_total ?? 0), "Valor facturado": Number(r.valor_facturado ?? 0), Diferencia: Number(r.diferencia_facturacion ?? 0),
           Impuesto: Number(r.impuesto ?? 0), Descuento: Number(r.descuento ?? 0),
           Artículos: Number(r.articulos ?? 0), "Días sin facturar": r.dias_sin_facturar ?? "",
         })),
@@ -407,63 +401,77 @@ export default function ReporteFacturacionPage() {
         {resumenQ.error && <p className="text-sm text-destructive my-4">Error resumen: {(resumenQ.error as any).message}</p>}
         {topeAlcanzado && <p className="text-sm text-amber-700 my-2">La búsqueda alcanzó el tope de {TOPE} filas; refina el texto para ver todos los resultados.</p>}
         {q.error && <p className="text-sm text-destructive my-4">Error: {(q.error as any).message}</p>}
-        <div className="overflow-x-auto rounded-md border border-border mt-4">
-            <Table className="min-w-[2000px]">
+         <div className="overflow-x-auto rounded-md border border-border mt-4">
+             <Table className="min-w-[1100px] table-fixed">
               <TableHeader>
                 <TableRow>
-                  <TableHead className="sticky left-0 z-20 w-[190px] min-w-[190px] max-w-[190px] bg-background">Estado</TableHead>
-                  <TableHead className="sticky left-[190px] z-20 w-[150px] min-w-[150px] max-w-[150px] bg-background">Pedido</TableHead>
-                  <TableHead className="w-[105px]">Canal</TableHead><TableHead className="w-[110px]">Zona</TableHead><TableHead className="w-[170px]">Sucursal</TableHead>
-                  <TableHead className="w-[125px]"><SortLabel field="fecha_pedido">Fecha pedido</SortLabel></TableHead>
-                  <TableHead className="w-[145px]">Método pago</TableHead><TableHead className="w-[135px]">Despacho</TableHead><TableHead className="w-[150px]">Colaborador</TableHead>
-                  <TableHead className="w-[120px]">Factura</TableHead><TableHead className="w-[120px]">Fecha factura</TableHead><TableHead className="w-[95px]">N° POS</TableHead><TableHead className="w-[70px]">DIAN</TableHead><TableHead className="w-[150px]">Nota crédito</TableHead>
-                  <TableHead className="w-[125px] text-right"><SortLabel field="venta_neta">Venta neta</SortLabel></TableHead><TableHead className="w-[135px] text-right">Valor facturado</TableHead>
-                  <TableHead className="w-[125px] text-right"><SortLabel field="diferencia_facturacion">Diferencia</SortLabel></TableHead><TableHead className="w-[115px] text-right">Impuesto</TableHead><TableHead className="w-[115px] text-right">Descuento</TableHead><TableHead className="w-[85px] text-right">Artículos</TableHead>
-                  <TableHead className="w-[135px] text-right"><SortLabel field="dias_sin_facturar">Días sin facturar</SortLabel></TableHead>
+                   <TableHead className="w-[175px]"><SortLabel field="estado_facturacion">Estado</SortLabel></TableHead>
+                   <TableHead className="w-[135px]">Pedido</TableHead>
+                   <TableHead className="w-[165px]">Ubicación</TableHead>
+                   <TableHead className="w-[130px]"><SortLabel field="fecha_pedido">Fechas</SortLabel></TableHead>
+                   <TableHead className="w-[155px]">Factura</TableHead>
+                   <TableHead className="w-[135px] text-right"><SortLabel field="venta_total">Venta</SortLabel></TableHead>
+                   <TableHead className="w-[160px] text-right"><SortLabel field="diferencia_facturacion">Facturado</SortLabel></TableHead>
+                   <TableHead className="w-[165px]">Responsable</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {q.isLoading ? (
                   <TableRow>
-                    <TableCell colSpan={21} className="p-0">
+                     <TableCell colSpan={8} className="p-0">
                       <LoadingState rows={0} />
                     </TableCell>
                   </TableRow>
                 ) : pageRows.length === 0 ? (
-                  <TableRow><TableCell colSpan={21} className="text-center text-muted-foreground py-8">Sin pedidos para los filtros seleccionados</TableCell></TableRow>
+                   <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-8">Sin pedidos para los filtros seleccionados</TableCell></TableRow>
                 ) : pageRows.map((r, i) => {
                   const e = r.estado_facturacion ?? "";
+                   const diferencia = Number(r.diferencia_facturacion ?? 0);
+                   const superaTolerancia = Math.abs(diferencia) > Math.abs(Number(r.venta_total ?? 0)) * 0.02;
                   return (
-                    <TableRow key={(r.pedido ?? "") + i}>
-                      <TableCell className="sticky left-0 z-10 w-[190px] min-w-[190px] max-w-[190px] bg-background"><span className={cn("inline-block text-xs px-2 py-0.5 rounded border whitespace-nowrap", badgeClass(e))}>{e}</span></TableCell>
-                      <TableCell className="sticky left-[190px] z-10 w-[150px] min-w-[150px] max-w-[150px] bg-background font-medium"><div className="flex flex-wrap items-center gap-1.5"><span>{r.pedido}</span>{r.es_gift_card && <span className="rounded border border-border bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground">Gift card</span>}</div></TableCell>
-                      <TableCell>{r.canal}</TableCell>
-                      <TableCell>{r.zona}</TableCell>
-                      <TableCell>{r.sucursal}</TableCell>
-                      <TableCell className="whitespace-nowrap">{fmtFechaSolo(r.fecha_pedido)}</TableCell>
-                      <TableCell>{r.metodo_pago ?? "—"}</TableCell>
-                      <TableCell>{r.estado_despacho ?? "—"}</TableCell>
-                      <TableCell>{r.colaborador}</TableCell>
-                      <TableCell>{r.numero_factura ?? "—"}</TableCell>
-                      <TableCell className="whitespace-nowrap">{r.fecha_factura ? fmtFechaSolo(r.fecha_factura) : "—"}</TableCell>
-                      <TableCell>{r.numero_pos ?? "—"}</TableCell>
-                      <TableCell>
-                        {r.emitida_dian ? (
-                          <Tooltip><TooltipTrigger><CheckCircle2 className="h-4 w-4 text-emerald-600" /></TooltipTrigger>
-                            <TooltipContent className="max-w-xs break-all">{r.cufe ? `CUFE: ${r.cufe}` : "Emitida a DIAN"}</TooltipContent></Tooltip>
-                        ) : r.numero_factura ? (
-                          <Tooltip><TooltipTrigger><AlertTriangle className="h-4 w-4 text-amber-600" /></TooltipTrigger>
-                            <TooltipContent>Factura sin CUFE</TooltipContent></Tooltip>
-                        ) : "—"}
-                      </TableCell>
-                      <TableCell>{r.nota_credito ? `${r.nota_credito}${r.fecha_nota ? " · " + fmtFechaSolo(r.fecha_nota) : ""}` : "—"}</TableCell>
-                      <TableCell className="text-right tabular-nums">{fmtCOP(r.venta_neta)}</TableCell>
-                      <TableCell className="text-right tabular-nums">{fmtCOP(r.valor_facturado)}</TableCell>
-                      <TableCell className={cn("text-right tabular-nums", Math.abs(Number(r.diferencia_facturacion ?? 0)) > Math.abs(Number(r.venta_neta ?? 0)) * 0.02 && "text-destructive font-semibold")}>{fmtSignedCOP(r.diferencia_facturacion)}</TableCell>
-                      <TableCell className="text-right tabular-nums">{fmtCOP(r.impuesto)}</TableCell>
-                      <TableCell className="text-right tabular-nums">{fmtCOP(r.descuento)}</TableCell>
-                      <TableCell className="text-right tabular-nums">{fmtInt(r.articulos)}</TableCell>
-                      <TableCell className={cn("text-right tabular-nums", (r.dias_sin_facturar ?? 0) > 30 && "text-destructive font-semibold")}>{r.dias_sin_facturar ?? "—"}</TableCell>
+                     <TableRow key={(r.pedido ?? "") + i} className="align-top">
+                       <TableCell>
+                         <span className={cn("inline-block max-w-full text-xs px-2 py-0.5 rounded border", badgeClass(e))}>{e}</span>
+                         {r.dias_sin_facturar != null && <p className={cn("mt-1 text-xs text-muted-foreground", r.dias_sin_facturar > 30 && "text-destructive font-medium")}>hace {fmtInt(r.dias_sin_facturar)} días</p>}
+                       </TableCell>
+                       <TableCell>
+                         <div className="flex flex-wrap items-center gap-1.5 font-semibold"><span>{r.pedido ?? "—"}</span>{r.es_gift_card && <span className="rounded border border-border bg-muted px-1.5 py-0.5 text-[10px] font-normal text-muted-foreground">Gift card</span>}</div>
+                         <p className="mt-1 text-xs text-muted-foreground">{r.canal ?? "—"}</p>
+                       </TableCell>
+                       <TableCell>
+                         <p className="font-medium">{r.sucursal ?? "—"}</p>
+                         <p className="mt-1 text-xs text-muted-foreground">{r.zona ?? "—"}</p>
+                       </TableCell>
+                       <TableCell className="whitespace-nowrap">
+                         <p><span className="text-xs text-muted-foreground">Pedido</span> {fmtFechaSolo(r.fecha_pedido)}</p>
+                         <p className="mt-1 text-xs text-muted-foreground">Factura {r.fecha_factura ? fmtFechaSolo(r.fecha_factura) : "—"}</p>
+                       </TableCell>
+                       <TableCell>
+                         <p className="font-medium">{r.numero_factura ?? "—"}</p>
+                         <div className="mt-1 flex items-center gap-1.5 text-xs text-muted-foreground">
+                           <span>{r.numero_pos ?? "—"}</span><span>·</span>
+                           {r.emitida_dian ? (
+                             <Tooltip><TooltipTrigger asChild><span className="inline-flex cursor-help"><CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" /></span></TooltipTrigger>
+                               <TooltipContent className="max-w-xs break-all">{r.cufe ? `CUFE: ${r.cufe}` : "Emitida a DIAN"}</TooltipContent></Tooltip>
+                           ) : r.numero_factura ? (
+                             <Tooltip><TooltipTrigger asChild><span className="inline-flex cursor-help"><AlertTriangle className="h-3.5 w-3.5 text-amber-600" /></span></TooltipTrigger>
+                               <TooltipContent>Factura sin CUFE</TooltipContent></Tooltip>
+                           ) : <span>—</span>}
+                         </div>
+                         {r.nota_credito && <p className="mt-1 text-xs text-destructive">NC {r.nota_credito}{r.fecha_nota ? ` · ${fmtFechaSolo(r.fecha_nota)}` : ""}</p>}
+                       </TableCell>
+                       <TableCell className="text-right tabular-nums">
+                         <p className="font-semibold">{fmtCOP(r.venta_total)}</p>
+                         <p className="mt-1 text-xs text-muted-foreground">{fmtInt(r.articulos)} art.{Number(r.descuento ?? 0) > 0 ? ` · Dcto. ${fmtCOP(r.descuento)}` : ""}</p>
+                       </TableCell>
+                       <TableCell className="text-right tabular-nums">
+                         <p className="font-medium">{fmtCOP(r.valor_facturado)}</p>
+                         {superaTolerancia && <p className="mt-1 text-xs font-medium text-destructive">{diferencia > 0 ? "Falta facturar" : "Facturado de más"} {fmtCOP(Math.abs(diferencia))}</p>}
+                       </TableCell>
+                       <TableCell>
+                         <p className="font-medium">{r.colaborador ?? "—"}</p>
+                         <p className="mt-1 text-xs text-muted-foreground">{r.metodo_pago ?? "—"} · {r.estado_despacho ?? "—"}</p>
+                       </TableCell>
                     </TableRow>
                   );
                 })}

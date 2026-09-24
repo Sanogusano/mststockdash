@@ -22,3 +22,4 @@
 - [x] Proteger el ordenamiento del Reporte de Facturación ante nulos y desacoplar la descarga Excel del render de la tabla.
 - [x] Reutilizar el preloader del Resumen Ejecutivo en la carga inicial y señalar recargas del Reporte de Facturación sin ocultar datos previos.
 - [x] Enviar estado y búsqueda a la RPC antes de paginar, con debounce y totales coherentes por tarjeta.
+- [x] Compactar el Reporte de Facturación a ocho columnas agrupadas y comparar venta/facturación con IVA.
