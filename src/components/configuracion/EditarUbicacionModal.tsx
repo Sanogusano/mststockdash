@@ -37,6 +37,7 @@ import { ChevronDown, Plus, Trash2 } from "lucide-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { toastErrorUbicacion } from "@/lib/supabase-error";
 import type { UbicacionGestion } from "./UbicacionesTable";
 
 interface Props {
@@ -195,7 +196,7 @@ export function EditarUbicacionModal({ ubicacion, open, onOpenChange }: Props) {
       queryClient.invalidateQueries({ queryKey: ["ubicaciones-gestion"] });
       onOpenChange(false);
     },
-    onError: (err: any) => toast.error(err.message ?? "Error al guardar"),
+    onError: (err: any) => toastErrorUbicacion(err),
   });
 
   const handleSave = () => {

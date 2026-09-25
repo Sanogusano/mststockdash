@@ -14,6 +14,7 @@ import { ArrowDown, ArrowUp, Edit, KeyRound } from "lucide-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { toastErrorUbicacion } from "@/lib/supabase-error";
 import { EstadoConfigBadge, type EstadoConfig } from "./EstadoConfigBadge";
 
 export interface UbicacionGestion {
@@ -82,7 +83,7 @@ export function UbicacionesTable({ data, loading, onEditar, onAsignarCodigo }: P
       toast.success(activa ? "Ubicación activada" : "Ubicación desactivada");
       queryClient.invalidateQueries({ queryKey: ["ubicaciones-gestion"] });
     },
-    onError: (err: any) => toast.error(err.message ?? "Error al actualizar"),
+    onError: (err: any) => toastErrorUbicacion(err),
   });
 
   if (loading) {
