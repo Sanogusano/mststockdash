@@ -43,8 +43,10 @@ interface ProductBehaviorRow {
   bod_tiendas: number;
   bod_exportaciones: number;
   clasificacion: string;
+  st_periodo: number;
   sell_through_pct: number;
   wos: number;
+  wos_total: number;
   estado_salud: string;
   und_full_price: number;
   und_rebajas: number;
