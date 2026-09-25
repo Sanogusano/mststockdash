@@ -373,8 +373,8 @@ export function ProductBehaviorTable({ days, initialWosFilter, initialLocationId
                     </div>
                   </TableHead>
                   <TableHead>Stock</TableHead>
-                  <TableHead className="min-w-[140px]">Sell-Through</TableHead>
-                  <TableHead>WOS & Salud</TableHead>
+                  <TableHead className="min-w-[120px]">Sell-Through</TableHead>
+                  <TableHead className="min-w-[110px]">WOS & Salud</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -447,15 +447,26 @@ export function ProductBehaviorTable({ days, initialWosFilter, initialLocationId
                         </div>
                       </TableCell>
 
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <Progress
-                            value={Math.min(row.sell_through_pct ?? 0, 100)}
-                            className="h-2.5 flex-1 bg-muted"
-                            indicatorClassName={getSellThroughColor(row.sell_through_pct ?? 0)}
-                          />
-                          <span className="text-sm font-medium text-foreground w-12 text-right">{row.sell_through_pct ?? 0}%</span>
-                        </div>
+                      <TableCell className="align-top">
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <div className="w-28 shrink-0 min-w-0 cursor-help">
+                              <p className="text-base font-semibold text-foreground leading-tight">{row.st_periodo ?? 0}%</p>
+                              <p className="text-[10px] uppercase tracking-wide text-muted-foreground">del período</p>
+                              <p className="text-xs text-muted-foreground leading-tight mt-0.5">{row.sell_through_pct ?? 0}%</p>
+                              <p className="text-[10px] uppercase tracking-wide text-muted-foreground">de vida</p>
+                              <Progress
+                                value={Math.min(row.sell_through_pct ?? 0, 100)}
+                                className="h-2 mt-1 bg-muted"
+                                indicatorClassName={getSellThroughColor(row.sell_through_pct ?? 0)}
+                              />
+                            </div>
+                          </TooltipTrigger>
+                          <TooltipContent side="top" className="max-w-xs text-xs leading-relaxed">
+                            <p><strong>Del período:</strong> de lo disponible al iniciar el rango, cuánto se vendió en él. Cambia con el filtro de fechas.</p>
+                            <p className="mt-1"><strong>De vida:</strong> de todo lo que ha existido del producto, cuánto se ha vendido. No depende del filtro.</p>
+                          </TooltipContent>
+                        </Tooltip>
                         {showStandby && (
                           <Tooltip>
                             <TooltipTrigger asChild><span tabIndex={0} className="text-xs text-muted-foreground">ST total {row.st_total ?? 0}%</span></TooltipTrigger>
@@ -464,9 +475,24 @@ export function ProductBehaviorTable({ days, initialWosFilter, initialLocationId
                         )}
                       </TableCell>
 
-                      <TableCell>
-                        <p className="text-sm font-semibold text-foreground">{row.wos ?? 0} sem.</p>
-                        <StatusBadge label={row.estado_salud} />
+                      <TableCell className="align-top">
+                        <div className="flex items-start gap-3">
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <div className="w-28 shrink-0 min-w-0 cursor-help">
+                                <p className="text-base font-semibold text-foreground leading-tight">{row.wos == null ? "—" : `${row.wos} sem.`}</p>
+                                <p className="text-[10px] uppercase tracking-wide text-muted-foreground">en piso</p>
+                                <p className="text-xs text-muted-foreground leading-tight mt-0.5">{row.wos_total == null ? "—" : `${row.wos_total} sem.`}</p>
+                                <p className="text-[10px] uppercase tracking-wide text-muted-foreground">con bodega</p>
+                              </div>
+                            </TooltipTrigger>
+                            <TooltipContent side="top" className="max-w-xs text-xs leading-relaxed">
+                              <p><strong>En piso:</strong> semanas de cobertura con lo que está disponible para la venta. Es la señal de reposición.</p>
+                              <p className="mt-1"><strong>Con bodega:</strong> incluye el stock detenido. Es el mismo número que muestra Baja Rotación.</p>
+                            </TooltipContent>
+                          </Tooltip>
+                          <StatusBadge label={row.estado_salud} />
+                        </div>
                       </TableCell>
                     </TableRow>
                   );
