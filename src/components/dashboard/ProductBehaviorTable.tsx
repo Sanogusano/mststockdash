@@ -160,7 +160,7 @@ export function ProductBehaviorTable({ days, initialWosFilter, initialLocationId
       if (locationId !== "all") params.p_location_id = locationId;
       const { data, error } = await supabase.rpc("reporte_comportamiento_producto", params);
       if (error) throw new Error(error.message);
-      return (data ?? []) as ProductBehaviorRow[];
+      return (data ?? []) as unknown as ProductBehaviorRow[];
     },
     staleTime: 5 * 60 * 1000,
     retry: 1,
