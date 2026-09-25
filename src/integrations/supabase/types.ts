@@ -5269,12 +5269,13 @@ export type Database = {
       }
       reporte_comportamiento_producto: {
         Args: {
-          dias_atras: number
+          dias_atras?: number
           p_hasta?: string
           p_location_id?: string
           p_sku_filter?: string
         }
         Returns: {
+          asignadas: number
           bod_exportaciones: number
           bod_principal: number
           bod_reserva: number
@@ -5282,21 +5283,28 @@ export type Database = {
           categoria: string
           clasificacion: string
           coleccion: string
+          dias_en_venta: number
           estado_salud: string
           foto: string
+          product_id: string
           producto: string
+          ritmo_semanal: number
           sell_through_pct: number
-          sku: string
-          st_total: number
+          semanas_en_venta: number
+          st_periodo: number
           stock_digital: number
           stock_standby: number
           stock_tiendas: number
           stock_total: number
+          tallas_con_stock: number
+          tallas_totales: number
           und_full_price: number
           und_promo: number
           und_rebajas: number
           und_vendidas: number
+          und_vendidas_vida: number
           wos: number
+          wos_total: number
         }[]
       }
       reporte_composicion_coleccion: {
