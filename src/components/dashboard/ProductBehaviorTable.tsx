@@ -37,7 +37,6 @@ interface ProductBehaviorRow {
   stock_digital: number;
   stock_standby: number;
   stock_total: number;
-  st_total: number;
   bod_principal: number;
   bod_reserva: number;
   bod_tiendas: number;
@@ -210,7 +209,6 @@ export function ProductBehaviorTable({ days, initialWosFilter, initialLocationId
         "Stock Digital": r.stock_digital,
         "Stock Stand-by": r.stock_standby ?? 0,
         "Stock Total": r.stock_total ?? 0,
-        "ST Total": r.st_total ?? 0,
         "Principal": r.bod_principal ?? 0,
         "Reserva Distribuidores": r.bod_reserva ?? 0,
         "Tiendas Monastery": r.bod_tiendas ?? 0,
@@ -239,7 +237,6 @@ export function ProductBehaviorTable({ days, initialWosFilter, initialLocationId
         stock_digital: r.stock_digital ?? 0,
         stock_standby: r.stock_standby ?? 0,
         stock_total: r.stock_total ?? 0,
-        st_total: r.st_total ?? 0,
         bod_principal: r.bod_principal ?? 0,
         bod_reserva: r.bod_reserva ?? 0,
         bod_tiendas: r.bod_tiendas ?? 0,
