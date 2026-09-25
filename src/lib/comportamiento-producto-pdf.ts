@@ -14,7 +14,6 @@ export interface ComportamientoPDFRow {
   stock_digital: number;
   stock_standby: number;
   stock_total: number;
-  st_total: number;
   bod_principal: number;
   bod_reserva: number;
   bod_tiendas: number;
@@ -85,7 +84,6 @@ export async function exportComportamientoProductoPDF(
       "Stock Digital",
       "Stock Stand-by",
       "Stock Total",
-      "ST Total",
       "Principal",
       "Reserva Distribuidores",
       "Tiendas Monastery",
@@ -103,7 +101,6 @@ export async function exportComportamientoProductoPDF(
       (r.stock_digital ?? 0).toLocaleString("es-CO"),
       (r.stock_standby ?? 0).toLocaleString("es-CO"),
       (r.stock_total ?? 0).toLocaleString("es-CO"),
-      `${r.st_total ?? 0}%`,
       (r.bod_principal ?? 0).toLocaleString("es-CO"),
       (r.bod_reserva ?? 0).toLocaleString("es-CO"),
       (r.bod_tiendas ?? 0).toLocaleString("es-CO"),

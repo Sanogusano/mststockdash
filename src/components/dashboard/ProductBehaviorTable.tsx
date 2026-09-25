@@ -37,7 +37,6 @@ interface ProductBehaviorRow {
   stock_digital: number;
   stock_standby: number;
   stock_total: number;
-  st_total: number;
   bod_principal: number;
   bod_reserva: number;
   bod_tiendas: number;
@@ -210,7 +209,6 @@ export function ProductBehaviorTable({ days, initialWosFilter, initialLocationId
         "Stock Digital": r.stock_digital,
         "Stock Stand-by": r.stock_standby ?? 0,
         "Stock Total": r.stock_total ?? 0,
-        "ST Total": r.st_total ?? 0,
         "Principal": r.bod_principal ?? 0,
         "Reserva Distribuidores": r.bod_reserva ?? 0,
         "Tiendas Monastery": r.bod_tiendas ?? 0,
@@ -239,7 +237,6 @@ export function ProductBehaviorTable({ days, initialWosFilter, initialLocationId
         stock_digital: r.stock_digital ?? 0,
         stock_standby: r.stock_standby ?? 0,
         stock_total: r.stock_total ?? 0,
-        st_total: r.st_total ?? 0,
         bod_principal: r.bod_principal ?? 0,
         bod_reserva: r.bod_reserva ?? 0,
         bod_tiendas: r.bod_tiendas ?? 0,
@@ -373,8 +370,19 @@ export function ProductBehaviorTable({ days, initialWosFilter, initialLocationId
                     </div>
                   </TableHead>
                   <TableHead>Stock</TableHead>
-                  <TableHead className="min-w-[120px]">Sell-Through</TableHead>
-                  <TableHead className="min-w-[110px]">WOS & Salud</TableHead>
+                  <TableHead className="min-w-[120px]">
+                    <Tooltip>
+                      <TooltipTrigger asChild><span className="cursor-help underline decoration-dotted underline-offset-4">Sell-Through</span></TooltipTrigger>
+                      <TooltipContent side="top" className="max-w-xs text-xs leading-relaxed">Arriba: lo vendido en el período sobre lo que había disponible. Cambia con el filtro. Abajo: de todo lo que ha existido del producto, cuánto se ha vendido. No cambia con el filtro.</TooltipContent>
+                    </Tooltip>
+                  </TableHead>
+                  <TableHead className="min-w-[110px]">
+                    <Tooltip>
+                      <TooltipTrigger asChild><span className="cursor-help underline decoration-dotted underline-offset-4">WOS</span></TooltipTrigger>
+                      <TooltipContent side="top" className="max-w-xs text-xs leading-relaxed">Arriba: semanas de cobertura con el stock en piso, al ritmo de las últimas 8 semanas. Abajo: incluye el stock en bodega; es el mismo número que muestra Baja Rotación.</TooltipContent>
+                    </Tooltip>
+                  </TableHead>
+                  <TableHead className="w-36 text-center">Salud</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -423,8 +431,8 @@ export function ProductBehaviorTable({ days, initialWosFilter, initialLocationId
 
                       <TableCell>
                         <div className="space-y-0.5 text-sm">
-                          <p><Tooltip><TooltipTrigger asChild><span tabIndex={0} aria-label="En tiendas (piso de venta)">🏪</span></TooltipTrigger><TooltipContent>En tiendas (piso de venta)</TooltipContent></Tooltip> <span className="font-medium">{(row.stock_tiendas ?? 0).toLocaleString()}</span></p>
-                          <p><Tooltip><TooltipTrigger asChild><span tabIndex={0} aria-label="Digital / CEDI">📦</span></TooltipTrigger><TooltipContent>Digital / CEDI</TooltipContent></Tooltip> <span className="font-medium">{(row.stock_digital ?? 0).toLocaleString()}</span></p>
+                          <p><Tooltip><TooltipTrigger asChild><span tabIndex={0} aria-label="En tiendas (piso de venta)">🏪</span></TooltipTrigger><TooltipContent>En tiendas (piso de venta)</TooltipContent></Tooltip> <StockValue value={row.stock_tiendas} /></p>
+                          <p><Tooltip><TooltipTrigger asChild><span tabIndex={0} aria-label="Digital / CEDI">📦</span></TooltipTrigger><TooltipContent>Digital / CEDI</TooltipContent></Tooltip> <StockValue value={row.stock_digital} /></p>
                           {showStandby && (
                             <div className="flex items-center gap-1 text-muted-foreground">
                               <Tooltip>
@@ -441,56 +449,41 @@ export function ProductBehaviorTable({ days, initialWosFilter, initialLocationId
                                   ))}
                                 </TooltipContent>
                               </Tooltip>
-                              <span className="font-medium">{row.stock_standby.toLocaleString("es-CO")}</span>
+                              <StockValue value={row.stock_standby} />
                             </div>
                           )}
                         </div>
                       </TableCell>
 
                       <TableCell className="align-top">
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <div className="w-28 shrink-0 min-w-0 cursor-help">
-                              <p className="text-base font-semibold text-foreground leading-tight">{row.st_periodo ?? 0}%</p>
-                              <p className="text-[10px] uppercase tracking-wide text-muted-foreground">del período</p>
-                              <p className="text-xs text-muted-foreground leading-tight mt-0.5">{row.sell_through_pct ?? 0}%</p>
-                              <p className="text-[10px] uppercase tracking-wide text-muted-foreground">de vida</p>
-                              <Progress
-                                value={Math.min(row.sell_through_pct ?? 0, 100)}
-                                className="h-2 mt-1 bg-muted"
-                                indicatorClassName={getSellThroughColor(row.sell_through_pct ?? 0)}
-                              />
-                            </div>
-                          </TooltipTrigger>
-                          <TooltipContent side="top" className="max-w-xs text-xs leading-relaxed">
-                            <p><strong>Del período:</strong> de lo disponible al iniciar el rango, cuánto se vendió en él. Cambia con el filtro de fechas.</p>
-                            <p className="mt-1"><strong>De vida:</strong> de todo lo que ha existido del producto, cuánto se ha vendido. No depende del filtro.</p>
-                          </TooltipContent>
-                        </Tooltip>
-                        {showStandby && (
-                          <Tooltip>
-                            <TooltipTrigger asChild><span tabIndex={0} className="text-xs text-muted-foreground">ST total {row.st_total ?? 0}%</span></TooltipTrigger>
-                            <TooltipContent className="max-w-xs">Sell-through actual mide contra lo disponible en venta; ST total incluye el inventario detenido en bodega.</TooltipContent>
-                          </Tooltip>
-                        )}
+                        <div className="w-28 shrink-0 min-w-0">
+                          <p className="text-base font-semibold text-foreground leading-tight tabular-nums">{row.st_periodo ?? 0}%</p>
+                          <p className="text-xs text-muted-foreground leading-tight mt-0.5 tabular-nums">{row.sell_through_pct ?? 0}% de vida</p>
+                          <Progress
+                            value={Math.min(row.sell_through_pct ?? 0, 100)}
+                            className="h-2 mt-1 bg-muted"
+                            indicatorClassName={getSellThroughColor(row.sell_through_pct ?? 0)}
+                          />
+                        </div>
                       </TableCell>
 
                       <TableCell className="align-top">
-                        <div className="flex items-start gap-3">
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <div className="w-28 shrink-0 min-w-0 cursor-help">
-                                <p className="text-base font-semibold text-foreground leading-tight">{row.wos == null ? "—" : `${row.wos} sem.`}</p>
-                                <p className="text-[10px] uppercase tracking-wide text-muted-foreground">en piso</p>
-                                <p className="text-xs text-muted-foreground leading-tight mt-0.5">{row.wos_total == null ? "—" : `${row.wos_total} sem.`}</p>
-                                <p className="text-[10px] uppercase tracking-wide text-muted-foreground">con bodega</p>
-                              </div>
-                            </TooltipTrigger>
-                            <TooltipContent side="top" className="max-w-xs text-xs leading-relaxed">
-                              <p><strong>En piso:</strong> semanas de cobertura con lo que está disponible para la venta. Es la señal de reposición.</p>
-                              <p className="mt-1"><strong>Con bodega:</strong> incluye el stock detenido. Es el mismo número que muestra Baja Rotación.</p>
-                            </TooltipContent>
-                          </Tooltip>
+                        <div className="w-28 shrink-0 min-w-0">
+                          {row.wos == null ? (
+                            <p className="text-base font-semibold text-foreground leading-tight">—</p>
+                          ) : (
+                            <>
+                              <p className="text-base font-semibold text-foreground leading-tight tabular-nums">{row.wos} sem.</p>
+                              {row.wos_total != null && (
+                                <p className="text-xs text-muted-foreground leading-tight mt-0.5 tabular-nums">{row.wos_total} con bodega</p>
+                              )}
+                            </>
+                          )}
+                        </div>
+                      </TableCell>
+
+                      <TableCell className="align-top text-center">
+                        <div className="w-36 shrink-0 mx-auto flex justify-center whitespace-nowrap">
                           <StatusBadge label={row.estado_salud} />
                         </div>
                       </TableCell>
@@ -517,4 +510,17 @@ export function ProductBehaviorTable({ days, initialWosFilter, initialLocationId
     </div>
     </TooltipProvider>
   );
+}
+
+function StockValue({ value }: { value: number | null | undefined }) {
+  const v = value ?? 0;
+  if (v < 0) {
+    return (
+      <Tooltip>
+        <TooltipTrigger asChild><span tabIndex={0} className="font-medium cursor-help">0*</span></TooltipTrigger>
+        <TooltipContent>Stock negativo en NetSuite; se muestra como 0</TooltipContent>
+      </Tooltip>
+    );
+  }
+  return <span className="font-medium">{v.toLocaleString("es-CO")}</span>;
 }
