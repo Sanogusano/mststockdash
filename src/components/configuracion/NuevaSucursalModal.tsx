@@ -21,6 +21,7 @@ import {
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { toastErrorUbicacion } from "@/lib/supabase-error";
 import { AlertTriangle } from "lucide-react";
 import { Link } from "react-router-dom";
 
@@ -157,7 +158,7 @@ export function NuevaSucursalModal({ open, onOpenChange }: Props) {
       queryClient.invalidateQueries({ queryKey: ["ubicaciones-gestion"] });
       onOpenChange(false);
     },
-    onError: (err: any) => toast.error(err.message ?? "Error al crear ubicación"),
+    onError: (err: any) => toastErrorUbicacion(err),
   });
 
   const canSubmit =

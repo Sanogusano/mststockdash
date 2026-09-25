@@ -13,6 +13,7 @@ import { Label } from "@/components/ui/label";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { toastErrorUbicacion } from "@/lib/supabase-error";
 import type { UbicacionGestion } from "./UbicacionesTable";
 
 interface Props {
@@ -44,7 +45,7 @@ export function AsignarCodigoOracleModal({ ubicacion, open, onOpenChange }: Prop
       queryClient.invalidateQueries({ queryKey: ["ubicaciones-gestion"] });
       onOpenChange(false);
     },
-    onError: (err: any) => toast.error(err.message ?? "Error al asignar código"),
+    onError: (err: any) => toastErrorUbicacion(err),
   });
 
   if (!ubicacion) return null;

@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/select";
 import { Plus, RefreshCw, Search, MapPin, CheckCircle2, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
+import { toastErrorUbicacion } from "@/lib/supabase-error";
 import { supabase } from "@/integrations/supabase/client";
 import { useUserRole } from "@/hooks/useUserRole";
 import {
@@ -70,7 +71,7 @@ export default function ConfiguracionUbicacionesPage() {
       toast.success(`${count ?? 0} ubicaciones sincronizadas`);
       queryClient.invalidateQueries({ queryKey: ["ubicaciones-gestion"] });
     },
-    onError: (err: any) => toast.error(err.message ?? "Error al sincronizar"),
+    onError: (err: any) => toastErrorUbicacion(err),
   });
 
   // KPIs
