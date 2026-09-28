@@ -13,7 +13,8 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { Download, FileText, Search } from "lucide-react";
+import { Download, FileText, Search, Loader2 } from "lucide-react";
+import { toast } from "@/hooks/use-toast";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
@@ -342,6 +343,92 @@ export default function ReporteRebajasPage() {
     URL.revokeObjectURL(url);
   };
 
+  const [exportingSku, setExportingSku] = useState(false);
+  const handleExportSkuXLS = async () => {
+    setExportingSku(true);
+    try {
+      const { data: skuData, error: skuErr } = await supabase.rpc("reporte_rebajas_activas_sku" as never, {
+        p_coleccion: null,
+        p_linea: null,
+        p_genero: null,
+        p_dias_venta: DIAS_VENTA,
+        p_solo_con_stock: !incluirAgotados,
+      } as never);
+      if (skuErr) throw skuErr;
+      const q = norm(busqueda.trim());
+      const list = ((skuData ?? []) as any[])
+        .filter((r) => coleccion === "all" || r.coleccion === coleccion)
+        .filter((r) => linea === "all" || r.linea === linea)
+        .filter((r) => genero === "all" || r.genero === genero)
+        .filter((r) => !q || norm(r.producto ?? "").includes(q) || norm(r.sku ?? "").includes(q))
+        .sort((a, b) =>
+          (a.linea ?? "").localeCompare(b.linea ?? "", "es") ||
+          (a.coleccion ?? "").localeCompare(b.coleccion ?? "", "es") ||
+          (a.producto ?? "").localeCompare(b.producto ?? "", "es") ||
+          String(a.talla ?? "").localeCompare(String(b.talla ?? ""), "es", { numeric: true })
+        );
+      if (!list.length) {
+        toast({ title: "Sin datos", description: "No hay SKUs para los filtros actuales." });
+        return;
+      }
+      const HEAD = [
+        "SKU", "Talla", "Producto", "Colección", "Línea", "Género",
+        "Precio de Lista", "Precio Actual", "% Descuento",
+        "Stock SKU", "Stock Tiendas", "Stock Online", "Stock Bodega",
+        "Uds. vendidas 90d", "Uds. vendidas en rebaja",
+        "Semanas de vida", "Rebajado desde", "Product ID",
+      ];
+      const wb = new ExcelJS.Workbook();
+      const ws = wb.addWorksheet("Rebajas SKU", { views: [{ state: "frozen", ySplit: 4 }] });
+      ws.columns = [
+        { width: 18 }, { width: 8 }, { width: 40 }, { width: 18 }, { width: 18 }, { width: 12 },
+        { width: 14 }, { width: 14 }, { width: 12 },
+        { width: 10 }, { width: 12 }, { width: 12 }, { width: 12 },
+        { width: 14 }, { width: 16 }, { width: 12 }, { width: 14 }, { width: 16 },
+      ];
+      ws.addRow([`Productos Rebajados SKU Monastery  ·  Generado ${generadoEl()}`]);
+      ws.mergeCells(1, 1, 1, HEAD.length);
+      ws.getRow(1).getCell(1).font = { bold: true, size: 14 };
+      ws.addRow([`Inventario al ${fechaInventario ?? "—"}`]);
+      ws.mergeCells(2, 1, 2, HEAD.length);
+      ws.getRow(2).getCell(1).font = { color: { argb: "FF666666" } };
+      ws.addRow([]);
+      const header = ws.addRow(HEAD);
+      header.height = 24;
+      header.eachCell((cell) => {
+        cell.font = { bold: true, color: { argb: "FFFFFFFF" } };
+        cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF1E40AF" } };
+        cell.alignment = { horizontal: "center", vertical: "middle", wrapText: true };
+      });
+      list.forEach((r) => {
+        const row = ws.addRow([
+          r.sku ?? "", r.talla ?? "", r.producto ?? "", r.coleccion ?? "", r.linea ?? "", r.genero ?? "",
+          Number(r.pvp ?? 0), Number(r.precio_actual ?? 0), Number(r.pct_descuento ?? 0) / 100,
+          Number(r.stock_sku ?? 0), Number(r.stock_tiendas ?? 0), Number(r.stock_online ?? 0), Number(r.stock_bodega ?? 0),
+          Number(r.und_vendidas ?? 0), Number(r.und_desde_rebaja ?? 0),
+          r.semanas_vida ?? "", r.fecha_inicio ?? "", r.product_id ?? "",
+        ]);
+        row.getCell(7).numFmt = '"$" #,##0';
+        row.getCell(8).numFmt = '"$" #,##0';
+        row.getCell(9).numFmt = "0.0%";
+        if (Number(r.pct_descuento ?? 0) > 50) row.getCell(9).font = { bold: true, color: { argb: "FFDC2626" } };
+        if (Number(r.semanas_vida ?? 0) > 52) row.getCell(16).font = { bold: true, color: { argb: "FFDC2626" } };
+      });
+      const buffer = await wb.xlsx.writeBuffer();
+      const blob = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `${nombreArchivo().replace("Productos Rebajados Monastery", "Productos Rebajados SKU Monastery")}.xlsx`;
+      link.click();
+      URL.revokeObjectURL(url);
+    } catch (e: any) {
+      toast({ title: "Error al generar Excel por SKU", description: e?.message ?? String(e), variant: "destructive" });
+    } finally {
+      setExportingSku(false);
+    }
+  };
+
   const handleExportPDF = async () => {
     if (!filtradas.length) return;
     const [logoB64, photos] = await Promise.all([getLogoBase64(), getPhotoThumbnails(filtradas)]);
@@ -477,6 +564,10 @@ export default function ReporteRebajasPage() {
             <div className="flex items-center gap-2">
               <Button onClick={handleExportXLS} disabled={!filtradas.length} size="sm" variant="outline" className="gap-2">
                 <Download className="h-4 w-4" /> Excel
+              </Button>
+              <Button onClick={handleExportSkuXLS} disabled={!filtradas.length || exportingSku} size="sm" variant="outline" className="gap-2">
+                {exportingSku ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+                {exportingSku ? "Generando…" : "Excel por SKU"}
               </Button>
               <Button onClick={handleExportPDF} disabled={!filtradas.length} size="sm" className="gap-2">
                 <FileText className="h-4 w-4" /> PDF
