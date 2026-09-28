@@ -628,12 +628,19 @@ export function ProductBehaviorTable({ days, initialWosFilter, initialLocationId
                                 <p className={cn("text-sm font-semibold tabular-nums", st.text)}>
                                   {Number(row.ritmo_semanal ?? 0) > 0 ? fmtRdv(row.ritmo_semanal) : "0"} u/sem
                                 </p>
-                                {estado !== "SIN COHORTE" && st.chip ? (
+                                {st.chip ? (
                                   <Tooltip>
                                     <TooltipTrigger asChild>
                                       <span tabIndex={0} className={cn("inline-block cursor-help text-[10px] font-medium px-1.5 py-0 rounded", st.chip)}>
-                                        {estado}{idx != null ? ` (${idx})` : ""}
+                                        {estado}{idx != null ? ` (${fmtIdx(idx)})` : ""}
                                       </span>
+                                    </TooltipTrigger>
+                                    <TooltipContent className="max-w-xs text-xs">{tip}</TooltipContent>
+                                  </Tooltip>
+                                ) : estado === "SOLO ONLINE" ? (
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <span tabIndex={0} className="inline-block cursor-help text-[10px] uppercase tracking-wide text-muted-foreground">SOLO ONLINE</span>
                                     </TooltipTrigger>
                                     <TooltipContent className="max-w-xs text-xs">{tip}</TooltipContent>
                                   </Tooltip>
