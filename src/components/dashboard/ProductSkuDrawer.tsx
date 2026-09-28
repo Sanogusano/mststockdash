@@ -19,7 +19,7 @@ interface SkuRow {
   stock_disponible: number;
   precio_prom_venta: number;
   sell_through_pct: number;
-  wos: number;
+  wos: number | null;
   clasificacion: string;
 }
 
@@ -59,11 +59,32 @@ const getClasifColor = (c: string) => {
 };
 
 const getWosColor = (wos: number | null) => {
-  if (wos === null || wos >= 999) return "text-destructive";
-  if (wos > 20) return "text-destructive";
+  if (wos === null || wos > 90) return "text-destructive";
   if (wos < 4) return "text-warning";
   return "text-success";
 };
+
+/* Regla de WOS, igual que en el Resumen Ejecutivo:
+   - null = el SKU no vendió ninguna unidad en las últimas 8 semanas
+     (sin rotación). Se muestra "+99" con badge rojo "SIN ROTACIÓN", nunca 0.
+   - wos > 90 = cobertura excesiva; se muestra "+99" sin badge.
+   - 0..90 se muestra el número con la "w" tal cual. */
+function WosCell({ wos }: { wos: number | null }) {
+  if (wos == null) {
+    return (
+      <div className="inline-flex flex-col items-end gap-0.5">
+        <span className="text-xs font-semibold text-destructive">+99</span>
+        <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-semibold whitespace-nowrap bg-destructive/10 text-destructive">
+          SIN ROTACIÓN
+        </span>
+      </div>
+    );
+  }
+  if (wos > 90) {
+    return <span className="text-xs font-semibold text-destructive">+99</span>;
+  }
+  return <span className="text-xs font-semibold">{wos}w</span>;
+}
 
 export function ProductSkuDrawer({ product, days, locationId, onClose }: Props) {
   const effectiveDays = resolveDays(days);
