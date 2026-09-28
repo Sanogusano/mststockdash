@@ -29,8 +29,14 @@ const PAGE_SIZE = 15;
 
 interface ProductBehaviorRow {
   foto: string;
-  sku: string;
+  product_id: string;
   producto: string;
+  asignadas: number;
+  dias_en_venta: number;
+  semanas_en_venta: number;
+  und_vendidas_vida: number;
+  tallas_con_stock: number;
+  tallas_totales: number;
   categoria: string;
   und_vendidas: number;
   stock_tiendas: number;
@@ -197,11 +203,16 @@ export function ProductBehaviorTable({ days, initialWosFilter, initialLocationId
     if (!rows.length) return;
     exportToCSV(
       rows.map((r) => ({
-        SKU: r.sku,
+        "Product ID": r.product_id,
         Producto: r.producto,
         Categoría: r.categoria,
         Clasificación: r.clasificacion,
         "Und. Vendidas": r.und_vendidas,
+        Asignadas: r.asignadas ?? 0,
+        "Semanas en venta": r.semanas_en_venta ?? 0,
+        "Días en venta": r.dias_en_venta ?? 0,
+        "Tallas con stock": r.tallas_con_stock ?? 0,
+        "Tallas totales": r.tallas_totales ?? 0,
         "Und. Full Price": r.und_full_price ?? 0,
         "Und. Rebajas": r.und_rebajas ?? 0,
         "Und. Promo": r.und_promo ?? 0,
@@ -226,7 +237,12 @@ export function ProductBehaviorTable({ days, initialWosFilter, initialLocationId
     await exportComportamientoProductoPDF(
       rows.map((r) => ({
         foto: r.foto,
-        sku: r.sku,
+        product_id: r.product_id,
+        asignadas: r.asignadas ?? 0,
+        semanas_en_venta: r.semanas_en_venta ?? 0,
+        dias_en_venta: r.dias_en_venta ?? 0,
+        tallas_con_stock: r.tallas_con_stock ?? 0,
+        tallas_totales: r.tallas_totales ?? 0,
         producto: r.producto,
         categoria: r.categoria,
         und_vendidas: r.und_vendidas ?? 0,
@@ -394,11 +410,11 @@ export function ProductBehaviorTable({ days, initialWosFilter, initialLocationId
                   const showStandby = locationId === "all" && row.stock_standby > 0;
 
                   return (
-                    <TableRow key={row.sku} className="cursor-pointer" onClick={() => setSelectedProduct(row)}>
+                    <TableRow key={row.product_id} className="cursor-pointer" onClick={() => setSelectedProduct(row)}>
                       <TableCell>
                         <div className="flex items-center gap-3">
                           {row.foto ? (
-                            <ProductImageThumb src={row.foto} alt={row.producto} sku={row.sku} title={row.producto} className="h-14 w-14 rounded-lg object-cover border border-border shrink-0" />
+                            <ProductImageThumb src={row.foto} alt={row.producto} productId={row.product_id} title={row.producto} className="h-14 w-14 rounded-lg object-cover border border-border shrink-0" />
                           ) : (
                             <div className="h-14 w-14 rounded-lg bg-muted/50 flex items-center justify-center text-muted-foreground text-xs shrink-0">N/A</div>
                           )}
@@ -408,12 +424,26 @@ export function ProductBehaviorTable({ days, initialWosFilter, initialLocationId
                               <p className="text-xs text-muted-foreground">{row.categoria}</p>
                               <CollectionBadge coleccion={row.coleccion} />
                             </div>
+                            {(row.tallas_totales ?? 0) > 0 && (
+                              <p className={cn("text-[11px] tabular-nums", (row.tallas_con_stock ?? 0) < row.tallas_totales / 2 ? "text-warning font-medium" : "text-muted-foreground")}>
+                                {row.tallas_con_stock ?? 0}/{row.tallas_totales} tallas
+                              </p>
+                            )}
                           </div>
                         </div>
                       </TableCell>
 
                       <TableCell className="text-right">
                         <span className="text-base font-semibold text-foreground">{(row.und_vendidas ?? 0).toLocaleString()}</span>
+                      </TableCell>
+
+                      <TableCell className="text-right">
+                        <span className="text-base font-semibold text-foreground tabular-nums">{(row.asignadas ?? 0).toLocaleString()}</span>
+                      </TableCell>
+
+                      <TableCell>
+                        <p className="text-base font-semibold text-foreground leading-tight tabular-nums">{row.semanas_en_venta ?? 0} sem.</p>
+                        <p className="text-xs text-muted-foreground tabular-nums">{row.dias_en_venta ?? 0} días</p>
                       </TableCell>
 
                       <TableCell>
