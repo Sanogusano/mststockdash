@@ -177,21 +177,16 @@ export function ProductSkuDrawer({ product, days, locationId, onClose }: Props) 
         p_hasta: hastaParam,
       });
 
-      // WOS por tienda: la RPC devuelve el nombre de tienda, se cruza con
-      // locations por location_id (el nombre de la RPC puede diferir del de
-      // locations: p. ej. 'Bodega Ecommerce' vs 'CEDI Guayabal').
+      // WOS por tienda: la RPC devuelve solo el nombre de tienda, se cruza con
+      // locations por location_id. Los nombres pueden diferir (la RPC dice
+      // 'Bodega Ecommerce' y locations 'CEDI Guayabal'), así que un nombre de
+      // la RPC sin correspondencia en locations se asigna a la ubicación online.
       const locIdByName = new Map((locRows ?? []).map(l => [l.name, l.location_id]));
-      const unmatched = new Set((storeDetailRows ?? []).map((r: any) => r.tienda).filter((t: string) => !locIdByName.has(t)));
 
       const wosMap = new Map<string, number | null>();
       if (storeDetailRows) {
         for (const r of storeDetailRows as any[]) {
-          const lid = locIdByName.get(r.tienda)
-            // Nombre de la RPC sin correspondencia en locations: es la ubicación
-            // online (única tienda de locations cuyo nombre no aparece en la RPC).
-            ?? (!locIdByName.has("Bodega Ecommerce") && unmatched.has("Bodega Ecommerce") && r.tienda === "Bodega Ecommerce"
-              ? ONLINE_LOCATION_ID
-              : null);
+          const lid = locIdByName.get(r.tienda) ?? ONLINE_LOCATION_ID;
           if (lid) wosMap.set(lid, r.wos ?? null);
         }
       }
