@@ -18,6 +18,7 @@ const RDV_STYLES: Record<string, { text: string; chip: string | null }> = {
   EXCELENTE: { text: "text-blue-600", chip: "bg-blue-100 text-blue-700" },
   AGOTADO: { text: "text-muted-foreground", chip: "bg-muted text-muted-foreground" },
   "SOLO ONLINE": { text: "text-muted-foreground", chip: null },
+  "SIN COMPARABLES": { text: "text-muted-foreground", chip: null },
 };
 import { ProductImageThumb } from "./ProductImageThumb";
 
@@ -52,7 +53,7 @@ interface ProductBehaviorRow {
   ritmo_tienda?: number | null;
   ritmo_online?: number | null;
   rdv_indice?: number | null;
-  rdv_estado?: 'DETENIDO' | 'BAJO' | 'REGULAR' | 'BUENO' | 'EXCELENTE' | 'SOLO ONLINE' | 'AGOTADO' | string | null;
+  rdv_estado?: 'DETENIDO' | 'BAJO' | 'REGULAR' | 'BUENO' | 'EXCELENTE' | 'SOLO ONLINE' | 'SIN COMPARABLES' | 'AGOTADO' | string | null;
   und_vendidas_vida: number;
   tallas_con_stock: number;
   tallas_totales: number;
@@ -616,6 +617,7 @@ export function ProductBehaviorTable({ days, initialWosFilter, initialLocationId
                             const tip = idx != null
                               ? `Vende ${fmtIdx(idx)} más rápido por tienda que la mediana de su cohorte (${row.coleccion || "—"} · ${row.categoria || "—"}) en los últimos 56 días.`
                               : estado === "SOLO ONLINE" ? "Vende solo online. No hay productividad por tienda que comparar."
+                              : estado === "SIN COMPARABLES" ? "Su categoría tiene menos de 8 productos comparables para calcular el índice."
                               : estado === "DETENIDO" ? "Tiene stock pero no vendió una sola unidad en los últimos 56 días."
                               : estado === "AGOTADO" ? "Sin stock. No vende porque no hay unidades."
                               : "Menos de 8 productos comparables para calcular el índice.";
@@ -637,10 +639,10 @@ export function ProductBehaviorTable({ days, initialWosFilter, initialLocationId
                                     </TooltipTrigger>
                                     <TooltipContent className="max-w-xs text-xs">{tip}</TooltipContent>
                                   </Tooltip>
-                                ) : estado === "SOLO ONLINE" ? (
+                                ) : estado === "SOLO ONLINE" || estado === "SIN COMPARABLES" ? (
                                   <Tooltip>
                                     <TooltipTrigger asChild>
-                                      <span tabIndex={0} className="inline-block cursor-help text-[10px] uppercase tracking-wide text-muted-foreground">SOLO ONLINE</span>
+                                      <span tabIndex={0} className="inline-block cursor-help text-[10px] uppercase tracking-wide text-muted-foreground">{estado}</span>
                                     </TooltipTrigger>
                                     <TooltipContent className="max-w-xs text-xs">{tip}</TooltipContent>
                                   </Tooltip>
