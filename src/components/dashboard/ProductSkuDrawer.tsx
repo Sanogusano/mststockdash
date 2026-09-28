@@ -19,7 +19,7 @@ interface SkuRow {
   stock_disponible: number;
   precio_prom_venta: number;
   sell_through_pct: number;
-  wos: number;
+  wos: number | null;
   clasificacion: string;
 }
 
@@ -58,12 +58,27 @@ const getClasifColor = (c: string) => {
   return "text-violet-500";
 };
 
-const getWosColor = (wos: number | null) => {
-  if (wos === null || wos >= 999) return "text-destructive";
-  if (wos > 20) return "text-destructive";
-  if (wos < 4) return "text-warning";
-  return "text-success";
-};
+/* Regla de WOS, igual que en el Resumen Ejecutivo:
+   - null = el SKU no vendió ninguna unidad en las últimas 8 semanas
+     (sin rotación). Se muestra "+99" con badge rojo "SIN ROTACIÓN", nunca 0.
+   - wos > 90 = cobertura excesiva; se muestra "+99" sin badge.
+   - 0..90 se muestra el número con la "w" tal cual. */
+function WosCell({ wos }: { wos: number | null }) {
+  if (wos == null) {
+    return (
+      <div className="inline-flex flex-col items-end gap-0.5">
+        <span className="text-xs font-semibold text-destructive">+99</span>
+        <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-semibold whitespace-nowrap bg-destructive/10 text-destructive">
+          SIN ROTACIÓN
+        </span>
+      </div>
+    );
+  }
+  if (wos > 90) {
+    return <span className="text-xs font-semibold text-destructive">+99</span>;
+  }
+  return <span className="text-xs font-semibold">{wos}w</span>;
+}
 
 export function ProductSkuDrawer({ product, days, locationId, onClose }: Props) {
   const effectiveDays = resolveDays(days);
@@ -156,10 +171,17 @@ export function ProductSkuDrawer({ product, days, locationId, onClose }: Props) 
         p_hasta: hastaParam,
       });
 
-      const wosMap = new Map<string, number>();
+      // WOS por tienda: la RPC devuelve solo el nombre de tienda, se cruza con
+      // locations por location_id. Los nombres pueden diferir (la RPC dice
+      // 'Bodega Ecommerce' y locations 'CEDI Guayabal'), así que un nombre de
+      // la RPC sin correspondencia en locations se asigna a la ubicación online.
+      const locIdByName = new Map((locRows ?? []).map(l => [l.name, l.location_id]));
+
+      const wosMap = new Map<string, number | null>();
       if (storeDetailRows) {
         for (const r of storeDetailRows as any[]) {
-          wosMap.set(r.tienda, r.wos ?? null);
+          const lid = locIdByName.get(r.tienda) ?? ONLINE_LOCATION_ID;
+          if (lid) wosMap.set(lid, r.wos ?? null);
         }
       }
 
@@ -179,7 +201,7 @@ export function ProductSkuDrawer({ product, days, locationId, onClose }: Props) 
             location_id: lid,
             store_name: isOnline ? "Bodega Ecommerce" : name,
             available: avail,
-            wos: wosMap.get(name) ?? null,
+            wos: wosMap.get(lid) ?? null,
             is_current: lid === locationId,
           };
         })
@@ -353,7 +375,7 @@ export function ProductSkuDrawer({ product, days, locationId, onClose }: Props) 
                               <span className="text-xs font-medium w-10 text-right">{row.sell_through_pct ?? 0}%</span>
                             </div>
                           </TableCell>
-                          <TableCell className="text-right text-sm font-medium">{row.wos ?? 0}w</TableCell>
+                          <TableCell className="text-right"><WosCell wos={row.wos} /></TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
@@ -393,9 +415,7 @@ export function ProductSkuDrawer({ product, days, locationId, onClose }: Props) 
                             </div>
                           </TableCell>
                           <TableCell className="text-right text-sm font-semibold">{store.available.toLocaleString()}</TableCell>
-                          <TableCell className={`text-right text-sm font-medium ${getWosColor(store.wos)}`}>
-                            {store.wos === null ? "—" : store.wos >= 999 ? "∞" : `${store.wos}w`}
-                          </TableCell>
+                          <TableCell className="text-right"><WosCell wos={store.wos} /></TableCell>
                           <TableCell>
                             {store.wos === null ? (
                               <span className="text-xs text-muted-foreground">Sin datos</span>
