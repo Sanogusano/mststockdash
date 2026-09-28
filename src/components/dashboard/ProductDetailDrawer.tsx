@@ -1,14 +1,16 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { LoadingState, EmptyState } from "./LoadingState";
-import { getFilterEndDate } from "./TimeFilter";
+import { TimeFilter, buildRpcDateParams } from "./TimeFilter";
+import { Switch } from "@/components/ui/switch";
+import { cn } from "@/lib/utils";
 import { StatusBadge } from "./StatusBadge";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import { exportToCSV } from "@/lib/csv-export";
 import { exportToPDF } from "@/lib/pdf-export";
-import { Download, FileText } from "lucide-react";
+import { Download, FileText, ChevronDown, ChevronRight, Gauge } from "lucide-react";
 import { ProductImageThumb } from "./ProductImageThumb";
 import {
   Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue,
@@ -26,6 +28,42 @@ interface ProductInfo {
   producto: string;
   product_id: string;
   categoria: string;
+}
+
+export interface ProductDrawerMetrics {
+  wos?: number | null;
+  wos_total?: number | null;
+  ritmo_semanal?: number | null;
+  rdv_estado?: string | null;
+  rdv_indice?: number | null;
+  stock_total?: number | null;
+  st_120d?: number | null;
+  sell_through_pct?: number | null;
+}
+
+interface TallaRow { zona: string | null; ubicacion: string; es_bodega: boolean; talla: string; orden_talla: number; unidades: number; }
+
+const RDV_STYLES: Record<string, { text: string; chip: string | null }> = {
+  DETENIDO: { text: "text-red-600", chip: "bg-red-100 text-red-700" },
+  BAJO: { text: "text-orange-600", chip: "bg-orange-100 text-orange-700" },
+  REGULAR: { text: "text-amber-600", chip: "bg-amber-100 text-amber-700" },
+  BUENO: { text: "text-emerald-600", chip: "bg-emerald-100 text-emerald-700" },
+  EXCELENTE: { text: "text-blue-600", chip: "bg-blue-100 text-blue-700" },
+  AGOTADO: { text: "text-muted-foreground", chip: "bg-muted text-muted-foreground" },
+  "SOLO ONLINE": { text: "text-muted-foreground", chip: null },
+  "SIN COMPARABLES": { text: "text-muted-foreground", chip: null },
+};
+const fmtIdx = (v: number) => (v >= 999 ? "+10×" : `${(v / 100).toFixed(1).replace(".", ",")}×`);
+const fmtWos = (v: number | null | undefined) => (v == null || v > 90 ? "+99" : String(v));
+
+function MetricCard({ label, children, sub }: { label: string; children: React.ReactNode; sub?: React.ReactNode }) {
+  return (
+    <div className="rounded-lg border border-border px-3 py-2 min-w-[130px]">
+      <p className="text-[10px] uppercase tracking-wide text-muted-foreground">{label}</p>
+      <div className="text-sm font-semibold text-foreground tabular-nums">{children}</div>
+      {sub && <div className="text-[10px] text-muted-foreground mt-0.5">{sub}</div>}
+    </div>
+  );
 }
 
 interface DetailRow {
@@ -68,23 +106,42 @@ export function ProductDetailDrawer({
   product,
   days,
   onClose,
+  rangeValue,
+  customFrom,
+  customTo,
+  metrics,
 }: {
   product: ProductInfo | null;
   days: number;
   onClose: () => void;
+  /** Valor del TimeFilter de la página (preset/sentinela). Si no llega, se usa `days`. */
+  rangeValue?: number;
+  customFrom?: Date;
+  customTo?: Date;
+  metrics?: ProductDrawerMetrics | null;
 }) {
+  const [dVal, setDVal] = useState<number>(rangeValue ?? days);
+  const [dFrom, setDFrom] = useState<Date | undefined>(customFrom);
+  const [dTo, setDTo] = useState<Date | undefined>(customTo);
+  const [matrixOpen, setMatrixOpen] = useState(false);
+  const [soloDestalladas, setSoloDestalladas] = useState(false);
+  useEffect(() => {
+    if (product) { setDVal(rangeValue ?? days); setDFrom(customFrom); setDTo(customTo); }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [product?.product_id]);
+  const { dias_atras, p_hasta } = buildRpcDateParams(dVal, dFrom, dTo);
   const [storeFilter, setStoreFilter] = useState("all");
   const [wosFilter, setWosFilter] = useState("all");
   const [stFilter, setStFilter] = useState("all");
 
   const { data, isLoading } = useQuery({
-    queryKey: ["detalle-producto-tiendas", product?.product_id, days],
+    queryKey: ["detalle-producto-tiendas", product?.product_id, dias_atras, p_hasta],
     queryFn: async () => {
       if (!product) return [];
       const { data, error } = await supabase.rpc("reporte_detalle_producto_tiendas", {
-        dias_atras: days,
+        dias_atras,
         p_product_id: product.product_id,
-        p_hasta: getFilterEndDate(days),
+        p_hasta,
       });
       if (error) throw new Error(error.message);
       return ((data ?? []) as unknown as DetailRow[]).map((r) => ({ ...r, sell_through_pct: Number(r.st_acum ?? 0) }));
@@ -93,6 +150,49 @@ export function ProductDetailDrawer({
   });
 
   const rows = data ?? [];
+
+  const { data: tallasData } = useQuery({
+    queryKey: ["tallas-producto-ubicacion", product?.product_id],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("reporte_tallas_producto_ubicacion" as any, { p_product_id: product!.product_id });
+      if (error) throw new Error(error.message);
+      return (data ?? []) as unknown as TallaRow[];
+    },
+    enabled: !!product,
+  });
+
+  const tallas = useMemo(() => {
+    const m = new Map<string, { talla: string; orden: number; unidades: number }>();
+    for (const r of tallasData ?? []) {
+      const t = m.get(r.talla) ?? { talla: r.talla, orden: Number(r.orden_talla ?? 0), unidades: 0 };
+      t.unidades += Number(r.unidades ?? 0);
+      m.set(r.talla, t);
+    }
+    return [...m.values()].sort((a, b) => a.orden - b.orden);
+  }, [tallasData]);
+  const totalTallasUnd = tallas.reduce((a, t) => a + t.unidades, 0);
+
+  const tallasPorUbic = useMemo(() => {
+    const m = new Map<string, Map<string, number>>();
+    for (const r of tallasData ?? []) {
+      const u = m.get(r.ubicacion) ?? new Map<string, number>();
+      u.set(r.talla, (u.get(r.talla) ?? 0) + Number(r.unidades ?? 0));
+      m.set(r.ubicacion, u);
+    }
+    return m;
+  }, [tallasData]);
+  const tallasConStock = (ubic: string) => {
+    const u = tallasPorUbic.get(ubic);
+    return u ? [...u.values()].filter((v) => v > 0).length : 0;
+  };
+  const matrixRows = useMemo(() => {
+    const names: string[] = [];
+    for (const r of rows) if (!names.includes(r.tienda)) names.push(r.tienda);
+    for (const n of tallasPorUbic.keys()) if (!names.includes(n)) names.push(n);
+    const list = names.filter((n) => tallasPorUbic.has(n) || rows.some((r) => r.tienda === n));
+    return soloDestalladas ? list.filter((n) => tallasConStock(n) < tallas.length) : list;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rows, tallasPorUbic, soloDestalladas, tallas.length]);
 
   const storeGroups = useMemo(() => {
     const m = new Map<string, string[]>();
@@ -206,12 +306,35 @@ export function ProductDetailDrawer({
                 <div className="min-w-0 flex-1">
                   <SheetTitle className="text-base font-semibold text-foreground leading-tight">{product.producto}</SheetTitle>
                   <p className="text-xs text-muted-foreground mt-0.5">{product.categoria}</p>
+                  {metrics && (() => {
+                    const estado = (metrics.rdv_estado ?? "SOLO ONLINE").toUpperCase();
+                    const st = RDV_STYLES[estado] ?? RDV_STYLES["SOLO ONLINE"];
+                    const rs = Number(metrics.ritmo_semanal ?? 0);
+                    return (
+                      <div className="flex flex-wrap gap-2 mt-3">
+                        <MetricCard label="WOS general" sub="LO DISPONIBILIZADO">{fmtWos(metrics.wos)} sem.</MetricCard>
+                        <MetricCard label="WOS total" sub="TOTALIDAD DE INVENTARIO">{fmtWos(metrics.wos_total)} sem.</MetricCard>
+                        <MetricCard label="RDV" sub={st.chip ? <span className={cn("inline-block text-[10px] font-medium px-1.5 rounded", st.chip)}>{estado}{metrics.rdv_indice != null ? ` (${fmtIdx(metrics.rdv_indice)})` : ""}</span> : <span className={st.text}>{estado}</span>}>
+                          <span className={cn("inline-flex items-center gap-1", st.text)}><Gauge className="h-3 w-3" />{rs > 0 ? rs.toLocaleString("es-CO", { maximumFractionDigits: 1 }) : "0"} u/sem</span>
+                        </MetricCard>
+                        <MetricCard label="Stock total">{Number(metrics.stock_total ?? 0).toLocaleString("es-CO")}</MetricCard>
+                        <MetricCard label="Sell-through" sub={`ST acum. ${metrics.sell_through_pct ?? 0}%`}>{metrics.st_120d ?? 0}% <span className="text-[10px] font-normal text-muted-foreground">120d</span></MetricCard>
+                      </div>
+                    );
+                  })()}
                 </div>
               </div>
             </SheetHeader>
 
             {/* Filters */}
             <div className="px-6 pt-4 pb-2 flex flex-col sm:flex-row items-start sm:items-center gap-3 flex-wrap">
+              <TimeFilter
+                value={dVal}
+                onChange={(v) => { setDFrom(undefined); setDTo(undefined); setDVal(v); }}
+                customFrom={dFrom}
+                customTo={dTo}
+                onCustomRangeChange={(f, t) => { setDFrom(f); setDTo(t); }}
+              />
               <Select value={storeFilter} onValueChange={setStoreFilter}>
                 <SelectTrigger className="w-full sm:w-[200px] h-9 text-sm">
                   <SelectValue placeholder="Todas las tiendas" />
@@ -260,6 +383,27 @@ export function ProductDetailDrawer({
               </Button>
             </div>
 
+            {/* Disponibilidad por talla */}
+            {tallas.length > 0 && (
+              <div className="px-6 pb-2">
+                <p className="text-xs font-semibold text-foreground mb-2">Disponibilidad por talla</p>
+                <div className="flex flex-wrap gap-2">
+                  {tallas.map((t) => {
+                    const pct = totalTallasUnd > 0 ? (t.unidades / totalTallasUnd) * 100 : 0;
+                    const tone = t.unidades === 0 ? "border-destructive/40 bg-destructive/10 text-destructive"
+                      : pct < 10 ? "border-amber-300 bg-amber-50 text-amber-700" : "border-border bg-muted/30 text-foreground";
+                    return (
+                      <div key={t.talla} className={cn("rounded-lg border px-3 py-1.5 min-w-[72px] text-center", tone)}>
+                        <p className="text-xs font-bold">{t.talla}</p>
+                        <p className="text-sm font-semibold tabular-nums">{t.unidades.toLocaleString("es-CO")}</p>
+                        <p className="text-[10px] tabular-nums opacity-80">{pct.toFixed(1).replace(".", ",")}%</p>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
             {/* Detail Table */}
             <div className="px-6 pb-6">
               {isLoading ? (
@@ -278,6 +422,7 @@ export function ProductDetailDrawer({
                         <TableHead className="text-right">Vendidas</TableHead>
                         <TableHead className="text-right">Ingresos</TableHead>
                         <TableHead className="text-right">Stock</TableHead>
+                        <TableHead className="text-right">Tallas</TableHead>
                         <TableHead className="text-right">% Full</TableHead>
                         <TableHead className="text-right">% Dto.</TableHead>
                         <TableHead className="min-w-[140px]">Sell-Through</TableHead>
@@ -307,6 +452,9 @@ export function ProductDetailDrawer({
                           <TableCell className="text-right text-sm font-semibold tabular-nums">{b ? dash : (row.und_vendidas ?? 0).toLocaleString("es-CO")}</TableCell>
                           <TableCell className="text-right text-sm tabular-nums">{b ? dash : `$ ${(row.ingresos ?? 0).toLocaleString("es-CO")}`}</TableCell>
                           <TableCell className="text-right text-sm font-medium tabular-nums">{(row.stock_actual ?? 0).toLocaleString("es-CO")}</TableCell>
+                          <TableCell className="text-right text-sm font-semibold tabular-nums">
+                            {tallas.length === 0 ? dash : (() => { const n = tallasConStock(row.tienda); return <span className={n < tallas.length ? "text-destructive" : "text-success"}>{n}/{tallas.length}</span>; })()}
+                          </TableCell>
                           <TableCell className="text-right">{b ? dash : <span className="text-sm font-medium text-success">{row.pct_full_price}%</span>}</TableCell>
                           <TableCell className="text-right">{b ? dash : <span className="text-sm font-medium text-warning">{row.pct_descuento}%</span>}</TableCell>
                           <TableCell>
@@ -340,6 +488,55 @@ export function ProductDetailDrawer({
                   </Table>
                 </div>
                 </TooltipProvider>
+              )}
+
+              {tallas.length > 0 && (
+                <div className="mt-4 border border-border rounded-lg">
+                  <div className="flex items-center justify-between px-3 py-2">
+                    <button className="flex items-center gap-1 text-sm font-semibold text-foreground" onClick={() => setMatrixOpen((o) => !o)}>
+                      {matrixOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />} Detalle por talla
+                    </button>
+                    {matrixOpen && (
+                      <label className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <Switch checked={soloDestalladas} onCheckedChange={setSoloDestalladas} /> Solo destalladas
+                      </label>
+                    )}
+                  </div>
+                  {matrixOpen && (
+                    <div className="overflow-x-auto border-t border-border">
+                      <Table>
+                        <TableHeader>
+                          <TableRow className="bg-muted/30">
+                            <TableHead>Ubicación</TableHead>
+                            {tallas.map((t) => <TableHead key={t.talla} className="text-center font-bold">{t.talla}</TableHead>)}
+                            <TableHead className="text-right">Total</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {matrixRows.map((name) => {
+                            const u = tallasPorUbic.get(name);
+                            let tot = 0;
+                            return (
+                              <TableRow key={name}>
+                                <TableCell className="text-sm whitespace-nowrap">{name}</TableCell>
+                                {tallas.map((t) => {
+                                  const v = u?.get(t.talla) ?? 0; tot += v;
+                                  return <TableCell key={t.talla} className={cn("text-center text-sm tabular-nums", v === 0 && "bg-destructive/10 text-destructive")}>{v || ""}</TableCell>;
+                                })}
+                                <TableCell className="text-right text-sm font-semibold tabular-nums">{tot.toLocaleString("es-CO")}</TableCell>
+                              </TableRow>
+                            );
+                          })}
+                          <TableRow className="bg-muted/40 font-semibold">
+                            <TableCell className="text-sm">TOTAL</TableCell>
+                            {tallas.map((t) => <TableCell key={t.talla} className="text-center text-sm tabular-nums">{t.unidades.toLocaleString("es-CO")}</TableCell>)}
+                            <TableCell className="text-right text-sm tabular-nums">{totalTallasUnd.toLocaleString("es-CO")}</TableCell>
+                          </TableRow>
+                        </TableBody>
+                      </Table>
+                    </div>
+                  )}
+                </div>
               )}
             </div>
           </>

@@ -755,7 +755,7 @@ export function ProductBehaviorTable({ days, initialWosFilter, initialLocationId
           </>
         )}
       </div>
-      <ProductDetailDrawer product={selectedProduct} days={resolvedDays} onClose={() => setSelectedProduct(null)} />
+      <ProductDetailDrawer product={selectedProduct} days={resolvedDays} rangeValue={days} customFrom={customFrom} customTo={customTo} metrics={selectedProduct} onClose={() => setSelectedProduct(null)} />
     </div>
     </TooltipProvider>
   );

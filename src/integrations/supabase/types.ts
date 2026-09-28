@@ -6458,6 +6458,17 @@ export type Database = {
           r_zona: string
         }[]
       }
+      reporte_tallas_producto_ubicacion: {
+        Args: { p_product_id?: string }
+        Returns: {
+          es_bodega: boolean
+          orden_talla: number
+          talla: string
+          ubicacion: string
+          unidades: number
+          zona: string
+        }[]
+      }
       reporte_tipos_venta: {
         Args: {
           dias_atras: number
