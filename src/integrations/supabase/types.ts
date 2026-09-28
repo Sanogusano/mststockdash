@@ -5369,6 +5369,7 @@ export type Database = {
           stock_total: number
           tallas_con_stock: number
           tallas_totales: number
+          tipo: string
           und_full_price: number
           und_promo: number
           und_rebajas: number
