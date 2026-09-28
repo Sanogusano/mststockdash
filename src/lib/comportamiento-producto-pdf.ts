@@ -3,7 +3,12 @@ import autoTable from "jspdf-autotable";
 
 export interface ComportamientoPDFRow {
   foto: string;
-  sku: string;
+  product_id: string;
+  asignadas: number;
+  semanas_en_venta: number;
+  dias_en_venta: number;
+  tallas_con_stock: number;
+  tallas_totales: number;
   producto: string;
   categoria: string;
   und_vendidas: number;
@@ -77,6 +82,11 @@ export async function exportComportamientoProductoPDF(
       "Foto",
       "Producto",
       "Und. Vendidas",
+      "Asignadas",
+      "Semanas en venta",
+      "Días en venta",
+      "Tallas con stock",
+      "Tallas totales",
       "Full Price",
       "Rebajas",
       "Promo",
@@ -92,8 +102,13 @@ export async function exportComportamientoProductoPDF(
     ]],
     body: rows.map((r) => [
       "",
-      `${stripEmoji(r.producto)}\n${r.sku}  -  ${stripEmoji(r.categoria)}`,
+      `${stripEmoji(r.producto)}\nID ${r.product_id}  -  ${stripEmoji(r.categoria)}`,
       (r.und_vendidas ?? 0).toLocaleString("es-CO"),
+      (r.asignadas ?? 0).toLocaleString("es-CO"),
+      String(r.semanas_en_venta ?? 0),
+      String(r.dias_en_venta ?? 0),
+      String(r.tallas_con_stock ?? 0),
+      String(r.tallas_totales ?? 0),
       (r.und_full_price ?? 0).toLocaleString("es-CO"),
       (r.und_rebajas ?? 0).toLocaleString("es-CO"),
       (r.und_promo ?? 0).toLocaleString("es-CO"),
@@ -119,7 +134,7 @@ export async function exportComportamientoProductoPDF(
       5: { halign: "right" },
       6: { halign: "right" },
       7: { halign: "right" },
-      8: { halign: "right", fontStyle: "bold" },
+      8: { halign: "right" },
       9: { halign: "right" },
       10: { halign: "right" },
       11: { halign: "right" },
@@ -127,6 +142,10 @@ export async function exportComportamientoProductoPDF(
       13: { halign: "right" },
       14: { halign: "right" },
       15: { halign: "right" },
+      16: { halign: "right" },
+      17: { halign: "right" },
+      18: { halign: "right" },
+      19: { halign: "right" },
     },
     didDrawCell: (data) => {
       if (data.section === "body" && data.column.index === 0) {

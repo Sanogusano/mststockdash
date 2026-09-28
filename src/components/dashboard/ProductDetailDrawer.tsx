@@ -23,19 +23,28 @@ import {
 interface ProductInfo {
   foto: string;
   producto: string;
-  sku: string;
+  product_id: string;
   categoria: string;
 }
 
 interface DetailRow {
+  orden: number;
+  zona: string | null;
   tienda: string;
+  es_bodega: boolean;
+  recibido: number;
+  und_vendidas_vida: number;
+  st_120d: number | null;
+  st_acum: number | null;
+  base_st: string | null;
+  ritmo_semanal: number | null;
   und_vendidas: number;
   ingresos: number;
   stock_actual: number;
   pct_full_price: number;
   pct_descuento: number;
   sell_through_pct: number;
-  wos: number;
+  wos: number | null;
   estado_salud: string;
 }
 
@@ -68,16 +77,16 @@ export function ProductDetailDrawer({
   const [stFilter, setStFilter] = useState("all");
 
   const { data, isLoading } = useQuery({
-    queryKey: ["detalle-producto-tiendas", product?.producto, days],
+    queryKey: ["detalle-producto-tiendas", product?.product_id, days],
     queryFn: async () => {
       if (!product) return [];
       const { data, error } = await supabase.rpc("reporte_detalle_producto_tiendas", {
         dias_atras: days,
-        p_producto: product.producto,
+        p_product_id: product.product_id,
         p_hasta: getFilterEndDate(days),
       });
       if (error) throw new Error(error.message);
-      return (data ?? []) as DetailRow[];
+      return ((data ?? []) as unknown as DetailRow[]).map((r) => ({ ...r, sell_through_pct: Number(r.st_acum ?? 0) }));
     },
     enabled: !!product,
   });
@@ -92,9 +101,9 @@ export function ProductDetailDrawer({
     if (wosFilter !== "all") {
       result = result.filter((r) => {
         if (wosFilter === "stagnant") return r.estado_salud.includes("ESTANCADO");
-        if (wosFilter === "risk") return r.wos > 0 && r.wos < 4;
-        if (wosFilter === "optimal") return r.wos >= 4 && r.wos <= 12;
-        if (wosFilter === "overstock") return r.wos > 12;
+        if (wosFilter === "risk") return r.wos != null && r.wos > 0 && r.wos < 4;
+        if (wosFilter === "optimal") return r.wos != null && r.wos >= 4 && r.wos <= 12;
+        if (wosFilter === "overstock") return r.wos == null || r.wos > 12;
         return true;
       });
     }
@@ -123,7 +132,7 @@ export function ProductDetailDrawer({
     exportToCSV(
       filtered.map((r) => ({
         Producto: product.producto,
-        SKU: product.sku,
+        "Product ID": product.product_id,
         Tienda: r.tienda,
         "Und. Vendidas": r.und_vendidas,
         Ingresos: r.ingresos,
@@ -134,7 +143,7 @@ export function ProductDetailDrawer({
         WOS: r.wos,
         Salud: r.estado_salud,
       })),
-      `detalle_${product.sku}`
+      `detalle_${product.product_id}`
     );
   };
 
@@ -152,7 +161,7 @@ export function ProductDetailDrawer({
         WOS: r.wos,
         Salud: r.estado_salud,
       })),
-      `detalle_${product.sku}`,
+      `detalle_${product.product_id}`,
       `Detalle: ${product.producto}`
     );
   };
@@ -169,7 +178,7 @@ export function ProductDetailDrawer({
                   <ProductImageThumb
                     src={product.foto}
                     alt={product.producto}
-                    sku={product.sku}
+                    productId={product.product_id}
                     title={product.producto}
                     className="h-20 w-20 rounded-xl object-cover border border-border shrink-0"
                     loading="eager"
@@ -179,7 +188,6 @@ export function ProductDetailDrawer({
                 )}
                 <div className="min-w-0 flex-1">
                   <SheetTitle className="text-base font-semibold text-foreground leading-tight">{product.producto}</SheetTitle>
-                  <p className="text-sm text-muted-foreground font-mono mt-1">{product.sku}</p>
                   <p className="text-xs text-muted-foreground mt-0.5">{product.categoria}</p>
                 </div>
               </div>
@@ -253,7 +261,7 @@ export function ProductDetailDrawer({
                     </TableHeader>
                     <TableBody>
                       {filtered.map((row) => (
-                        <TableRow key={row.tienda}>
+                        <TableRow key={`${row.orden}-${row.tienda}`}>
                           <TableCell className="text-sm font-medium text-foreground whitespace-nowrap">{row.tienda}</TableCell>
                           <TableCell className="text-right text-sm font-semibold">{row.und_vendidas.toLocaleString()}</TableCell>
                           <TableCell className="text-right text-sm">{formatCurrency(row.ingresos)}</TableCell>
@@ -275,7 +283,7 @@ export function ProductDetailDrawer({
                             </div>
                           </TableCell>
                           <TableCell>
-                            <p className="text-sm font-semibold">{row.wos}</p>
+                            <p className="text-sm font-semibold">{row.wos == null ? "+99" : row.wos > 90 ? "+99" : row.wos}</p>
                             <StatusBadge label={row.estado_salud} />
                           </TableCell>
                         </TableRow>
