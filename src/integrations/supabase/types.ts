@@ -5355,6 +5355,8 @@ export type Database = {
           foto: string
           product_id: string
           producto: string
+          rdv_estado: string
+          rdv_indice: number
           ritmo_online: number
           ritmo_semanal: number
           ritmo_tienda: number
