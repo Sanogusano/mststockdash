@@ -58,12 +58,6 @@ const getClasifColor = (c: string) => {
   return "text-violet-500";
 };
 
-const getWosColor = (wos: number | null) => {
-  if (wos === null || wos > 90) return "text-destructive";
-  if (wos < 4) return "text-warning";
-  return "text-success";
-};
-
 /* Regla de WOS, igual que en el Resumen Ejecutivo:
    - null = el SKU no vendió ninguna unidad en las últimas 8 semanas
      (sin rotación). Se muestra "+99" con badge rojo "SIN ROTACIÓN", nunca 0.
