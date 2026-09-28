@@ -7,7 +7,7 @@ import { StatusBadge } from "./StatusBadge";
 import { ProductDetailDrawer } from "./ProductDetailDrawer";
 import { exportToCSV } from "@/lib/csv-export";
 import { exportComportamientoProductoPDF } from "@/lib/comportamiento-producto-pdf";
-import { Search, Download, FileText, Tag, Pause } from "lucide-react";
+import { Search, Download, FileText, Tag, Pause, Store, Globe, Truck, PackageX, Clock } from "lucide-react";
 import { CollectionBadge } from "./CollectionBadge";
 import { ProductImageThumb } from "./ProductImageThumb";
 
@@ -31,7 +31,11 @@ interface ProductBehaviorRow {
   foto: string;
   product_id: string;
   producto: string;
-  asignadas: number;
+  distribuido: number;
+  dist_tiendas: number;
+  dist_online: number;
+  dist_standby: number;
+  dist_mayoristas: number;
   dias_en_venta: number;
   semanas_en_venta: number;
   und_vendidas_vida: number;
@@ -48,15 +52,89 @@ interface ProductBehaviorRow {
   bod_tiendas: number;
   bod_exportaciones: number;
   clasificacion: string;
-  st_periodo: number;
+  st_120d: number;
   sell_through_pct: number;
-  wos: number;
-  wos_total: number;
+  base_st: "distribuido" | "estimada" | null;
+  wos: number | null;
+  wos_total: number | null;
   estado_salud: string;
   und_full_price: number;
   und_rebajas: number;
   und_promo: number;
   coleccion: string;
+}
+
+const stColor = (pct: number) => (pct >= 70 ? "bg-success" : pct >= 30 ? "bg-warning" : "bg-danger");
+
+function StRow({ label, value, estimated }: { label: string; value: number | null | undefined; estimated?: boolean }) {
+  const v = value ?? 0;
+  return (
+    <div className="flex items-center gap-1.5">
+      <span className="text-[10px] uppercase font-semibold text-muted-foreground w-14 shrink-0">
+        {label}
+        {estimated && (
+          <Tooltip>
+            <TooltipTrigger asChild><span tabIndex={0} className="cursor-help text-warning ml-0.5">*</span></TooltipTrigger>
+            <TooltipContent className="max-w-xs text-xs">Sin historial de traslados suficiente. Lo distribuido se estima como vendido más stock.</TooltipContent>
+          </Tooltip>
+        )}
+      </span>
+      <div className="flex-1 h-2 rounded-full bg-muted overflow-hidden">
+        <div className={cn("h-full rounded-full", stColor(v))} style={{ width: `${Math.min(Math.max(v, 0), 100)}%` }} />
+      </div>
+      <span className="text-[10px] font-semibold text-foreground w-9 text-right shrink-0 tabular-nums">{v}%</span>
+    </div>
+  );
+}
+
+function DistributionBars({ row }: { row: ProductBehaviorRow }) {
+  const items = [
+    { label: "Tiendas", icon: Store, value: row.dist_tiendas ?? 0 },
+    { label: "Online", icon: Globe, value: row.dist_online ?? 0 },
+    { label: "Stand By", icon: Pause, value: row.dist_standby ?? 0 },
+    { label: "Mayoristas", icon: Truck, value: row.dist_mayoristas ?? 0 },
+  ].filter((i) => i.value > 0);
+  const max = Math.max(...items.map((i) => i.value), 1);
+  return (
+    <div className="min-w-[150px] space-y-1">
+      <p className="text-base font-semibold text-foreground tabular-nums">{(row.distribuido ?? 0).toLocaleString("es-CO")}</p>
+      {items.map((i) => (
+        <div key={i.label} className="flex items-center gap-1.5">
+          <Tooltip>
+            <TooltipTrigger asChild><span tabIndex={0} aria-label={i.label}><i.icon className="h-3 w-3 text-muted-foreground shrink-0" /></span></TooltipTrigger>
+            <TooltipContent>{i.label}</TooltipContent>
+          </Tooltip>
+          <div className="flex-1 h-2 rounded-full bg-muted overflow-hidden">
+            <div className="h-full rounded-full bg-primary" style={{ width: `${(i.value / max) * 100}%` }} />
+          </div>
+          <span className="text-[10px] font-semibold text-foreground w-10 text-right shrink-0 tabular-nums">{i.value.toLocaleString("es-CO")}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function DistributionChip({ row }: { row: ProductBehaviorRow }) {
+  const floor = (row.dist_tiendas ?? 0) + (row.dist_online ?? 0);
+  if (floor > 0) {
+    return (
+      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-success/10 text-success">
+        <Truck className="h-3 w-3" /> Distribuido · {row.semanas_en_venta ?? 0} sem.
+      </span>
+    );
+  }
+  if ((row.dist_standby ?? 0) > 0) {
+    return (
+      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-warning/10 text-warning">
+        <Pause className="h-3 w-3" /> En bodega
+      </span>
+    );
+  }
+  return (
+    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-muted text-muted-foreground">
+      <PackageX className="h-3 w-3" /> Sin distribuir
+    </span>
+  );
 }
 
 const WOS_FILTERS = [
@@ -208,7 +286,11 @@ export function ProductBehaviorTable({ days, initialWosFilter, initialLocationId
         Categoría: r.categoria,
         Clasificación: r.clasificacion,
         "Und. Vendidas": r.und_vendidas,
-        Asignadas: r.asignadas ?? 0,
+        Distribuido: r.distribuido ?? 0,
+        "Dist. Tiendas": r.dist_tiendas ?? 0,
+        "Dist. Online": r.dist_online ?? 0,
+        "Dist. Stand By": r.dist_standby ?? 0,
+        "Dist. Mayoristas": r.dist_mayoristas ?? 0,
         "Semanas en venta": r.semanas_en_venta ?? 0,
         "Días en venta": r.dias_en_venta ?? 0,
         "Tallas con stock": r.tallas_con_stock ?? 0,
@@ -224,7 +306,8 @@ export function ProductBehaviorTable({ days, initialWosFilter, initialLocationId
         "Reserva Distribuidores": r.bod_reserva ?? 0,
         "Tiendas Monastery": r.bod_tiendas ?? 0,
         "Exportaciones": r.bod_exportaciones ?? 0,
-        "Sell-Through %": r.sell_through_pct,
+        "ST 120d": r.st_120d ?? 0,
+        "ST Total": r.sell_through_pct ?? 0,
         WOS: r.wos,
         "Estado Salud": r.estado_salud,
       })),
@@ -238,7 +321,11 @@ export function ProductBehaviorTable({ days, initialWosFilter, initialLocationId
       rows.map((r) => ({
         foto: r.foto,
         product_id: r.product_id,
-        asignadas: r.asignadas ?? 0,
+        distribuido: r.distribuido ?? 0,
+        dist_tiendas: r.dist_tiendas ?? 0,
+        dist_online: r.dist_online ?? 0,
+        dist_standby: r.dist_standby ?? 0,
+        dist_mayoristas: r.dist_mayoristas ?? 0,
         semanas_en_venta: r.semanas_en_venta ?? 0,
         dias_en_venta: r.dias_en_venta ?? 0,
         tallas_con_stock: r.tallas_con_stock ?? 0,
@@ -257,7 +344,7 @@ export function ProductBehaviorTable({ days, initialWosFilter, initialLocationId
         bod_reserva: r.bod_reserva ?? 0,
         bod_tiendas: r.bod_tiendas ?? 0,
         bod_exportaciones: r.bod_exportaciones ?? 0,
-
+        st_120d: r.st_120d ?? 0,
         sell_through_pct: r.sell_through_pct ?? 0,
       })),
       "comportamiento_producto",
@@ -378,10 +465,10 @@ export function ProductBehaviorTable({ days, initialWosFilter, initialLocationId
                 <TableRow className="bg-muted/30">
                   <TableHead className="min-w-[240px]">Producto</TableHead>
                   <TableHead className="text-right">Unidades vendidas</TableHead>
-                  <TableHead className="text-right">
+                  <TableHead className="min-w-[170px]">
                     <Tooltip>
-                      <TooltipTrigger asChild><span className="cursor-help underline decoration-dotted underline-offset-4">Asignadas</span></TooltipTrigger>
-                      <TooltipContent side="top" className="max-w-xs text-xs">Unidades enviadas a tiendas y online. No incluye envíos a distribuidores.</TooltipContent>
+                      <TooltipTrigger asChild><span className="cursor-help underline decoration-dotted underline-offset-4">Distribución</span></TooltipTrigger>
+                      <TooltipContent side="top" className="max-w-xs text-xs">Unidades despachadas desde bodega. Mayoristas no entra en el cálculo del sell-through.</TooltipContent>
                     </Tooltip>
                   </TableHead>
                   <TableHead>Tiempo en venta</TableHead>
@@ -431,11 +518,14 @@ export function ProductBehaviorTable({ days, initialWosFilter, initialLocationId
                               <p className="text-xs text-muted-foreground">{row.categoria}</p>
                               <CollectionBadge coleccion={row.coleccion} />
                             </div>
-                            {(row.tallas_totales ?? 0) > 0 && (
-                              <p className={cn("text-[11px] tabular-nums", (row.tallas_con_stock ?? 0) < row.tallas_totales / 2 ? "text-warning font-medium" : "text-muted-foreground")}>
-                                {row.tallas_con_stock ?? 0}/{row.tallas_totales} tallas
-                              </p>
-                            )}
+                            <div className="flex items-center gap-2 flex-wrap">
+                              {(row.tallas_totales ?? 0) > 0 && (
+                                <p className={cn("text-[11px] tabular-nums", (row.tallas_con_stock ?? 0) < row.tallas_totales / 2 ? "text-warning font-medium" : "text-muted-foreground")}>
+                                  {row.tallas_con_stock ?? 0}/{row.tallas_totales} tallas
+                                </p>
+                              )}
+                              <DistributionChip row={row} />
+                            </div>
                           </div>
                         </div>
                       </TableCell>
@@ -444,13 +534,18 @@ export function ProductBehaviorTable({ days, initialWosFilter, initialLocationId
                         <span className="text-base font-semibold text-foreground">{(row.und_vendidas ?? 0).toLocaleString()}</span>
                       </TableCell>
 
-                      <TableCell className="text-right">
-                        <span className="text-base font-semibold text-foreground tabular-nums">{(row.asignadas ?? 0).toLocaleString()}</span>
+                      <TableCell className="align-top">
+                        <DistributionBars row={row} />
                       </TableCell>
 
-                      <TableCell>
-                        <p className="text-base font-semibold text-foreground leading-tight tabular-nums">{row.semanas_en_venta ?? 0} sem.</p>
-                        <p className="text-xs text-muted-foreground tabular-nums">{row.dias_en_venta ?? 0} días</p>
+                      <TableCell className="align-top">
+                        <div className="w-28 shrink-0 flex items-start gap-1.5">
+                          <Clock className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
+                          <div>
+                            <p className="text-base font-semibold text-foreground leading-tight tabular-nums">{row.semanas_en_venta ?? 0} sem.</p>
+                            <p className="text-xs text-muted-foreground tabular-nums">{row.dias_en_venta ?? 0} días</p>
+                          </div>
+                        </div>
                       </TableCell>
 
                       <TableCell>
@@ -493,29 +588,35 @@ export function ProductBehaviorTable({ days, initialWosFilter, initialLocationId
                       </TableCell>
 
                       <TableCell className="align-top">
-                        <div className="w-28 shrink-0 min-w-0">
-                          <p className="text-base font-semibold text-foreground leading-tight tabular-nums">{row.st_periodo ?? 0}%</p>
-                          <p className="text-xs text-muted-foreground leading-tight mt-0.5 tabular-nums">{row.sell_through_pct ?? 0}% de vida</p>
-                          <Progress
-                            value={Math.min(row.sell_through_pct ?? 0, 100)}
-                            className="h-2 mt-1 bg-muted"
-                            indicatorClassName={getSellThroughColor(row.sell_through_pct ?? 0)}
+                        <div className="w-40 shrink-0 min-w-0 space-y-1.5">
+                          <StRow label="ST 120d" value={row.st_120d} />
+                          <StRow
+                            label="ST Total"
+                            value={row.sell_through_pct}
+                            estimated={row.base_st === "estimada"}
                           />
                         </div>
                       </TableCell>
 
                       <TableCell className="align-top">
-                        <div className="w-28 shrink-0 min-w-0">
-                          {row.wos == null ? (
-                            <p className="text-base font-semibold text-foreground leading-tight">—</p>
-                          ) : (
-                            <>
-                              <p className="text-base font-semibold text-foreground leading-tight tabular-nums">{row.wos} sem.</p>
-                              {row.wos_total != null && (
-                                <p className="text-xs text-muted-foreground leading-tight mt-0.5 tabular-nums">{row.wos_total} con bodega</p>
-                              )}
-                            </>
+                        <div className="w-32 shrink-0 min-w-0 space-y-1">
+                          <div className="flex items-baseline justify-between gap-2">
+                            <span className="text-[10px] uppercase font-semibold text-muted-foreground">En piso</span>
+                            {row.wos == null ? (
+                              <span className="text-sm font-semibold text-foreground tabular-nums">+99</span>
+                            ) : (
+                              <span className="text-sm font-semibold text-foreground tabular-nums">{row.wos > 90 ? "+99" : row.wos} sem.</span>
+                            )}
+                          </div>
+                          {row.wos == null && (
+                            <span className="inline-flex px-1.5 py-0.5 rounded text-[9px] font-bold bg-danger/10 text-danger border border-danger/30">SIN ROTACIÓN</span>
                           )}
+                          <div className="flex items-baseline justify-between gap-2">
+                            <span className="text-[10px] uppercase font-semibold text-muted-foreground">Con bodega</span>
+                            <span className="text-xs font-medium text-muted-foreground tabular-nums">
+                              {row.wos_total == null ? "—" : `${row.wos_total > 90 ? "+99" : row.wos_total} sem.`}
+                            </span>
+                          </div>
                         </div>
                       </TableCell>
 
