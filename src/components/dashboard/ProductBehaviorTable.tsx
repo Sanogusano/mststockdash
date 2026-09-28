@@ -7,7 +7,7 @@ import { StatusBadge } from "./StatusBadge";
 import { ProductDetailDrawer } from "./ProductDetailDrawer";
 import { exportToCSV } from "@/lib/csv-export";
 import { exportComportamientoProductoPDF } from "@/lib/comportamiento-producto-pdf";
-import { Search, Download, FileText, Tag, Pause, Store, Globe, Truck, PackageX, Clock } from "lucide-react";
+import { Search, Download, FileText, Tag, Pause, Store, Globe, Truck, PackageX, Clock, Warehouse, Gauge } from "lucide-react";
 import { CollectionBadge } from "./CollectionBadge";
 import { ProductImageThumb } from "./ProductImageThumb";
 
@@ -38,6 +38,9 @@ interface ProductBehaviorRow {
   dist_mayoristas: number;
   dias_en_venta: number;
   semanas_en_venta: number;
+  ritmo_semanal?: number | null;
+  ritmo_tienda?: number | null;
+  ritmo_online?: number | null;
   und_vendidas_vida: number;
   tallas_con_stock: number;
   tallas_totales: number;
@@ -87,12 +90,14 @@ function StRow({ label, value, estimated }: { label: string; value: number | nul
   );
 }
 
+const fmtRdv = (n?: number | null) => Number(n ?? 0).toLocaleString("es-CO", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+
 function DistributionBars({ row }: { row: ProductBehaviorRow }) {
   const items = [
-    { label: "Tiendas", icon: Store, value: row.dist_tiendas ?? 0 },
-    { label: "Online", icon: Globe, value: row.dist_online ?? 0 },
-    { label: "Stand By", icon: Pause, value: row.dist_standby ?? 0 },
-    { label: "Mayoristas", icon: Truck, value: row.dist_mayoristas ?? 0 },
+    { label: "A tiendas", icon: Store, value: row.dist_tiendas ?? 0 },
+    { label: "A online", icon: Globe, value: row.dist_online ?? 0 },
+    { label: "A bodega", icon: Warehouse, value: row.dist_standby ?? 0 },
+    { label: "A mayoristas", icon: Truck, value: row.dist_mayoristas ?? 0 },
   ].filter((i) => i.value > 0);
   const max = Math.max(...items.map((i) => i.value), 1);
   return (
@@ -119,14 +124,14 @@ function DistributionChip({ row }: { row: ProductBehaviorRow }) {
   if (floor > 0) {
     return (
       <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-success/10 text-success">
-        <Truck className="h-3 w-3" /> Distribuido · {row.semanas_en_venta ?? 0} sem.
+        <Truck className="h-3 w-3" /> Distribuido
       </span>
     );
   }
   if ((row.dist_standby ?? 0) > 0) {
     return (
       <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-warning/10 text-warning">
-        <Pause className="h-3 w-3" /> En bodega
+        <Warehouse className="h-3 w-3" /> En bodega
       </span>
     );
   }
@@ -308,6 +313,9 @@ export function ProductBehaviorTable({ days, initialWosFilter, initialLocationId
         "Exportaciones": r.bod_exportaciones ?? 0,
         "ST 120d": r.st_120d ?? 0,
         "ST Total": r.sell_through_pct ?? 0,
+        "RDV Total": Number(r.ritmo_semanal ?? 0),
+        "RDV Tienda": Number(r.ritmo_tienda ?? 0),
+        "RDV Online": Number(r.ritmo_online ?? 0),
         WOS: r.wos,
         "Estado Salud": r.estado_salud,
       })),
@@ -328,6 +336,9 @@ export function ProductBehaviorTable({ days, initialWosFilter, initialLocationId
         dist_mayoristas: r.dist_mayoristas ?? 0,
         semanas_en_venta: r.semanas_en_venta ?? 0,
         dias_en_venta: r.dias_en_venta ?? 0,
+        ritmo_semanal: Number(r.ritmo_semanal ?? 0),
+        ritmo_tienda: Number(r.ritmo_tienda ?? 0),
+        ritmo_online: Number(r.ritmo_online ?? 0),
         tallas_con_stock: r.tallas_con_stock ?? 0,
         tallas_totales: r.tallas_totales ?? 0,
         producto: r.producto,
@@ -468,10 +479,10 @@ export function ProductBehaviorTable({ days, initialWosFilter, initialLocationId
                   <TableHead className="min-w-[170px]">
                     <Tooltip>
                       <TooltipTrigger asChild><span className="cursor-help underline decoration-dotted underline-offset-4">Distribución</span></TooltipTrigger>
-                      <TooltipContent side="top" className="max-w-xs text-xs">Unidades despachadas desde bodega. Mayoristas no entra en el cálculo del sell-through.</TooltipContent>
+                      <TooltipContent side="top" className="max-w-xs text-xs">Unidades despachadas desde bodega, por destino. Es flujo histórico, no el stock actual. Mayoristas no entra en el cálculo del sell-through.</TooltipContent>
                     </Tooltip>
                   </TableHead>
-                  <TableHead>Tiempo en venta</TableHead>
+                  <TableHead className="min-w-[170px]">Tiempo y ritmo</TableHead>
                   <TableHead className="min-w-[180px]">Desglose Ventas</TableHead>
                   <TableHead className="min-w-[110px]">
                     <div className="flex items-center gap-1">
@@ -489,7 +500,7 @@ export function ProductBehaviorTable({ days, initialWosFilter, initialLocationId
                   <TableHead className="min-w-[110px]">
                     <Tooltip>
                       <TooltipTrigger asChild><span className="cursor-help underline decoration-dotted underline-offset-4">WOS</span></TooltipTrigger>
-                      <TooltipContent side="top" className="max-w-xs text-xs leading-relaxed">Arriba: semanas de cobertura con el stock en piso, al ritmo de las últimas 8 semanas. Abajo: incluye el stock en bodega; es el mismo número que muestra Baja Rotación.</TooltipContent>
+                      <TooltipContent side="top" className="max-w-xs text-xs leading-relaxed">Semanas que dura el stock al ritmo de las últimas 8 semanas. A la venta cuenta tiendas y online; Con bodega suma lo detenido.</TooltipContent>
                     </Tooltip>
                   </TableHead>
                   <TableHead className="w-36 text-center">Salud</TableHead>
@@ -539,11 +550,25 @@ export function ProductBehaviorTable({ days, initialWosFilter, initialLocationId
                       </TableCell>
 
                       <TableCell className="align-top">
-                        <div className="w-28 shrink-0 flex items-start gap-1.5">
-                          <Clock className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
-                          <div>
-                            <p className="text-base font-semibold text-foreground leading-tight tabular-nums">{row.semanas_en_venta ?? 0} sem.</p>
-                            <p className="text-xs text-muted-foreground tabular-nums">{row.dias_en_venta ?? 0} días</p>
+                        <div className="w-40 shrink-0">
+                          <div className="flex items-start gap-1.5">
+                            <Clock className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
+                            <div>
+                              <p className="text-base font-semibold text-foreground leading-tight tabular-nums">{row.semanas_en_venta ?? 0} sem.</p>
+                              <p className="text-xs text-muted-foreground tabular-nums">{row.dias_en_venta ?? 0} días</p>
+                            </div>
+                          </div>
+                          <div className="border-t border-border/60 my-1.5" />
+                          <div className="flex items-start gap-1.5">
+                            <Gauge className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
+                            {Number(row.ritmo_semanal ?? 0) > 0 ? (
+                              <div className="whitespace-nowrap">
+                                <p className="text-xs font-medium text-foreground tabular-nums">{fmtRdv(row.ritmo_semanal)} uds/sem</p>
+                                <p className="text-[10px] text-muted-foreground tabular-nums">{fmtRdv(row.ritmo_tienda)} en tienda · {fmtRdv(row.ritmo_online)} online</p>
+                              </div>
+                            ) : (
+                              <p className="text-xs text-muted-foreground">Sin ritmo</p>
+                            )}
                           </div>
                         </div>
                       </TableCell>
@@ -601,7 +626,7 @@ export function ProductBehaviorTable({ days, initialWosFilter, initialLocationId
                       <TableCell className="align-top">
                         <div className="w-32 shrink-0 min-w-0 space-y-1">
                           <div className="flex items-baseline justify-between gap-2">
-                            <span className="text-[10px] uppercase font-semibold text-muted-foreground">En piso</span>
+                            <span className="text-[10px] uppercase font-semibold text-muted-foreground">A la venta</span>
                             {row.wos == null ? (
                               <span className="text-sm font-semibold text-foreground tabular-nums">+99</span>
                             ) : (
