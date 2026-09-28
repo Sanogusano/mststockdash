@@ -430,7 +430,12 @@ function ProductTable({ data, title, exportFilename, days, canalFiltro, location
               <th className="px-3 py-3 text-right text-xs font-medium text-muted-foreground">Unidades Vendidas</th>
               <th className="px-3 py-3 text-left text-xs font-medium text-muted-foreground min-w-[120px]">Clasif.</th>
               <th className="px-3 py-3 text-center text-xs font-medium text-muted-foreground w-32">ST%</th>
-              <th className="px-3 py-3 text-right text-xs font-medium text-muted-foreground">WOS</th>
+              <th className="px-3 py-3 text-right text-xs font-medium text-muted-foreground">
+                <HeaderTooltip
+                  label="WOS"
+                  tip="Semanas de cobertura al ritmo de las últimas 8 semanas. El ritmo es fijo y no cambia con el filtro de fecha."
+                />
+              </th>
             </tr>
           </thead>
           <tbody>
@@ -478,7 +483,7 @@ function ProductTable({ data, title, exportFilename, days, canalFiltro, location
                         <span className="text-[10px] font-medium text-muted-foreground w-10 text-right shrink-0">{stVal.toFixed(1)}%</span>
                       </div>
                     </td>
-                    <td className={cn("px-3 py-3 text-right text-xs font-semibold", getWosStatusColor(row.wos ?? 0))}>{(row.wos ?? 0).toFixed(1)}</td>
+                    <td className="px-3 py-3 text-right"><WosCell wos={row.wos} /></td>
                   </tr>
                   {isExpanded && (
                     <tr>
@@ -527,7 +532,7 @@ function ProductTable({ data, title, exportFilename, days, canalFiltro, location
                                           <span className="text-[10px] text-muted-foreground w-9 text-right shrink-0">{skuSt.toFixed(1)}%</span>
                                         </div>
                                       </td>
-                                      <td className={cn("px-3 py-2 text-right font-semibold", getWosStatusColor(s.wos ?? 0))}>{(s.wos ?? 0).toFixed(1)}</td>
+                                      <td className="px-3 py-2 text-right"><WosCell wos={s.wos} compact /></td>
                                     </tr>
                                   );
                                 })}
