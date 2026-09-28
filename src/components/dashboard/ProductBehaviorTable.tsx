@@ -610,8 +610,8 @@ export function ProductBehaviorTable({ days, initialWosFilter, initialLocationId
                           </div>
                           <div className="border-t border-border/60 my-1.5" />
                           {(() => {
-                            const estado = (row.rdv_estado ?? "SIN COHORTE").toUpperCase();
-                            const st = RDV_STYLES[estado] ?? RDV_STYLES["SIN COHORTE"];
+                            const estado = (row.rdv_estado ?? "SOLO ONLINE").toUpperCase();
+                            const st = RDV_STYLES[estado] ?? RDV_STYLES["SOLO ONLINE"];
                             const idx = row.rdv_indice;
                             const tip = idx != null
                               ? `Vende ${fmtIdx(idx)} más rápido por tienda que la mediana de su cohorte (${row.coleccion || "—"} · ${row.categoria || "—"}) en los últimos 56 días.`
