@@ -5302,7 +5302,7 @@ export type Database = {
           p_sku_filter?: string
         }
         Returns: {
-          asignadas: number
+          base_st: string
           bod_exportaciones: number
           bod_principal: number
           bod_reserva: number
@@ -5311,6 +5311,11 @@ export type Database = {
           clasificacion: string
           coleccion: string
           dias_en_venta: number
+          dist_mayoristas: number
+          dist_online: number
+          dist_standby: number
+          dist_tiendas: number
+          distribuido: number
           estado_salud: string
           foto: string
           product_id: string
@@ -5318,7 +5323,7 @@ export type Database = {
           ritmo_semanal: number
           sell_through_pct: number
           semanas_en_venta: number
-          st_periodo: number
+          st_120d: number
           stock_digital: number
           stock_standby: number
           stock_tiendas: number
