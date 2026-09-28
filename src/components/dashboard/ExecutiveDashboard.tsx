@@ -15,6 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Store, Globe, Download, FileText, DollarSign, ShoppingBag, Receipt, Star, Percent, Tag, Trophy, TrendingDown, TrendingUp, CalendarDays, Package, AlertTriangle, Ruler, Crown, ShieldAlert, MapPin, Banknote } from "lucide-react";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid } from "recharts";
 import { StoreLeaderboard } from "./StoreLeaderboard";
+import { HeaderTooltip } from "@/components/HeaderTooltip";
 import { CollectionBadge } from "./CollectionBadge";
 import { CollectionCompositionCard } from "./CollectionCompositionCard";
 import { ParticipacionGeneroCard } from "./ParticipacionGeneroCard";
@@ -154,7 +155,7 @@ async function fetchTopProductosGlobal(params: {
       precio_promedio: und > 0 ? toNumber(r.venta_neta) / und : 0,
       stock_disponible: stock,
       sell_through_pct: base > 0 ? (und / base) * 100 : 0,
-      wos: velocidad > 0 ? stock / velocidad : 0,
+      wos: velocidad > 0 ? stock / velocidad : null,
       coleccion: r.coleccion ?? "Otros",
     } as ProductRow;
   });
@@ -187,7 +188,7 @@ interface SkuDetailRow {
   stock_disponible: number;
   precio_prom_venta: number | null;
   sell_through_pct: number;
-  wos: number;
+  wos: number | null;
   clasificacion: string;
 }
 
@@ -343,6 +344,22 @@ function getWosStatusColor(wos: number) {
   return "text-destructive";
 }
 
+/* Celda WOS: null = el producto no vendió ninguna unidad en el período
+   (sin rotación). Se muestra "+100" con badge de alerta, nunca 0. */
+function WosCell({ wos, compact }: { wos: number | null; compact?: boolean }) {
+  if (wos == null) {
+    return (
+      <div className="inline-flex flex-col items-end gap-0.5">
+        <span className={cn("font-semibold text-destructive", compact ? "text-xs" : "text-xs")}>+100</span>
+        <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-semibold whitespace-nowrap bg-destructive/10 text-destructive">
+          SIN ROTACIÓN
+        </span>
+      </div>
+    );
+  }
+  return <span className={cn("text-xs font-semibold", getWosStatusColor(wos))}>{wos.toFixed(1)}</span>;
+}
+
 function ProductTable({ data, title, exportFilename, days, canalFiltro, locationFiltro, customFrom, customTo }: {
   data: ProductRow[]; title: string; exportFilename: string;
   days: number; canalFiltro?: string; locationFiltro?: string | null;
@@ -368,7 +385,7 @@ function ProductTable({ data, title, exportFilename, days, canalFiltro, location
       "Unidades Vendidas": r.unidades_vendidas ?? 0,
       Clasificación: r.clasificacion ?? "",
       "ST%": r.sell_through_pct ?? 0,
-      WOS: r.wos ?? 0,
+      WOS: r.wos == null ? "SIN ROTACIÓN" : Number(r.wos.toFixed(1)),
     };
   });
 
@@ -413,7 +430,12 @@ function ProductTable({ data, title, exportFilename, days, canalFiltro, location
               <th className="px-3 py-3 text-right text-xs font-medium text-muted-foreground">Unidades Vendidas</th>
               <th className="px-3 py-3 text-left text-xs font-medium text-muted-foreground min-w-[120px]">Clasif.</th>
               <th className="px-3 py-3 text-center text-xs font-medium text-muted-foreground w-32">ST%</th>
-              <th className="px-3 py-3 text-right text-xs font-medium text-muted-foreground">WOS</th>
+              <th className="px-3 py-3 text-right text-xs font-medium text-muted-foreground">
+                <HeaderTooltip
+                  label="WOS"
+                  tip="Semanas de cobertura al ritmo de las últimas 8 semanas. El ritmo es fijo y no cambia con el filtro de fecha."
+                />
+              </th>
             </tr>
           </thead>
           <tbody>
@@ -461,7 +483,7 @@ function ProductTable({ data, title, exportFilename, days, canalFiltro, location
                         <span className="text-[10px] font-medium text-muted-foreground w-10 text-right shrink-0">{stVal.toFixed(1)}%</span>
                       </div>
                     </td>
-                    <td className={cn("px-3 py-3 text-right text-xs font-semibold", getWosStatusColor(row.wos ?? 0))}>{(row.wos ?? 0).toFixed(1)}</td>
+                    <td className="px-3 py-3 text-right"><WosCell wos={row.wos} /></td>
                   </tr>
                   {isExpanded && (
                     <tr>
@@ -510,7 +532,7 @@ function ProductTable({ data, title, exportFilename, days, canalFiltro, location
                                           <span className="text-[10px] text-muted-foreground w-9 text-right shrink-0">{skuSt.toFixed(1)}%</span>
                                         </div>
                                       </td>
-                                      <td className={cn("px-3 py-2 text-right font-semibold", getWosStatusColor(s.wos ?? 0))}>{(s.wos ?? 0).toFixed(1)}</td>
+                                      <td className="px-3 py-2 text-right"><WosCell wos={s.wos} compact /></td>
                                     </tr>
                                   );
                                 })}

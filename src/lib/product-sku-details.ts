@@ -3,7 +3,7 @@ import { buildRpcDateParams } from "@/components/dashboard/TimeFilter";
 
 export interface ProductSkuDetail {
   sku: string; talla: string; unidades_vendidas: number; stock_disponible: number;
-  precio_prom_venta: number | null; sell_through_pct: number; wos: number; clasificacion: string;
+  precio_prom_venta: number | null; sell_through_pct: number; wos: number | null; clasificacion: string;
 }
 
 // Rankings are grouped by exact catalog title, not by SKU or product_id.
