@@ -614,7 +614,8 @@ export function ProductBehaviorTable({ days, initialWosFilter, initialLocationId
                             const st = RDV_STYLES[estado] ?? RDV_STYLES["SIN COHORTE"];
                             const idx = row.rdv_indice;
                             const tip = idx != null
-                              ? `Vende ${idx}% respecto a la mediana de su cohorte (colección + categoría) en los últimos 56 días.`
+                              ? `Vende ${fmtIdx(idx)} más rápido por tienda que la mediana de su cohorte (${row.coleccion || "—"} · ${row.categoria || "—"}) en los últimos 56 días.`
+                              : estado === "SOLO ONLINE" ? "Vende solo online. No hay productividad por tienda que comparar."
                               : estado === "DETENIDO" ? "Tiene stock pero no vendió una sola unidad en los últimos 56 días."
                               : estado === "AGOTADO" ? "Sin stock. No vende porque no hay unidades."
                               : "Menos de 8 productos comparables para calcular el índice.";
