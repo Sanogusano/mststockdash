@@ -1190,6 +1190,33 @@ export type Database = {
         }
         Relationships: []
       }
+      inventory_negativos_log: {
+        Row: {
+          available_original: number
+          detectado_en: string
+          id: number
+          location_id: string
+          snapshot_date: string
+          variant_id: string
+        }
+        Insert: {
+          available_original: number
+          detectado_en?: string
+          id?: number
+          location_id: string
+          snapshot_date: string
+          variant_id: string
+        }
+        Update: {
+          available_original?: number
+          detectado_en?: string
+          id?: number
+          location_id?: string
+          snapshot_date?: string
+          variant_id?: string
+        }
+        Relationships: []
+      }
       inventory_snapshot: {
         Row: {
           available: number | null
