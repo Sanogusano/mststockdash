@@ -17,7 +17,7 @@ const RDV_STYLES: Record<string, { text: string; chip: string | null }> = {
   BUENO: { text: "text-emerald-600", chip: "bg-emerald-100 text-emerald-700" },
   EXCELENTE: { text: "text-blue-600", chip: "bg-blue-100 text-blue-700" },
   AGOTADO: { text: "text-muted-foreground", chip: "bg-muted text-muted-foreground" },
-  "SIN COHORTE": { text: "text-muted-foreground", chip: null },
+  "SOLO ONLINE": { text: "text-muted-foreground", chip: null },
 };
 import { ProductImageThumb } from "./ProductImageThumb";
 
@@ -52,7 +52,7 @@ interface ProductBehaviorRow {
   ritmo_tienda?: number | null;
   ritmo_online?: number | null;
   rdv_indice?: number | null;
-  rdv_estado?: 'DETENIDO' | 'BAJO' | 'REGULAR' | 'BUENO' | 'EXCELENTE' | 'SIN COHORTE' | 'AGOTADO' | string | null;
+  rdv_estado?: 'DETENIDO' | 'BAJO' | 'REGULAR' | 'BUENO' | 'EXCELENTE' | 'SOLO ONLINE' | 'AGOTADO' | string | null;
   und_vendidas_vida: number;
   tallas_con_stock: number;
   tallas_totales: number;
@@ -104,6 +104,8 @@ function StRow({ label, value, estimated }: { label: string; value: number | nul
 }
 
 const fmtRdv = (n?: number | null) => Number(n ?? 0).toLocaleString("es-CO", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+// Índice RDV topado en 10,0×; la RPC envía 999 cuando el valor real supera el tope.
+const fmtIdx = (idx: number) => (idx === 999 ? "+10×" : `${idx.toFixed(1).replace(".", ",")}×`);
 
 function DistributionBars({ row }: { row: ProductBehaviorRow }) {
   const items = [
@@ -608,11 +610,12 @@ export function ProductBehaviorTable({ days, initialWosFilter, initialLocationId
                           </div>
                           <div className="border-t border-border/60 my-1.5" />
                           {(() => {
-                            const estado = (row.rdv_estado ?? "SIN COHORTE").toUpperCase();
-                            const st = RDV_STYLES[estado] ?? RDV_STYLES["SIN COHORTE"];
+                            const estado = (row.rdv_estado ?? "SOLO ONLINE").toUpperCase();
+                            const st = RDV_STYLES[estado] ?? RDV_STYLES["SOLO ONLINE"];
                             const idx = row.rdv_indice;
                             const tip = idx != null
-                              ? `Vende ${idx}% respecto a la mediana de su cohorte (colección + categoría) en los últimos 56 días.`
+                              ? `Vende ${fmtIdx(idx)} más rápido por tienda que la mediana de su cohorte (${row.coleccion || "—"} · ${row.categoria || "—"}) en los últimos 56 días.`
+                              : estado === "SOLO ONLINE" ? "Vende solo online. No hay productividad por tienda que comparar."
                               : estado === "DETENIDO" ? "Tiene stock pero no vendió una sola unidad en los últimos 56 días."
                               : estado === "AGOTADO" ? "Sin stock. No vende porque no hay unidades."
                               : "Menos de 8 productos comparables para calcular el índice.";
@@ -625,12 +628,19 @@ export function ProductBehaviorTable({ days, initialWosFilter, initialLocationId
                                 <p className={cn("text-sm font-semibold tabular-nums", st.text)}>
                                   {Number(row.ritmo_semanal ?? 0) > 0 ? fmtRdv(row.ritmo_semanal) : "0"} u/sem
                                 </p>
-                                {estado !== "SIN COHORTE" && st.chip ? (
+                                {st.chip ? (
                                   <Tooltip>
                                     <TooltipTrigger asChild>
                                       <span tabIndex={0} className={cn("inline-block cursor-help text-[10px] font-medium px-1.5 py-0 rounded", st.chip)}>
-                                        {estado}{idx != null ? ` (${idx})` : ""}
+                                        {estado}{idx != null ? ` (${fmtIdx(idx)})` : ""}
                                       </span>
+                                    </TooltipTrigger>
+                                    <TooltipContent className="max-w-xs text-xs">{tip}</TooltipContent>
+                                  </Tooltip>
+                                ) : estado === "SOLO ONLINE" ? (
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <span tabIndex={0} className="inline-block cursor-help text-[10px] uppercase tracking-wide text-muted-foreground">SOLO ONLINE</span>
                                     </TooltipTrigger>
                                     <TooltipContent className="max-w-xs text-xs">{tip}</TooltipContent>
                                   </Tooltip>
