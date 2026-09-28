@@ -5710,17 +5710,25 @@ export type Database = {
         }[]
       }
       reporte_detalle_producto_tiendas: {
-        Args: { dias_atras: number; p_hasta?: string; p_producto: string }
+        Args: { dias_atras?: number; p_hasta?: string; p_product_id?: string }
         Returns: {
+          base_st: string
+          es_bodega: boolean
           estado_salud: string
           ingresos: number
+          orden: number
           pct_descuento: number
           pct_full_price: number
-          sell_through_pct: number
+          recibido: number
+          ritmo_semanal: number
+          st_120d: number
+          st_acum: number
           stock_actual: number
           tienda: string
           und_vendidas: number
+          und_vendidas_vida: number
           wos: number
+          zona: string
         }[]
       }
       reporte_detalle_skus_producto: {
