@@ -17,7 +17,7 @@ const RDV_STYLES: Record<string, { text: string; chip: string | null }> = {
   BUENO: { text: "text-emerald-600", chip: "bg-emerald-100 text-emerald-700" },
   EXCELENTE: { text: "text-blue-600", chip: "bg-blue-100 text-blue-700" },
   AGOTADO: { text: "text-muted-foreground", chip: "bg-muted text-muted-foreground" },
-  "SIN COHORTE": { text: "text-muted-foreground", chip: null },
+  "SOLO ONLINE": { text: "text-muted-foreground", chip: null },
 };
 import { ProductImageThumb } from "./ProductImageThumb";
 
@@ -52,7 +52,7 @@ interface ProductBehaviorRow {
   ritmo_tienda?: number | null;
   ritmo_online?: number | null;
   rdv_indice?: number | null;
-  rdv_estado?: 'DETENIDO' | 'BAJO' | 'REGULAR' | 'BUENO' | 'EXCELENTE' | 'SIN COHORTE' | 'AGOTADO' | string | null;
+  rdv_estado?: 'DETENIDO' | 'BAJO' | 'REGULAR' | 'BUENO' | 'EXCELENTE' | 'SOLO ONLINE' | 'AGOTADO' | string | null;
   und_vendidas_vida: number;
   tallas_con_stock: number;
   tallas_totales: number;
@@ -104,6 +104,8 @@ function StRow({ label, value, estimated }: { label: string; value: number | nul
 }
 
 const fmtRdv = (n?: number | null) => Number(n ?? 0).toLocaleString("es-CO", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+// Índice RDV topado en 10,0×; la RPC envía 999 cuando el valor real supera el tope.
+const fmtIdx = (idx: number) => (idx === 999 ? "+10×" : `${idx.toFixed(1).replace(".", ",")}×`);
 
 function DistributionBars({ row }: { row: ProductBehaviorRow }) {
   const items = [
