@@ -177,10 +177,22 @@ export function ProductSkuDrawer({ product, days, locationId, onClose }: Props) 
         p_hasta: hastaParam,
       });
 
-      const wosMap = new Map<string, number>();
+      // WOS por tienda: la RPC devuelve el nombre de tienda, se cruza con
+      // locations por location_id (el nombre de la RPC puede diferir del de
+      // locations: p. ej. 'Bodega Ecommerce' vs 'CEDI Guayabal').
+      const locIdByName = new Map((locRows ?? []).map(l => [l.name, l.location_id]));
+      const unmatched = new Set((storeDetailRows ?? []).map((r: any) => r.tienda).filter((t: string) => !locIdByName.has(t)));
+
+      const wosMap = new Map<string, number | null>();
       if (storeDetailRows) {
         for (const r of storeDetailRows as any[]) {
-          wosMap.set(r.tienda, r.wos ?? null);
+          const lid = locIdByName.get(r.tienda)
+            // Nombre de la RPC sin correspondencia en locations: es la ubicación
+            // online (única tienda de locations cuyo nombre no aparece en la RPC).
+            ?? (!locIdByName.has("Bodega Ecommerce") && unmatched.has("Bodega Ecommerce") && r.tienda === "Bodega Ecommerce"
+              ? ONLINE_LOCATION_ID
+              : null);
+          if (lid) wosMap.set(lid, r.wos ?? null);
         }
       }
 
@@ -200,7 +212,7 @@ export function ProductSkuDrawer({ product, days, locationId, onClose }: Props) 
             location_id: lid,
             store_name: isOnline ? "Bodega Ecommerce" : name,
             available: avail,
-            wos: wosMap.get(name) ?? null,
+            wos: wosMap.get(lid) ?? null,
             is_current: lid === locationId,
           };
         })
@@ -374,7 +386,7 @@ export function ProductSkuDrawer({ product, days, locationId, onClose }: Props) 
                               <span className="text-xs font-medium w-10 text-right">{row.sell_through_pct ?? 0}%</span>
                             </div>
                           </TableCell>
-                          <TableCell className="text-right text-sm font-medium">{row.wos ?? 0}w</TableCell>
+                          <TableCell className="text-right"><WosCell wos={row.wos} /></TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
@@ -414,9 +426,7 @@ export function ProductSkuDrawer({ product, days, locationId, onClose }: Props) 
                             </div>
                           </TableCell>
                           <TableCell className="text-right text-sm font-semibold">{store.available.toLocaleString()}</TableCell>
-                          <TableCell className={`text-right text-sm font-medium ${getWosColor(store.wos)}`}>
-                            {store.wos === null ? "—" : store.wos >= 999 ? "∞" : `${store.wos}w`}
-                          </TableCell>
+                          <TableCell className="text-right"><WosCell wos={store.wos} /></TableCell>
                           <TableCell>
                             {store.wos === null ? (
                               <span className="text-xs text-muted-foreground">Sin datos</span>
