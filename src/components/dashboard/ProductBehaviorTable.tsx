@@ -9,6 +9,16 @@ import { exportToCSV } from "@/lib/csv-export";
 import { exportComportamientoProductoPDF } from "@/lib/comportamiento-producto-pdf";
 import { Search, Download, FileText, Tag, Pause, Store, Globe, Truck, PackageX, Clock, Warehouse, Gauge } from "lucide-react";
 import { CollectionBadge } from "./CollectionBadge";
+
+const RDV_STYLES: Record<string, { text: string; chip: string | null }> = {
+  DETENIDO: { text: "text-red-600", chip: "bg-red-100 text-red-700" },
+  BAJO: { text: "text-orange-600", chip: "bg-orange-100 text-orange-700" },
+  REGULAR: { text: "text-amber-600", chip: "bg-amber-100 text-amber-700" },
+  BUENO: { text: "text-emerald-600", chip: "bg-emerald-100 text-emerald-700" },
+  EXCELENTE: { text: "text-blue-600", chip: "bg-blue-100 text-blue-700" },
+  AGOTADO: { text: "text-muted-foreground", chip: "bg-muted text-muted-foreground" },
+  "SIN COHORTE": { text: "text-muted-foreground", chip: null },
+};
 import { ProductImageThumb } from "./ProductImageThumb";
 
 import { Input } from "@/components/ui/input";
@@ -41,6 +51,8 @@ interface ProductBehaviorRow {
   ritmo_semanal?: number | null;
   ritmo_tienda?: number | null;
   ritmo_online?: number | null;
+  rdv_indice?: number | null;
+  rdv_estado?: 'DETENIDO' | 'BAJO' | 'REGULAR' | 'BUENO' | 'EXCELENTE' | 'SIN COHORTE' | 'AGOTADO' | string | null;
   und_vendidas_vida: number;
   tallas_con_stock: number;
   tallas_totales: number;
@@ -559,17 +571,40 @@ export function ProductBehaviorTable({ days, initialWosFilter, initialLocationId
                             </div>
                           </div>
                           <div className="border-t border-border/60 my-1.5" />
-                          <div className="flex items-start gap-1.5">
-                            <Gauge className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
-                            {Number(row.ritmo_semanal ?? 0) > 0 ? (
-                              <div className="whitespace-nowrap">
-                                <p className="text-xs font-medium text-foreground tabular-nums">{fmtRdv(row.ritmo_semanal)} uds/sem</p>
-                                <p className="text-[10px] text-muted-foreground tabular-nums">{fmtRdv(row.ritmo_tienda)} en tienda · {fmtRdv(row.ritmo_online)} online</p>
+                          {(() => {
+                            const estado = (row.rdv_estado ?? "SIN COHORTE").toUpperCase();
+                            const st = RDV_STYLES[estado] ?? RDV_STYLES["SIN COHORTE"];
+                            const idx = row.rdv_indice;
+                            const tip = idx != null
+                              ? `Vende ${idx}% respecto a la mediana de su cohorte (colección + categoría) en los últimos 56 días.`
+                              : estado === "DETENIDO" ? "Tiene stock pero no vendió una sola unidad en los últimos 56 días."
+                              : estado === "AGOTADO" ? "Sin stock. No vende porque no hay unidades."
+                              : "Menos de 8 productos comparables para calcular el índice.";
+                            return (
+                              <div className="space-y-0.5 whitespace-nowrap">
+                                <div className="flex items-center gap-1">
+                                  <Gauge className="h-3 w-3 text-muted-foreground shrink-0" />
+                                  <span className="text-[10px] uppercase tracking-wide text-muted-foreground">RDV</span>
+                                </div>
+                                <p className={cn("text-sm font-semibold tabular-nums", st.text)}>
+                                  {Number(row.ritmo_semanal ?? 0) > 0 ? fmtRdv(row.ritmo_semanal) : "0"} u/sem
+                                </p>
+                                {estado !== "SIN COHORTE" && st.chip ? (
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <span tabIndex={0} className={cn("inline-block cursor-help text-[10px] font-medium px-1.5 py-0 rounded", st.chip)}>
+                                        {estado}{idx != null ? ` (${idx})` : ""}
+                                      </span>
+                                    </TooltipTrigger>
+                                    <TooltipContent className="max-w-xs text-xs">{tip}</TooltipContent>
+                                  </Tooltip>
+                                ) : (
+                                  <div className="h-[15px]" />
+                                )}
+                                <p className="text-[10px] text-muted-foreground tabular-nums">En tienda {fmtRdv(row.ritmo_tienda)} · Online {fmtRdv(row.ritmo_online)}</p>
                               </div>
-                            ) : (
-                              <p className="text-xs text-muted-foreground">Sin ritmo</p>
-                            )}
-                          </div>
+                            );
+                          })()}
                         </div>
                       </TableCell>
 
