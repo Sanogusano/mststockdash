@@ -154,7 +154,7 @@ async function fetchTopProductosGlobal(params: {
       precio_promedio: und > 0 ? toNumber(r.venta_neta) / und : 0,
       stock_disponible: stock,
       sell_through_pct: base > 0 ? (und / base) * 100 : 0,
-      wos: velocidad > 0 ? stock / velocidad : 0,
+      wos: velocidad > 0 ? stock / velocidad : null,
       coleccion: r.coleccion ?? "Otros",
     } as ProductRow;
   });
@@ -187,7 +187,7 @@ interface SkuDetailRow {
   stock_disponible: number;
   precio_prom_venta: number | null;
   sell_through_pct: number;
-  wos: number;
+  wos: number | null;
   clasificacion: string;
 }
 
