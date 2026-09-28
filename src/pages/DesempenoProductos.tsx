@@ -184,7 +184,13 @@ export default function DesempenoProductosPage() {
   const [data, setData] = useState<ProductRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [selectedProduct, setSelectedProduct] = useState<{ foto: string; producto: string; sku: string; categoria: string } | null>(null);
+  const [selectedProduct, setSelectedProduct] = useState<{ foto: string; producto: string; product_id: string; categoria: string } | null>(null);
+  const openDetalle = async (row: ProductRow) => {
+    const { data: pc } = await supabase.from("product_catalog").select("product_id").eq("sku", row.sku).not("product_id", "is", null).limit(1).maybeSingle();
+    const pid = (pc as { product_id: string | null } | null)?.product_id;
+    if (!pid) return;
+    setSelectedProduct({ foto: row.foto, producto: row.producto, product_id: pid, categoria: row.categoria });
+  };
 
   useEffect(() => {
     let active = true;
@@ -562,7 +568,7 @@ export default function DesempenoProductosPage() {
                         </TableRow>
                         {expandedProduct === row.producto && <TableRow><TableCell colSpan={7} className="bg-muted/20">
                           <ProductSkuBreakdown product={row.producto} days={days} canal={canal} location={locationId} from={rangeFrom} to={rangeTo} />
-                          <Button variant="link" size="sm" onClick={() => setSelectedProduct(row)}>Ver detalle por tienda</Button>
+                          <Button variant="link" size="sm" onClick={() => openDetalle(row)}>Ver detalle por tienda</Button>
                         </TableCell></TableRow>}
                         </Fragment>
                       ))}
