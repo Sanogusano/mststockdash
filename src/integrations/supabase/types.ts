@@ -4739,6 +4739,41 @@ export type Database = {
           wos_actual: number
         }[]
       }
+      get_baja_rotacion_skus: {
+        Args: {
+          p_incluir_no_distribuidos?: boolean
+          p_incluir_rebajas?: boolean
+          p_location_id?: string
+          p_sell_through_max?: number
+          p_semanas_minimas?: number
+        }
+        Returns: {
+          accion: string
+          category: string
+          collection_season: string
+          color: string
+          descuento_actual: number
+          descuento_sugerido: number
+          dias_en_tienda: number
+          es_rebaja: boolean
+          nivel: string
+          pct_del_stock_producto: number
+          precio_actual: number
+          product_id: string
+          sell_through_talla: number
+          semanas_en_tienda: number
+          sku: string
+          stock_bodega: number
+          stock_digital: number
+          stock_linea: number
+          stock_outlet: number
+          stock_talla: number
+          talla: string
+          titulo: string
+          unidades_vendidas_talla: number
+          variant_id: string
+        }[]
+      }
       get_centro_accion_comercial: {
         Args: { p_anio: number; p_mes: number }
         Returns: {
@@ -6308,6 +6343,37 @@ export type Database = {
           und_desde_rebaja: number
           und_vendidas: number
           variantes: number
+        }[]
+      }
+      reporte_rebajas_activas_sku: {
+        Args: {
+          p_coleccion?: string
+          p_dias_venta?: number
+          p_genero?: string
+          p_linea?: string
+          p_solo_con_stock?: boolean
+        }
+        Returns: {
+          coleccion: string
+          fecha_inicio: string
+          foto: string
+          genero: string
+          linea: string
+          pct_descuento: number
+          precio_actual: number
+          product_id: string
+          producto: string
+          pvp: number
+          semanas_vida: number
+          sku: string
+          stock_bodega: number
+          stock_online: number
+          stock_sku: number
+          stock_tiendas: number
+          talla: string
+          und_desde_rebaja: number
+          und_vendidas: number
+          variant_id: string
         }[]
       }
       reporte_rendimiento_red: {
