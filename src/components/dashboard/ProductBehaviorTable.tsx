@@ -377,7 +377,14 @@ export function ProductBehaviorTable({ days, initialWosFilter, initialLocationId
               <TableHeader>
                 <TableRow className="bg-muted/30">
                   <TableHead className="min-w-[240px]">Producto</TableHead>
-                  <TableHead className="text-right">Und.</TableHead>
+                  <TableHead className="text-right">Unidades vendidas</TableHead>
+                  <TableHead className="text-right">
+                    <Tooltip>
+                      <TooltipTrigger asChild><span className="cursor-help underline decoration-dotted underline-offset-4">Asignadas</span></TooltipTrigger>
+                      <TooltipContent side="top" className="max-w-xs text-xs">Unidades enviadas a tiendas y online. No incluye envíos a distribuidores.</TooltipContent>
+                    </Tooltip>
+                  </TableHead>
+                  <TableHead>Tiempo en venta</TableHead>
                   <TableHead className="min-w-[180px]">Desglose Ventas</TableHead>
                   <TableHead className="min-w-[110px]">
                     <div className="flex items-center gap-1">
