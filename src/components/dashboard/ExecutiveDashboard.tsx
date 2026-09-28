@@ -344,18 +344,25 @@ function getWosStatusColor(wos: number) {
   return "text-destructive";
 }
 
-/* Celda WOS: null = el producto no vendió ninguna unidad en el período
-   (sin rotación). Se muestra "+100" con badge de alerta, nunca 0. */
+/* Celda WOS:
+   - null = el producto no vendió ninguna unidad en las últimas 8 semanas
+     (sin rotación). Se muestra "+99" con badge de alerta, nunca 0.
+   - wos > 90 = cobertura excesiva; se muestra "+99" sin badge.
+   - 0..90 se muestra el número tal cual.
+   El orden siempre usa el valor real, no el "+99". */
 function WosCell({ wos, compact }: { wos: number | null; compact?: boolean }) {
   if (wos == null) {
     return (
       <div className="inline-flex flex-col items-end gap-0.5">
-        <span className={cn("font-semibold text-destructive", compact ? "text-xs" : "text-xs")}>+100</span>
+        <span className={cn("font-semibold text-destructive", compact ? "text-xs" : "text-xs")}>+99</span>
         <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-semibold whitespace-nowrap bg-destructive/10 text-destructive">
           SIN ROTACIÓN
         </span>
       </div>
     );
+  }
+  if (wos > 90) {
+    return <span className="text-xs font-semibold text-destructive">+99</span>;
   }
   return <span className={cn("text-xs font-semibold", getWosStatusColor(wos))}>{wos.toFixed(1)}</span>;
 }
