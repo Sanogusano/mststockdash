@@ -105,7 +105,7 @@ function StRow({ label, value, estimated }: { label: string; value: number | nul
 
 const fmtRdv = (n?: number | null) => Number(n ?? 0).toLocaleString("es-CO", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 // Índice RDV topado en 10,0×; la RPC envía 999 cuando el valor real supera el tope.
-const fmtIdx = (idx: number) => (idx === 999 ? "+10×" : `${idx.toFixed(1).replace(".", ",")}×`);
+const fmtIdx = (idx: number) => (idx === 999 ? "+10×" : `${(idx / 100).toFixed(1).replace(".", ",")}×`);
 
 function DistributionBars({ row }: { row: ProductBehaviorRow }) {
   const items = [
