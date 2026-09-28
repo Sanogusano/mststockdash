@@ -67,6 +67,7 @@ interface ProductBehaviorRow {
   bod_tiendas: number;
   bod_exportaciones: number;
   clasificacion: string;
+  tipo: string;
   st_120d: number;
   sell_through_pct: number;
   base_st: "distribuido" | "estimada" | null;
@@ -218,6 +219,9 @@ export function ProductBehaviorTable({ days, initialWosFilter, initialLocationId
   const [selectedProduct, setSelectedProduct] = useState<ProductBehaviorRow | null>(null);
   const [wosFilter, setWosFilter] = useState(initialWosFilter ?? "all");
   const [stFilter, setStFilter] = useState("all");
+  const [tipoFilter, setTipoFilter] = useState("all");
+  const [coleccionFilter, setColeccionFilter] = useState("all");
+  const [clasifFilter, setClasifFilter] = useState("all");
   const [canalFilter, setCanalFilter] = useState("all");
   const [locationId, setLocationId] = useState(initialLocationId ?? "all");
 
@@ -290,7 +294,24 @@ export function ProductBehaviorTable({ days, initialWosFilter, initialLocationId
         if (wosFilter === "risk") return r.wos > 0 && r.wos < 4;
         if (wosFilter === "optimal") return r.wos >= 4 && r.wos <= 12;
         if (wosFilter === "overstock") return r.wos > 12;
-__KEEP__
+        return true;
+      });
+    }
+    if (stFilter !== "all") {
+      all = all.filter((r) => {
+        if (stFilter === "high") return r.sell_through_pct >= 70;
+        if (stFilter === "medium") return r.sell_through_pct >= 30 && r.sell_through_pct < 70;
+        if (stFilter === "low") return r.sell_through_pct < 30;
+        return true;
+      });
+    }
+    return all;
+  }, [data, wosFilter, stFilter, tipoFilter, coleccionFilter, clasifFilter]);
+
+  const totalPages = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
+  const paged = rows.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
+
+  useMemo(() => setPage(0), [search, days, wosFilter, stFilter, locationId, canalFilter, tipoFilter, coleccionFilter, clasifFilter]);
 
   const handleExportCSV = () => {
     if (!rows.length) return;
