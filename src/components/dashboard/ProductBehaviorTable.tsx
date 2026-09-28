@@ -266,8 +266,23 @@ export function ProductBehaviorTable({ days, initialWosFilter, initialLocationId
     retry: 1,
   });
 
+  const buildOpts = (key: "tipo" | "coleccion" | "clasificacion") => {
+    const m = new Map<string, number>();
+    for (const r of data ?? []) {
+      const v = (r[key] ?? "").toString().trim();
+      if (v) m.set(v, (m.get(v) ?? 0) + 1);
+    }
+    return [...m.entries()].sort((a, b) => a[0].localeCompare(b[0], "es"));
+  };
+  const tipoOpts = useMemo(() => buildOpts("tipo"), [data]);
+  const coleccionOpts = useMemo(() => buildOpts("coleccion"), [data]);
+  const clasifOpts = useMemo(() => buildOpts("clasificacion"), [data]);
+
   const rows = useMemo(() => {
     let all = data ?? [];
+    if (tipoFilter !== "all") all = all.filter((r) => (r.tipo ?? "").trim() === tipoFilter);
+    if (coleccionFilter !== "all") all = all.filter((r) => (r.coleccion ?? "").trim() === coleccionFilter);
+    if (clasifFilter !== "all") all = all.filter((r) => (r.clasificacion ?? "").trim() === clasifFilter);
     if (wosFilter !== "all") {
       all = all.filter((r) => {
         if (wosFilter === "unreleased") return r.estado_salud.includes("SIN LIBERAR");
@@ -275,24 +290,7 @@ export function ProductBehaviorTable({ days, initialWosFilter, initialLocationId
         if (wosFilter === "risk") return r.wos > 0 && r.wos < 4;
         if (wosFilter === "optimal") return r.wos >= 4 && r.wos <= 12;
         if (wosFilter === "overstock") return r.wos > 12;
-        return true;
-      });
-    }
-    if (stFilter !== "all") {
-      all = all.filter((r) => {
-        if (stFilter === "high") return r.sell_through_pct >= 70;
-        if (stFilter === "medium") return r.sell_through_pct >= 30 && r.sell_through_pct < 70;
-        if (stFilter === "low") return r.sell_through_pct < 30;
-        return true;
-      });
-    }
-    return all;
-  }, [data, wosFilter, stFilter]);
-
-  const totalPages = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
-  const paged = rows.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
-
-  useMemo(() => setPage(0), [search, days, wosFilter, stFilter, locationId, canalFilter]);
+__KEEP__
 
   const handleExportCSV = () => {
     if (!rows.length) return;
@@ -440,6 +438,23 @@ export function ProductBehaviorTable({ days, initialWosFilter, initialLocationId
             ))}
           </SelectContent>
         </Select>
+        {([
+          { value: tipoFilter, set: setTipoFilter, all: "Todos los tipos", opts: tipoOpts },
+          { value: coleccionFilter, set: setColeccionFilter, all: "Todas las colecciones", opts: coleccionOpts },
+          { value: clasifFilter, set: setClasifFilter, all: "Toda la clasificación", opts: clasifOpts },
+        ]).map((f) => (
+          <Select key={f.all} value={f.value} onValueChange={f.set}>
+            <SelectTrigger className="w-full sm:w-[200px] h-10">
+              <SelectValue placeholder={f.all} />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">{f.all}</SelectItem>
+              {f.opts.map(([v, n]) => (
+                <SelectItem key={v} value={v}>{v} ({n.toLocaleString("es-CO")})</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        ))}
       </div>
 
       {/* Export row */}
@@ -509,7 +524,7 @@ export function ProductBehaviorTable({ days, initialWosFilter, initialLocationId
                       <TooltipContent side="top" className="max-w-xs text-xs leading-relaxed">Arriba: lo vendido en el período sobre lo que había disponible. Cambia con el filtro. Abajo: de todo lo que ha existido del producto, cuánto se ha vendido. No cambia con el filtro.</TooltipContent>
                     </Tooltip>
                   </TableHead>
-                  <TableHead className="min-w-[110px]">
+                  <TableHead className="min-w-[150px] whitespace-nowrap">
                     <Tooltip>
                       <TooltipTrigger asChild><span className="cursor-help underline decoration-dotted underline-offset-4">WOS</span></TooltipTrigger>
                       <TooltipContent side="top" className="max-w-xs text-xs leading-relaxed">Semanas que dura el stock al ritmo de las últimas 8 semanas. A la venta cuenta tiendas y online; Con bodega suma lo detenido.</TooltipContent>
@@ -659,24 +674,27 @@ export function ProductBehaviorTable({ days, initialWosFilter, initialLocationId
                       </TableCell>
 
                       <TableCell className="align-top">
-                        <div className="w-32 shrink-0 min-w-0 space-y-1">
-                          <div className="flex items-baseline justify-between gap-2">
-                            <span className="text-[10px] uppercase font-semibold text-muted-foreground">A la venta</span>
-                            {row.wos == null ? (
-                              <span className="text-sm font-semibold text-foreground tabular-nums">+99</span>
-                            ) : (
-                              <span className="text-sm font-semibold text-foreground tabular-nums">{row.wos > 90 ? "+99" : row.wos} sem.</span>
-                            )}
-                          </div>
-                          {row.wos == null && (
-                            <span className="inline-flex px-1.5 py-0.5 rounded text-[9px] font-bold bg-danger/10 text-danger border border-danger/30">SIN ROTACIÓN</span>
-                          )}
-                          <div className="flex items-baseline justify-between gap-2">
-                            <span className="text-[10px] uppercase font-semibold text-muted-foreground">Con bodega</span>
-                            <span className="text-xs font-medium text-muted-foreground tabular-nums">
-                              {row.wos_total == null ? "—" : `${row.wos_total > 90 ? "+99" : row.wos_total} sem.`}
-                            </span>
-                          </div>
+                        <div className="w-36 shrink-0 min-w-0">
+                          {(() => {
+                            const fmtW = (v: number | null) => v == null || v > 90 ? "+99" : Number(v).toLocaleString("es-CO", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+                            const lbl = "text-[10px] uppercase tracking-wide text-muted-foreground mt-0.5";
+                            return (
+                              <>
+                                <div>
+                                  <span className="inline-block border border-border rounded-md px-2 py-1 text-base font-semibold text-foreground tabular-nums whitespace-nowrap">{fmtW(row.wos)} Semanas</span>
+                                  {row.wos == null
+                                    ? <p className={cn(lbl, "text-danger font-bold")}>SIN ROTACIÓN</p>
+                                    : <p className={lbl}>Lo disponibilizado</p>}
+                                </div>
+                                <div className="mt-2">
+                                  <p className="text-sm font-medium text-foreground tabular-nums whitespace-nowrap">{fmtW(row.wos_total)} Semanas</p>
+                                  {row.wos_total == null
+                                    ? <p className={cn(lbl, "text-danger font-bold")}>SIN ROTACIÓN</p>
+                                    : <p className={lbl}>Totalidad de inventario</p>}
+                                </div>
+                              </>
+                            );
+                          })()}
                         </div>
                       </TableCell>
 
