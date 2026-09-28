@@ -5355,7 +5355,9 @@ export type Database = {
           foto: string
           product_id: string
           producto: string
+          ritmo_online: number
           ritmo_semanal: number
+          ritmo_tienda: number
           sell_through_pct: number
           semanas_en_venta: number
           st_120d: number

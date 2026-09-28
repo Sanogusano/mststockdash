@@ -29,6 +29,9 @@ export interface ComportamientoPDFRow {
   bod_tiendas: number;
   bod_exportaciones: number;
   sell_through_pct: number;
+  ritmo_semanal: number;
+  ritmo_tienda: number;
+  ritmo_online: number;
 }
 
 const stripEmoji = (s: string) =>
@@ -36,6 +39,8 @@ const stripEmoji = (s: string) =>
     .replace(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{1F000}-\u{1F2FF}]/gu, "")
     .replace(/\s+/g, " ")
     .trim();
+
+const fmt1 = (n: number) => (n ?? 0).toLocaleString("es-CO", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 
 async function urlToDataUrl(url: string): Promise<string | null> {
   try {
@@ -109,6 +114,9 @@ export async function exportComportamientoProductoPDF(
       "Exportaciones",
       "ST 120d",
       "ST Total",
+      "RDV Total",
+      "RDV Tienda",
+      "RDV Online",
     ]],
     body: rows.map((r) => [
       "",
@@ -136,6 +144,9 @@ export async function exportComportamientoProductoPDF(
       (r.bod_exportaciones ?? 0).toLocaleString("es-CO"),
       `${r.st_120d ?? 0}%`,
       `${r.sell_through_pct ?? 0}%`,
+      fmt1(r.ritmo_semanal),
+      fmt1(r.ritmo_tienda),
+      fmt1(r.ritmo_online),
     ]),
     styles: { fontSize: 7, cellPadding: 4, minCellHeight: ROW_H, valign: "middle", font: "helvetica" },
     headStyles: { fillColor: [30, 41, 59], textColor: 255, fontStyle: "bold", halign: "center" },
@@ -166,6 +177,9 @@ export async function exportComportamientoProductoPDF(
       22: { halign: "right" },
       23: { halign: "right" },
       24: { halign: "right" },
+      25: { halign: "right" },
+      26: { halign: "right" },
+      27: { halign: "right" },
     },
     didDrawCell: (data) => {
       if (data.section === "body" && data.column.index === 0) {
