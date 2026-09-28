@@ -11,8 +11,9 @@ import { exportToPDF } from "@/lib/pdf-export";
 import { Download, FileText } from "lucide-react";
 import { ProductImageThumb } from "./ProductImageThumb";
 import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+  Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   Sheet, SheetContent, SheetHeader, SheetTitle,
 } from "@/components/ui/sheet";
@@ -93,13 +94,23 @@ export function ProductDetailDrawer({
 
   const rows = data ?? [];
 
-  const storeNames = useMemo(() => [...new Set(rows.map((r) => r.tienda))].sort(), [rows]);
+  const storeGroups = useMemo(() => {
+    const m = new Map<string, string[]>();
+    for (const r of rows) {
+      const z = r.zona ?? "Sin zona";
+      const list = m.get(z) ?? [];
+      if (!list.includes(r.tienda)) list.push(r.tienda);
+      m.set(z, list);
+    }
+    return [...m.entries()];
+  }, [rows]);
 
   const filtered = useMemo(() => {
     let result = rows;
     if (storeFilter !== "all") result = result.filter((r) => r.tienda === storeFilter);
     if (wosFilter !== "all") {
       result = result.filter((r) => {
+        if (r.es_bodega) return true;
         if (wosFilter === "stagnant") return r.estado_salud.includes("ESTANCADO");
         if (wosFilter === "risk") return r.wos != null && r.wos > 0 && r.wos < 4;
         if (wosFilter === "optimal") return r.wos != null && r.wos >= 4 && r.wos <= 12;
@@ -109,6 +120,7 @@ export function ProductDetailDrawer({
     }
     if (stFilter !== "all") {
       result = result.filter((r) => {
+        if (r.es_bodega) return true;
         if (stFilter === "high") return r.sell_through_pct >= 70;
         if (stFilter === "medium") return r.sell_through_pct >= 30 && r.sell_through_pct < 70;
         if (stFilter === "low") return r.sell_through_pct < 30;
@@ -124,23 +136,24 @@ export function ProductDetailDrawer({
     return "bg-danger";
   };
 
-  const formatCurrency = (n: number) =>
-    new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", minimumFractionDigits: 0 }).format(n);
-
   const handleExportCSV = () => {
     if (!filtered.length || !product) return;
     exportToCSV(
       filtered.map((r) => ({
         Producto: product.producto,
         "Product ID": product.product_id,
+        Zona: r.zona ?? "",
         Tienda: r.tienda,
-        "Und. Vendidas": r.und_vendidas,
+        Recibido: r.es_bodega ? "" : r.recibido,
+        "Und. Vendidas": r.es_bodega ? "" : r.und_vendidas,
+        "Vendidas de vida": r.es_bodega ? "" : r.und_vendidas_vida,
         Ingresos: r.ingresos,
-        "% Full Price": r.pct_full_price,
-        "% Descuento": r.pct_descuento,
+        "% Full Price": r.es_bodega ? "" : r.pct_full_price,
+        "% Descuento": r.es_bodega ? "" : r.pct_descuento,
         Stock: r.stock_actual,
-        "Sell-Through %": r.sell_through_pct,
-        WOS: r.wos,
+        "ST 120d": r.es_bodega ? "" : r.st_120d ?? "",
+        "ST acum.": r.es_bodega ? "" : r.st_acum ?? "",
+        WOS: r.es_bodega ? "" : r.wos ?? "SIN ROTACIÓN",
         Salud: r.estado_salud,
       })),
       `detalle_${product.product_id}`
@@ -151,14 +164,18 @@ export function ProductDetailDrawer({
     if (!filtered.length || !product) return;
     exportToPDF(
       filtered.map((r) => ({
+        Zona: r.zona ?? "",
         Tienda: r.tienda,
-        "Und.": r.und_vendidas,
+        Recibido: r.es_bodega ? "—" : r.recibido,
+        "Und.": r.es_bodega ? "—" : r.und_vendidas,
+        "Vida": r.es_bodega ? "—" : r.und_vendidas_vida,
         Ingresos: r.ingresos,
-        "% Full": r.pct_full_price,
-        "% Dto.": r.pct_descuento,
+        "% Full": r.es_bodega ? "—" : r.pct_full_price,
+        "% Dto.": r.es_bodega ? "—" : r.pct_descuento,
         Stock: r.stock_actual,
-        "ST%": r.sell_through_pct,
-        WOS: r.wos,
+        "ST 120d": r.es_bodega ? "—" : r.st_120d ?? "—",
+        "ST acum.": r.es_bodega ? "—" : r.st_acum ?? "—",
+        WOS: r.es_bodega ? "—" : r.wos ?? "SIN ROTACIÓN",
         Salud: r.estado_salud,
       })),
       `detalle_${product.product_id}`,
@@ -201,8 +218,13 @@ export function ProductDetailDrawer({
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Todas las tiendas</SelectItem>
-                  {storeNames.map((name) => (
-                    <SelectItem key={name} value={name}>{name}</SelectItem>
+                  {storeGroups.map(([zona, names]) => (
+                    <SelectGroup key={zona}>
+                      <SelectLabel className="text-xs text-muted-foreground">{zona}</SelectLabel>
+                      {names.map((name) => (
+                        <SelectItem key={name} value={name}>{name}</SelectItem>
+                      ))}
+                    </SelectGroup>
                   ))}
                 </SelectContent>
               </Select>
@@ -245,52 +267,77 @@ export function ProductDetailDrawer({
               ) : !filtered.length ? (
                 <EmptyState message="Sin datos para este filtro." />
               ) : (
-                <div className="border border-border rounded-lg overflow-hidden mt-2">
+                <TooltipProvider delayDuration={200}>
+                <div className="border border-border rounded-lg overflow-x-auto mt-2">
                   <Table>
                     <TableHeader>
                       <TableRow className="bg-muted/30">
+                        <TableHead className="w-10 text-right">#</TableHead>
                         <TableHead>Tienda</TableHead>
-                        <TableHead className="text-right">Und.</TableHead>
-                        <TableHead className="text-right">Ingresos</TableHead>
+                        <TableHead className="text-right">Recibido</TableHead>
+                        <TableHead className="text-right">Vendidas</TableHead>
+                        <TableHead className="text-right">Stock</TableHead>
                         <TableHead className="text-right">% Full</TableHead>
                         <TableHead className="text-right">% Dto.</TableHead>
-                        <TableHead className="text-right">Stock</TableHead>
-                        <TableHead className="min-w-[120px]">ST%</TableHead>
+                        <TableHead className="min-w-[140px]">Sell-Through</TableHead>
                         <TableHead>WOS</TableHead>
+                        <TableHead>Salud</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {filtered.map((row) => (
+                      {filtered.map((row) => {
+                        const b = row.es_bodega;
+                        const dash = <span className="text-muted-foreground">—</span>;
+                        const acum = Number(row.st_acum ?? 0);
+                        const est = row.base_st === "estimada" && (
+                          <Tooltip>
+                            <TooltipTrigger asChild><span className="cursor-help text-warning font-bold ml-0.5">*</span></TooltipTrigger>
+                            <TooltipContent className="max-w-xs text-xs">Sin historial de traslados suficiente para este producto en esta tienda. Lo recibido se estima como vendido más stock.</TooltipContent>
+                          </Tooltip>
+                        );
+                        return (
                         <TableRow key={`${row.orden}-${row.tienda}`}>
-                          <TableCell className="text-sm font-medium text-foreground whitespace-nowrap">{row.tienda}</TableCell>
-                          <TableCell className="text-right text-sm font-semibold">{row.und_vendidas.toLocaleString()}</TableCell>
-                          <TableCell className="text-right text-sm">{formatCurrency(row.ingresos)}</TableCell>
-                          <TableCell className="text-right">
-                            <span className="text-sm font-medium text-success">{row.pct_full_price}%</span>
+                          <TableCell className="text-right text-xs text-muted-foreground tabular-nums">{row.orden}</TableCell>
+                          <TableCell className="whitespace-nowrap">
+                            <p className="text-sm font-medium text-foreground">{row.tienda}</p>
+                            {row.zona && <p className="text-[11px] text-muted-foreground">{row.zona}</p>}
                           </TableCell>
-                          <TableCell className="text-right">
-                            <span className="text-sm font-medium text-warning">{row.pct_descuento}%</span>
-                          </TableCell>
-                          <TableCell className="text-right text-sm font-medium">{row.stock_actual.toLocaleString()}</TableCell>
+                          <TableCell className="text-right text-sm tabular-nums">{b ? dash : (row.recibido ?? 0).toLocaleString("es-CO")}</TableCell>
+                          <TableCell className="text-right text-sm font-semibold tabular-nums">{b ? dash : (row.und_vendidas ?? 0).toLocaleString("es-CO")}</TableCell>
+                          <TableCell className="text-right text-sm font-medium tabular-nums">{(row.stock_actual ?? 0).toLocaleString("es-CO")}</TableCell>
+                          <TableCell className="text-right">{b ? dash : <span className="text-sm font-medium text-success">{row.pct_full_price}%</span>}</TableCell>
+                          <TableCell className="text-right">{b ? dash : <span className="text-sm font-medium text-warning">{row.pct_descuento}%</span>}</TableCell>
                           <TableCell>
-                            <div className="flex items-center gap-1.5">
-                              <Progress
-                                value={Math.min(row.sell_through_pct, 100)}
-                                className="h-2 flex-1 bg-muted"
-                                indicatorClassName={getSellThroughColor(row.sell_through_pct)}
-                              />
-                              <span className="text-xs font-medium w-10 text-right">{row.sell_through_pct}%</span>
-                            </div>
+                            {b ? dash : (
+                              <div className="w-32">
+                                <p className="text-sm font-semibold tabular-nums leading-tight">
+                                  {row.st_120d == null ? "—" : `${row.st_120d}%`} <span className="text-[10px] font-normal text-muted-foreground">120d</span>{est}
+                                </p>
+                                <p className="text-xs tabular-nums text-muted-foreground leading-tight">
+                                  {row.st_acum == null ? "—" : `${row.st_acum}%`} <span className="text-[10px]">acum.</span>{est}
+                                </p>
+                                <Progress value={Math.min(acum, 100)} className="h-2 mt-1 bg-muted" indicatorClassName={getSellThroughColor(acum)} />
+                              </div>
+                            )}
                           </TableCell>
                           <TableCell>
-                            <p className="text-sm font-semibold">{row.wos == null ? "+99" : row.wos > 90 ? "+99" : row.wos}</p>
-                            <StatusBadge label={row.estado_salud} />
+                            {b ? dash : (
+                              <>
+                                <p className="text-sm font-semibold tabular-nums">{row.wos == null || row.wos > 90 ? "+99" : row.wos}</p>
+                                {row.wos == null && (
+                                  <span className="inline-block mt-0.5 rounded px-1.5 py-0.5 text-[10px] font-bold bg-destructive/10 text-destructive">SIN ROTACIÓN</span>
+                                )}
+                              </>
+                            )}
                           </TableCell>
+                          <TableCell><StatusBadge label={row.estado_salud} /></TableCell>
                         </TableRow>
-                      ))}
+                        );
+                      })}
                     </TableBody>
                   </Table>
                 </div>
+                </TooltipProvider>
               )}
             </div>
           </>
