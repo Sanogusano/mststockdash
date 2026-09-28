@@ -276,6 +276,7 @@ export function ProductDetailDrawer({
                         <TableHead>Tienda</TableHead>
                         <TableHead className="text-right">Recibido</TableHead>
                         <TableHead className="text-right">Vendidas</TableHead>
+                        <TableHead className="text-right">Ingresos</TableHead>
                         <TableHead className="text-right">Stock</TableHead>
                         <TableHead className="text-right">% Full</TableHead>
                         <TableHead className="text-right">% Dto.</TableHead>
@@ -304,6 +305,7 @@ export function ProductDetailDrawer({
                           </TableCell>
                           <TableCell className="text-right text-sm tabular-nums">{b ? dash : (row.recibido ?? 0).toLocaleString("es-CO")}</TableCell>
                           <TableCell className="text-right text-sm font-semibold tabular-nums">{b ? dash : (row.und_vendidas ?? 0).toLocaleString("es-CO")}</TableCell>
+                          <TableCell className="text-right text-sm tabular-nums">{b ? dash : `$ ${(row.ingresos ?? 0).toLocaleString("es-CO")}`}</TableCell>
                           <TableCell className="text-right text-sm font-medium tabular-nums">{(row.stock_actual ?? 0).toLocaleString("es-CO")}</TableCell>
                           <TableCell className="text-right">{b ? dash : <span className="text-sm font-medium text-success">{row.pct_full_price}%</span>}</TableCell>
                           <TableCell className="text-right">{b ? dash : <span className="text-sm font-medium text-warning">{row.pct_descuento}%</span>}</TableCell>
