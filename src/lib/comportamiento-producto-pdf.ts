@@ -4,7 +4,12 @@ import autoTable from "jspdf-autotable";
 export interface ComportamientoPDFRow {
   foto: string;
   product_id: string;
-  asignadas: number;
+  distribuido: number;
+  dist_tiendas: number;
+  dist_online: number;
+  dist_standby: number;
+  dist_mayoristas: number;
+  st_120d: number;
   semanas_en_venta: number;
   dias_en_venta: number;
   tallas_con_stock: number;
@@ -82,7 +87,11 @@ export async function exportComportamientoProductoPDF(
       "Foto",
       "Producto",
       "Und. Vendidas",
-      "Asignadas",
+      "Distribuido",
+      "Dist. Tiendas",
+      "Dist. Online",
+      "Dist. Stand By",
+      "Dist. Mayoristas",
       "Semanas en venta",
       "Días en venta",
       "Tallas con stock",
@@ -98,13 +107,18 @@ export async function exportComportamientoProductoPDF(
       "Reserva Distribuidores",
       "Tiendas Monastery",
       "Exportaciones",
-      "Sell-Through %",
+      "ST 120d",
+      "ST Total",
     ]],
     body: rows.map((r) => [
       "",
       `${stripEmoji(r.producto)}\nID ${r.product_id}  -  ${stripEmoji(r.categoria)}`,
       (r.und_vendidas ?? 0).toLocaleString("es-CO"),
-      (r.asignadas ?? 0).toLocaleString("es-CO"),
+      (r.distribuido ?? 0).toLocaleString("es-CO"),
+      (r.dist_tiendas ?? 0).toLocaleString("es-CO"),
+      (r.dist_online ?? 0).toLocaleString("es-CO"),
+      (r.dist_standby ?? 0).toLocaleString("es-CO"),
+      (r.dist_mayoristas ?? 0).toLocaleString("es-CO"),
       String(r.semanas_en_venta ?? 0),
       String(r.dias_en_venta ?? 0),
       String(r.tallas_con_stock ?? 0),
@@ -120,9 +134,10 @@ export async function exportComportamientoProductoPDF(
       (r.bod_reserva ?? 0).toLocaleString("es-CO"),
       (r.bod_tiendas ?? 0).toLocaleString("es-CO"),
       (r.bod_exportaciones ?? 0).toLocaleString("es-CO"),
+      `${r.st_120d ?? 0}%`,
       `${r.sell_through_pct ?? 0}%`,
     ]),
-    styles: { fontSize: 8, cellPadding: 4, minCellHeight: ROW_H, valign: "middle", font: "helvetica" },
+    styles: { fontSize: 7, cellPadding: 4, minCellHeight: ROW_H, valign: "middle", font: "helvetica" },
     headStyles: { fillColor: [30, 41, 59], textColor: 255, fontStyle: "bold", halign: "center" },
     alternateRowStyles: { fillColor: [248, 250, 252] },
     columnStyles: {
@@ -146,6 +161,11 @@ export async function exportComportamientoProductoPDF(
       17: { halign: "right" },
       18: { halign: "right" },
       19: { halign: "right" },
+      20: { halign: "right" },
+      21: { halign: "right" },
+      22: { halign: "right" },
+      23: { halign: "right" },
+      24: { halign: "right" },
     },
     didDrawCell: (data) => {
       if (data.section === "body" && data.column.index === 0) {
