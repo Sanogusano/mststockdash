@@ -15,6 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Store, Globe, Download, FileText, DollarSign, ShoppingBag, Receipt, Star, Percent, Tag, Trophy, TrendingDown, TrendingUp, CalendarDays, Package, AlertTriangle, Ruler, Crown, ShieldAlert, MapPin, Banknote } from "lucide-react";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid } from "recharts";
 import { StoreLeaderboard } from "./StoreLeaderboard";
+import { HeaderTooltip } from "@/components/HeaderTooltip";
 import { CollectionBadge } from "./CollectionBadge";
 import { CollectionCompositionCard } from "./CollectionCompositionCard";
 import { ParticipacionGeneroCard } from "./ParticipacionGeneroCard";
@@ -343,6 +344,22 @@ function getWosStatusColor(wos: number) {
   return "text-destructive";
 }
 
+/* Celda WOS: null = el producto no vendió ninguna unidad en el período
+   (sin rotación). Se muestra "+100" con badge de alerta, nunca 0. */
+function WosCell({ wos, compact }: { wos: number | null; compact?: boolean }) {
+  if (wos == null) {
+    return (
+      <div className="inline-flex flex-col items-end gap-0.5">
+        <span className={cn("font-semibold text-destructive", compact ? "text-xs" : "text-xs")}>+100</span>
+        <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-semibold whitespace-nowrap bg-destructive/10 text-destructive">
+          SIN ROTACIÓN
+        </span>
+      </div>
+    );
+  }
+  return <span className={cn("text-xs font-semibold", getWosStatusColor(wos))}>{wos.toFixed(1)}</span>;
+}
+
 function ProductTable({ data, title, exportFilename, days, canalFiltro, locationFiltro, customFrom, customTo }: {
   data: ProductRow[]; title: string; exportFilename: string;
   days: number; canalFiltro?: string; locationFiltro?: string | null;
@@ -368,7 +385,7 @@ function ProductTable({ data, title, exportFilename, days, canalFiltro, location
       "Unidades Vendidas": r.unidades_vendidas ?? 0,
       Clasificación: r.clasificacion ?? "",
       "ST%": r.sell_through_pct ?? 0,
-      WOS: r.wos ?? 0,
+      WOS: r.wos == null ? "SIN ROTACIÓN" : Number(r.wos.toFixed(1)),
     };
   });
 
