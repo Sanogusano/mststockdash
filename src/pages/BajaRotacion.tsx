@@ -10,7 +10,8 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Download, FileText, AlertTriangle, AlertCircle, CircleOff, ChevronDown, ChevronRight, Store, Tag, Globe, Pause } from "lucide-react";
+import { Download, FileText, AlertTriangle, AlertCircle, CircleOff, ChevronDown, ChevronRight, Store, Tag, Globe, Pause, Loader2 } from "lucide-react";
+import { toast } from "@/hooks/use-toast";
 import { CollectionBadge } from "@/components/dashboard/CollectionBadge";
 import { supabase } from "@/integrations/supabase/client";
 import { exportToXLS } from "@/lib/xls-export";
@@ -382,6 +383,62 @@ export default function BajaRotacionPage() {
     exportToXLS(data, `baja-rotacion-${new Date().toISOString().slice(0, 10)}`, "Baja Rotación");
   };
 
+  const [exportingSku, setExportingSku] = useState(false);
+  const handleExportSku = async () => {
+    setExportingSku(true);
+    try {
+      const { data, error } = await supabase.rpc("get_baja_rotacion_skus", {
+        p_semanas_minimas: Number(semanasMin),
+        p_sell_through_max: 30,
+        p_location_id: null,
+        p_incluir_rebajas: incluirRebajas,
+        p_incluir_no_distribuidos: incluirNoDistribuidos,
+      } as any);
+      if (error) throw error;
+      const rowsSku = ((data ?? []) as any[]).filter((r) => {
+        if (nivel !== "todos" && r.nivel !== nivel) return false;
+        if (categoria !== "todas" && r.category !== categoria) return false;
+        if (coleccion !== "todas" && (r.collection_season ?? "") !== coleccion) return false;
+        return true;
+      });
+      if (!rowsSku.length) {
+        toast({ title: "Sin datos", description: "No hay SKUs para los filtros actuales." });
+        return;
+      }
+      const out = rowsSku.map((r) => ({
+        SKU: r.sku,
+        Talla: r.talla,
+        Producto: r.titulo,
+        "Product ID": r.product_id,
+        Categoría: r.category,
+        Color: r.color,
+        Colección: r.collection_season ?? "",
+        Nivel: NIVEL_LABELS[r.nivel]?.label ?? r.nivel,
+        "Stock talla": Number(r.stock_talla) || 0,
+        "Stock Línea": Number(r.stock_linea) || 0,
+        "Stock Outlet": Number(r.stock_outlet) || 0,
+        "Stock Digital": Number(r.stock_digital) || 0,
+        "Stock Bodega": Number(r.stock_bodega) || 0,
+        "% del stock del producto": Number(r.pct_del_stock_producto) || 0,
+        "Unidades vendidas": Number(r.unidades_vendidas_talla) || 0,
+        "Sell-through talla (%)": Number(r.sell_through_talla) || 0,
+        "Semanas en tienda": r.semanas_en_tienda ?? "—",
+        "Días en tienda": r.dias_en_tienda ?? "—",
+        "Precio actual": Number(r.precio_actual) || 0,
+        "Es rebaja": r.es_rebaja ? "Sí" : "No",
+        "Descuento actual (%)": Number(r.descuento_actual) || 0,
+        "Descuento sugerido (%)": Number(r.descuento_sugerido) || 0,
+        "Acción sugerida": r.accion,
+      }));
+      exportToXLS(out, `baja-rotacion-sku-${new Date().toISOString().slice(0, 10)}`, "Baja Rotación SKU");
+    } catch (e: any) {
+      toast({ title: "Error al generar Excel por SKU", description: e?.message ?? String(e), variant: "destructive" });
+    } finally {
+      setExportingSku(false);
+    }
+  };
+
+
   const handleExportPDF = async () => {
     if (!filtered.length) return;
     const logoB64 = await getLogoBase64();
@@ -492,6 +549,10 @@ export default function BajaRotacionPage() {
             <div className="flex items-center gap-2">
               <Button onClick={handleExport} disabled={!filtered.length} size="sm" variant="outline" className="gap-2">
                 <Download className="h-4 w-4" /> Excel
+              </Button>
+              <Button onClick={handleExportSku} disabled={!filtered.length || exportingSku} size="sm" variant="outline" className="gap-2">
+                {exportingSku ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+                {exportingSku ? "Generando…" : "Excel por SKU"}
               </Button>
               <Button onClick={handleExportPDF} disabled={!filtered.length} size="sm" className="gap-2">
                 <FileText className="h-4 w-4" /> PDF
