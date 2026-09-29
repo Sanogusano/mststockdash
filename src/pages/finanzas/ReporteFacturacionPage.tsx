@@ -433,7 +433,7 @@ export default function ReporteFacturacionPage() {
             <div className="sm:col-span-2 xl:col-span-6">
               <LoadingState rows={0} />
             </div>
-          ) : (<>{cards.map((c) => (
+          ) : (<>{cards.slice(0, 4).map((c) => (
             <Card key={c.key} onClick={() => {
               setCardFiltro(cardFiltro === c.key ? null : c.key);
               if (c.key !== "pendiente") setSoloPend(false);
@@ -455,6 +455,20 @@ export default function ReporteFacturacionPage() {
                 <p className="text-xs text-muted-foreground tabular-nums">{fmtCOP(sfStats.montoTotal)}</p>
               </CardContent>
             </Card>
+            {cards.slice(4).map((c) => (
+            <Card key={c.key} onClick={() => {
+              setCardFiltro(cardFiltro === c.key ? null : c.key);
+              if (c.key !== "pendiente") setSoloPend(false);
+              setVista("pedidos");
+            }}
+              className={cn("cursor-pointer transition-shadow hover:shadow-md", c.cls, vista === "pedidos" && cardFiltro === c.key && "ring-2 ring-primary")}>
+              <CardContent className="p-4">
+                <p className="text-xs font-medium">{c.title}</p>
+                <p className="text-2xl font-semibold tabular-nums">{fmtInt(resumen[c.key].n)}</p>
+                 <p className="text-xs text-muted-foreground tabular-nums">{c.key === "diferencia" ? `${fmtCOP(resumen[c.key].d)} en diferencias` : `${fmtCOP(resumen[c.key].v)} venta neta`}</p>
+              </CardContent>
+            </Card>
+          ))}
           </>)}
         </div>
         {vista === "pedidos" && cardFiltro && <Button variant="link" size="sm" className="h-auto px-0 mb-4" onClick={() => setCardFiltro(null)}>Quitar filtro de estado</Button>}
