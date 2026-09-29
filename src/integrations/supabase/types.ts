@@ -4708,6 +4708,16 @@ export type Database = {
           warning: string
         }[]
       }
+      generar_snapshot_desde_netsuite: {
+        Args: { p_forzar?: boolean }
+        Returns: {
+          fecha: string
+          filas_borradas: number
+          filas_escritas: number
+          ubicaciones: number
+          unidades: number
+        }[]
+      }
       gestion_comercial: {
         Args: { p_anio?: number; p_mes?: number }
         Returns: {
@@ -6134,6 +6144,30 @@ export type Database = {
           total_pedidos: number
           unidades_vendidas: number
           upt: number
+        }[]
+      }
+      reporte_matriz_tallas_producto: {
+        Args: {
+          p_location_id?: string
+          p_product_id: string
+          p_umbral_brecha?: number
+        }
+        Returns: {
+          brecha_pct: number
+          cargado_pct: number
+          demanda_pct: number
+          estado: string
+          orden_talla: number
+          ritmo_semanal: number
+          sell_through_pct: number
+          skus: string
+          stock_bodega: number
+          stock_tiendas: number
+          talla: string
+          ubicaciones_con_talla: number
+          ubicaciones_total: number
+          und_vendidas_vida: number
+          wos_talla: number
         }[]
       }
       reporte_mayor_stock_baja_rotacion: {
