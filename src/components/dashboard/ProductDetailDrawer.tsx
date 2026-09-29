@@ -1,16 +1,17 @@
 import { useState, useMemo, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { format } from "date-fns";
+import { es } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
 import { LoadingState, EmptyState } from "./LoadingState";
-import { TimeFilter, buildRpcDateParams } from "./TimeFilter";
-import { Switch } from "@/components/ui/switch";
+import { TimeFilter, buildRpcDateParams, getDateRange } from "./TimeFilter";
 import { cn } from "@/lib/utils";
 import { StatusBadge } from "./StatusBadge";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import { exportToCSV } from "@/lib/csv-export";
 import { exportToPDF } from "@/lib/pdf-export";
-import { Download, FileText, ChevronDown, ChevronRight, Gauge, Clock, Store } from "lucide-react";
+import { Download, FileText, Gauge, Clock, Store, Copy, Check } from "lucide-react";
 import { ProductImageThumb } from "./ProductImageThumb";
 import {
   Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue,
@@ -40,9 +41,30 @@ export interface ProductDrawerMetrics {
   stock_total?: number | null;
   st_120d?: number | null;
   sell_through_pct?: number | null;
+  und_vendidas?: number | null;
+  semanas_en_venta?: number | null;
+  dias_en_venta?: number | null;
 }
 
 interface TallaRow { zona: string | null; ubicacion: string; es_bodega: boolean; talla: string; orden_talla: number; unidades: number; }
+
+interface TallaMatrixRow {
+  talla: string;
+  orden_talla: number;
+  skus: string | null;
+  stock_tiendas: number;
+  stock_bodega: number;
+  cargado_pct: number | null;
+  ritmo_semanal: number | null;
+  demanda_pct: number | null;
+  brecha_pct: number | null;
+  wos_talla: number | null;
+  ubicaciones_con_talla: number;
+  ubicaciones_total: number;
+  und_vendidas_vida: number;
+  sell_through_pct: number | null;
+  estado: string | null;
+}
 
 const RDV_STYLES: Record<string, { text: string; chip: string | null }> = {
   DETENIDO: { text: "text-red-600", chip: "bg-red-100 text-red-700" },
@@ -56,6 +78,42 @@ const RDV_STYLES: Record<string, { text: string; chip: string | null }> = {
 };
 const fmtIdx = (v: number) => (v >= 999 ? "+10×" : `${(v / 100).toFixed(1).replace(".", ",")}×`);
 const fmtWos = (v: number | null | undefined) => (v == null || v > 90 ? "+99" : String(v));
+const ONLINE_LOCATION_ID = "71474315479";
+
+const tallaStateClass = (estado: string | null) => {
+  const value = (estado ?? "").toUpperCase();
+  if (value === "REPONER") return "bg-warning/10";
+  if (value === "SIN RESPALDO") return "bg-destructive/10";
+  if (value === "SOBRA") return "bg-primary/5";
+  return "";
+};
+
+const tallaStateTextClass = (estado: string | null) => {
+  const value = (estado ?? "").toUpperCase();
+  if (value === "REPONER") return "text-warning";
+  if (value === "SIN RESPALDO") return "text-destructive";
+  if (value === "SOBRA") return "text-primary";
+  return "text-muted-foreground";
+};
+
+const formatDecimal = (value: number | null | undefined) => value == null
+  ? "—"
+  : Number(value).toLocaleString("es-CO", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+const formatPercent = (value: number | null | undefined) => value == null ? "—" : `${formatDecimal(value)}%`;
+
+const formatGap = (value: number | null | undefined) => {
+  if (value == null) return "—";
+  const numeric = Number(value);
+  const formatted = Math.abs(numeric).toLocaleString("es-CO", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+  return `${numeric > 0 ? "+" : numeric < 0 ? "−" : ""}${formatted}`;
+};
+
+const gapTextClass = (value: number | null | undefined) => {
+  const numeric = Number(value ?? 0);
+  if (numeric > 0) return "text-warning";
+  if (numeric < 0) return "text-primary";
+  return "text-muted-foreground";
+};
 
 function MetricCard({ label, children, sub }: { label: string; children: React.ReactNode; sub?: React.ReactNode }) {
   return (
@@ -126,8 +184,7 @@ export function ProductDetailDrawer({
   const [dVal, setDVal] = useState<number>(rangeValue ?? days);
   const [dFrom, setDFrom] = useState<Date | undefined>(customFrom);
   const [dTo, setDTo] = useState<Date | undefined>(customTo);
-  const [matrixOpen, setMatrixOpen] = useState(false);
-  const [soloDestalladas, setSoloDestalladas] = useState(false);
+  const [copiedSize, setCopiedSize] = useState<string | null>(null);
   useEffect(() => {
     if (product) { setDVal(rangeValue ?? days); setDFrom(customFrom); setDTo(customTo); }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -136,6 +193,17 @@ export function ProductDetailDrawer({
   const [storeFilter, setStoreFilter] = useState("all");
   const [wosFilter, setWosFilter] = useState("all");
   const [stFilter, setStFilter] = useState("all");
+
+  const { data: locationsData } = useQuery({
+    queryKey: ["locations-product-detail"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("locations").select("location_id, name");
+      if (error) throw new Error(error.message);
+      return data ?? [];
+    },
+    enabled: !!product,
+    staleTime: 5 * 60 * 1000,
+  });
 
   const { data, isLoading } = useQuery({
     queryKey: ["detalle-producto-tiendas", product?.product_id, dias_atras, p_hasta],
@@ -154,6 +222,31 @@ export function ProductDetailDrawer({
 
   const rows = data ?? [];
 
+  const locationIdByName = useMemo(() => {
+    const map = new Map((locationsData ?? []).map((location) => [location.name, location.location_id]));
+    map.set("Bodega Ecommerce", ONLINE_LOCATION_ID);
+    return map;
+  }, [locationsData]);
+
+  const selectedLocationId = storeFilter === "all" ? null : locationIdByName.get(storeFilter) ?? null;
+
+  const { data: sizeMatrixData, isLoading: sizeMatrixLoading } = useQuery({
+    queryKey: ["matriz-tallas-producto", product?.product_id, selectedLocationId],
+    queryFn: async () => {
+      if (!product) return [];
+      const { data, error } = await supabase.rpc("reporte_matriz_tallas_producto" as any, {
+        p_product_id: product.product_id,
+        p_location_id: selectedLocationId,
+        p_umbral_brecha: null,
+      });
+      if (error) throw new Error(error.message);
+      return ((data ?? []) as unknown as TallaMatrixRow[]).sort((a, b) => Number(a.orden_talla ?? 0) - Number(b.orden_talla ?? 0));
+    },
+    enabled: !!product && (storeFilter === "all" || selectedLocationId != null),
+  });
+
+  const sizeMatrix = sizeMatrixData ?? [];
+
   const { data: tallasData } = useQuery({
     queryKey: ["tallas-producto-ubicacion", product?.product_id],
     queryFn: async () => {
@@ -164,7 +257,7 @@ export function ProductDetailDrawer({
     enabled: !!product,
   });
 
-  const { tallas, denomUbic } = useMemo(() => {
+  const { tallas } = useMemo(() => {
     const m = new Map<string, { talla: string; orden: number; unidades: number; enBodega: number; ubics: Set<string> }>();
     const allUbic = new Set<string>();
     for (const r of tallasData ?? []) {
@@ -181,10 +274,8 @@ export function ProductDetailDrawer({
     }
     return {
       tallas: [...m.values()].sort((a, b) => a.orden - b.orden).map((t) => ({ ...t, cobertura: t.ubics.size })),
-      denomUbic: allUbic.size,
     };
   }, [tallasData]);
-  const totalTallasUnd = tallas.reduce((a, t) => a + t.unidades, 0);
 
   const tallasPorUbic = useMemo(() => {
     const m = new Map<string, Map<string, number>>();
@@ -199,15 +290,6 @@ export function ProductDetailDrawer({
     const u = tallasPorUbic.get(ubic);
     return u ? [...u.values()].filter((v) => v > 0).length : 0;
   };
-  const matrixRows = useMemo(() => {
-    const names: string[] = [];
-    for (const r of rows) if (!names.includes(r.tienda)) names.push(r.tienda);
-    for (const n of tallasPorUbic.keys()) if (!names.includes(n)) names.push(n);
-    const list = names.filter((n) => tallasPorUbic.has(n) || rows.some((r) => r.tienda === n));
-    return soloDestalladas ? list.filter((n) => tallasConStock(n) < tallas.length) : list;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [rows, tallasPorUbic, soloDestalladas, tallas.length]);
-
   const storeGroups = useMemo(() => {
     const m = new Map<string, string[]>();
     for (const r of rows) {
@@ -248,6 +330,19 @@ export function ProductDetailDrawer({
     if (pct >= 70) return "bg-success";
     if (pct >= 30) return "bg-warning";
     return "bg-danger";
+  };
+
+  const activeDateRange = useMemo(() => {
+    const { from, to } = getDateRange(dVal, dFrom, dTo);
+    const dateLabel = (date: Date) => format(date, "d MMM", { locale: es });
+    return `${dateLabel(from)} – ${dateLabel(to)}`;
+  }, [dVal, dFrom, dTo]);
+
+  const copySkus = async (size: string, skus: string | null) => {
+    if (!skus) return;
+    await navigator.clipboard.writeText(skus);
+    setCopiedSize(size);
+    window.setTimeout(() => setCopiedSize((current) => current === size ? null : current), 1500);
   };
 
   const handleExportCSV = () => {
@@ -344,6 +439,8 @@ export function ProductDetailDrawer({
                         </MetricCard>
                         <MetricCard label="Stock total">{Number(metrics.stock_total ?? 0).toLocaleString("es-CO")}</MetricCard>
                         <MetricCard label="Sell-through" sub={`ST acum. ${metrics.sell_through_pct ?? 0}%`}>{metrics.st_120d ?? 0}% <span className="text-[10px] font-normal text-muted-foreground">120d</span></MetricCard>
+                        <MetricCard label="Unidades vendidas" sub={activeDateRange}>{Number(metrics.und_vendidas ?? 0).toLocaleString("es-CO")}</MetricCard>
+                        <MetricCard label="Tiempo de vida" sub={`${Number(metrics.dias_en_venta ?? 0).toLocaleString("es-CO")} días`}>{Number(metrics.semanas_en_venta ?? 0).toLocaleString("es-CO")} sem.</MetricCard>
                       </div>
                     );
                   })()}
@@ -408,30 +505,71 @@ export function ProductDetailDrawer({
               </Button>
             </div>
 
-            {/* Disponibilidad por talla */}
-            {tallas.length > 0 && (
-              <div className="px-6 pb-2">
-                <p className="text-xs font-semibold text-foreground mb-2">Disponibilidad por talla</p>
-                <div className="flex flex-wrap gap-2">
-                  {tallas.map((t) => {
-                    const pct = totalTallasUnd > 0 ? (t.unidades / totalTallasUnd) * 100 : 0;
-                    const alerta = t.cobertura < denomUbic && t.enBodega > 0;
-                    const tone = alerta ? "border-amber-300 bg-amber-50 text-amber-700"
-                      : t.unidades === 0 ? "border-destructive/40 bg-destructive/10 text-destructive"
-                      : "border-border bg-muted/30 text-foreground";
-                    return (
-                      <div key={t.talla} className={cn("rounded-lg border px-3 py-1.5 min-w-[80px] text-center", tone)}>
-                        <p className="text-xs font-bold">{t.talla}</p>
-                        <p className="text-sm font-semibold tabular-nums">{t.unidades.toLocaleString("es-CO")}</p>
-                        <p className="text-[10px] tabular-nums opacity-80">{pct.toFixed(1).replace(".", ",")}%</p>
-                        <p className="text-[10px] tabular-nums opacity-80">{t.cobertura}/{denomUbic} ubic.</p>
-                        {t.enBodega > 0 && <p className="text-[10px] tabular-nums font-medium">+{t.enBodega.toLocaleString("es-CO")} en bodega</p>}
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
+            {/* Detalle por talla */}
+            <div className="px-6 pb-4">
+              <p className="text-xs font-semibold text-foreground mb-2">Detalle por talla</p>
+              {sizeMatrixLoading ? (
+                <LoadingState rows={4} />
+              ) : sizeMatrix.length === 0 ? (
+                <EmptyState message="Sin detalle de tallas para este filtro." />
+              ) : (
+                <TooltipProvider delayDuration={200}>
+                  <div className="overflow-x-auto rounded-lg border border-border">
+                    <Table className="min-w-max">
+                      <TableHeader>
+                        <TableRow className="bg-muted/30">
+                          <TableHead className="sticky left-0 z-10 min-w-[120px] bg-muted">Métrica</TableHead>
+                          {sizeMatrix.map((size) => (
+                            <TableHead key={size.talla} className={cn("min-w-[105px] text-center font-bold", tallaStateClass(size.estado))}>
+                              <span className="block text-sm">{size.talla}</span>
+                              <span className={cn("block text-[9px] font-semibold", tallaStateTextClass(size.estado))}>{size.estado ?? "OK"}</span>
+                            </TableHead>
+                          ))}
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        <TableRow>
+                          <TableCell className="sticky left-0 z-10 bg-background text-xs font-medium">SKU</TableCell>
+                          {sizeMatrix.map((size) => (
+                            <TableCell key={size.talla} className={cn("text-center", tallaStateClass(size.estado))}>
+                              {size.skus ? (
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button variant="ghost" size="sm" className="h-7 max-w-[96px] gap-1 px-1 font-mono text-[10px]" onClick={() => copySkus(size.talla, size.skus)} aria-label={`Copiar SKU de talla ${size.talla}`}>
+                                      <span className="truncate">{size.skus}</span>
+                                      {copiedSize === size.talla ? <Check className="h-3 w-3 shrink-0 text-success" /> : <Copy className="h-3 w-3 shrink-0" />}
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>{copiedSize === size.talla ? "Copiado" : `Copiar ${size.skus}`}</TooltipContent>
+                                </Tooltip>
+                              ) : "—"}
+                            </TableCell>
+                          ))}
+                        </TableRow>
+                        {[
+                          { label: "Cargado", render: (size: TallaMatrixRow) => formatPercent(size.cargado_pct) },
+                          { label: "Demanda", render: (size: TallaMatrixRow) => formatPercent(size.demanda_pct) },
+                          { label: "Brecha", render: (size: TallaMatrixRow) => formatGap(size.brecha_pct), emphasized: true },
+                          { label: "En tienda", render: (size: TallaMatrixRow) => Number(size.stock_tiendas ?? 0).toLocaleString("es-CO") },
+                          { label: "En bodega", render: (size: TallaMatrixRow) => Number(size.stock_bodega ?? 0) > 0 ? Number(size.stock_bodega).toLocaleString("es-CO") : "—" },
+                          { label: "Cobertura", render: (size: TallaMatrixRow) => `${Number(size.ubicaciones_con_talla ?? 0)}/${Number(size.ubicaciones_total ?? 0)}` },
+                          { label: "WOS", render: (size: TallaMatrixRow) => formatDecimal(size.wos_talla) },
+                        ].map((metric) => (
+                          <TableRow key={metric.label}>
+                            <TableCell className="sticky left-0 z-10 bg-background text-xs font-medium">{metric.label}</TableCell>
+                            {sizeMatrix.map((size) => (
+                              <TableCell key={size.talla} className={cn("text-center text-xs tabular-nums", tallaStateClass(size.estado), metric.emphasized && "font-bold", metric.emphasized && gapTextClass(size.brecha_pct))}>
+                                {metric.render(size)}
+                              </TableCell>
+                            ))}
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </TooltipProvider>
+              )}
+            </div>
 
             {/* Detail Table */}
             <div className="px-6 pb-6">
@@ -537,54 +675,6 @@ export function ProductDetailDrawer({
                 </TooltipProvider>
               )}
 
-              {tallas.length > 0 && (
-                <div className="mt-4 border border-border rounded-lg">
-                  <div className="flex items-center justify-between px-3 py-2">
-                    <button className="flex items-center gap-1 text-sm font-semibold text-foreground" onClick={() => setMatrixOpen((o) => !o)}>
-                      {matrixOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />} Detalle por talla
-                    </button>
-                    {matrixOpen && (
-                      <label className="flex items-center gap-2 text-xs text-muted-foreground">
-                        <Switch checked={soloDestalladas} onCheckedChange={setSoloDestalladas} /> Solo destalladas
-                      </label>
-                    )}
-                  </div>
-                  {matrixOpen && (
-                    <div className="overflow-x-auto border-t border-border">
-                      <Table>
-                        <TableHeader>
-                          <TableRow className="bg-muted/30">
-                            <TableHead>Ubicación</TableHead>
-                            {tallas.map((t) => <TableHead key={t.talla} className="text-center font-bold">{t.talla}</TableHead>)}
-                            <TableHead className="text-right">Total</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {matrixRows.map((name) => {
-                            const u = tallasPorUbic.get(name);
-                            let tot = 0;
-                            return (
-                              <TableRow key={name}>
-                                <TableCell className="text-sm whitespace-nowrap">{name}</TableCell>
-                                {tallas.map((t) => {
-                                  const v = u?.get(t.talla) ?? 0; tot += v;
-                                  return <TableCell key={t.talla} className={cn("text-center text-sm tabular-nums", v === 0 && "bg-destructive/10 text-destructive")}>{v || ""}</TableCell>;
-                                })}
-                                <TableCell className="text-right text-sm font-semibold tabular-nums">{tot.toLocaleString("es-CO")}</TableCell>
-                              </TableRow>
-                            );
-                          })}
-                          <TableRow className="bg-muted/40 font-semibold">
-                            <TableCell className="text-sm">TOTAL</TableCell>
-                            {tallas.map((t) => <TableCell key={t.talla} className="text-center text-sm tabular-nums">{t.unidades.toLocaleString("es-CO")}</TableCell>)}
-                            <TableCell className="text-right text-sm tabular-nums">{totalTallasUnd.toLocaleString("es-CO")}</TableCell>
-                          </TableRow>
-                        </TableBody>
-                      </Table>
-                    </div>
-                  )}
-                </div>
-              )}
             </div>
           </>
         )}
