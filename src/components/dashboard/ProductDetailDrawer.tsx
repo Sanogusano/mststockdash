@@ -246,10 +246,12 @@ export function ProductDetailDrawer({
         "Product ID": product.product_id,
         Zona: r.zona ?? "",
         Tienda: r.tienda,
+        "Semanas en tienda": r.es_bodega ? "" : r.semanas_en_tienda ?? "",
+        "Días en tienda": r.es_bodega ? "" : r.dias_en_tienda ?? "",
         Recibido: r.es_bodega ? "" : r.recibido,
         "Und. Vendidas": r.es_bodega ? "" : r.und_vendidas,
         "Vendidas de vida": r.es_bodega ? "" : r.und_vendidas_vida,
-        Ingresos: r.ingresos,
+        "RDV (u/sem)": r.es_bodega ? "" : r.ritmo_semanal ?? "",
         "% Full Price": r.es_bodega ? "" : r.pct_full_price,
         "% Descuento": r.es_bodega ? "" : r.pct_descuento,
         Stock: r.stock_actual,
@@ -268,10 +270,15 @@ export function ProductDetailDrawer({
       filtered.map((r) => ({
         Zona: r.zona ?? "",
         Tienda: r.tienda,
+        Tiempo: r.es_bodega || (r.semanas_en_tienda == null && r.dias_en_tienda == null)
+          ? "—"
+          : `${Math.floor(Number(r.semanas_en_tienda ?? 0))} sem · ${Math.floor(Number(r.dias_en_tienda ?? 0))} días`,
         Recibido: r.es_bodega ? "—" : r.recibido,
         "Und.": r.es_bodega ? "—" : r.und_vendidas,
         "Vida": r.es_bodega ? "—" : r.und_vendidas_vida,
-        Ingresos: r.ingresos,
+        RDV: r.es_bodega || r.ritmo_semanal == null
+          ? "—"
+          : `${Number(r.ritmo_semanal).toLocaleString("es-CO", { maximumFractionDigits: 2 })} u/sem`,
         "% Full": r.es_bodega ? "—" : r.pct_full_price,
         "% Dto.": r.es_bodega ? "—" : r.pct_descuento,
         Stock: r.stock_actual,
