@@ -92,8 +92,8 @@ function InventorySection({
             <Tooltip content={<CustomTooltip />} cursor={{ fill: "hsl(220,10%,95%)" }} />
             {isPrendas && (
               <>
-                <ReferenceLine x={8} stroke="hsl(38,92%,50%)" strokeDasharray="4 3" />
-                <ReferenceLine x={20} stroke="hsl(0,72%,51%)" strokeDasharray="4 3" />
+                <ReferenceLine x={4} stroke="hsl(38,92%,50%)" strokeDasharray="4 3" />
+                <ReferenceLine x={18} stroke="hsl(0,72%,51%)" strokeDasharray="4 3" />
               </>
             )}
             <Bar dataKey="semanas" radius={[0, 6, 6, 0]} maxBarSize={28}>
@@ -107,11 +107,11 @@ function InventorySection({
           <div className="flex items-center gap-6 mt-4 text-xs text-muted-foreground">
             <span className="flex items-center gap-1.5">
               <span className="w-3 h-0.5 inline-block" style={{ borderTop: "2px dashed hsl(38,92%,50%)" }} />
-              &lt; 8 sem: Riesgo
+              &lt; 4 sem: Riesgo
             </span>
             <span className="flex items-center gap-1.5">
               <span className="w-3 h-0.5 inline-block" style={{ borderTop: "2px dashed hsl(0,72%,51%)" }} />
-              &gt; 20 sem: Sobrestock
+              &gt; 18 sem: Sobrestock
             </span>
           </div>
         )}
