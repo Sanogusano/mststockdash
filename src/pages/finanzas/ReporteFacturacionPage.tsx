@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Download, CheckCircle2, AlertTriangle, Search, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
+import { Download, CheckCircle2, AlertTriangle, Search, ArrowUpDown, ArrowUp, ArrowDown, ChevronDown } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { FinanzasLayout } from "./FinanzasLayout";
 import { Card, CardContent } from "@/components/ui/card";
@@ -15,6 +15,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { fmtCOP, fmtInt } from "@/lib/finanzas-format";
 import { exportToXLS } from "@/lib/xls-export";
 import { useHasPermission } from "@/hooks/useHasPermission";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useUserRole } from "@/hooks/useUserRole";
 import { cn } from "@/lib/utils";
 
@@ -127,6 +128,7 @@ export default function ReporteFacturacionPage() {
   const [busquedaDebounced, setBusquedaDebounced] = useState("");
   const [cardFiltro, setCardFiltro] = useState<CardKey | null>(null);
   const [page, setPage] = useState(1);
+  const [sfAbierta, setSfAbierta] = useState<boolean | null>(null);
   const [sortKey, setSortKey] = useState<SortKey>("fecha_pedido");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
 
