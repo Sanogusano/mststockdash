@@ -458,10 +458,27 @@ export function ProductDetailDrawer({
                             <p className="text-sm font-medium text-foreground">{row.tienda}</p>
                             {row.zona && <p className="text-[11px] text-muted-foreground">{row.zona}</p>}
                           </TableCell>
+                          <TableCell>
+                            {b || (row.semanas_en_tienda == null && row.dias_en_tienda == null) ? dash : (
+                              <div className="flex items-center gap-1.5">
+                                <Clock className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                                <div className="leading-tight">
+                                  <p className="text-sm font-medium text-foreground tabular-nums">{Math.floor(Number(row.semanas_en_tienda ?? 0))} sem.</p>
+                                  <p className="text-[10px] text-muted-foreground tabular-nums">{Math.floor(Number(row.dias_en_tienda ?? 0))} días</p>
+                                </div>
+                              </div>
+                            )}
+                          </TableCell>
                           <TableCell className="text-right text-sm tabular-nums">{b ? dash : (row.recibido ?? 0).toLocaleString("es-CO")}</TableCell>
                           <TableCell className="text-right text-sm font-semibold tabular-nums">{b ? dash : (row.und_vendidas ?? 0).toLocaleString("es-CO")}</TableCell>
-                          <TableCell className="text-right text-sm tabular-nums">{b ? dash : `$ ${(row.ingresos ?? 0).toLocaleString("es-CO")}`}</TableCell>
                           <TableCell className="text-right text-sm font-medium tabular-nums">{(row.stock_actual ?? 0).toLocaleString("es-CO")}</TableCell>
+                          <TableCell className="text-right">
+                            {b || row.ritmo_semanal == null ? dash : (
+                              <span className="text-sm tabular-nums text-foreground">
+                                {Number(row.ritmo_semanal).toLocaleString("es-CO", { maximumFractionDigits: 2 })} u/sem
+                              </span>
+                            )}
+                          </TableCell>
                           <TableCell className="text-right text-sm font-semibold tabular-nums">
                             {tallas.length === 0 ? dash : (() => { const n = tallasConStock(row.tienda); return <span className={n < tallas.length ? "text-destructive" : "text-success"}>{n}/{tallas.length}</span>; })()}
                           </TableCell>
