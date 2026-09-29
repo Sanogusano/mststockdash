@@ -5448,6 +5448,7 @@ export type Database = {
           rdv_estado: string
           rdv_indice: number
           ritmo_online: number
+          ritmo_pdv: number
           ritmo_semanal: number
           ritmo_tienda: number
           sell_through_pct: number
