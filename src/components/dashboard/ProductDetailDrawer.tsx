@@ -10,7 +10,7 @@ import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import { exportToCSV } from "@/lib/csv-export";
 import { exportToPDF } from "@/lib/pdf-export";
-import { Download, FileText, ChevronDown, ChevronRight, Gauge } from "lucide-react";
+import { Download, FileText, ChevronDown, ChevronRight, Gauge, Clock } from "lucide-react";
 import { ProductImageThumb } from "./ProductImageThumb";
 import {
   Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue,
@@ -71,6 +71,8 @@ interface DetailRow {
   zona: string | null;
   tienda: string;
   es_bodega: boolean;
+  dias_en_tienda: number | null;
+  semanas_en_tienda: number | null;
   recibido: number;
   und_vendidas_vida: number;
   st_120d: number | null;
