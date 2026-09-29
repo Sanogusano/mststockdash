@@ -92,8 +92,8 @@ interface DetailRow {
 const WOS_OPTIONS = [
   { value: "all", label: "Todos los WOS" },
   { value: "risk", label: "🟡 Riesgo (<4 sem)" },
-  { value: "optimal", label: "🟢 Óptimo (4-12 sem)" },
-  { value: "overstock", label: "🔴 Sobrestock (>12 sem)" },
+  { value: "optimal", label: "🟢 Óptimo (4-18 sem)" },
+  { value: "overstock", label: "🔴 Sobrestock (>18 sem)" },
   { value: "stagnant", label: "🔴 Estancado (0 ventas)" },
 ];
 
@@ -215,8 +215,8 @@ export function ProductDetailDrawer({
         if (r.es_bodega) return true;
         if (wosFilter === "stagnant") return r.estado_salud.includes("ESTANCADO");
         if (wosFilter === "risk") return r.wos != null && r.wos > 0 && r.wos < 4;
-        if (wosFilter === "optimal") return r.wos != null && r.wos >= 4 && r.wos <= 12;
-        if (wosFilter === "overstock") return r.wos == null || r.wos > 12;
+        if (wosFilter === "optimal") return r.wos != null && r.wos >= 4 && r.wos <= 18;
+        if (wosFilter === "overstock") return r.wos == null || r.wos > 18;
         return true;
       });
     }

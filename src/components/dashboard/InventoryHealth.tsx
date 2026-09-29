@@ -37,8 +37,8 @@ interface Props {
 
 const getBarColor = (semanas: number | null) => {
   if (!semanas) return "hsl(240,10%,40%)";
-  if (semanas > 20) return "hsl(0,72%,51%)";
-  if (semanas < 8) return "hsl(38,92%,50%)";
+  if (semanas > 18) return "hsl(0,72%,51%)";
+  if (semanas < 4) return "hsl(38,92%,50%)";
   return "hsl(152,60%,40%)";
 };
 
