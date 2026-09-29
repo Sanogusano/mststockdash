@@ -453,6 +453,110 @@ export default function ReporteFacturacionPage() {
         </div>
         {cardFiltro && <Button variant="link" size="sm" className="h-auto px-0 mb-4" onClick={() => setCardFiltro(null)}>Quitar filtro de estado</Button>}
 
+        {/* ============ Órdenes sin facturar ============ */}
+        <Collapsible open={sfOpen} onOpenChange={setSfAbierta} className="mt-2 mb-6">
+          <Card>
+            <CardContent className="p-4">
+              <CollapsibleTrigger asChild>
+                <button type="button" className="flex w-full items-center justify-between gap-4 text-left cursor-pointer">
+                  <span className="flex items-center gap-3 min-w-0 flex-wrap">
+                    <h3 className="text-sm font-semibold text-foreground whitespace-nowrap">Órdenes sin facturar</h3>
+                    <span className={cn(
+                      "inline-block whitespace-nowrap rounded-full border px-2 py-0.5 text-xs font-medium tabular-nums",
+                      sfStats.mas7 > 0 ? "bg-destructive/10 text-destructive border-destructive/30" : "bg-muted text-muted-foreground border-border",
+                    )}>
+                      {fmtInt(sfStats.total)} sin facturar
+                    </span>
+                  </span>
+                  <ChevronDown className={cn("h-4 w-4 flex-shrink-0 text-muted-foreground transition-transform", sfOpen && "rotate-180")} />
+                </button>
+              </CollapsibleTrigger>
+              <p className="mt-0.5 text-xs text-muted-foreground">Órdenes de venta de tiendas y Ecommerce que aún no tienen factura asociada</p>
+              <CollapsibleContent>
+                <div className="mt-4">
+                {sinFacturarQ.error ? (
+                  <p className="text-sm text-destructive">Error: {(sinFacturarQ.error as any).message}</p>
+                ) : sinFacturarQ.isLoading ? (
+                  <LoadingState rows={0} />
+                ) : (
+                  <>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
+                      <div className="rounded-md border border-border p-3">
+                        <p className="text-xs text-muted-foreground">Total sin facturar</p>
+                        <p className="text-xl font-semibold tabular-nums">{fmtInt(sfStats.total)}</p>
+                        <p className="text-xs text-muted-foreground tabular-nums">{fmtCOP(sfStats.montoTotal)}</p>
+                      </div>
+                      <div className={cn("rounded-md border border-border p-3", sfStats.mas7 > 0 && "border-destructive/40 bg-destructive/5")}>
+                        <p className="text-xs text-muted-foreground">Más de 7 días</p>
+                        <p className={cn("text-xl font-semibold tabular-nums", sfStats.mas7 > 0 && "text-destructive")}>{fmtInt(sfStats.mas7)}</p>
+                        <p className={cn("text-xs text-muted-foreground tabular-nums", sfStats.mas7 > 0 && "text-destructive")}>{fmtCOP(sfStats.montoMas7)}</p>
+                      </div>
+                      <div className="rounded-md border border-border p-3">
+                        <p className="text-xs text-muted-foreground">Más antigua</p>
+                        <p className="text-xl font-semibold tabular-nums">{sfStats.masAntigua ? `${fmtInt(Number(sfStats.masAntigua.dias ?? 0))} días` : "—"}</p>
+                        <p className="text-xs text-muted-foreground">{sfStats.masAntigua ? fmtFechaSolo(sfStats.masAntigua.fecha) : "—"}</p>
+                      </div>
+                    </div>
+
+                    {sinFacturar.length === 0 ? (
+                      <p className="text-center text-muted-foreground py-8">Sin órdenes sin facturar en los últimos 60 días</p>
+                    ) : (
+                      <div className="overflow-x-auto rounded-md border border-border">
+                        <Table className="min-w-[1000px] table-fixed">
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead className="w-[190px]">Alerta</TableHead>
+                              <TableHead className="w-[130px]">Orden</TableHead>
+                              <TableHead className="w-[100px]">Fecha</TableHead>
+                              <TableHead className="w-[70px] text-right">Días</TableHead>
+                              <TableHead className="w-[110px]">Canal</TableHead>
+                              <TableHead className="w-[160px]">Tienda</TableHead>
+                              <TableHead className="w-[160px]">Estado</TableHead>
+                              <TableHead className="w-[130px] text-right">Monto</TableHead>
+                              <TableHead className="w-[150px]">Factura</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {sinFacturar.map((r, i) => (
+                              <TableRow key={(r.tranid ?? "") + i} className="align-top">
+                                <TableCell>
+                                  {r.alerta ? (
+                                    <span className={cn("inline-block max-w-full text-xs px-2 py-0.5 rounded border", alertaChipClass(r.alerta))}>{r.alerta}</span>
+                                  ) : <span className="text-xs text-muted-foreground">—</span>}
+                                </TableCell>
+                                <TableCell className="font-semibold">{r.tranid ?? "—"}</TableCell>
+                                <TableCell className="whitespace-nowrap">{fmtFechaSolo(r.fecha)}</TableCell>
+                                <TableCell className={cn("text-right tabular-nums font-medium", Number(r.dias ?? 0) > 7 && "text-destructive")}>{fmtInt(r.dias)}</TableCell>
+                                <TableCell>{r.canal ?? "—"}</TableCell>
+                                <TableCell>
+                                  <p className="font-medium">{r.tienda ?? "—"}</p>
+                                  {r.zona && <p className="mt-0.5 text-xs text-muted-foreground">{r.zona}</p>}
+                                </TableCell>
+                                <TableCell>{r.estado_nombre ?? r.estado ?? "—"}</TableCell>
+                                <TableCell className="text-right tabular-nums font-semibold">{fmtCOP(r.monto_con_iva)}</TableCell>
+                                <TableCell>
+                                  {r.factura_tranid ? (
+                                    <>
+                                      <p className="font-medium">{r.factura_tranid}</p>
+                                      <p className="mt-0.5 text-xs text-muted-foreground">{fmtFechaSolo(r.fecha_factura)}</p>
+                                    </>
+                                  ) : <span className="text-xs text-muted-foreground">—</span>}
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    )}
+                  </>
+                )}
+                </div>
+              </CollapsibleContent>
+            </CardContent>
+          </Card>
+        </Collapsible>
+
+
         {resumenQ.error && <p className="text-sm text-destructive my-4">Error resumen: {(resumenQ.error as any).message}</p>}
         {topeAlcanzado && <p className="text-sm text-amber-700 my-2">La búsqueda alcanzó el tope de {TOPE} filas; refina el texto para ver todos los resultados.</p>}
         {q.error && <p className="text-sm text-destructive my-4">Error: {(q.error as any).message}</p>}
