@@ -50,6 +50,7 @@ interface ProductBehaviorRow {
   dias_en_venta: number;
   semanas_en_venta: number;
   ritmo_semanal?: number | null;
+  ritmo_pdv?: number | null;
   ritmo_tienda?: number | null;
   ritmo_online?: number | null;
   rdv_indice?: number | null;
