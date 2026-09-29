@@ -215,8 +215,8 @@ export function ProductDetailDrawer({
         if (r.es_bodega) return true;
         if (wosFilter === "stagnant") return r.estado_salud.includes("ESTANCADO");
         if (wosFilter === "risk") return r.wos != null && r.wos > 0 && r.wos < 4;
-        if (wosFilter === "optimal") return r.wos != null && r.wos >= 4 && r.wos <= 12;
-        if (wosFilter === "overstock") return r.wos == null || r.wos > 12;
+        if (wosFilter === "optimal") return r.wos != null && r.wos >= 4 && r.wos <= 18;
+        if (wosFilter === "overstock") return r.wos == null || r.wos > 18;
         return true;
       });
     }

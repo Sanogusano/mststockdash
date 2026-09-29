@@ -340,7 +340,7 @@ function extractNameColor(title: string | null): { name: string; color: string }
 function getWosStatusColor(wos: number) {
   if (wos === 0) return "text-muted-foreground";
   if (wos < 4) return "text-amber-500";
-  if (wos <= 12) return "text-emerald-600";
+  if (wos <= 18) return "text-emerald-600";
   return "text-destructive";
 }
 

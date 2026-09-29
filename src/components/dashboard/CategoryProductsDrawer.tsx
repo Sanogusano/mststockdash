@@ -31,8 +31,8 @@ const getClasifColor = (c: string) => {
 
 const getWosColor = (wos: number) => {
   if (wos >= 999) return "text-destructive";
-  if (wos > 20) return "text-destructive";
-  if (wos < 8) return "text-warning";
+  if (wos > 18) return "text-destructive";
+  if (wos < 4) return "text-warning";
   return "text-success";
 };
 

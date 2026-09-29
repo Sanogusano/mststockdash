@@ -295,8 +295,8 @@ export function ProductBehaviorTable({ days, initialWosFilter, initialLocationId
         if (wosFilter === "unreleased") return r.estado_salud.includes("SIN LIBERAR");
         if (wosFilter === "stagnant") return r.estado_salud.includes("ESTANCADO");
         if (wosFilter === "risk") return r.wos > 0 && r.wos < 4;
-        if (wosFilter === "optimal") return r.wos >= 4 && r.wos <= 12;
-        if (wosFilter === "overstock") return r.wos > 12;
+        if (wosFilter === "optimal") return r.wos >= 4 && r.wos <= 18;
+        if (wosFilter === "overstock") return r.wos > 18;
         return true;
       });
     }
