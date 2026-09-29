@@ -10,7 +10,7 @@ import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import { exportToCSV } from "@/lib/csv-export";
 import { exportToPDF } from "@/lib/pdf-export";
-import { Download, FileText, ChevronDown, ChevronRight, Gauge } from "lucide-react";
+import { Download, FileText, ChevronDown, ChevronRight, Gauge, Clock } from "lucide-react";
 import { ProductImageThumb } from "./ProductImageThumb";
 import {
   Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue,
@@ -71,6 +71,8 @@ interface DetailRow {
   zona: string | null;
   tienda: string;
   es_bodega: boolean;
+  dias_en_tienda: number | null;
+  semanas_en_tienda: number | null;
   recibido: number;
   und_vendidas_vida: number;
   st_120d: number | null;
@@ -244,10 +246,12 @@ export function ProductDetailDrawer({
         "Product ID": product.product_id,
         Zona: r.zona ?? "",
         Tienda: r.tienda,
+        "Semanas en tienda": r.es_bodega ? "" : r.semanas_en_tienda ?? "",
+        "Días en tienda": r.es_bodega ? "" : r.dias_en_tienda ?? "",
         Recibido: r.es_bodega ? "" : r.recibido,
         "Und. Vendidas": r.es_bodega ? "" : r.und_vendidas,
         "Vendidas de vida": r.es_bodega ? "" : r.und_vendidas_vida,
-        Ingresos: r.ingresos,
+        "RDV (u/sem)": r.es_bodega ? "" : r.ritmo_semanal ?? "",
         "% Full Price": r.es_bodega ? "" : r.pct_full_price,
         "% Descuento": r.es_bodega ? "" : r.pct_descuento,
         Stock: r.stock_actual,
@@ -266,10 +270,15 @@ export function ProductDetailDrawer({
       filtered.map((r) => ({
         Zona: r.zona ?? "",
         Tienda: r.tienda,
+        Tiempo: r.es_bodega || (r.semanas_en_tienda == null && r.dias_en_tienda == null)
+          ? "—"
+          : `${Math.floor(Number(r.semanas_en_tienda ?? 0))} sem · ${Math.floor(Number(r.dias_en_tienda ?? 0))} días`,
         Recibido: r.es_bodega ? "—" : r.recibido,
         "Und.": r.es_bodega ? "—" : r.und_vendidas,
         "Vida": r.es_bodega ? "—" : r.und_vendidas_vida,
-        Ingresos: r.ingresos,
+        RDV: r.es_bodega || r.ritmo_semanal == null
+          ? "—"
+          : `${Number(r.ritmo_semanal).toLocaleString("es-CO", { maximumFractionDigits: 2 })} u/sem`,
         "% Full": r.es_bodega ? "—" : r.pct_full_price,
         "% Dto.": r.es_bodega ? "—" : r.pct_descuento,
         Stock: r.stock_actual,
@@ -418,15 +427,16 @@ export function ProductDetailDrawer({
                       <TableRow className="bg-muted/30">
                         <TableHead className="w-10 text-right">#</TableHead>
                         <TableHead>Tienda</TableHead>
+                        <TableHead>Tiempo</TableHead>
                         <TableHead className="text-right">Recibido</TableHead>
                         <TableHead className="text-right">Vendidas</TableHead>
-                        <TableHead className="text-right">Ingresos</TableHead>
                         <TableHead className="text-right">Stock</TableHead>
-                        <TableHead className="text-right">Tallas</TableHead>
+                        <TableHead className="text-right">RDV</TableHead>
                         <TableHead className="text-right">% Full</TableHead>
                         <TableHead className="text-right">% Dto.</TableHead>
                         <TableHead className="min-w-[140px]">Sell-Through</TableHead>
                         <TableHead>WOS</TableHead>
+                        <TableHead className="text-right">Tallas</TableHead>
                         <TableHead>Salud</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -448,12 +458,26 @@ export function ProductDetailDrawer({
                             <p className="text-sm font-medium text-foreground">{row.tienda}</p>
                             {row.zona && <p className="text-[11px] text-muted-foreground">{row.zona}</p>}
                           </TableCell>
+                          <TableCell>
+                            {b || (row.semanas_en_tienda == null && row.dias_en_tienda == null) ? dash : (
+                              <div className="flex items-center gap-1.5">
+                                <Clock className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                                <div className="leading-tight">
+                                  <p className="text-sm font-medium text-foreground tabular-nums">{Math.floor(Number(row.semanas_en_tienda ?? 0))} sem.</p>
+                                  <p className="text-[10px] text-muted-foreground tabular-nums">{Math.floor(Number(row.dias_en_tienda ?? 0))} días</p>
+                                </div>
+                              </div>
+                            )}
+                          </TableCell>
                           <TableCell className="text-right text-sm tabular-nums">{b ? dash : (row.recibido ?? 0).toLocaleString("es-CO")}</TableCell>
                           <TableCell className="text-right text-sm font-semibold tabular-nums">{b ? dash : (row.und_vendidas ?? 0).toLocaleString("es-CO")}</TableCell>
-                          <TableCell className="text-right text-sm tabular-nums">{b ? dash : `$ ${(row.ingresos ?? 0).toLocaleString("es-CO")}`}</TableCell>
                           <TableCell className="text-right text-sm font-medium tabular-nums">{(row.stock_actual ?? 0).toLocaleString("es-CO")}</TableCell>
-                          <TableCell className="text-right text-sm font-semibold tabular-nums">
-                            {tallas.length === 0 ? dash : (() => { const n = tallasConStock(row.tienda); return <span className={n < tallas.length ? "text-destructive" : "text-success"}>{n}/{tallas.length}</span>; })()}
+                          <TableCell className="text-right">
+                            {b || row.ritmo_semanal == null ? dash : (
+                              <span className="text-sm tabular-nums text-foreground">
+                                {Number(row.ritmo_semanal).toLocaleString("es-CO", { maximumFractionDigits: 2 })} u/sem
+                              </span>
+                            )}
                           </TableCell>
                           <TableCell className="text-right">{b ? dash : <span className="text-sm font-medium text-success">{row.pct_full_price}%</span>}</TableCell>
                           <TableCell className="text-right">{b ? dash : <span className="text-sm font-medium text-warning">{row.pct_descuento}%</span>}</TableCell>
@@ -479,6 +503,9 @@ export function ProductDetailDrawer({
                                 )}
                               </>
                             )}
+                          </TableCell>
+                          <TableCell className="text-right text-sm font-semibold tabular-nums">
+                            {tallas.length === 0 ? dash : (() => { const n = tallasConStock(row.tienda); return <span className={n < tallas.length ? "text-destructive" : "text-success"}>{n}/{tallas.length}</span>; })()}
                           </TableCell>
                           <TableCell><StatusBadge label={row.estado_salud} /></TableCell>
                         </TableRow>

@@ -5758,6 +5758,7 @@ export type Database = {
         Args: { dias_atras?: number; p_hasta?: string; p_product_id?: string }
         Returns: {
           base_st: string
+          dias_en_tienda: number
           es_bodega: boolean
           estado_salud: string
           ingresos: number
@@ -5766,6 +5767,7 @@ export type Database = {
           pct_full_price: number
           recibido: number
           ritmo_semanal: number
+          semanas_en_tienda: number
           st_120d: number
           st_acum: number
           stock_actual: number
