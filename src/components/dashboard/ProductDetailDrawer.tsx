@@ -108,6 +108,13 @@ const formatGap = (value: number | null | undefined) => {
   return `${numeric > 0 ? "+" : numeric < 0 ? "−" : ""}${formatted}`;
 };
 
+const gapTextClass = (value: number | null | undefined) => {
+  const numeric = Number(value ?? 0);
+  if (numeric > 0) return "text-warning";
+  if (numeric < 0) return "text-primary";
+  return "text-muted-foreground";
+};
+
 function MetricCard({ label, children, sub }: { label: string; children: React.ReactNode; sub?: React.ReactNode }) {
   return (
     <div className="rounded-lg border border-border px-3 py-2 min-w-[130px]">
@@ -551,7 +558,7 @@ export function ProductDetailDrawer({
                           <TableRow key={metric.label}>
                             <TableCell className="sticky left-0 z-10 bg-background text-xs font-medium">{metric.label}</TableCell>
                             {sizeMatrix.map((size) => (
-                              <TableCell key={size.talla} className={cn("text-center text-xs tabular-nums", tallaStateClass(size.estado), metric.emphasized && "font-bold", metric.emphasized && tallaStateTextClass(size.estado))}>
+                              <TableCell key={size.talla} className={cn("text-center text-xs tabular-nums", tallaStateClass(size.estado), metric.emphasized && "font-bold", metric.emphasized && gapTextClass(size.brecha_pct))}>
                                 {metric.render(size)}
                               </TableCell>
                             ))}
