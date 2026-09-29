@@ -99,6 +99,7 @@ const tallaStateTextClass = (estado: string | null) => {
 const formatDecimal = (value: number | null | undefined) => value == null
   ? "—"
   : Number(value).toLocaleString("es-CO", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+const formatPercent = (value: number | null | undefined) => value == null ? "—" : `${formatDecimal(value)}%`;
 
 const formatGap = (value: number | null | undefined) => {
   if (value == null) return "—";
@@ -249,7 +250,7 @@ export function ProductDetailDrawer({
     enabled: !!product,
   });
 
-  const { tallas, denomUbic } = useMemo(() => {
+  const { tallas } = useMemo(() => {
     const m = new Map<string, { talla: string; orden: number; unidades: number; enBodega: number; ubics: Set<string> }>();
     const allUbic = new Set<string>();
     for (const r of tallasData ?? []) {
@@ -266,10 +267,8 @@ export function ProductDetailDrawer({
     }
     return {
       tallas: [...m.values()].sort((a, b) => a.orden - b.orden).map((t) => ({ ...t, cobertura: t.ubics.size })),
-      denomUbic: allUbic.size,
     };
   }, [tallasData]);
-  const totalTallasUnd = tallas.reduce((a, t) => a + t.unidades, 0);
 
   const tallasPorUbic = useMemo(() => {
     const m = new Map<string, Map<string, number>>();
@@ -541,8 +540,8 @@ export function ProductDetailDrawer({
                           ))}
                         </TableRow>
                         {[
-                          { label: "Cargado", render: (size: TallaMatrixRow) => `${formatDecimal(size.cargado_pct)}%` },
-                          { label: "Demanda", render: (size: TallaMatrixRow) => `${formatDecimal(size.demanda_pct)}%` },
+                          { label: "Cargado", render: (size: TallaMatrixRow) => formatPercent(size.cargado_pct) },
+                          { label: "Demanda", render: (size: TallaMatrixRow) => formatPercent(size.demanda_pct) },
                           { label: "Brecha", render: (size: TallaMatrixRow) => formatGap(size.brecha_pct), emphasized: true },
                           { label: "En tienda", render: (size: TallaMatrixRow) => Number(size.stock_tiendas ?? 0).toLocaleString("es-CO") },
                           { label: "En bodega", render: (size: TallaMatrixRow) => Number(size.stock_bodega ?? 0) > 0 ? Number(size.stock_bodega).toLocaleString("es-CO") : "—" },
