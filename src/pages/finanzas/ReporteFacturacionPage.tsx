@@ -647,6 +647,7 @@ export default function ReporteFacturacionPage() {
             </div>
           </div>
         )}
+      </FinanzasLayout>
     </TooltipProvider>
   );
 }
