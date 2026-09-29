@@ -34,6 +34,7 @@ export interface ProductDrawerMetrics {
   wos?: number | null;
   wos_total?: number | null;
   ritmo_semanal?: number | null;
+  ritmo_pdv?: number | null;
   rdv_estado?: string | null;
   rdv_indice?: number | null;
   stock_total?: number | null;
@@ -163,14 +164,25 @@ export function ProductDetailDrawer({
     enabled: !!product,
   });
 
-  const tallas = useMemo(() => {
-    const m = new Map<string, { talla: string; orden: number; unidades: number }>();
+  const { tallas, denomUbic } = useMemo(() => {
+    const m = new Map<string, { talla: string; orden: number; unidades: number; enBodega: number; ubics: Set<string> }>();
+    const allUbic = new Set<string>();
     for (const r of tallasData ?? []) {
-      const t = m.get(r.talla) ?? { talla: r.talla, orden: Number(r.orden_talla ?? 0), unidades: 0 };
-      t.unidades += Number(r.unidades ?? 0);
+      const t = m.get(r.talla) ?? { talla: r.talla, orden: Number(r.orden_talla ?? 0), unidades: 0, enBodega: 0, ubics: new Set<string>() };
+      const u = Number(r.unidades ?? 0);
+      if (r.es_bodega) {
+        t.enBodega += u;
+      } else {
+        t.unidades += u;
+        allUbic.add(r.ubicacion);
+        if (u > 0) t.ubics.add(r.ubicacion);
+      }
       m.set(r.talla, t);
     }
-    return [...m.values()].sort((a, b) => a.orden - b.orden);
+    return {
+      tallas: [...m.values()].sort((a, b) => a.orden - b.orden).map((t) => ({ ...t, cobertura: t.ubics.size })),
+      denomUbic: allUbic.size,
+    };
   }, [tallasData]);
   const totalTallasUnd = tallas.reduce((a, t) => a + t.unidades, 0);
 
@@ -318,13 +330,17 @@ export function ProductDetailDrawer({
                   {metrics && (() => {
                     const estado = (metrics.rdv_estado ?? "SOLO ONLINE").toUpperCase();
                     const st = RDV_STYLES[estado] ?? RDV_STYLES["SOLO ONLINE"];
-                    const rs = Number(metrics.ritmo_semanal ?? 0);
+                    const fmtU = (v: number | null | undefined) => Number(v ?? 0).toLocaleString("es-CO", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+                    const d56 = <span className="text-[10px] font-normal text-muted-foreground">56d</span>;
                     return (
                       <div className="flex flex-wrap gap-2 mt-3">
-                        <MetricCard label="WOS general" sub="LO DISPONIBILIZADO">{fmtWos(metrics.wos)} sem.</MetricCard>
-                        <MetricCard label="WOS total" sub="TOTALIDAD DE INVENTARIO">{fmtWos(metrics.wos_total)} sem.</MetricCard>
-                        <MetricCard label="RDV" sub={st.chip ? <span className={cn("inline-block text-[10px] font-medium px-1.5 rounded", st.chip)}>{estado}{metrics.rdv_indice != null ? ` (${fmtIdx(metrics.rdv_indice)})` : ""}</span> : <span className={st.text}>{estado}</span>}>
-                          <span className={cn("inline-flex items-center gap-1", st.text)}><Gauge className="h-3 w-3" />{rs > 0 ? rs.toLocaleString("es-CO", { maximumFractionDigits: 1 }) : "0"} u/sem</span>
+                        <MetricCard label="WOS general" sub="LO DISPONIBILIZADO">{fmtWos(metrics.wos)} sem. {d56}</MetricCard>
+                        <MetricCard label="WOS total" sub="TOTALIDAD DE INVENTARIO">{fmtWos(metrics.wos_total)} sem. {d56}</MetricCard>
+                        <MetricCard label="Ritmo de red" sub="TODA LA RED">
+                          <span className="inline-flex items-center gap-1"><Gauge className="h-3 w-3" />{fmtU(metrics.ritmo_semanal)} u/sem</span> {d56}
+                        </MetricCard>
+                        <MetricCard label="Ritmo por tienda" sub={st.chip ? <span className={cn("inline-block text-[10px] font-medium px-1.5 rounded", st.chip)}>{estado}{metrics.rdv_indice != null ? ` (${fmtIdx(metrics.rdv_indice)})` : ""}</span> : <span className={st.text}>{estado}</span>}>
+                          <span className={cn("inline-flex items-center gap-1", st.text)}><Store className="h-3 w-3" />{metrics.ritmo_pdv == null ? "—" : `${fmtU(metrics.ritmo_pdv)} u/sem`}</span> {d56}
                         </MetricCard>
                         <MetricCard label="Stock total">{Number(metrics.stock_total ?? 0).toLocaleString("es-CO")}</MetricCard>
                         <MetricCard label="Sell-through" sub={`ST acum. ${metrics.sell_through_pct ?? 0}%`}>{metrics.st_120d ?? 0}% <span className="text-[10px] font-normal text-muted-foreground">120d</span></MetricCard>
@@ -399,13 +415,17 @@ export function ProductDetailDrawer({
                 <div className="flex flex-wrap gap-2">
                   {tallas.map((t) => {
                     const pct = totalTallasUnd > 0 ? (t.unidades / totalTallasUnd) * 100 : 0;
-                    const tone = t.unidades === 0 ? "border-destructive/40 bg-destructive/10 text-destructive"
-                      : pct < 10 ? "border-amber-300 bg-amber-50 text-amber-700" : "border-border bg-muted/30 text-foreground";
+                    const alerta = t.cobertura < denomUbic && t.enBodega > 0;
+                    const tone = alerta ? "border-amber-300 bg-amber-50 text-amber-700"
+                      : t.unidades === 0 ? "border-destructive/40 bg-destructive/10 text-destructive"
+                      : "border-border bg-muted/30 text-foreground";
                     return (
-                      <div key={t.talla} className={cn("rounded-lg border px-3 py-1.5 min-w-[72px] text-center", tone)}>
+                      <div key={t.talla} className={cn("rounded-lg border px-3 py-1.5 min-w-[80px] text-center", tone)}>
                         <p className="text-xs font-bold">{t.talla}</p>
                         <p className="text-sm font-semibold tabular-nums">{t.unidades.toLocaleString("es-CO")}</p>
                         <p className="text-[10px] tabular-nums opacity-80">{pct.toFixed(1).replace(".", ",")}%</p>
+                        <p className="text-[10px] tabular-nums opacity-80">{t.cobertura}/{denomUbic} ubic.</p>
+                        {t.enBodega > 0 && <p className="text-[10px] tabular-nums font-medium">+{t.enBodega.toLocaleString("es-CO")} en bodega</p>}
                       </div>
                     );
                   })}
