@@ -117,7 +117,7 @@ function Ayuda({ onClose }: { onClose: () => void }) {
         <div className="rounded border bg-background p-3">
           <div className="font-medium text-xs mb-1 text-sky-700">Sobrestock</div>
           <p className="text-muted-foreground text-xs leading-relaxed">
-            Más de 20 semanas de cobertura. Ese inventario le sirve más a otra tienda.
+            Más de 18 semanas de cobertura. Ese inventario le sirve más a otra tienda.
           </p>
         </div>
       </div>

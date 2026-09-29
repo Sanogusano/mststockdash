@@ -408,7 +408,7 @@ export function ProductSkuDrawer({ product, days, locationId, onClose }: Props) 
                               <span className="text-xs text-muted-foreground">Sin datos</span>
                             ) : store.wos < 4 ? (
                               <span className="text-xs font-medium text-warning">⚠️ Bajo stock</span>
-                            ) : store.wos > 20 ? (
+                            ) : store.wos > 18 ? (
                               <span className="text-xs font-medium text-destructive">🔴 Sobrestock</span>
                             ) : (
                               <span className="text-xs font-medium text-success">🟢 Óptimo</span>
