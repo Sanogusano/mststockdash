@@ -1833,6 +1833,51 @@ export type Database = {
           },
         ]
       }
+      netsuite_notas_credito: {
+        Row: {
+          actualizado_en: string
+          cufe: string | null
+          factura_tranid: string | null
+          fecha: string
+          fecha_factura: string | null
+          location_id: string | null
+          monto_con_iva: number | null
+          monto_sin_iva: number | null
+          netsuite_transaction_id: string | null
+          numero_pos: string | null
+          tranid: string
+          ubicacion_netsuite: string | null
+        }
+        Insert: {
+          actualizado_en?: string
+          cufe?: string | null
+          factura_tranid?: string | null
+          fecha: string
+          fecha_factura?: string | null
+          location_id?: string | null
+          monto_con_iva?: number | null
+          monto_sin_iva?: number | null
+          netsuite_transaction_id?: string | null
+          numero_pos?: string | null
+          tranid: string
+          ubicacion_netsuite?: string | null
+        }
+        Update: {
+          actualizado_en?: string
+          cufe?: string | null
+          factura_tranid?: string | null
+          fecha?: string
+          fecha_factura?: string | null
+          location_id?: string | null
+          monto_con_iva?: number | null
+          monto_sin_iva?: number | null
+          netsuite_transaction_id?: string | null
+          numero_pos?: string | null
+          tranid?: string
+          ubicacion_netsuite?: string | null
+        }
+        Relationships: []
+      }
       netsuite_ordenes_venta: {
         Row: {
           actualizado_en: string
@@ -6156,6 +6201,23 @@ export type Database = {
           venta_promedio_diaria_anterior: number
           venta_promedio_finde: number
           venta_promedio_semana: number
+        }[]
+      }
+      reporte_notas_credito_directa: {
+        Args: { p_dias?: number }
+        Returns: {
+          alerta: string
+          canal: string
+          dias: number
+          emitida_dian: boolean
+          factura_tranid: string
+          fecha: string
+          fecha_factura: string
+          monto_con_iva: number
+          numero_pos: string
+          tienda: string
+          tranid: string
+          zona: string
         }[]
       }
       reporte_ordenes_sin_facturar: {
