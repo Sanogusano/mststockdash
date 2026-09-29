@@ -209,6 +209,36 @@ export default function ReporteFacturacionPage() {
     },
   });
 
+  const sinFacturarQ = useQuery({
+    queryKey: ["ordenes-sin-facturar"],
+    queryFn: async () => {
+      const { data, error } = await (supabase.rpc as any)("reporte_ordenes_sin_facturar", {
+        p_dias: 60,
+        p_solo_pendientes: true,
+      });
+      if (error) throw error;
+      return (data ?? []) as SinFacturarRow[];
+    },
+  });
+
+  const sinFacturar = sinFacturarQ.data ?? [];
+  const sfStats = useMemo(() => {
+    const rows = sinFacturar;
+    const sinFactura = rows.filter((r) => !r.factura_tranid);
+    const mas7 = sinFactura.filter((r) => Number(r.dias ?? 0) > 7);
+    const masAntigua = sinFactura.reduce<SinFacturarRow | null>((acc, r) => {
+      if (!acc || Number(r.dias ?? 0) > Number(acc.dias ?? 0)) return r;
+      return acc;
+    }, null);
+    return {
+      total: sinFactura.length,
+      montoTotal: sinFactura.reduce((a, r) => a + Number(r.monto_con_iva ?? 0), 0),
+      mas7: mas7.length,
+      montoMas7: mas7.reduce((a, r) => a + Number(r.monto_con_iva ?? 0), 0),
+      masAntigua,
+    };
+  }, [sinFacturarQ.data]); // eslint-disable-line react-hooks/exhaustive-deps
+
   useEffect(() => {
     const nuevos = (q.data ?? []).map((r) => r.canal).filter(Boolean) as string[];
     if (nuevos.some((c) => !canalesVistos.includes(c)))
