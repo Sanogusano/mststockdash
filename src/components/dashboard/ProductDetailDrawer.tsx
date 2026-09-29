@@ -479,9 +479,6 @@ export function ProductDetailDrawer({
                               </span>
                             )}
                           </TableCell>
-                          <TableCell className="text-right text-sm font-semibold tabular-nums">
-                            {tallas.length === 0 ? dash : (() => { const n = tallasConStock(row.tienda); return <span className={n < tallas.length ? "text-destructive" : "text-success"}>{n}/{tallas.length}</span>; })()}
-                          </TableCell>
                           <TableCell className="text-right">{b ? dash : <span className="text-sm font-medium text-success">{row.pct_full_price}%</span>}</TableCell>
                           <TableCell className="text-right">{b ? dash : <span className="text-sm font-medium text-warning">{row.pct_descuento}%</span>}</TableCell>
                           <TableCell>
@@ -506,6 +503,9 @@ export function ProductDetailDrawer({
                                 )}
                               </>
                             )}
+                          </TableCell>
+                          <TableCell className="text-right text-sm font-semibold tabular-nums">
+                            {tallas.length === 0 ? dash : (() => { const n = tallasConStock(row.tienda); return <span className={n < tallas.length ? "text-destructive" : "text-success"}>{n}/{tallas.length}</span>; })()}
                           </TableCell>
                           <TableCell><StatusBadge label={row.estado_salud} /></TableCell>
                         </TableRow>
