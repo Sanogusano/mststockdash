@@ -127,7 +127,6 @@ export default function ReporteFacturacionPage() {
   const [busquedaDebounced, setBusquedaDebounced] = useState("");
   const [cardFiltro, setCardFiltro] = useState<CardKey | null>(null);
   const [page, setPage] = useState(1);
-  const [sfAbierta, setSfAbierta] = useState<boolean | null>(null);
   const [sortKey, setSortKey] = useState<SortKey>("fecha_pedido");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
 
@@ -467,7 +466,7 @@ export default function ReporteFacturacionPage() {
               <p className="text-sm text-destructive">Error: {(sinFacturarQ.error as any).message}</p>
             ) : sinFacturarQ.isLoading ? (
               <LoadingState rows={0} />
-            ) : (
+            ) : (<>
                     {sinFacturar.length === 0 ? (
                       <p className="text-center text-muted-foreground py-8">Sin órdenes sin facturar en los últimos 60 días</p>
                     ) : (
@@ -518,6 +517,7 @@ export default function ReporteFacturacionPage() {
                         </Table>
                       </div>
                     )}
+            </>)}
           </div>
         ) : (<>
         {resumenQ.error && <p className="text-sm text-destructive my-4">Error resumen: {(resumenQ.error as any).message}</p>}
