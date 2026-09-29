@@ -92,8 +92,8 @@ interface DetailRow {
 const WOS_OPTIONS = [
   { value: "all", label: "Todos los WOS" },
   { value: "risk", label: "🟡 Riesgo (<4 sem)" },
-  { value: "optimal", label: "🟢 Óptimo (4-12 sem)" },
-  { value: "overstock", label: "🔴 Sobrestock (>12 sem)" },
+  { value: "optimal", label: "🟢 Óptimo (4-18 sem)" },
+  { value: "overstock", label: "🔴 Sobrestock (>18 sem)" },
   { value: "stagnant", label: "🔴 Estancado (0 ventas)" },
 ];
 
