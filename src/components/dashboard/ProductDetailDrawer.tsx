@@ -10,7 +10,7 @@ import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import { exportToCSV } from "@/lib/csv-export";
 import { exportToPDF } from "@/lib/pdf-export";
-import { Download, FileText, ChevronDown, ChevronRight, Gauge, Clock } from "lucide-react";
+import { Download, FileText, ChevronDown, ChevronRight, Gauge, Clock, Store } from "lucide-react";
 import { ProductImageThumb } from "./ProductImageThumb";
 import {
   Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue,
