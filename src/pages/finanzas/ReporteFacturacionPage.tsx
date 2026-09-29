@@ -18,6 +18,14 @@ import { useHasPermission } from "@/hooks/useHasPermission";
 import { useUserRole } from "@/hooks/useUserRole";
 import { cn } from "@/lib/utils";
 
+type SinFacturarRow = {
+  tranid: string | null; fecha: string | null; dias: number | null;
+  canal: string | null; tienda: string | null; zona: string | null;
+  estado: string | null; estado_nombre: string | null; monto_con_iva: number | null;
+  factura_tranid: string | null; fecha_factura: string | null; dias_hasta_factura: number | null;
+  alerta: string | null;
+};
+
 type Row = {
   canal: string | null; zona: string | null; pedido: string | null; sucursal: string | null; fecha_pedido: string | null;
   estado_pago: string | null; colaborador: string | null; numero_factura: string | null;
@@ -80,6 +88,15 @@ function badgeClass(e: string) {
   if (e === "Facturado") return "bg-emerald-100 text-emerald-800 border-emerald-300";
   return "bg-secondary text-secondary-foreground border-border";
 }
+
+const alertaChipClass = (a: string | null | undefined) => {
+  if (!a) return "bg-muted text-muted-foreground border-border";
+  if (a.startsWith("🔴")) return "bg-destructive/10 text-destructive border-destructive/30";
+  if (a.startsWith("🟡")) return "bg-amber-100 text-amber-800 border-amber-300";
+  if (a.startsWith("🔵")) return "bg-blue-100 text-blue-800 border-blue-300";
+  if (a.startsWith("🟢")) return "bg-emerald-100 text-emerald-800 border-emerald-300";
+  return "bg-muted text-muted-foreground border-border";
+};
 
 // Fechas sin hora ('2026-09-24'): partir el string para no caer al día anterior por UTC→Bogotá.
 const fechaLocal = (s: string | null | undefined) => {
