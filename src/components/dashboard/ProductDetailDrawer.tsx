@@ -13,6 +13,7 @@ import { exportToCSV } from "@/lib/csv-export";
 import { exportToPDF } from "@/lib/pdf-export";
 import { Download, FileText, Gauge, Clock, Store, Copy, Check } from "lucide-react";
 import { ProductImageThumb } from "./ProductImageThumb";
+import { ResponsiveContainer, ComposedChart, Area, Line, XAxis, YAxis, Tooltip as RTooltip } from "recharts";
 import {
   Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
@@ -61,6 +62,7 @@ interface TallaMatrixRow {
   wos_talla: number | null;
   ubicaciones_con_talla: number;
   ubicaciones_total: number;
+  und_vendidas: number | null;
   und_vendidas_vida: number;
   sell_through_pct: number | null;
   estado: string | null;
@@ -79,6 +81,11 @@ const RDV_STYLES: Record<string, { text: string; chip: string | null }> = {
 const fmtIdx = (v: number) => (v >= 999 ? "+10×" : `${(v / 100).toFixed(1).replace(".", ",")}×`);
 const fmtWos = (v: number | null | undefined) => (v == null || v > 90 ? "+99" : String(v));
 const ONLINE_LOCATION_ID = "71474315479";
+
+const normEstado = (estado: string | null) => {
+  const v = (estado ?? "").trim().toUpperCase().replace(/_/g, " ");
+  return v || "OK";
+};
 
 const tallaStateClass = (estado: string | null) => {
   const value = (estado ?? "").toUpperCase();
@@ -513,61 +520,76 @@ export function ProductDetailDrawer({
               ) : sizeMatrix.length === 0 ? (
                 <EmptyState message="Sin detalle de tallas para este filtro." />
               ) : (
-                <TooltipProvider delayDuration={200}>
+                <div className="space-y-3">
+                  <div className="rounded-lg border border-border p-3">
+                    <div className="h-[160px]">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <ComposedChart data={sizeMatrix.map((s) => ({ talla: s.talla, cargado: Number(s.cargado_pct ?? 0), demanda: Number(s.demanda_pct ?? 0) }))} margin={{ top: 8, right: 8, bottom: 0, left: -20 }}>
+                          <XAxis dataKey="talla" tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
+                          <YAxis tick={{ fontSize: 10 }} axisLine={false} tickLine={false} tickFormatter={(v) => `${v}%`} />
+                          <RTooltip formatter={(v: number, n: string) => [formatPercent(v), n === "cargado" ? "Cargado" : "Demanda"]} />
+                          <Area type="monotone" dataKey="cargado" stroke="hsl(var(--muted-foreground) / 0.3)" fill="hsl(var(--muted-foreground) / 0.18)" isAnimationActive={false} />
+                          <Line type="monotone" dataKey="demanda" stroke="hsl(var(--primary))" strokeWidth={2} dot={{ r: 2.5 }} isAnimationActive={false} />
+                        </ComposedChart>
+                      </ResponsiveContainer>
+                    </div>
+                    <div className="mt-1 flex justify-center gap-4 text-[10px] text-muted-foreground">
+                      <span>▬ Cargado</span>
+                      <span className="text-primary">── Demanda</span>
+                    </div>
+                  </div>
                   <div className="overflow-x-auto rounded-lg border border-border">
                     <Table className="min-w-max">
                       <TableHeader>
                         <TableRow className="bg-muted/30">
-                          <TableHead className="sticky left-0 z-10 min-w-[120px] bg-muted">Métrica</TableHead>
-                          {sizeMatrix.map((size) => (
-                            <TableHead key={size.talla} className={cn("min-w-[105px] text-center font-bold", tallaStateClass(size.estado))}>
-                              <span className="block text-sm">{size.talla}</span>
-                              <span className={cn("block text-[9px] font-semibold", tallaStateTextClass(size.estado))}>{size.estado ?? "OK"}</span>
-                            </TableHead>
-                          ))}
+                          <TableHead className="sticky left-0 z-10 min-w-[130px] bg-muted">Talla</TableHead>
+                          {sizeMatrix.map((size) => {
+                            const est = storeFilter === "all" ? normEstado(size.estado) : "OK";
+                            return (
+                              <TableHead key={size.talla} className={cn("min-w-[80px] text-center font-bold", tallaStateClass(est))}>
+                                <span className="block text-sm text-foreground">{size.talla}</span>
+                                {est !== "OK" && <span className={cn("block text-[9px] font-semibold", tallaStateTextClass(est))}>{est}</span>}
+                              </TableHead>
+                            );
+                          })}
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        <TableRow>
-                          <TableCell className="sticky left-0 z-10 bg-background text-xs font-medium">SKU</TableCell>
-                          {sizeMatrix.map((size) => (
-                            <TableCell key={size.talla} className={cn("text-center", tallaStateClass(size.estado))}>
-                              {size.skus ? (
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <Button variant="ghost" size="sm" className="h-7 max-w-[96px] gap-1 px-1 font-mono text-[10px]" onClick={() => copySkus(size.talla, size.skus)} aria-label={`Copiar SKU de talla ${size.talla}`}>
-                                      <span className="truncate">{size.skus}</span>
-                                      {copiedSize === size.talla ? <Check className="h-3 w-3 shrink-0 text-success" /> : <Copy className="h-3 w-3 shrink-0" />}
-                                    </Button>
-                                  </TooltipTrigger>
-                                  <TooltipContent>{copiedSize === size.talla ? "Copiado" : `Copiar ${size.skus}`}</TooltipContent>
-                                </Tooltip>
-                              ) : "—"}
-                            </TableCell>
-                          ))}
-                        </TableRow>
                         {[
-                          { label: "Cargado", render: (size: TallaMatrixRow) => formatPercent(size.cargado_pct) },
-                          { label: "Demanda", render: (size: TallaMatrixRow) => formatPercent(size.demanda_pct) },
-                          { label: "Brecha", render: (size: TallaMatrixRow) => formatGap(size.brecha_pct), emphasized: true },
-                          { label: "En tienda", render: (size: TallaMatrixRow) => Number(size.stock_tiendas ?? 0).toLocaleString("es-CO") },
-                          { label: "En bodega", render: (size: TallaMatrixRow) => Number(size.stock_bodega ?? 0) > 0 ? Number(size.stock_bodega).toLocaleString("es-CO") : "—" },
-                          { label: "Cobertura", render: (size: TallaMatrixRow) => `${Number(size.ubicaciones_con_talla ?? 0)}/${Number(size.ubicaciones_total ?? 0)}` },
-                          { label: "WOS", render: (size: TallaMatrixRow) => formatDecimal(size.wos_talla) },
-                        ].map((metric) => (
-                          <TableRow key={metric.label}>
-                            <TableCell className="sticky left-0 z-10 bg-background text-xs font-medium">{metric.label}</TableCell>
-                            {sizeMatrix.map((size) => (
-                              <TableCell key={size.talla} className={cn("text-center text-xs tabular-nums", tallaStateClass(size.estado), metric.emphasized && "font-bold", metric.emphasized && gapTextClass(size.brecha_pct))}>
-                                {metric.render(size)}
+                          { group: "VENTA", rows: [
+                            { label: "Ventas", sub: "56 días", render: (s: TallaMatrixRow) => Number(s.und_vendidas ?? 0).toLocaleString("es-CO") },
+                            { label: "RDV", render: (s: TallaMatrixRow) => s.ritmo_semanal == null ? "—" : `${formatDecimal(s.ritmo_semanal)} u/sem` },
+                          ] },
+                          { group: storeFilter === "all" ? "INVENTARIO" : `INVENTARIO · ${storeFilter}`, rows: [
+                            { label: "Cargadas", render: (s: TallaMatrixRow) => Number(s.stock_tiendas ?? 0).toLocaleString("es-CO") },
+                            { label: "En bodega", render: (s: TallaMatrixRow) => Number(s.stock_bodega ?? 0) > 0 ? Number(s.stock_bodega).toLocaleString("es-CO") : "—" },
+                            { label: "WOS", render: (s: TallaMatrixRow) => formatDecimal(s.wos_talla) },
+                          ] },
+                          { group: "COBERTURA", rows: [
+                            { label: "Ubicaciones", render: (s: TallaMatrixRow) => `${Number(s.ubicaciones_con_talla ?? 0)}/${Number(s.ubicaciones_total ?? 0)}` },
+                          ] },
+                        ].flatMap((block) => [
+                          <TableRow key={block.group} className="bg-muted/20 hover:bg-muted/20">
+                            <TableCell colSpan={sizeMatrix.length + 1} className="py-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">{block.group}</TableCell>
+                          </TableRow>,
+                          ...block.rows.map((metric) => (
+                            <TableRow key={metric.label}>
+                              <TableCell className="sticky left-0 z-10 bg-background text-xs font-medium">
+                                {metric.label}
+                                {"sub" in metric && metric.sub && <span className="ml-1 text-[10px] font-normal text-muted-foreground">({metric.sub})</span>}
                               </TableCell>
-                            ))}
-                          </TableRow>
-                        ))}
+                              {sizeMatrix.map((size) => (
+                                <TableCell key={size.talla} className={cn("text-center text-xs tabular-nums", tallaStateClass(storeFilter === "all" ? normEstado(size.estado) : "OK"))}>
+                                  {metric.render(size)}
+                                </TableCell>
+                              ))}
+                            </TableRow>
+                          )),
+                        ])}
                       </TableBody>
                     </Table>
                   </div>
-                </TooltipProvider>
+                </div>
               )}
             </div>
 
