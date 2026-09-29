@@ -427,15 +427,16 @@ export function ProductDetailDrawer({
                       <TableRow className="bg-muted/30">
                         <TableHead className="w-10 text-right">#</TableHead>
                         <TableHead>Tienda</TableHead>
+                        <TableHead>Tiempo</TableHead>
                         <TableHead className="text-right">Recibido</TableHead>
                         <TableHead className="text-right">Vendidas</TableHead>
-                        <TableHead className="text-right">Ingresos</TableHead>
                         <TableHead className="text-right">Stock</TableHead>
-                        <TableHead className="text-right">Tallas</TableHead>
+                        <TableHead className="text-right">RDV</TableHead>
                         <TableHead className="text-right">% Full</TableHead>
                         <TableHead className="text-right">% Dto.</TableHead>
                         <TableHead className="min-w-[140px]">Sell-Through</TableHead>
                         <TableHead>WOS</TableHead>
+                        <TableHead className="text-right">Tallas</TableHead>
                         <TableHead>Salud</TableHead>
                       </TableRow>
                     </TableHeader>
