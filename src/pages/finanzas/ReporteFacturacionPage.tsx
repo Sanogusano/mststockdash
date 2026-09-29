@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Download, CheckCircle2, AlertTriangle, Search, ArrowUpDown, ArrowUp, ArrowDown, ChevronDown } from "lucide-react";
+import { Download, CheckCircle2, AlertTriangle, Search, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { FinanzasLayout } from "./FinanzasLayout";
 import { Card, CardContent } from "@/components/ui/card";
@@ -15,7 +15,6 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { fmtCOP, fmtInt } from "@/lib/finanzas-format";
 import { exportToXLS } from "@/lib/xls-export";
 import { useHasPermission } from "@/hooks/useHasPermission";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useUserRole } from "@/hooks/useUserRole";
 import { cn } from "@/lib/utils";
 
@@ -128,7 +127,6 @@ export default function ReporteFacturacionPage() {
   const [busquedaDebounced, setBusquedaDebounced] = useState("");
   const [cardFiltro, setCardFiltro] = useState<CardKey | null>(null);
   const [page, setPage] = useState(1);
-  const [sfAbierta, setSfAbierta] = useState<boolean | null>(null);
   const [sortKey, setSortKey] = useState<SortKey>("fecha_pedido");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
 
@@ -241,11 +239,7 @@ export default function ReporteFacturacionPage() {
     };
   }, [sinFacturarQ.data]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Estado inicial: abierta si hay órdenes con más de 7 días sin facturar; se calcula al terminar de cargar.
-  useEffect(() => {
-    if (sinFacturarQ.isSuccess && sfAbierta === null) setSfAbierta(sfStats.mas7 > 0);
-  }, [sinFacturarQ.isSuccess]); // eslint-disable-line react-hooks/exhaustive-deps
-  const sfOpen = sfAbierta ?? false;
+  const [vista, setVista] = useState<"pedidos" | "ordenes">("pedidos");
 
   useEffect(() => {
     const nuevos = (q.data ?? []).map((r) => r.canal).filter(Boolean) as string[];
@@ -372,6 +366,7 @@ export default function ReporteFacturacionPage() {
           Ventas hasta {fmtFechaSolo(corteQ.data?.ultima_venta)} · Facturas hasta {fmtFechaSolo(corteQ.data?.ultima_factura)} · Última sincronización {fmtDateTime(corteQ.data?.ultima_sync_netsuite)}.
         </p>
 
+        {vista === "pedidos" && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-7 gap-4 mb-6 items-end">
           <div className="space-y-1"><Label className="text-xs">Desde</Label><Input type="date" value={desde} onChange={(e) => setDesde(e.target.value)} /></div>
           <div className="space-y-1"><Label className="text-xs">Hasta</Label><Input type="date" value={hasta} onChange={(e) => setHasta(e.target.value)} /></div>
@@ -431,18 +426,20 @@ export default function ReporteFacturacionPage() {
             {canExport && <Button variant="outline" size="sm" onClick={exportar} disabled={filasCargadas.length === 0 || exportando !== null || q.isFetching}><Download className="h-4 w-4 mr-1" />{exportando !== null ? `Preparando… ${fmtInt(exportando)} filas` : "Excel"}</Button>}
           </div>
         </div>
+        )}
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-4 mb-2">
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-6 gap-4 mb-2">
           {resumenQ.isLoading ? (
-            <div className="sm:col-span-2 xl:col-span-5">
+            <div className="sm:col-span-2 xl:col-span-6">
               <LoadingState rows={0} />
             </div>
-          ) : cards.map((c) => (
+          ) : (<>{cards.map((c) => (
             <Card key={c.key} onClick={() => {
               setCardFiltro(cardFiltro === c.key ? null : c.key);
               if (c.key !== "pendiente") setSoloPend(false);
+              setVista("pedidos");
             }}
-              className={cn("cursor-pointer transition-shadow hover:shadow-md", c.cls, cardFiltro === c.key && "ring-2 ring-primary")}>
+              className={cn("cursor-pointer transition-shadow hover:shadow-md", c.cls, vista === "pedidos" && cardFiltro === c.key && "ring-2 ring-primary")}>
               <CardContent className="p-4">
                 <p className="text-xs font-medium">{c.title}</p>
                 <p className="text-2xl font-semibold tabular-nums">{fmtInt(resumen[c.key].n)}</p>
@@ -450,54 +447,26 @@ export default function ReporteFacturacionPage() {
               </CardContent>
             </Card>
           ))}
+            <Card onClick={() => { setVista(vista === "ordenes" ? "pedidos" : "ordenes"); setCardFiltro(null); }}
+              className={cn("cursor-pointer transition-shadow hover:shadow-md", sfStats.mas7 > 0 ? "border-destructive/40 text-destructive" : "text-muted-foreground", vista === "ordenes" && "ring-2 ring-primary")}>
+              <CardContent className="p-4">
+                <p className="text-xs font-medium">Órdenes sin facturar</p>
+                <p className="text-2xl font-semibold tabular-nums">{fmtInt(sfStats.total)}</p>
+                <p className="text-xs text-muted-foreground tabular-nums">{fmtCOP(sfStats.montoTotal)}</p>
+              </CardContent>
+            </Card>
+          </>)}
         </div>
-        {cardFiltro && <Button variant="link" size="sm" className="h-auto px-0 mb-4" onClick={() => setCardFiltro(null)}>Quitar filtro de estado</Button>}
+        {vista === "pedidos" && cardFiltro && <Button variant="link" size="sm" className="h-auto px-0 mb-4" onClick={() => setCardFiltro(null)}>Quitar filtro de estado</Button>}
 
-        {/* ============ Órdenes sin facturar ============ */}
-        <Collapsible open={sfOpen} onOpenChange={setSfAbierta} className="mt-2 mb-6">
-          <Card>
-            <CardContent className="p-4">
-              <CollapsibleTrigger asChild>
-                <button type="button" className="flex w-full items-center justify-between gap-4 text-left cursor-pointer">
-                  <span className="flex items-center gap-3 min-w-0 flex-wrap">
-                    <h3 className="text-sm font-semibold text-foreground whitespace-nowrap">Órdenes sin facturar</h3>
-                    <span className={cn(
-                      "inline-block whitespace-nowrap rounded-full border px-2 py-0.5 text-xs font-medium tabular-nums",
-                      sfStats.mas7 > 0 ? "bg-destructive/10 text-destructive border-destructive/30" : "bg-muted text-muted-foreground border-border",
-                    )}>
-                      {fmtInt(sfStats.total)} sin facturar
-                    </span>
-                  </span>
-                  <ChevronDown className={cn("h-4 w-4 flex-shrink-0 text-muted-foreground transition-transform", sfOpen && "rotate-180")} />
-                </button>
-              </CollapsibleTrigger>
-              <p className="mt-0.5 text-xs text-muted-foreground">Órdenes de venta de tiendas y Ecommerce que aún no tienen factura asociada</p>
-              <CollapsibleContent>
-                <div className="mt-4">
-                {sinFacturarQ.error ? (
-                  <p className="text-sm text-destructive">Error: {(sinFacturarQ.error as any).message}</p>
-                ) : sinFacturarQ.isLoading ? (
-                  <LoadingState rows={0} />
-                ) : (
-                  <>
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
-                      <div className="rounded-md border border-border p-3">
-                        <p className="text-xs text-muted-foreground">Total sin facturar</p>
-                        <p className="text-xl font-semibold tabular-nums">{fmtInt(sfStats.total)}</p>
-                        <p className="text-xs text-muted-foreground tabular-nums">{fmtCOP(sfStats.montoTotal)}</p>
-                      </div>
-                      <div className={cn("rounded-md border border-border p-3", sfStats.mas7 > 0 && "border-destructive/40 bg-destructive/5")}>
-                        <p className="text-xs text-muted-foreground">Más de 7 días</p>
-                        <p className={cn("text-xl font-semibold tabular-nums", sfStats.mas7 > 0 && "text-destructive")}>{fmtInt(sfStats.mas7)}</p>
-                        <p className={cn("text-xs text-muted-foreground tabular-nums", sfStats.mas7 > 0 && "text-destructive")}>{fmtCOP(sfStats.montoMas7)}</p>
-                      </div>
-                      <div className="rounded-md border border-border p-3">
-                        <p className="text-xs text-muted-foreground">Más antigua</p>
-                        <p className="text-xl font-semibold tabular-nums">{sfStats.masAntigua ? `${fmtInt(Number(sfStats.masAntigua.dias ?? 0))} días` : "—"}</p>
-                        <p className="text-xs text-muted-foreground">{sfStats.masAntigua ? fmtFechaSolo(sfStats.masAntigua.fecha) : "—"}</p>
-                      </div>
-                    </div>
-
+        {vista === "ordenes" ? (
+          <div className="mt-4">
+            <Button variant="link" size="sm" className="h-auto px-0 mb-3" onClick={() => setVista("pedidos")}>← Volver a pedidos</Button>
+            {sinFacturarQ.error ? (
+              <p className="text-sm text-destructive">Error: {(sinFacturarQ.error as any).message}</p>
+            ) : sinFacturarQ.isLoading ? (
+              <LoadingState rows={0} />
+            ) : (<>
                     {sinFacturar.length === 0 ? (
                       <p className="text-center text-muted-foreground py-8">Sin órdenes sin facturar en los últimos 60 días</p>
                     ) : (
@@ -548,15 +517,9 @@ export default function ReporteFacturacionPage() {
                         </Table>
                       </div>
                     )}
-                  </>
-                )}
-                </div>
-              </CollapsibleContent>
-            </CardContent>
-          </Card>
-        </Collapsible>
-
-
+            </>)}
+          </div>
+        ) : (<>
         {resumenQ.error && <p className="text-sm text-destructive my-4">Error resumen: {(resumenQ.error as any).message}</p>}
         {topeAlcanzado && <p className="text-sm text-amber-700 my-2">La búsqueda alcanzó el tope de {TOPE} filas; refina el texto para ver todos los resultados.</p>}
         {q.error && <p className="text-sm text-destructive my-4">Error: {(q.error as any).message}</p>}
@@ -647,6 +610,7 @@ export default function ReporteFacturacionPage() {
             </div>
           </div>
         )}
+        </>)}
       </FinanzasLayout>
     </TooltipProvider>
   );
