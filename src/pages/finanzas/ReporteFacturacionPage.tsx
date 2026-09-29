@@ -18,6 +18,14 @@ import { useHasPermission } from "@/hooks/useHasPermission";
 import { useUserRole } from "@/hooks/useUserRole";
 import { cn } from "@/lib/utils";
 
+type SinFacturarRow = {
+  tranid: string | null; fecha: string | null; dias: number | null;
+  canal: string | null; tienda: string | null; zona: string | null;
+  estado: string | null; estado_nombre: string | null; monto_con_iva: number | null;
+  factura_tranid: string | null; fecha_factura: string | null; dias_hasta_factura: number | null;
+  alerta: string | null;
+};
+
 type Row = {
   canal: string | null; zona: string | null; pedido: string | null; sucursal: string | null; fecha_pedido: string | null;
   estado_pago: string | null; colaborador: string | null; numero_factura: string | null;
@@ -80,6 +88,15 @@ function badgeClass(e: string) {
   if (e === "Facturado") return "bg-emerald-100 text-emerald-800 border-emerald-300";
   return "bg-secondary text-secondary-foreground border-border";
 }
+
+const alertaChipClass = (a: string | null | undefined) => {
+  if (!a) return "bg-muted text-muted-foreground border-border";
+  if (a.startsWith("🔴")) return "bg-destructive/10 text-destructive border-destructive/30";
+  if (a.startsWith("🟡")) return "bg-amber-100 text-amber-800 border-amber-300";
+  if (a.startsWith("🔵")) return "bg-blue-100 text-blue-800 border-blue-300";
+  if (a.startsWith("🟢")) return "bg-emerald-100 text-emerald-800 border-emerald-300";
+  return "bg-muted text-muted-foreground border-border";
+};
 
 // Fechas sin hora ('2026-09-24'): partir el string para no caer al día anterior por UTC→Bogotá.
 const fechaLocal = (s: string | null | undefined) => {
@@ -191,6 +208,36 @@ export default function ReporteFacturacionPage() {
       return data?.[0] ?? null;
     },
   });
+
+  const sinFacturarQ = useQuery({
+    queryKey: ["ordenes-sin-facturar"],
+    queryFn: async () => {
+      const { data, error } = await (supabase.rpc as any)("reporte_ordenes_sin_facturar", {
+        p_dias: 60,
+        p_solo_pendientes: true,
+      });
+      if (error) throw error;
+      return (data ?? []) as SinFacturarRow[];
+    },
+  });
+
+  const sinFacturar = sinFacturarQ.data ?? [];
+  const sfStats = useMemo(() => {
+    const rows = sinFacturar;
+    const sinFactura = rows.filter((r) => !r.factura_tranid);
+    const mas7 = sinFactura.filter((r) => Number(r.dias ?? 0) > 7);
+    const masAntigua = sinFactura.reduce<SinFacturarRow | null>((acc, r) => {
+      if (!acc || Number(r.dias ?? 0) > Number(acc.dias ?? 0)) return r;
+      return acc;
+    }, null);
+    return {
+      total: sinFactura.length,
+      montoTotal: sinFactura.reduce((a, r) => a + Number(r.monto_con_iva ?? 0), 0),
+      mas7: mas7.length,
+      montoMas7: mas7.reduce((a, r) => a + Number(r.monto_con_iva ?? 0), 0),
+      masAntigua,
+    };
+  }, [sinFacturarQ.data]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     const nuevos = (q.data ?? []).map((r) => r.canal).filter(Boolean) as string[];
@@ -488,6 +535,92 @@ export default function ReporteFacturacionPage() {
             </div>
           </div>
         )}
+        {/* ============ Órdenes sin facturar ============ */}
+        <Card className="mt-8">
+          <CardContent className="p-4">
+            <div className="mb-4">
+              <h3 className="text-sm font-semibold text-foreground">Órdenes sin facturar</h3>
+              <p className="text-xs text-muted-foreground">Órdenes de venta de tiendas y Ecommerce que aún no tienen factura asociada</p>
+            </div>
+
+            {sinFacturarQ.error ? (
+              <p className="text-sm text-destructive">Error: {(sinFacturarQ.error as any).message}</p>
+            ) : sinFacturarQ.isLoading ? (
+              <LoadingState rows={0} />
+            ) : (
+              <>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
+                  <div className="rounded-md border border-border p-3">
+                    <p className="text-xs text-muted-foreground">Total sin facturar</p>
+                    <p className="text-xl font-semibold tabular-nums">{fmtInt(sfStats.total)}</p>
+                    <p className="text-xs text-muted-foreground tabular-nums">{fmtCOP(sfStats.montoTotal)}</p>
+                  </div>
+                  <div className={cn("rounded-md border border-border p-3", sfStats.mas7 > 0 && "border-destructive/40 bg-destructive/5")}>
+                    <p className="text-xs text-muted-foreground">Más de 7 días</p>
+                    <p className={cn("text-xl font-semibold tabular-nums", sfStats.mas7 > 0 && "text-destructive")}>{fmtInt(sfStats.mas7)}</p>
+                    <p className={cn("text-xs text-muted-foreground tabular-nums", sfStats.mas7 > 0 && "text-destructive")}>{fmtCOP(sfStats.montoMas7)}</p>
+                  </div>
+                  <div className="rounded-md border border-border p-3">
+                    <p className="text-xs text-muted-foreground">Más antigua</p>
+                    <p className="text-xl font-semibold tabular-nums">{sfStats.masAntigua ? `${fmtInt(Number(sfStats.masAntigua.dias ?? 0))} días` : "—"}</p>
+                    <p className="text-xs text-muted-foreground">{sfStats.masAntigua ? fmtFechaSolo(sfStats.masAntigua.fecha) : "—"}</p>
+                  </div>
+                </div>
+
+                {sinFacturar.length === 0 ? (
+                  <p className="text-center text-muted-foreground py-8">Sin órdenes sin facturar en los últimos 60 días</p>
+                ) : (
+                  <div className="overflow-x-auto rounded-md border border-border">
+                    <Table className="min-w-[1000px] table-fixed">
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="w-[190px]">Alerta</TableHead>
+                          <TableHead className="w-[130px]">Orden</TableHead>
+                          <TableHead className="w-[100px]">Fecha</TableHead>
+                          <TableHead className="w-[70px] text-right">Días</TableHead>
+                          <TableHead className="w-[110px]">Canal</TableHead>
+                          <TableHead className="w-[160px]">Tienda</TableHead>
+                          <TableHead className="w-[160px]">Estado</TableHead>
+                          <TableHead className="w-[130px] text-right">Monto</TableHead>
+                          <TableHead className="w-[150px]">Factura</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {sinFacturar.map((r, i) => (
+                          <TableRow key={(r.tranid ?? "") + i} className="align-top">
+                            <TableCell>
+                              {r.alerta ? (
+                                <span className={cn("inline-block max-w-full text-xs px-2 py-0.5 rounded border", alertaChipClass(r.alerta))}>{r.alerta}</span>
+                              ) : <span className="text-xs text-muted-foreground">—</span>}
+                            </TableCell>
+                            <TableCell className="font-semibold">{r.tranid ?? "—"}</TableCell>
+                            <TableCell className="whitespace-nowrap">{fmtFechaSolo(r.fecha)}</TableCell>
+                            <TableCell className={cn("text-right tabular-nums font-medium", Number(r.dias ?? 0) > 7 && "text-destructive")}>{fmtInt(r.dias)}</TableCell>
+                            <TableCell>{r.canal ?? "—"}</TableCell>
+                            <TableCell>
+                              <p className="font-medium">{r.tienda ?? "—"}</p>
+                              {r.zona && <p className="mt-0.5 text-xs text-muted-foreground">{r.zona}</p>}
+                            </TableCell>
+                            <TableCell>{r.estado_nombre ?? r.estado ?? "—"}</TableCell>
+                            <TableCell className="text-right tabular-nums font-semibold">{fmtCOP(r.monto_con_iva)}</TableCell>
+                            <TableCell>
+                              {r.factura_tranid ? (
+                                <>
+                                  <p className="font-medium">{r.factura_tranid}</p>
+                                  <p className="mt-0.5 text-xs text-muted-foreground">{fmtFechaSolo(r.fecha_factura)}</p>
+                                </>
+                              ) : <span className="text-xs text-muted-foreground">—</span>}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+              </>
+            )}
+          </CardContent>
+        </Card>
       </FinanzasLayout>
     </TooltipProvider>
   );

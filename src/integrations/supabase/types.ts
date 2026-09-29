@@ -1833,6 +1833,51 @@ export type Database = {
           },
         ]
       }
+      netsuite_ordenes_venta: {
+        Row: {
+          actualizado_en: string
+          estado: string | null
+          estado_nombre: string | null
+          factura_tranid: string | null
+          fecha: string
+          fecha_factura: string | null
+          location_id: string | null
+          monto_con_iva: number | null
+          monto_sin_iva: number | null
+          netsuite_transaction_id: string | null
+          tranid: string
+          ubicacion_netsuite: string | null
+        }
+        Insert: {
+          actualizado_en?: string
+          estado?: string | null
+          estado_nombre?: string | null
+          factura_tranid?: string | null
+          fecha: string
+          fecha_factura?: string | null
+          location_id?: string | null
+          monto_con_iva?: number | null
+          monto_sin_iva?: number | null
+          netsuite_transaction_id?: string | null
+          tranid: string
+          ubicacion_netsuite?: string | null
+        }
+        Update: {
+          actualizado_en?: string
+          estado?: string | null
+          estado_nombre?: string | null
+          factura_tranid?: string | null
+          fecha?: string
+          fecha_factura?: string | null
+          location_id?: string | null
+          monto_con_iva?: number | null
+          monto_sin_iva?: number | null
+          netsuite_transaction_id?: string | null
+          tranid?: string
+          ubicacion_netsuite?: string | null
+        }
+        Relationships: []
+      }
       netsuite_sku_mapping: {
         Row: {
           created_at: string
@@ -6111,6 +6156,24 @@ export type Database = {
           venta_promedio_diaria_anterior: number
           venta_promedio_finde: number
           venta_promedio_semana: number
+        }[]
+      }
+      reporte_ordenes_sin_facturar: {
+        Args: { p_dias?: number; p_solo_pendientes?: boolean }
+        Returns: {
+          alerta: string
+          canal: string
+          dias: number
+          dias_hasta_factura: number
+          estado: string
+          estado_nombre: string
+          factura_tranid: string
+          fecha: string
+          fecha_factura: string
+          monto_con_iva: number
+          tienda: string
+          tranid: string
+          zona: string
         }[]
       }
       reporte_pareto_categorias: {
