@@ -118,14 +118,9 @@ export function ProductSkuDrawer({ product, days, locationId, onClose }: Props) 
 
       const variantIds = catalogRows.map(r => r.variant_id!).filter(Boolean);
 
-      // Get latest snapshot date
-      const { data: snapDate } = await supabase
-        .from("inventory_snapshot")
-        .select("snapshot_date")
-        .order("snapshot_date", { ascending: false })
-        .limit(1);
-
-      const latestDate = snapDate?.[0]?.snapshot_date;
+      // Latest valid snapshot date (discards incomplete cuts)
+      const { data: validDate } = await supabase.rpc("_latest_valid_snapshot_date" as any);
+      const latestDate = validDate as string | null;
       if (!latestDate) return { stores: [], stockTiendas: 0, stockOnline: 0 };
 
       // Get inventory grouped by location
@@ -157,32 +152,24 @@ export function ProductSkuDrawer({ product, days, locationId, onClose }: Props) 
 
       const locNameMap = new Map((locRows ?? []).map(l => [l.location_id, l.name]));
 
-      // Get sales data per location for WOS calculation
-      const { data: salesRows } = await supabase
-        .from("inventory_snapshot")
-        .select("location_id")
-        .eq("snapshot_date", latestDate)
-        .in("variant_id", variantIds); // reuse for counting
-
       // Use reporte_detalle_producto_tiendas for per-store WOS
-      const { data: storeDetailRows } = await supabase.rpc("reporte_detalle_producto_tiendas" as any, {
-        dias_atras: effectiveDays,
-        p_producto: product.producto,
-        p_hasta: hastaParam,
-      });
+      const { data: storeDetailRows, error: storeDetailError } =
+        await supabase.rpc("reporte_detalle_producto_tiendas" as any, {
+          dias_atras: effectiveDays,
+          p_product_id: product.product_id,
+          p_hasta: hastaParam,
+        });
+      if (storeDetailError) throw new Error(storeDetailError.message);
 
-      // WOS por tienda: la RPC devuelve solo el nombre de tienda, se cruza con
-      // locations por location_id. Los nombres pueden diferir (la RPC dice
-      // 'Bodega Ecommerce' y locations 'CEDI Guayabal'), así que un nombre de
-      // la RPC sin correspondencia en locations se asigna a la ubicación online.
+      // WOS por tienda: cruce por nombre → location_id. Solo 'Bodega Ecommerce'
+      // se asigna a la ubicación online.
       const locIdByName = new Map((locRows ?? []).map(l => [l.name, l.location_id]));
-
       const wosMap = new Map<string, number | null>();
-      if (storeDetailRows) {
-        for (const r of storeDetailRows as any[]) {
-          const lid = locIdByName.get(r.tienda) ?? ONLINE_LOCATION_ID;
-          if (lid) wosMap.set(lid, r.wos ?? null);
-        }
+      for (const r of (storeDetailRows ?? []) as any[]) {
+        const lid = r.tienda === "Bodega Ecommerce"
+          ? ONLINE_LOCATION_ID
+          : locIdByName.get(r.tienda);
+        if (lid) wosMap.set(lid, r.wos ?? null);
       }
 
       let stockTiendas = 0;
