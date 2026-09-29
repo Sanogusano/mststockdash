@@ -241,6 +241,12 @@ export default function ReporteFacturacionPage() {
     };
   }, [sinFacturarQ.data]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Estado inicial: abierta si hay órdenes con más de 7 días sin facturar; se calcula al terminar de cargar.
+  useEffect(() => {
+    if (sinFacturarQ.isSuccess && sfAbierta === null) setSfAbierta(sfStats.mas7 > 0);
+  }, [sinFacturarQ.isSuccess]); // eslint-disable-line react-hooks/exhaustive-deps
+  const sfOpen = sfAbierta ?? false;
+
   useEffect(() => {
     const nuevos = (q.data ?? []).map((r) => r.canal).filter(Boolean) as string[];
     if (nuevos.some((c) => !canalesVistos.includes(c)))
