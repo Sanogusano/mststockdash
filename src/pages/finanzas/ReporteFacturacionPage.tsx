@@ -26,6 +26,13 @@ type SinFacturarRow = {
   alerta: string | null;
 };
 
+type NotaCreditoRow = {
+  tranid: string | null; fecha: string | null; dias: number | null;
+  canal: string | null; tienda: string | null; zona: string | null;
+  monto_con_iva: number | null; factura_tranid: string | null; fecha_factura: string | null;
+  numero_pos: string | null; emitida_dian: boolean | null; alerta: string | null;
+};
+
 type Row = {
   canal: string | null; zona: string | null; pedido: string | null; sucursal: string | null; fecha_pedido: string | null;
   estado_pago: string | null; colaborador: string | null; numero_factura: string | null;
@@ -239,7 +246,18 @@ export default function ReporteFacturacionPage() {
     };
   }, [sinFacturarQ.data]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const [vista, setVista] = useState<"pedidos" | "ordenes">("pedidos");
+  const notasQ = useQuery({
+    queryKey: ["notas-credito-directa"],
+    queryFn: async () => {
+      const { data, error } = await (supabase.rpc as any)("reporte_notas_credito_directa", { p_dias: 60 });
+      if (error) throw error;
+      return (data ?? []) as NotaCreditoRow[];
+    },
+  });
+  const notas = notasQ.data ?? [];
+  const notasMonto = useMemo(() => notas.reduce((a, r) => a + Number(r.monto_con_iva ?? 0), 0), [notasQ.data]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const [vista, setVista] = useState<"pedidos" | "ordenes" | "notas">("pedidos");
 
   useEffect(() => {
     const nuevos = (q.data ?? []).map((r) => r.canal).filter(Boolean) as string[];
@@ -428,7 +446,7 @@ export default function ReporteFacturacionPage() {
         </div>
         )}
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-6 gap-4 mb-2">
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-7 gap-4 mb-2">
           {resumenQ.isLoading ? (
             <div className="sm:col-span-2 xl:col-span-6">
               <LoadingState rows={0} />
@@ -469,6 +487,14 @@ export default function ReporteFacturacionPage() {
               </CardContent>
             </Card>
           ))}
+            <Card onClick={() => { setVista(vista === "notas" ? "pedidos" : "notas"); setCardFiltro(null); }}
+              className={cn("cursor-pointer transition-shadow hover:shadow-md text-muted-foreground", vista === "notas" && "ring-2 ring-primary")}>
+              <CardContent className="p-4">
+                <p className="text-xs font-medium">Notas crédito</p>
+                <p className="text-2xl font-semibold tabular-nums">{notasQ.isLoading ? "…" : fmtInt(notas.length)}</p>
+                <p className="text-xs text-muted-foreground tabular-nums">{fmtCOP(notasMonto)}</p>
+              </CardContent>
+            </Card>
           </>)}
         </div>
         {vista === "pedidos" && cardFiltro && <Button variant="link" size="sm" className="h-auto px-0 mb-4" onClick={() => setCardFiltro(null)}>Quitar filtro de estado</Button>}
@@ -532,6 +558,71 @@ export default function ReporteFacturacionPage() {
                       </div>
                     )}
             </>)}
+          </div>
+        ) : vista === "notas" ? (
+          <div className="mt-4">
+            <Button variant="link" size="sm" className="h-auto px-0 mb-3" onClick={() => setVista("pedidos")}>← Volver a pedidos</Button>
+            {notasQ.error ? (
+              <p className="text-sm text-destructive">Error: {(notasQ.error as any).message}</p>
+            ) : notasQ.isLoading ? (
+              <LoadingState rows={0} />
+            ) : notas.length === 0 ? (
+              <p className="text-center text-muted-foreground py-8">Sin notas crédito en los últimos 60 días</p>
+            ) : (
+              <div className="overflow-x-auto rounded-md border border-border">
+                <Table className="min-w-[1000px] table-fixed">
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-[190px]">Alerta</TableHead>
+                      <TableHead className="w-[130px]">Nota</TableHead>
+                      <TableHead className="w-[100px]">Fecha</TableHead>
+                      <TableHead className="w-[70px] text-right">Días</TableHead>
+                      <TableHead className="w-[110px]">Canal</TableHead>
+                      <TableHead className="w-[160px]">Tienda</TableHead>
+                      <TableHead className="w-[130px] text-right">Monto</TableHead>
+                      <TableHead className="w-[150px]">Factura origen</TableHead>
+                      <TableHead className="w-[60px] text-center">DIAN</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {notas.map((r, i) => (
+                      <TableRow key={(r.tranid ?? "") + i} className="align-top">
+                        <TableCell>
+                          {r.alerta ? (
+                            <span className={cn("inline-block max-w-full text-xs px-2 py-0.5 rounded border", alertaChipClass(r.alerta))}>{r.alerta}</span>
+                          ) : <span className="text-xs text-muted-foreground">—</span>}
+                        </TableCell>
+                        <TableCell className="font-semibold">{r.tranid ?? "—"}</TableCell>
+                        <TableCell className="whitespace-nowrap">{fmtFechaSolo(r.fecha)}</TableCell>
+                        <TableCell className="text-right tabular-nums">{fmtInt(r.dias)}</TableCell>
+                        <TableCell>{r.canal ?? "—"}</TableCell>
+                        <TableCell>
+                          <p className="font-medium">{r.tienda ?? "—"}</p>
+                          {r.zona && <p className="mt-0.5 text-xs text-muted-foreground">{r.zona}</p>}
+                        </TableCell>
+                        <TableCell className="text-right tabular-nums font-semibold">{fmtCOP(r.monto_con_iva)}</TableCell>
+                        <TableCell>
+                          {r.factura_tranid ? (
+                            <>
+                              <p className="font-medium">{r.factura_tranid}</p>
+                              <p className="mt-0.5 text-xs text-muted-foreground">{fmtFechaSolo(r.fecha_factura)}</p>
+                            </>
+                          ) : <span className="text-xs text-muted-foreground">—</span>}
+                        </TableCell>
+                        <TableCell className="text-center">
+                          {r.emitida_dian ? (
+                            <CheckCircle2 className="inline h-3.5 w-3.5 text-emerald-600" />
+                          ) : (
+                            <Tooltip><TooltipTrigger asChild><span className="inline-flex cursor-help"><AlertTriangle className="h-3.5 w-3.5 text-amber-600" /></span></TooltipTrigger>
+                              <TooltipContent>Nota sin CUFE</TooltipContent></Tooltip>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
           </div>
         ) : (<>
         {resumenQ.error && <p className="text-sm text-destructive my-4">Error resumen: {(resumenQ.error as any).message}</p>}
