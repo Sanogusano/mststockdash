@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
-import { differenceInCalendarDays } from "date-fns";
+import { differenceInCalendarDays, parseISO } from "date-fns";
 import { TimeFilter } from "@/components/dashboard/TimeFilter";
 import { ProductBehaviorTable } from "@/components/dashboard/ProductBehaviorTable";
 
@@ -19,9 +19,15 @@ export default function ComportamientoProductoPage() {
     estancado: "stagnant",
   };
 
-  const [days, setDays] = useState<number>(initialDays);
-  const [customFrom, setCustomFrom] = useState<Date | undefined>();
-  const [customTo, setCustomTo] = useState<Date | undefined>();
+  const [days, setDays] = useState<number>(() => {
+    const d = searchParams.get("desde"), h = searchParams.get("hasta");
+    return d && h ? Math.max(differenceInCalendarDays(parseISO(h), parseISO(d)), 0) : initialDays;
+  });
+  const initialLinea = searchParams.get("linea") || undefined;
+  const desdeParam = searchParams.get("desde");
+  const hastaParam = searchParams.get("hasta");
+  const [customFrom, setCustomFrom] = useState<Date | undefined>(desdeParam && hastaParam ? parseISO(desdeParam) : undefined);
+  const [customTo, setCustomTo] = useState<Date | undefined>(desdeParam && hastaParam ? parseISO(hastaParam) : undefined);
 
   const handleDaysChange = (d: number) => {
     // Un preset limpia cualquier rango personalizado activo.
@@ -59,6 +65,7 @@ export default function ComportamientoProductoPage() {
               customTo={customTo}
               initialWosFilter={initialSalud ? saludMap[initialSalud] ?? "all" : undefined}
               initialLocationId={initialLocation}
+              initialTipo={initialLinea}
             />
           </div>
         </main>
