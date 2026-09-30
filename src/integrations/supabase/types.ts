@@ -4606,6 +4606,7 @@ export type Database = {
           zona: string
         }[]
       }
+      cron_snapshot_netsuite: { Args: never; Returns: string }
       cruzar_addi_con_shopify: { Args: never; Returns: undefined }
       equipo_tienda: {
         Args: { p_clave: string; p_fecha?: string }
@@ -5903,7 +5904,6 @@ export type Database = {
       reporte_detalle_linea_tiendas: {
         Args: { dias_atras?: number; p_hasta?: string; p_linea?: string }
         Returns: {
-          base_st: string
           dias_en_tienda: number
           es_bodega: boolean
           estado_salud: string
@@ -5915,10 +5915,10 @@ export type Database = {
           productos_con_stock: number
           productos_vendidos: number
           recibido: number
+          recibido_vida: number
           ritmo_semanal: number
           semanas_en_tienda: number
-          st_120d: number
-          st_acum: number
+          st_ventana: number
           stock_actual: number
           tienda: string
           und_vendidas: number
