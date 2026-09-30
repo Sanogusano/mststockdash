@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { exportToCSV } from "@/lib/csv-export";
 import { exportToPDF } from "@/lib/pdf-export";
-import { Download, FileText, Gauge, Clock, Store, Copy, Check } from "lucide-react";
+import { Download, FileText, Gauge, Store, Copy, Check } from "lucide-react";
 import { ProductImageThumb } from "./ProductImageThumb";
 import { ResponsiveContainer, ComposedChart, Area, Line, XAxis, YAxis, Tooltip as RTooltip } from "recharts";
 import {
@@ -347,6 +347,9 @@ export function ProductDetailDrawer({
     return result;
   }, [rows, storeFilter, wosFilter, stFilter, soloDestalladas, productSizes]);
 
+  // Modo detallado: una sola fila visible tras TODOS los filtros.
+  const detailedMode = filtered.length === 1;
+
   const getSellThroughColor = (pct: number) => {
     if (pct >= 70) return "bg-success";
     if (pct >= 30) return "bg-warning";
@@ -680,19 +683,18 @@ export function ProductDetailDrawer({
                       <TableRow className="bg-muted/30">
                         <TableHead rowSpan={2} className="w-10 text-right align-middle">#</TableHead>
                         <TableHead rowSpan={2} className="align-middle">Tienda</TableHead>
-                        <TableHead rowSpan={2} className="align-middle">Tiempo</TableHead>
                         <TableHead rowSpan={2} className="text-right align-middle">Recibido</TableHead>
                         <TableHead rowSpan={2} className="text-right align-middle">Vendidas</TableHead>
                         <TableHead rowSpan={2} className="text-right align-middle">Stock</TableHead>
-                        <TableHead colSpan={(productSizes.length || 1) + (storeFilter !== "all" ? 1 : 0)} className="border-x border-border text-center">Inventario por talla</TableHead>
+                        <TableHead colSpan={(productSizes.length || 1) + (detailedMode ? 1 : 0)} className="border-x border-border text-center">Inventario por talla</TableHead>
                         <TableHead rowSpan={2} className="text-right align-middle">RDV</TableHead>
                         <TableHead rowSpan={2} className="min-w-[150px] align-middle">Composición</TableHead>
                         <TableHead rowSpan={2} className="min-w-[140px] align-middle">Sell-Through</TableHead>
                         <TableHead rowSpan={2} className="align-middle">WOS</TableHead>
                         <TableHead rowSpan={2} className="align-middle">Salud</TableHead>
                       </TableRow>
-                      <TableRow className="bg-muted/30">
-                        {storeFilter !== "all" && <TableHead className="h-7 w-10 min-w-10 px-1" />}
+                        <TableRow className="bg-muted/30">
+                        {detailedMode && <TableHead className="h-7 w-10 min-w-10 px-1" />}
                         {productSizes.length > 0 ? productSizes.map((size) => (
                           <TableHead
                             key={size.talla}
@@ -719,28 +721,24 @@ export function ProductDetailDrawer({
                             <TooltipContent className="max-w-xs text-xs">Sin historial de traslados suficiente para este producto en esta tienda. Lo recibido se estima como vendido más stock.</TooltipContent>
                           </Tooltip>
                         );
+                        const tiempoLine = !b && row.semanas_en_tienda != null
+                          ? `${Math.floor(Number(row.semanas_en_tienda))} sem. (${Math.floor(Number(row.dias_en_tienda ?? 0))} días)`
+                          : null;
                         return (
                         <TableRow key={`${row.orden}-${row.tienda}`}>
                           <TableCell className="text-right text-xs text-muted-foreground tabular-nums">{row.orden}</TableCell>
                           <TableCell className="whitespace-nowrap">
                             <p className="text-sm font-medium text-foreground">{row.tienda}</p>
-                            {row.zona && <p className="text-[11px] text-muted-foreground">{row.zona}</p>}
-                          </TableCell>
-                          <TableCell>
-                            {b || (row.semanas_en_tienda == null && row.dias_en_tienda == null) ? dash : (
-                              <div className="flex items-center gap-1.5">
-                                <Clock className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                                <div className="leading-tight">
-                                  <p className="text-sm font-medium text-foreground tabular-nums">{Math.floor(Number(row.semanas_en_tienda ?? 0))} sem.</p>
-                                  <p className="text-[10px] text-muted-foreground tabular-nums">{Math.floor(Number(row.dias_en_tienda ?? 0))} días</p>
-                                </div>
-                              </div>
+                            {(row.zona || tiempoLine) && (
+                              <p className="text-[11px] text-muted-foreground">
+                                {[row.zona, tiempoLine].filter(Boolean).join(" · ")}
+                              </p>
                             )}
                           </TableCell>
                           <TableCell className="text-right text-sm tabular-nums">{b ? dash : (row.recibido ?? 0).toLocaleString("es-CO")}</TableCell>
                           <TableCell className="text-right text-sm font-semibold tabular-nums">{b ? dash : (row.und_vendidas ?? 0).toLocaleString("es-CO")}</TableCell>
                           <TableCell className="text-right text-sm font-medium tabular-nums">{(row.stock_actual ?? 0).toLocaleString("es-CO")}</TableCell>
-                          {storeFilter !== "all" && (
+                          {detailedMode && (
                             <TableCell className="w-10 min-w-10 px-1 py-2 text-left text-[10px] font-medium leading-5 text-muted-foreground">
                               <span className="block">Rec</span>
                               <span className="block">Ven</span>
@@ -753,7 +751,7 @@ export function ProductDetailDrawer({
                             const stock = Number(values?.stock ?? 0);
                             const st = values?.st == null ? null : Number(values.st);
                             const isLastSize = size === productSizes[productSizes.length - 1];
-                            if (storeFilter === "all") {
+                            if (!detailedMode) {
                               return (
                                 <TableCell
                                   key={size.talla}
