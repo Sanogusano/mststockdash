@@ -495,10 +495,10 @@ export function ProductDetailDrawer({
               ) : sizeMatrix.length === 0 ? (
                 <EmptyState message="Sin detalle de tallas para este filtro." />
               ) : (
-                <div className="space-y-3">
-                  <div className="grid max-h-[320px] grid-cols-[minmax(0,2fr)_minmax(0,3fr)] gap-3">
-                    <div className="min-w-0 rounded-lg border border-border p-3">
-                    <div className="h-[200px]">
+                <section className="space-y-6">
+                  <div className="grid h-[320px] grid-cols-[minmax(0,2fr)_minmax(0,3fr)] gap-3 overflow-hidden">
+                    <div className="flex min-w-0 flex-col rounded-lg border border-border p-3">
+                    <div className="min-h-0 flex-1">
                       <ResponsiveContainer width="100%" height="100%">
                         <ComposedChart data={sizeMatrix.map((s) => ({ talla: s.talla, cargadas: Number(s.stock_tiendas ?? 0), ventas: Number(s.und_vendidas ?? 0) }))} margin={{ top: 10, right: 8, bottom: 0, left: 8 }}>
                           <XAxis dataKey="talla" tick={{ fontSize: 11, fontWeight: 600 }} axisLine tickLine={false} />
@@ -514,15 +514,13 @@ export function ProductDetailDrawer({
                       <span className="text-primary">● Ventas</span>
                     </div>
                   </div>
-                  <div className="min-w-0 overflow-auto rounded-lg border border-border">
-                    <Table className="min-w-max">
+                  <div className="min-w-0 overflow-hidden rounded-lg border border-border">
+                    <Table>
                       <TableHeader>
                         <TableRow className="bg-muted/30">
-                          <TableHead className="sticky left-0 z-10 min-w-[130px] bg-muted">Talla</TableHead>
+                          <TableHead className="sticky left-0 z-10 min-w-[110px] bg-muted py-1 text-left text-[11px] font-semibold">Talla</TableHead>
                           {sizeMatrix.map((size) => (
-                              <TableHead key={size.talla} className="min-w-[80px] text-center font-bold">
-                                <span className="block text-sm text-foreground">{size.talla}</span>
-                              </TableHead>
+                            <TableHead key={size.talla} className="px-4 py-1 text-right text-xs font-bold text-foreground">{size.talla}</TableHead>
                           ))}
                         </TableRow>
                       </TableHeader>
