@@ -217,13 +217,13 @@ function SalesBreakdownBars({ full, rebajas, promo, total }: { full: number; reb
   );
 }
 
-export function ProductBehaviorTable({ days, initialWosFilter, initialLocationId, customFrom, customTo }: { days: number; initialWosFilter?: string; initialLocationId?: string; customFrom?: Date; customTo?: Date }) {
+export function ProductBehaviorTable({ days, initialWosFilter, initialLocationId, initialTipo, customFrom, customTo }: { days: number; initialWosFilter?: string; initialLocationId?: string; initialTipo?: string; customFrom?: Date; customTo?: Date }) {
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(0);
   const [selectedProduct, setSelectedProduct] = useState<ProductBehaviorRow | null>(null);
   const [wosFilter, setWosFilter] = useState(initialWosFilter ?? "all");
   const [stFilter, setStFilter] = useState("all");
-  const [tipoFilter, setTipoFilter] = useState("all");
+  const [tipoFilter, setTipoFilter] = useState(initialTipo ?? "all");
   const [coleccionFilter, setColeccionFilter] = useState("all");
   const [clasifFilter, setClasifFilter] = useState("all");
   const [canalFilter, setCanalFilter] = useState("all");

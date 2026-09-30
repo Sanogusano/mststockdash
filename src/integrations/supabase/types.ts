@@ -5430,6 +5430,50 @@ export type Database = {
           und_vendidas: number
         }[]
       }
+      reporte_comportamiento_linea: {
+        Args: { dias_atras?: number; p_hasta?: string; p_location_id?: string }
+        Returns: {
+          base_st: string
+          bod_exportaciones: number
+          bod_principal: number
+          bod_reserva: number
+          bod_tiendas: number
+          clasificacion: string
+          cobertura_tallas_pct: number
+          dias_en_venta: number
+          dist_mayoristas: number
+          dist_online: number
+          dist_standby: number
+          dist_tiendas: number
+          distribucion_wos: Json
+          distribuido: number
+          estado_salud: string
+          linea: string
+          pct_uds_en_ventana: number
+          productos: number
+          productos_activos: number
+          rdv_estado: string
+          rdv_indice: number
+          ritmo_online: number
+          ritmo_pdv: number
+          ritmo_semanal: number
+          ritmo_tienda: number
+          sell_through_pct: number
+          semanas_en_venta: number
+          st_120d: number
+          stock_digital: number
+          stock_standby: number
+          stock_tiendas: number
+          stock_total: number
+          und_full_price: number
+          und_promo: number
+          und_rebajas: number
+          und_vendidas: number
+          und_vendidas_vida: number
+          wos: number
+          wos_total: number
+        }[]
+      }
       reporte_comportamiento_producto: {
         Args: {
           dias_atras?: number
@@ -5856,6 +5900,33 @@ export type Database = {
           wos: number
         }[]
       }
+      reporte_detalle_linea_tiendas: {
+        Args: { dias_atras?: number; p_hasta?: string; p_linea?: string }
+        Returns: {
+          base_st: string
+          dias_en_tienda: number
+          es_bodega: boolean
+          estado_salud: string
+          ingresos: number
+          orden: number
+          pct_full: number
+          pct_promo: number
+          pct_rebaja: number
+          productos_con_stock: number
+          productos_vendidos: number
+          recibido: number
+          ritmo_semanal: number
+          semanas_en_tienda: number
+          st_120d: number
+          st_acum: number
+          stock_actual: number
+          tienda: string
+          und_vendidas: number
+          und_vendidas_vida: number
+          wos: number
+          zona: string
+        }[]
+      }
       reporte_detalle_producto_tiendas: {
         Args: { dias_atras?: number; p_hasta?: string; p_product_id?: string }
         Returns: {
@@ -6170,6 +6241,7 @@ export type Database = {
           ubicaciones_con_talla: number
           ubicaciones_total: number
           und_asignadas: number
+          und_recibidas: number
           und_vendidas: number
           und_vendidas_vida: number
           wos_talla: number

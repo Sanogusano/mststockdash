@@ -20,7 +20,7 @@ import LogisticaPage from "./pages/Logistica";
 import LogisticaTrasladosPage from "./pages/LogisticaTraslados";
 import InsumosPage from "./pages/Insumos";
 import ComportamientoProductoPage from "./pages/ComportamientoProducto";
-import LineasProductoPage from "./pages/LineasProducto";
+import LineasProductoPage from "./pages/SaludLinea";
 import DesempenoProductosPage from "./pages/DesempenoProductos";
 import LoginPage from "./pages/Login";
 import ResetPasswordPage from "./pages/ResetPassword";
