@@ -539,17 +539,17 @@ export function ProductDetailDrawer({
                             { label: "Ubicaciones", render: (s: TallaMatrixRow) => `${Number(s.ubicaciones_con_talla ?? 0)}/${Number(s.ubicaciones_total ?? 0)}` },
                           ] },
                         ].flatMap((block) => [
-                          <TableRow key={block.group} className="bg-muted/20 hover:bg-muted/20">
-                            <TableCell colSpan={sizeMatrix.length + 1} className="py-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">{block.group}</TableCell>
+                          <TableRow key={block.group} className="border-0 hover:bg-transparent">
+                            <TableCell colSpan={sizeMatrix.length + 1} className="h-5 border-b border-border py-0 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">{block.group}</TableCell>
                           </TableRow>,
                           ...block.rows.map((metric) => (
-                            <TableRow key={metric.label}>
-                              <TableCell className="sticky left-0 z-10 bg-background text-xs font-medium">
+                            <TableRow key={metric.label} className="h-7">
+                              <TableCell className="sticky left-0 z-10 bg-background py-0 text-[11px] font-medium">
                                 {metric.label}
                                 {"sub" in metric && metric.sub && <span className="ml-1 text-[10px] font-normal text-muted-foreground">({metric.sub})</span>}
                               </TableCell>
                               {sizeMatrix.map((size) => (
-                                <TableCell key={size.talla} className="text-center text-xs tabular-nums">
+                                <TableCell key={size.talla} className="px-4 py-0 text-right text-xs tabular-nums">
                                   {metric.render(size)}
                                 </TableCell>
                               ))}
@@ -606,7 +606,7 @@ export function ProductDetailDrawer({
                   </div>
                 </div>
               )}
-            </div>
+                </section>
 
             {/* Detail Table */}
             <div className="px-6 pb-6">
