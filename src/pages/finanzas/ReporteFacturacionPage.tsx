@@ -44,7 +44,7 @@ type Row = {
   valor_facturado: number | null; diferencia_facturacion: number | null;
 };
 
-type CardKey = "pendiente" | "diferencia" | "fallo_dian" | "esperando" | "facturado";
+type CardKey = "pendiente" | "diferencia" | "fallo_dian" | "sin_cufe" | "esperando" | "facturado";
 type SortKey = "estado_facturacion" | "fecha_pedido" | "venta_total" | "diferencia_facturacion";
 type SortDir = "asc" | "desc";
 
@@ -72,6 +72,7 @@ const CARD_ESTADO: Record<CardKey, (e: string) => boolean> = {
   pendiente: (e) => e === "PENDIENTE POR FACTURAR",
   diferencia: (e) => e === "Descuadre de valor",
   fallo_dian: (e) => e === "Fallo la emision a DIAN",
+  sin_cufe: (e) => e === "Emision en proceso" || e === "Fallo la emision a DIAN",
   esperando: (e) => e === "Esperando despacho",
   facturado: (e) => e === "Facturado",
 };
@@ -80,6 +81,7 @@ const ESTADO_POR_TARJETA: Record<CardKey, string> = {
   pendiente: "PENDIENTE POR FACTURAR",
   diferencia: "Descuadre de valor",
   fallo_dian: "Fallo la emision a DIAN",
+  sin_cufe: "Sin CUFE",
   esperando: "Esperando despacho",
   facturado: "Facturado",
 };
@@ -295,6 +297,18 @@ export default function ReporteFacturacionPage() {
     return out;
   }, [resumenQ.data]);
 
+  // Desglose de la tarjeta Sin CUFE: color según si hay al menos un fallo DIAN.
+  const sinCufeStats = useMemo(() => {
+    const rows = resumenQ.data ?? [];
+    const nProceso = rows
+      .filter((r) => r.estado_facturacion === "Emision en proceso")
+      .reduce((a, r) => a + Number(r.pedidos ?? 0), 0);
+    const nFallo = rows
+      .filter((r) => r.estado_facturacion === "Fallo la emision a DIAN")
+      .reduce((a, r) => a + Number(r.pedidos ?? 0), 0);
+    return { nProceso, nFallo };
+  }, [resumenQ.data]);
+
   const totalPedidos = useMemo(() => {
     if (cardFiltro) return resumen[cardFiltro].n;
     if (soloPend) return resumen.pendiente.n;
@@ -364,6 +378,7 @@ export default function ReporteFacturacionPage() {
     { key: "pendiente", title: "Pendientes por facturar", cls: "border-destructive/40 text-destructive" },
     { key: "diferencia", title: "Diferencias de facturación", cls: "border-destructive/40 text-destructive" },
     { key: "fallo_dian", title: "Falló emisión DIAN", cls: "border-amber-400 text-amber-700" },
+    { key: "sin_cufe", title: "Sin CUFE", cls: sinCufeStats.nFallo > 0 ? "border-destructive/40 text-destructive" : "border-amber-400 text-amber-700" },
     { key: "esperando", title: "Esperando despacho", cls: "text-muted-foreground" },
     { key: "facturado", title: "Total facturado", cls: "text-foreground" },
   ];
@@ -446,9 +461,9 @@ export default function ReporteFacturacionPage() {
         </div>
         )}
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-7 gap-4 mb-2">
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-8 gap-4 mb-2">
           {resumenQ.isLoading ? (
-            <div className="sm:col-span-2 xl:col-span-6">
+            <div className="sm:col-span-2 xl:col-span-7">
               <LoadingState rows={0} />
             </div>
           ) : (<>{cards.slice(0, 4).map((c) => (
@@ -461,7 +476,14 @@ export default function ReporteFacturacionPage() {
               <CardContent className="p-4">
                 <p className="text-xs font-medium">{c.title}</p>
                 <p className="text-2xl font-semibold tabular-nums">{fmtInt(resumen[c.key].n)}</p>
-                 <p className="text-xs text-muted-foreground tabular-nums">{c.key === "diferencia" ? `${fmtCOP(resumen[c.key].d)} en diferencias` : `${fmtCOP(resumen[c.key].v)} venta neta`}</p>
+                {c.key === "sin_cufe" ? (
+                  <>
+                    <p className="text-xs text-muted-foreground tabular-nums">{fmtCOP(resumen[c.key].v)} venta neta</p>
+                    <p className="text-xs text-muted-foreground tabular-nums">{fmtInt(sinCufeStats.nProceso)} en proceso · {fmtInt(sinCufeStats.nFallo)} con fallo</p>
+                  </>
+                ) : (
+                  <p className="text-xs text-muted-foreground tabular-nums">{c.key === "diferencia" ? `${fmtCOP(resumen[c.key].d)} en diferencias` : `${fmtCOP(resumen[c.key].v)} venta neta`}</p>
+                )}
               </CardContent>
             </Card>
           ))}
