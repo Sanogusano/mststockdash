@@ -561,7 +561,172 @@ export function ProductDetailDrawer({
                   </div>
                   </div>
 
-__PLACEHOLDER__
+                </section>
+              )}
+            </div>
+
+            {/* Distribución por tienda */}
+            <div className="px-6 pb-6">
+              <p className="text-xs font-semibold text-foreground">Distribución por tienda</p>
+              {isLoading ? (
+                <LoadingState rows={5} />
+              ) : !filtered.length ? (
+                <EmptyState message="Sin datos para este filtro." />
+              ) : (
+                <TooltipProvider delayDuration={200}>
+                <div className="border border-border rounded-lg overflow-x-auto mt-2">
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="bg-muted/30">
+                        <TableHead className="w-10 text-right">#</TableHead>
+                        <TableHead>Tienda</TableHead>
+                        <TableHead>Tiempo</TableHead>
+                        <TableHead className="text-right">Recibido</TableHead>
+                        <TableHead className="text-right">Vendidas</TableHead>
+                        <TableHead className="text-right">Stock</TableHead>
+                        <TableHead className="text-right">RDV</TableHead>
+                        <TableHead className="min-w-[150px]">Composición</TableHead>
+                        <TableHead className="min-w-[140px]">Sell-Through</TableHead>
+                        <TableHead>WOS</TableHead>
+                        <TableHead className="text-right">Tallas</TableHead>
+                        <TableHead>Salud</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {filtered.map((row) => {
+                        const b = row.es_bodega;
+                        const dash = <span className="text-muted-foreground">—</span>;
+                        const acum = Number(row.st_acum ?? 0);
+                        const est = row.base_st === "estimada" && (
+                          <Tooltip>
+                            <TooltipTrigger asChild><span className="cursor-help text-warning font-bold ml-0.5">*</span></TooltipTrigger>
+                            <TooltipContent className="max-w-xs text-xs">Sin historial de traslados suficiente para este producto en esta tienda. Lo recibido se estima como vendido más stock.</TooltipContent>
+                          </Tooltip>
+                        );
+                        return (
+                        <TableRow key={`${row.orden}-${row.tienda}`}>
+                          <TableCell className="text-right text-xs text-muted-foreground tabular-nums">{row.orden}</TableCell>
+                          <TableCell className="whitespace-nowrap">
+                            <p className="text-sm font-medium text-foreground">{row.tienda}</p>
+                            {row.zona && <p className="text-[11px] text-muted-foreground">{row.zona}</p>}
+                          </TableCell>
+                          <TableCell>
+                            {b || (row.semanas_en_tienda == null && row.dias_en_tienda == null) ? dash : (
+                              <div className="flex items-center gap-1.5">
+                                <Clock className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                                <div className="leading-tight">
+                                  <p className="text-sm font-medium text-foreground tabular-nums">{Math.floor(Number(row.semanas_en_tienda ?? 0))} sem.</p>
+                                  <p className="text-[10px] text-muted-foreground tabular-nums">{Math.floor(Number(row.dias_en_tienda ?? 0))} días</p>
+                                </div>
+                              </div>
+                            )}
+                          </TableCell>
+                          <TableCell className="text-right text-sm tabular-nums">{b ? dash : (row.recibido ?? 0).toLocaleString("es-CO")}</TableCell>
+                          <TableCell className="text-right text-sm font-semibold tabular-nums">{b ? dash : (row.und_vendidas ?? 0).toLocaleString("es-CO")}</TableCell>
+                          <TableCell className="text-right text-sm font-medium tabular-nums">{(row.stock_actual ?? 0).toLocaleString("es-CO")}</TableCell>
+                          <TableCell className="text-right">
+                            {b || row.ritmo_semanal == null ? dash : (
+                              <span className="text-sm tabular-nums text-foreground">
+                                {Number(row.ritmo_semanal).toLocaleString("es-CO", { maximumFractionDigits: 2 })} u/sem
+                              </span>
+                            )}
+                          </TableCell>
+                          <TableCell>{b ? dash : <CompositionBar full={row.pct_full} rebaja={row.pct_rebaja} promo={row.pct_promo} />}</TableCell>
+                          <TableCell>
+                            {b ? dash : (
+                              <div className="w-32">
+                                <p className="text-sm font-semibold tabular-nums leading-tight">
+                                  {row.st_120d == null ? "—" : `${row.st_120d}%`} <span className="text-[10px] font-normal text-muted-foreground">120d</span>{est}
+                                </p>
+                                <p className="text-xs tabular-nums text-muted-foreground leading-tight">
+                                  {row.st_acum == null ? "—" : `${row.st_acum}%`} <span className="text-[10px]">acum.</span>{est}
+                                </p>
+                                <Progress value={Math.min(acum, 100)} className="h-2 mt-1 bg-muted" indicatorClassName={getSellThroughColor(acum)} />
+                              </div>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            {b ? dash : (
+                              <>
+                                <p className="text-sm font-semibold tabular-nums">{row.wos == null || row.wos > 90 ? "+99" : row.wos}</p>
+                                {row.wos == null && (
+                                  <span className="inline-block mt-0.5 rounded px-1.5 py-0.5 text-[10px] font-bold bg-destructive/10 text-destructive">SIN ROTACIÓN</span>
+                                )}
+                              </>
+                            )}
+                          </TableCell>
+                          <TableCell className="text-right text-sm font-semibold tabular-nums">
+                            {tallas.length === 0 ? dash : (() => { const n = tallasConStock(row.tienda); return <span className={n < tallas.length ? "text-destructive" : "text-success"}>{n}/{tallas.length}</span>; })()}
+                          </TableCell>
+                          <TableCell><StatusBadge label={row.estado_salud} /></TableCell>
+                        </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                </div>
+                </TooltipProvider>
+              )}
+            </div>
+
+            {/* Talla × ubicación */}
+            <div className="px-6 pb-6">
+              <div className="rounded-lg border border-border overflow-hidden">
+                <div className="flex items-center justify-between gap-4 border-b border-border px-3 py-2">
+                  <div>
+                    <p className="text-xs font-semibold text-foreground">Talla × ubicación</p>
+                    <p className="text-[10px] text-muted-foreground">Inventario disponible por tienda y talla</p>
+                  </div>
+                  <label className="flex shrink-0 items-center gap-2 text-xs text-muted-foreground">
+                    Solo destalladas
+                    <Switch checked={soloDestalladas} onCheckedChange={setSoloDestalladas} aria-label="Solo destalladas" />
+                  </label>
+                </div>
+                <div className="max-h-[320px] overflow-auto">
+                  <Table className="min-w-max">
+                    <TableHeader>
+                      <TableRow className="bg-muted/30">
+                        <TableHead className="sticky left-0 z-10 min-w-[210px] bg-muted">Ubicación</TableHead>
+                        {tallas.map((size) => <TableHead key={size.talla} className="min-w-[64px] text-center font-bold">{size.talla}</TableHead>)}
+                        <TableHead className="min-w-[76px] text-right">Total</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {ubicacionesTallas.map((row) => {
+                        const values = tallasPorUbic.get(row.ubicacion);
+                        const total = [...(values?.values() ?? [])].reduce((sum, value) => sum + value, 0);
+                        return (
+                          <TableRow key={row.ubicacion}>
+                            <TableCell className="sticky left-0 z-10 bg-background">
+                              <p className="text-xs font-medium text-foreground">{row.ubicacion}</p>
+                              <p className="text-[10px] text-muted-foreground">{row.esBodega ? "Bodega" : row.zona ?? "Sin zona"}</p>
+                            </TableCell>
+                            {tallas.map((size) => {
+                              const units = values?.get(size.talla) ?? 0;
+                              return (
+                                <TableCell
+                                  key={size.talla}
+                                  className={cn(
+                                    "text-center text-xs tabular-nums",
+                                    soloDestalladas
+                                      ? units <= 0 ? "bg-warning/20 font-bold text-warning" : "text-muted-foreground/50"
+                                      : units === 0 && "text-muted-foreground",
+                                  )}
+                                >
+                                  {units > 0 ? units : "—"}
+                                </TableCell>
+                              );
+                            })}
+                            <TableCell className="text-right text-xs font-semibold tabular-nums">{total.toLocaleString("es-CO")}</TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                  {ubicacionesTallas.length === 0 && <div className="p-4 text-center text-xs text-muted-foreground">No hay ubicaciones destalladas.</div>}
+                </div>
+              </div>
+            </div>
           </>
         )}
       </SheetContent>
