@@ -290,7 +290,18 @@ export function LineaDetailDrawer({
           const estado = (linea.rdv_estado ?? "SOLO ONLINE").toUpperCase();
           const st = RDV_STYLES[estado] ?? RDV_STYLES["SOLO ONLINE"];
           const fmtU = (v: number | null | undefined) => Number(v ?? 0).toLocaleString("es-CO", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
-          const d56 = <span className="text-[10px] font-normal text-muted-foreground">56d</span>;
+          const d56 = (
+            <TooltipProvider delayDuration={200}>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span className="text-[10px] font-normal text-muted-foreground cursor-help">56d</span>
+                </TooltipTrigger>
+                <TooltipContent className="max-w-xs text-xs leading-relaxed">
+                  Calculado sobre los últimos 56 días (8 semanas), fijo. No cambia con el filtro de fechas de la pantalla, para que el WOS sea comparable entre productos, líneas y períodos.
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          );
           const wosCard = (label: string, sub: string, v: number | null | undefined) => {
             const tone: Tone = v == null ? "muted" : v < 4 || v > 18 ? "danger" : "success";
             return (
