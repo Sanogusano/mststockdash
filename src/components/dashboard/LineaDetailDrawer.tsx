@@ -6,9 +6,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { LoadingState, EmptyState } from "./LoadingState";
 import { StatusBadge } from "./StatusBadge";
 import { cn } from "@/lib/utils";
-import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
-import { Gauge, Store, ArrowRight } from "lucide-react";
+import { Gauge, Store, ArrowRight, Info } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -192,7 +191,6 @@ function WosDistributionCard({ tramos, pctVentana }: { tramos: WosTramo[]; pctVe
   );
 }
 
-const getSellThroughColor = (pct: number) => (pct >= 70 ? "bg-success" : pct >= 30 ? "bg-warning" : "bg-danger");
 
 export function LineaDetailDrawer({
   linea, onClose, diasAtras, pHasta, rangeLabel, days, customFrom, customTo, locationId,
@@ -316,7 +314,7 @@ export function LineaDetailDrawer({
                             <TableHead className="text-right">Ref. vendidas</TableHead>
                             <TableHead className="text-right">RDV</TableHead>
                             <TableHead className="min-w-[150px]">Composición</TableHead>
-                            <TableHead className="min-w-[140px]">Sell-Through</TableHead>
+                            <TableHead className="min-w-[150px]">Sell-Through (ventana)</TableHead>
                             <TableHead>WOS</TableHead>
                             <TableHead>Salud</TableHead>
                           </TableRow>
