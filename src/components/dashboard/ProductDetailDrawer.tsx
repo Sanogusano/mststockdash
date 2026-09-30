@@ -71,7 +71,10 @@ interface TallaMatrixRow {
 interface StockTallaRow {
   talla: string;
   orden: number;
-  uds: number;
+  recibidas: number;
+  vendidas: number;
+  stock: number;
+  st: number | null;
 }
 
 const RDV_STYLES: Record<string, { text: string; chip: string | null }> = {
@@ -230,6 +233,18 @@ export function ProductDetailDrawer({
     enabled: !!product,
   });
 
+  const { data: parentSku } = useQuery({
+    queryKey: ["producto-sku-padre", product?.product_id],
+    queryFn: async () => {
+      if (!product) return null;
+      const { data, error } = await supabase.rpc("producto_sku_padre", { p_product_id: product.product_id });
+      if (error) throw new Error(error.message);
+      return typeof data === "string" && data.trim() ? data.trim() : null;
+    },
+    enabled: !!product,
+    staleTime: 5 * 60 * 1000,
+  });
+
   const rows = data ?? [];
 
   const locationIdByName = useMemo(() => {
@@ -263,17 +278,17 @@ export function ProductDetailDrawer({
   );
 
   const stockBySize = (row: DetailRow) => {
-    const values = new Map<string, number>();
+    const values = new Map<string, StockTallaRow>();
     if (!Array.isArray(row.stock_por_talla)) return values;
     for (const size of row.stock_por_talla) {
-      if (size?.talla) values.set(size.talla, Number(size.uds ?? 0));
+      if (size?.talla) values.set(size.talla, size);
     }
     return values;
   };
 
   const isDestallada = (row: DetailRow) => {
     const values = stockBySize(row);
-    return productSizes.some((size) => (values.get(size.talla) ?? 0) <= 0);
+    return productSizes.some((size) => Number(values.get(size.talla)?.stock ?? 0) <= 0);
   };
   const storeGroups = useMemo(() => {
     const m = new Map<string, string[]>();
@@ -409,9 +424,14 @@ export function ProductDetailDrawer({
                 <div className="min-w-0 flex-1">
                   <SheetTitle className="text-base font-semibold text-foreground leading-tight">{product.producto}</SheetTitle>
                   <p className="text-xs text-muted-foreground mt-0.5">{product.categoria}</p>
-                  {metrics?.coleccion && metrics.coleccion.trim() && (
+                  {(metrics?.coleccion?.trim() || parentSku) && (
                     <div className="flex flex-wrap gap-1.5 mt-1.5">
-                      <span className="inline-flex items-center rounded-full border border-border bg-muted/50 px-2 py-0.5 text-[10px] font-medium text-muted-foreground">{metrics.coleccion}</span>
+                      {metrics?.coleccion?.trim() && (
+                        <span className="inline-flex items-center rounded-full border border-border bg-muted/50 px-2 py-0.5 text-[10px] font-medium text-muted-foreground">{metrics.coleccion}</span>
+                      )}
+                      {parentSku && (
+                        <span className="inline-flex items-center rounded-full border border-border bg-muted/50 px-2 py-0.5 text-[10px] font-medium text-muted-foreground">SKU padre · {parentSku}</span>
+                      )}
                     </div>
                   )}
                   {metrics && (() => {
@@ -554,7 +574,7 @@ export function ProductDetailDrawer({
                                   title={`Copiar ${size.skus}`}
                                   className="text-[10px] font-normal text-muted-foreground hover:text-foreground tabular-nums"
                                 >
-                                  {copiedSize === size.talla ? "Copiado" : `…${size.skus.slice(-4)}`}
+                                  {copiedSize === size.talla ? "Copiado" : `…${size.skus.slice(-6)}`}
                                 </button>
                               )}
                             </TableHead>
@@ -627,7 +647,7 @@ export function ProductDetailDrawer({
                         <TableHead rowSpan={2} className="text-right align-middle">Recibido</TableHead>
                         <TableHead rowSpan={2} className="text-right align-middle">Vendidas</TableHead>
                         <TableHead rowSpan={2} className="text-right align-middle">Stock</TableHead>
-                        <TableHead colSpan={productSizes.length || 1} className="border-l border-border text-center">Inventario por talla</TableHead>
+                        <TableHead colSpan={(productSizes.length || 1) + (storeFilter !== "all" ? 1 : 0)} className="border-x border-border text-center">Inventario por talla</TableHead>
                         <TableHead rowSpan={2} className="text-right align-middle">RDV</TableHead>
                         <TableHead rowSpan={2} className="min-w-[150px] align-middle">Composición</TableHead>
                         <TableHead rowSpan={2} className="min-w-[140px] align-middle">Sell-Through</TableHead>
@@ -635,11 +655,19 @@ export function ProductDetailDrawer({
                         <TableHead rowSpan={2} className="align-middle">Salud</TableHead>
                       </TableRow>
                       <TableRow className="bg-muted/30">
+                        {storeFilter !== "all" && <TableHead className="h-7 w-10 min-w-10 border-l border-border px-1" />}
                         {productSizes.length > 0 ? productSizes.map((size) => (
-                          <TableHead key={size.talla} className="h-7 w-12 min-w-12 border-l border-border px-2 text-center text-[10px] font-bold">
+                          <TableHead
+                            key={size.talla}
+                            className={cn(
+                              "h-7 w-12 min-w-12 px-2 text-center text-[10px] font-bold",
+                              storeFilter === "all" && size === productSizes[0] && "border-l border-border",
+                              size === productSizes[productSizes.length - 1] && "border-r border-border",
+                            )}
+                          >
                             {size.talla}
                           </TableHead>
-                        )) : <TableHead className="h-7 w-12 border-l border-border px-2 text-center">—</TableHead>}
+                        )) : <TableHead className="h-7 w-12 border-x border-border px-2 text-center">—</TableHead>}
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -675,14 +703,43 @@ export function ProductDetailDrawer({
                           <TableCell className="text-right text-sm tabular-nums">{b ? dash : (row.recibido ?? 0).toLocaleString("es-CO")}</TableCell>
                           <TableCell className="text-right text-sm font-semibold tabular-nums">{b ? dash : (row.und_vendidas ?? 0).toLocaleString("es-CO")}</TableCell>
                           <TableCell className="text-right text-sm font-medium tabular-nums">{(row.stock_actual ?? 0).toLocaleString("es-CO")}</TableCell>
+                          {storeFilter !== "all" && (
+                            <TableCell className="w-10 min-w-10 border-l border-border px-1 py-2 text-left text-[10px] font-medium leading-5 text-muted-foreground">
+                              <span className="block">Rec</span>
+                              <span className="block">Ven</span>
+                              <span className="block">Stk</span>
+                              <span className="block text-[10px]">ST</span>
+                            </TableCell>
+                          )}
                           {productSizes.length > 0 ? productSizes.map((size) => {
-                            const units = sizeStock.get(size.talla) ?? 0;
+                            const values = sizeStock.get(size.talla);
+                            const stock = Number(values?.stock ?? 0);
+                            const st = values?.st == null ? null : Number(values.st);
+                            const isLastSize = size === productSizes[productSizes.length - 1];
+                            if (storeFilter === "all") {
+                              return (
+                                <TableCell
+                                  key={size.talla}
+                                  className={cn(
+                                    "w-12 min-w-12 px-2 text-center text-xs tabular-nums",
+                                    size === productSizes[0] && "border-l border-border",
+                                    isLastSize && "border-r border-border",
+                                    stock <= 0 && "font-semibold text-warning",
+                                  )}
+                                >
+                                  {stock > 0 ? stock.toLocaleString("es-CO") : "—"}
+                                </TableCell>
+                              );
+                            }
                             return (
-                              <TableCell key={size.talla} className={cn("w-12 min-w-12 border-l border-border px-2 text-center text-xs tabular-nums", units <= 0 && "font-semibold text-warning")}>
-                                {units > 0 ? units.toLocaleString("es-CO") : "—"}
+                              <TableCell key={size.talla} className={cn("w-12 min-w-12 px-2 py-2 text-center text-xs leading-5 tabular-nums", isLastSize && "border-r border-border")}>
+                                <span className="block">{Number(values?.recibidas ?? 0).toLocaleString("es-CO")}</span>
+                                <span className="block">{Number(values?.vendidas ?? 0).toLocaleString("es-CO")}</span>
+                                <span className={cn("block", stock <= 0 && "font-semibold text-warning")}>{stock > 0 ? stock.toLocaleString("es-CO") : "—"}</span>
+                                <span className={cn("block text-[10px] text-muted-foreground", st != null && st > 80 && "font-semibold text-warning")}>{st == null ? "—" : `${st.toLocaleString("es-CO")}%`}</span>
                               </TableCell>
                             );
-                          }) : <TableCell className="w-12 border-l border-border px-2 text-center text-warning">—</TableCell>}
+                          }) : <TableCell className="w-12 border-r border-border px-2 text-center text-warning">—</TableCell>}
                           <TableCell className="text-right">
                             {b || row.ritmo_semanal == null ? dash : (
                               <span className="text-sm tabular-nums text-foreground">
