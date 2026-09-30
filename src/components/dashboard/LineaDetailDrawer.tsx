@@ -29,6 +29,7 @@ export interface LineaRow {
   pct_uds_en_ventana: number | null;
   cobertura_tallas_pct: number | null;
   distribucion_wos: WosTramo[] | null;
+  distribucion_antiguedad: WosTramo[] | null;
   distribuido: number;
   dist_tiendas: number;
   dist_online: number;
