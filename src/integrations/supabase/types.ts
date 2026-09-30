@@ -6169,6 +6169,7 @@ export type Database = {
           talla: string
           ubicaciones_con_talla: number
           ubicaciones_total: number
+          und_asignadas: number
           und_vendidas: number
           und_vendidas_vida: number
           wos_talla: number
