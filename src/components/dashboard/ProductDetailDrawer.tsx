@@ -604,9 +604,9 @@ export function ProductDetailDrawer({
                       {ubicacionesTallas.length === 0 && <div className="p-4 text-center text-xs text-muted-foreground">No hay ubicaciones destalladas.</div>}
                     </div>
                   </div>
-                </div>
-              )}
                 </section>
+              )}
+            </div>
 
             {/* Detail Table */}
             <div className="px-6 pb-6">
