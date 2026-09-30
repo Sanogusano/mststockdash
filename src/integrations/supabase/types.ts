@@ -5864,8 +5864,9 @@ export type Database = {
           estado_salud: string
           ingresos: number
           orden: number
-          pct_descuento: number
-          pct_full_price: number
+          pct_full: number
+          pct_promo: number
+          pct_rebaja: number
           recibido: number
           ritmo_semanal: number
           semanas_en_tienda: number
