@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils";
 import { StatusBadge } from "./StatusBadge";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
 import { exportToCSV } from "@/lib/csv-export";
 import { exportToPDF } from "@/lib/pdf-export";
 import { Download, FileText, Gauge, Clock, Store, Copy, Check } from "lucide-react";
@@ -82,46 +83,9 @@ const fmtIdx = (v: number) => (v >= 999 ? "+10×" : `${(v / 100).toFixed(1).repl
 const fmtWos = (v: number | null | undefined) => (v == null || v > 90 ? "+99" : String(v));
 const ONLINE_LOCATION_ID = "71474315479";
 
-const normEstado = (estado: string | null) => {
-  const v = (estado ?? "").trim().toUpperCase().replace(/_/g, " ");
-  return v || "OK";
-};
-
-const tallaStateClass = (estado: string | null) => {
-  const value = (estado ?? "").toUpperCase();
-  if (value === "REPONER") return "bg-warning/10";
-  if (value === "SIN RESPALDO") return "bg-destructive/10";
-  if (value === "SOBRA") return "bg-primary/5";
-  return "";
-};
-
-const tallaStateTextClass = (estado: string | null) => {
-  const value = (estado ?? "").toUpperCase();
-  if (value === "REPONER") return "text-warning";
-  if (value === "SIN RESPALDO") return "text-destructive";
-  if (value === "SOBRA") return "text-primary";
-  return "text-muted-foreground";
-};
-
 const formatDecimal = (value: number | null | undefined) => value == null
   ? "—"
   : Number(value).toLocaleString("es-CO", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
-const formatPercent = (value: number | null | undefined) => value == null ? "—" : `${formatDecimal(value)}%`;
-
-const formatGap = (value: number | null | undefined) => {
-  if (value == null) return "—";
-  const numeric = Number(value);
-  const formatted = Math.abs(numeric).toLocaleString("es-CO", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
-  return `${numeric > 0 ? "+" : numeric < 0 ? "−" : ""}${formatted}`;
-};
-
-const gapTextClass = (value: number | null | undefined) => {
-  const numeric = Number(value ?? 0);
-  if (numeric > 0) return "text-warning";
-  if (numeric < 0) return "text-primary";
-  return "text-muted-foreground";
-};
-
 function MetricCard({ label, children, sub }: { label: string; children: React.ReactNode; sub?: React.ReactNode }) {
   return (
     <div className="rounded-lg border border-border px-3 py-2 min-w-[130px]">
@@ -192,6 +156,7 @@ export function ProductDetailDrawer({
   const [dFrom, setDFrom] = useState<Date | undefined>(customFrom);
   const [dTo, setDTo] = useState<Date | undefined>(customTo);
   const [copiedSize, setCopiedSize] = useState<string | null>(null);
+  const [soloDestalladas, setSoloDestalladas] = useState(false);
   useEffect(() => {
     if (product) { setDVal(rangeValue ?? days); setDFrom(customFrom); setDTo(customTo); }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -297,6 +262,16 @@ export function ProductDetailDrawer({
     const u = tallasPorUbic.get(ubic);
     return u ? [...u.values()].filter((v) => v > 0).length : 0;
   };
+  const ubicacionesTallas = useMemo(() => {
+    const metadata = new Map<string, { zona: string | null; esBodega: boolean }>();
+    for (const row of tallasData ?? []) {
+      if (!metadata.has(row.ubicacion)) metadata.set(row.ubicacion, { zona: row.zona, esBodega: row.es_bodega });
+    }
+    return [...metadata.entries()]
+      .map(([ubicacion, meta]) => ({ ubicacion, ...meta, tallasConStock: tallasConStock(ubicacion) }))
+      .filter((row) => !soloDestalladas || row.tallasConStock < tallas.length)
+      .sort((a, b) => Number(a.esBodega) - Number(b.esBodega) || a.ubicacion.localeCompare(b.ubicacion, "es"));
+  }, [tallasData, tallasPorUbic, tallas.length, soloDestalladas]);
   const storeGroups = useMemo(() => {
     const m = new Map<string, string[]>();
     for (const r of rows) {
@@ -436,18 +411,18 @@ export function ProductDetailDrawer({
                     const d56 = <span className="text-[10px] font-normal text-muted-foreground">56d</span>;
                     return (
                       <div className="flex flex-wrap gap-2 mt-3">
-                        <MetricCard label="WOS general" sub="LO DISPONIBILIZADO">{fmtWos(metrics.wos)} sem. {d56}</MetricCard>
-                        <MetricCard label="WOS total" sub="TOTALIDAD DE INVENTARIO">{fmtWos(metrics.wos_total)} sem. {d56}</MetricCard>
+                        <MetricCard label="Tiempo de vida" sub={`${Number(metrics.dias_en_venta ?? 0).toLocaleString("es-CO")} días`}>{Number(metrics.semanas_en_venta ?? 0).toLocaleString("es-CO")} sem.</MetricCard>
+                        <MetricCard label="Unidades vendidas" sub={activeDateRange}>{Number(metrics.und_vendidas ?? 0).toLocaleString("es-CO")}</MetricCard>
                         <MetricCard label="Ritmo de red" sub="TODA LA RED">
                           <span className="inline-flex items-center gap-1"><Gauge className="h-3 w-3" />{fmtU(metrics.ritmo_semanal)} u/sem</span> {d56}
                         </MetricCard>
                         <MetricCard label="Ritmo por tienda" sub={st.chip ? <span className={cn("inline-block text-[10px] font-medium px-1.5 rounded", st.chip)}>{estado}{metrics.rdv_indice != null ? ` (${fmtIdx(metrics.rdv_indice)})` : ""}</span> : <span className={st.text}>{estado}</span>}>
                           <span className={cn("inline-flex items-center gap-1", st.text)}><Store className="h-3 w-3" />{metrics.ritmo_pdv == null ? "—" : `${fmtU(metrics.ritmo_pdv)} u/sem`}</span> {d56}
                         </MetricCard>
-                        <MetricCard label="Stock total">{Number(metrics.stock_total ?? 0).toLocaleString("es-CO")}</MetricCard>
                         <MetricCard label="Sell-through" sub={`ST acum. ${metrics.sell_through_pct ?? 0}%`}>{metrics.st_120d ?? 0}% <span className="text-[10px] font-normal text-muted-foreground">120d</span></MetricCard>
-                        <MetricCard label="Unidades vendidas" sub={activeDateRange}>{Number(metrics.und_vendidas ?? 0).toLocaleString("es-CO")}</MetricCard>
-                        <MetricCard label="Tiempo de vida" sub={`${Number(metrics.dias_en_venta ?? 0).toLocaleString("es-CO")} días`}>{Number(metrics.semanas_en_venta ?? 0).toLocaleString("es-CO")} sem.</MetricCard>
+                        <MetricCard label="Stock total">{Number(metrics.stock_total ?? 0).toLocaleString("es-CO")}</MetricCard>
+                        <MetricCard label="WOS general" sub="LO DISPONIBILIZADO">{fmtWos(metrics.wos)} sem. {d56}</MetricCard>
+                        <MetricCard label="WOS total" sub="TOTALIDAD DE INVENTARIO">{fmtWos(metrics.wos_total)} sem. {d56}</MetricCard>
                       </div>
                     );
                   })()}
@@ -521,37 +496,34 @@ export function ProductDetailDrawer({
                 <EmptyState message="Sin detalle de tallas para este filtro." />
               ) : (
                 <div className="space-y-3">
-                  <div className="rounded-lg border border-border p-3">
-                    <div className="h-[160px]">
+                  <div className="grid max-h-[320px] grid-cols-[minmax(0,2fr)_minmax(0,3fr)] gap-3">
+                    <div className="min-w-0 rounded-lg border border-border p-3">
+                    <div className="h-[200px]">
                       <ResponsiveContainer width="100%" height="100%">
-                        <ComposedChart data={sizeMatrix.map((s) => ({ talla: s.talla, cargado: Number(s.cargado_pct ?? 0), demanda: Number(s.demanda_pct ?? 0) }))} margin={{ top: 8, right: 8, bottom: 0, left: -20 }}>
-                          <XAxis dataKey="talla" tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
-                          <YAxis tick={{ fontSize: 10 }} axisLine={false} tickLine={false} tickFormatter={(v) => `${v}%`} />
-                          <RTooltip formatter={(v: number, n: string) => [formatPercent(v), n === "cargado" ? "Cargado" : "Demanda"]} />
-                          <Area type="monotone" dataKey="cargado" stroke="hsl(var(--muted-foreground) / 0.3)" fill="hsl(var(--muted-foreground) / 0.18)" isAnimationActive={false} />
-                          <Line type="monotone" dataKey="demanda" stroke="hsl(var(--primary))" strokeWidth={2} dot={{ r: 2.5 }} isAnimationActive={false} />
+                        <ComposedChart data={sizeMatrix.map((s) => ({ talla: s.talla, cargadas: Number(s.stock_tiendas ?? 0), ventas: Number(s.und_vendidas ?? 0) }))} margin={{ top: 10, right: 8, bottom: 0, left: 8 }}>
+                          <XAxis dataKey="talla" tick={{ fontSize: 11, fontWeight: 600 }} axisLine tickLine={false} />
+                          <YAxis hide domain={[0, "dataMax"]} />
+                          <RTooltip formatter={(v: number, n: string) => [Number(v).toLocaleString("es-CO"), n === "cargadas" ? "Cargadas" : "Ventas"]} />
+                          <Area type="monotone" dataKey="cargadas" stroke="hsl(var(--muted-foreground) / 0.45)" fill="hsl(var(--muted-foreground) / 0.2)" isAnimationActive={false} />
+                          <Line type="monotone" dataKey="ventas" stroke="hsl(var(--primary))" strokeWidth={2} dot={{ r: 3 }} isAnimationActive={false} />
                         </ComposedChart>
                       </ResponsiveContainer>
                     </div>
                     <div className="mt-1 flex justify-center gap-4 text-[10px] text-muted-foreground">
-                      <span>▬ Cargado</span>
-                      <span className="text-primary">── Demanda</span>
+                      <span>■ Cargadas</span>
+                      <span className="text-primary">● Ventas</span>
                     </div>
                   </div>
-                  <div className="overflow-x-auto rounded-lg border border-border">
+                  <div className="min-w-0 overflow-auto rounded-lg border border-border">
                     <Table className="min-w-max">
                       <TableHeader>
                         <TableRow className="bg-muted/30">
                           <TableHead className="sticky left-0 z-10 min-w-[130px] bg-muted">Talla</TableHead>
-                          {sizeMatrix.map((size) => {
-                            const est = storeFilter === "all" ? normEstado(size.estado) : "OK";
-                            return (
-                              <TableHead key={size.talla} className={cn("min-w-[80px] text-center font-bold", tallaStateClass(est))}>
+                          {sizeMatrix.map((size) => (
+                              <TableHead key={size.talla} className="min-w-[80px] text-center font-bold">
                                 <span className="block text-sm text-foreground">{size.talla}</span>
-                                {est !== "OK" && <span className={cn("block text-[9px] font-semibold", tallaStateTextClass(est))}>{est}</span>}
                               </TableHead>
-                            );
-                          })}
+                          ))}
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -579,7 +551,7 @@ export function ProductDetailDrawer({
                                 {"sub" in metric && metric.sub && <span className="ml-1 text-[10px] font-normal text-muted-foreground">({metric.sub})</span>}
                               </TableCell>
                               {sizeMatrix.map((size) => (
-                                <TableCell key={size.talla} className={cn("text-center text-xs tabular-nums", tallaStateClass(storeFilter === "all" ? normEstado(size.estado) : "OK"))}>
+                                <TableCell key={size.talla} className="text-center text-xs tabular-nums">
                                   {metric.render(size)}
                                 </TableCell>
                               ))}
@@ -588,6 +560,51 @@ export function ProductDetailDrawer({
                         ])}
                       </TableBody>
                     </Table>
+                  </div>
+                  </div>
+
+                  <div className="rounded-lg border border-border overflow-hidden">
+                    <div className="flex items-center justify-between gap-4 border-b border-border px-3 py-2">
+                      <div>
+                        <p className="text-xs font-semibold text-foreground">Talla × ubicación</p>
+                        <p className="text-[10px] text-muted-foreground">Inventario disponible por tienda y talla</p>
+                      </div>
+                      <label className="flex shrink-0 items-center gap-2 text-xs text-muted-foreground">
+                        Solo destalladas
+                        <Switch checked={soloDestalladas} onCheckedChange={setSoloDestalladas} aria-label="Solo destalladas" />
+                      </label>
+                    </div>
+                    <div className="max-h-[320px] overflow-auto">
+                      <Table className="min-w-max">
+                        <TableHeader>
+                          <TableRow className="bg-muted/30">
+                            <TableHead className="sticky left-0 z-10 min-w-[210px] bg-muted">Ubicación</TableHead>
+                            {tallas.map((size) => <TableHead key={size.talla} className="min-w-[64px] text-center font-bold">{size.talla}</TableHead>)}
+                            <TableHead className="min-w-[76px] text-right">Total</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {ubicacionesTallas.map((row) => {
+                            const values = tallasPorUbic.get(row.ubicacion);
+                            const total = [...(values?.values() ?? [])].reduce((sum, value) => sum + value, 0);
+                            return (
+                              <TableRow key={row.ubicacion}>
+                                <TableCell className="sticky left-0 z-10 bg-background">
+                                  <p className="text-xs font-medium text-foreground">{row.ubicacion}</p>
+                                  <p className="text-[10px] text-muted-foreground">{row.esBodega ? "Bodega" : row.zona ?? "Sin zona"}</p>
+                                </TableCell>
+                                {tallas.map((size) => {
+                                  const units = values?.get(size.talla) ?? 0;
+                                  return <TableCell key={size.talla} className={cn("text-center text-xs tabular-nums", units === 0 && "text-muted-foreground")}>{units || "—"}</TableCell>;
+                                })}
+                                <TableCell className="text-right text-xs font-semibold tabular-nums">{total.toLocaleString("es-CO")}</TableCell>
+                              </TableRow>
+                            );
+                          })}
+                        </TableBody>
+                      </Table>
+                      {ubicacionesTallas.length === 0 && <div className="p-4 text-center text-xs text-muted-foreground">No hay ubicaciones destalladas.</div>}
+                    </div>
                   </div>
                 </div>
               )}
