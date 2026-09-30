@@ -192,6 +192,47 @@ function WosDistributionCard({ tramos, pctVentana }: { tramos: WosTramo[]; pctVe
   );
 }
 
+export const ANTIGUEDAD_STYLES: Record<string, { bar: string; text: string }> = {
+  "Menos de 16 sem": { bar: "bg-emerald-500", text: "text-emerald-600" },
+  "16 a 26 sem": { bar: "bg-emerald-700", text: "text-emerald-700" },
+  "26 a 52 sem": { bar: "bg-amber-500", text: "text-amber-600" },
+  "Más de 52 sem": { bar: "bg-destructive", text: "text-destructive" },
+  "Sin fecha": { bar: "bg-muted-foreground/40", text: "text-muted-foreground" },
+};
+
+function AntiguedadDistributionCard({ tramos }: { tramos: WosTramo[] }) {
+  const main = tramos.filter((t) => t.tramo !== "Sin fecha");
+  const sinFecha = tramos.find((t) => t.tramo === "Sin fecha");
+  return (
+    <div className="rounded-lg border border-border px-3 py-2 min-w-[280px] flex-1 max-w-md">
+      <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Antigüedad del inventario</p>
+      <p className="text-[10px] text-muted-foreground -mt-0.5">unidades en piso por antigüedad del producto</p>
+      <div className="mt-1.5 space-y-1">
+        {main.map((t) => {
+          const s = ANTIGUEDAD_STYLES[t.tramo] ?? ANTIGUEDAD_STYLES["Sin fecha"];
+          return (
+            <div key={t.tramo} className="flex items-center gap-2 text-[11px]">
+              <span className={cn("w-24 shrink-0 font-semibold", s.text)}>{t.tramo}</span>
+              <span className="w-14 shrink-0 text-[10px] text-muted-foreground">{t.rango}</span>
+              <div className="flex-1 h-2 rounded-full bg-muted overflow-hidden">
+                <div className={cn("h-full rounded-full", s.bar)} style={{ width: `${Math.min(Number(t.pct_uds ?? 0), 100)}%` }} />
+              </div>
+              <span className="w-14 text-right tabular-nums">{nf(t.unidades)}</span>
+              <span className={cn("w-11 text-right tabular-nums font-semibold", s.text)}>{pf(t.pct_uds)}%</span>
+            </div>
+          );
+        })}
+      </div>
+      {sinFecha && (
+        <div className="mt-1.5 flex items-center gap-2 text-[11px] text-muted-foreground border-t border-border/60 pt-1.5">
+          <span className="w-24 shrink-0 font-semibold">Sin fecha</span>
+          <span className="flex-1">{nf(sinFecha.unidades)} uds · {pf(sinFecha.pct_uds)}%</span>
+        </div>
+      )}
+      {sinFecha && <p className="mt-1 text-[10px] text-muted-foreground">Sin fecha: unidades en piso sin fecha de ingreso trazable; no entran en los cuatro tramos.</p>}
+    </div>
+  );
+}
 
 export function LineaDetailDrawer({
   linea, onClose, diasAtras, pHasta, rangeLabel, days, customFrom, customTo, locationId,
