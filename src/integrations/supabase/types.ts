@@ -5007,6 +5007,7 @@ export type Database = {
           uds_shopify: number
         }[]
       }
+      producto_sku_padre: { Args: { p_product_id: string }; Returns: string }
       productos_combinar: {
         Args: { p_clave: string; p_limite?: number }
         Returns: {
@@ -5873,6 +5874,7 @@ export type Database = {
           st_120d: number
           st_acum: number
           stock_actual: number
+          stock_por_talla: Json
           tienda: string
           und_vendidas: number
           und_vendidas_vida: number
@@ -6626,6 +6628,7 @@ export type Database = {
         Args: { p_product_id?: string }
         Returns: {
           es_bodega: boolean
+          location_id: string
           orden_talla: number
           talla: string
           ubicacion: string

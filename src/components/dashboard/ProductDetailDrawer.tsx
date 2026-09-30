@@ -49,8 +49,6 @@ export interface ProductDrawerMetrics {
   coleccion?: string | null;
 }
 
-interface TallaRow { zona: string | null; ubicacion: string; es_bodega: boolean; talla: string; orden_talla: number; unidades: number; }
-
 interface TallaMatrixRow {
   talla: string;
   orden_talla: number;
@@ -68,6 +66,12 @@ interface TallaMatrixRow {
   und_vendidas_vida: number;
   sell_through_pct: number | null;
   estado: string | null;
+}
+
+interface StockTallaRow {
+  talla: string;
+  orden: number;
+  uds: number;
 }
 
 const RDV_STYLES: Record<string, { text: string; chip: string | null }> = {
@@ -150,6 +154,7 @@ interface DetailRow {
   sell_through_pct: number;
   wos: number | null;
   estado_salud: string;
+  stock_por_talla: StockTallaRow[] | null;
 }
 
 const WOS_OPTIONS = [
@@ -252,48 +257,23 @@ export function ProductDetailDrawer({
 
   const sizeMatrix = sizeMatrixData ?? [];
 
-  const { data: tallasData } = useQuery({
-    queryKey: ["tallas-producto-ubicacion", product?.product_id],
-    queryFn: async () => {
-      const { data, error } = await supabase.rpc("reporte_tallas_producto_ubicacion" as any, { p_product_id: product!.product_id });
-      if (error) throw new Error(error.message);
-      return (data ?? []) as unknown as TallaRow[];
-    },
-    enabled: !!product,
-  });
+  const productSizes = useMemo(
+    () => sizeMatrix.map((size) => ({ talla: size.talla, orden: Number(size.orden_talla ?? 0) })),
+    [sizeMatrix],
+  );
 
-  const { tallas } = useMemo(() => {
-    const m = new Map<string, { talla: string; orden: number; unidades: number; enBodega: number; ubics: Set<string> }>();
-    const allUbic = new Set<string>();
-    for (const r of tallasData ?? []) {
-      const t = m.get(r.talla) ?? { talla: r.talla, orden: Number(r.orden_talla ?? 0), unidades: 0, enBodega: 0, ubics: new Set<string>() };
-      const u = Number(r.unidades ?? 0);
-      if (r.es_bodega) {
-        t.enBodega += u;
-      } else {
-        t.unidades += u;
-        allUbic.add(r.ubicacion);
-        if (u > 0) t.ubics.add(r.ubicacion);
-      }
-      m.set(r.talla, t);
+  const stockBySize = (row: DetailRow) => {
+    const values = new Map<string, number>();
+    if (!Array.isArray(row.stock_por_talla)) return values;
+    for (const size of row.stock_por_talla) {
+      if (size?.talla) values.set(size.talla, Number(size.uds ?? 0));
     }
-    return {
-      tallas: [...m.values()].sort((a, b) => a.orden - b.orden).map((t) => ({ ...t, cobertura: t.ubics.size })),
-    };
-  }, [tallasData]);
+    return values;
+  };
 
-  const tallasPorUbic = useMemo(() => {
-    const m = new Map<string, Map<string, number>>();
-    for (const r of tallasData ?? []) {
-      const u = m.get(r.ubicacion) ?? new Map<string, number>();
-      u.set(r.talla, (u.get(r.talla) ?? 0) + Number(r.unidades ?? 0));
-      m.set(r.ubicacion, u);
-    }
-    return m;
-  }, [tallasData]);
-  const tallasConStock = (ubic: string) => {
-    const u = tallasPorUbic.get(ubic);
-    return u ? [...u.values()].filter((v) => v > 0).length : 0;
+  const isDestallada = (row: DetailRow) => {
+    const values = stockBySize(row);
+    return productSizes.some((size) => (values.get(size.talla) ?? 0) <= 0);
   };
   const storeGroups = useMemo(() => {
     const m = new Map<string, string[]>();
@@ -329,24 +309,9 @@ export function ProductDetailDrawer({
         return true;
       });
     }
+    if (soloDestalladas) result = result.filter(isDestallada);
     return result;
-  }, [rows, storeFilter, wosFilter, stFilter]);
-
-  const filtrosActivos = storeFilter !== "all" || wosFilter !== "all" || stFilter !== "all";
-  const tiendasFiltradas = useMemo(() => new Set(filtered.map((r) => r.tienda)), [filtered]);
-
-  const ubicacionesTallas = useMemo(() => {
-    const metadata = new Map<string, { zona: string | null; esBodega: boolean }>();
-    for (const row of tallasData ?? []) {
-      if (!metadata.has(row.ubicacion)) metadata.set(row.ubicacion, { zona: row.zona, esBodega: row.es_bodega });
-    }
-    return [...metadata.entries()]
-      .map(([ubicacion, meta]) => ({ ubicacion, ...meta, tallasConStock: tallasConStock(ubicacion) }))
-      .filter((row) => !filtrosActivos || tiendasFiltradas.has(row.ubicacion) || (row.esBodega && storeFilter === "all" && wosFilter === "all" && stFilter === "all"))
-      .filter((row) => !soloDestalladas || row.tallasConStock < tallas.length)
-      .sort((a, b) => Number(a.esBodega) - Number(b.esBodega) || a.ubicacion.localeCompare(b.ubicacion, "es"));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tallasData, tallasPorUbic, tallas.length, soloDestalladas, filtrosActivos, tiendasFiltradas]);
+  }, [rows, storeFilter, wosFilter, stFilter, soloDestalladas, productSizes]);
 
   const getSellThroughColor = (pct: number) => {
     if (pct >= 70) return "bg-success";
@@ -548,7 +513,6 @@ export function ProductDetailDrawer({
 
             {/* Detalle por talla */}
             <div className="px-6 pb-4">
-              <p className="text-xs font-semibold text-foreground mb-2">Detalle por talla</p>
               {sizeMatrixLoading ? (
                 <LoadingState rows={4} />
               ) : sizeMatrix.length === 0 ? (
@@ -640,7 +604,13 @@ export function ProductDetailDrawer({
 
             {/* Distribución por tienda */}
             <div className="px-6 pb-6">
-              <p className="text-xs font-semibold text-foreground">Distribución por tienda</p>
+              <div className="flex items-center justify-between gap-4">
+                <p className="text-xs font-semibold text-foreground">Distribución por tienda</p>
+                <label className="flex shrink-0 items-center gap-2 text-xs text-muted-foreground">
+                  Solo destalladas
+                  <Switch checked={soloDestalladas} onCheckedChange={setSoloDestalladas} aria-label="Solo destalladas" />
+                </label>
+              </div>
               {isLoading ? (
                 <LoadingState rows={5} />
               ) : !filtered.length ? (
@@ -651,24 +621,32 @@ export function ProductDetailDrawer({
                   <Table>
                     <TableHeader>
                       <TableRow className="bg-muted/30">
-                        <TableHead className="w-10 text-right">#</TableHead>
-                        <TableHead>Tienda</TableHead>
-                        <TableHead>Tiempo</TableHead>
-                        <TableHead className="text-right">Recibido</TableHead>
-                        <TableHead className="text-right">Vendidas</TableHead>
-                        <TableHead className="text-right">Stock</TableHead>
-                        <TableHead className="text-right">RDV</TableHead>
-                        <TableHead className="min-w-[150px]">Composición</TableHead>
-                        <TableHead className="min-w-[140px]">Sell-Through</TableHead>
-                        <TableHead>WOS</TableHead>
-                        <TableHead className="text-right">Tallas</TableHead>
-                        <TableHead>Salud</TableHead>
+                        <TableHead rowSpan={2} className="w-10 text-right align-middle">#</TableHead>
+                        <TableHead rowSpan={2} className="align-middle">Tienda</TableHead>
+                        <TableHead rowSpan={2} className="align-middle">Tiempo</TableHead>
+                        <TableHead rowSpan={2} className="text-right align-middle">Recibido</TableHead>
+                        <TableHead rowSpan={2} className="text-right align-middle">Vendidas</TableHead>
+                        <TableHead rowSpan={2} className="text-right align-middle">Stock</TableHead>
+                        <TableHead colSpan={productSizes.length || 1} className="border-l border-border text-center">Inventario por talla</TableHead>
+                        <TableHead rowSpan={2} className="text-right align-middle">RDV</TableHead>
+                        <TableHead rowSpan={2} className="min-w-[150px] align-middle">Composición</TableHead>
+                        <TableHead rowSpan={2} className="min-w-[140px] align-middle">Sell-Through</TableHead>
+                        <TableHead rowSpan={2} className="align-middle">WOS</TableHead>
+                        <TableHead rowSpan={2} className="align-middle">Salud</TableHead>
+                      </TableRow>
+                      <TableRow className="bg-muted/30">
+                        {productSizes.length > 0 ? productSizes.map((size) => (
+                          <TableHead key={size.talla} className="h-7 w-12 min-w-12 border-l border-border px-2 text-center text-[10px] font-bold">
+                            {size.talla}
+                          </TableHead>
+                        )) : <TableHead className="h-7 w-12 border-l border-border px-2 text-center">—</TableHead>}
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {filtered.map((row) => {
                         const b = row.es_bodega;
                         const dash = <span className="text-muted-foreground">—</span>;
+                        const sizeStock = stockBySize(row);
                         const acum = Number(row.st_acum ?? 0);
                         const est = row.base_st === "estimada" && (
                           <Tooltip>
@@ -697,6 +675,14 @@ export function ProductDetailDrawer({
                           <TableCell className="text-right text-sm tabular-nums">{b ? dash : (row.recibido ?? 0).toLocaleString("es-CO")}</TableCell>
                           <TableCell className="text-right text-sm font-semibold tabular-nums">{b ? dash : (row.und_vendidas ?? 0).toLocaleString("es-CO")}</TableCell>
                           <TableCell className="text-right text-sm font-medium tabular-nums">{(row.stock_actual ?? 0).toLocaleString("es-CO")}</TableCell>
+                          {productSizes.length > 0 ? productSizes.map((size) => {
+                            const units = sizeStock.get(size.talla) ?? 0;
+                            return (
+                              <TableCell key={size.talla} className={cn("w-12 min-w-12 border-l border-border px-2 text-center text-xs tabular-nums", units <= 0 && "font-semibold text-warning")}>
+                                {units > 0 ? units.toLocaleString("es-CO") : "—"}
+                              </TableCell>
+                            );
+                          }) : <TableCell className="w-12 border-l border-border px-2 text-center text-warning">—</TableCell>}
                           <TableCell className="text-right">
                             {b || row.ritmo_semanal == null ? dash : (
                               <span className="text-sm tabular-nums text-foreground">
@@ -728,9 +714,6 @@ export function ProductDetailDrawer({
                               </>
                             )}
                           </TableCell>
-                          <TableCell className="text-right text-sm font-semibold tabular-nums">
-                            {tallas.length === 0 ? dash : (() => { const n = tallasConStock(row.tienda); return <span className={n < tallas.length ? "text-destructive" : "text-success"}>{n}/{tallas.length}</span>; })()}
-                          </TableCell>
                           <TableCell><StatusBadge label={row.estado_salud} /></TableCell>
                         </TableRow>
                         );
@@ -740,65 +723,6 @@ export function ProductDetailDrawer({
                 </div>
                 </TooltipProvider>
               )}
-            </div>
-
-            {/* Talla × ubicación */}
-            <div className="px-6 pb-6">
-              <div className="rounded-lg border border-border overflow-hidden">
-                <div className="flex items-center justify-between gap-4 border-b border-border px-3 py-2">
-                  <div>
-                    <p className="text-xs font-semibold text-foreground">Talla × ubicación</p>
-                    <p className="text-[10px] text-muted-foreground">Inventario disponible por tienda y talla</p>
-                  </div>
-                  <label className="flex shrink-0 items-center gap-2 text-xs text-muted-foreground">
-                    Solo destalladas
-                    <Switch checked={soloDestalladas} onCheckedChange={setSoloDestalladas} aria-label="Solo destalladas" />
-                  </label>
-                </div>
-                <div className="max-h-[320px] overflow-auto">
-                  <Table className="min-w-max">
-                    <TableHeader>
-                      <TableRow className="bg-muted/30">
-                        <TableHead className="sticky left-0 z-10 min-w-[210px] bg-muted">Ubicación</TableHead>
-                        {tallas.map((size) => <TableHead key={size.talla} className="min-w-[64px] text-center font-bold">{size.talla}</TableHead>)}
-                        <TableHead className="min-w-[76px] text-right">Total</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {ubicacionesTallas.map((row) => {
-                        const values = tallasPorUbic.get(row.ubicacion);
-                        const total = [...(values?.values() ?? [])].reduce((sum, value) => sum + value, 0);
-                        return (
-                          <TableRow key={row.ubicacion}>
-                            <TableCell className="sticky left-0 z-10 bg-background">
-                              <p className="text-xs font-medium text-foreground">{row.ubicacion}</p>
-                              <p className="text-[10px] text-muted-foreground">{row.esBodega ? "Bodega" : row.zona ?? "Sin zona"}</p>
-                            </TableCell>
-                            {tallas.map((size) => {
-                              const units = values?.get(size.talla) ?? 0;
-                              return (
-                                <TableCell
-                                  key={size.talla}
-                                  className={cn(
-                                    "text-center text-xs tabular-nums",
-                                    soloDestalladas
-                                      ? units <= 0 ? "bg-warning/20 font-bold text-warning" : "text-muted-foreground/50"
-                                      : units === 0 && "text-muted-foreground",
-                                  )}
-                                >
-                                  {units > 0 ? units : "—"}
-                                </TableCell>
-                              );
-                            })}
-                            <TableCell className="text-right text-xs font-semibold tabular-nums">{total.toLocaleString("es-CO")}</TableCell>
-                          </TableRow>
-                        );
-                      })}
-                    </TableBody>
-                  </Table>
-                  {ubicacionesTallas.length === 0 && <div className="p-4 text-center text-xs text-muted-foreground">No hay ubicaciones destalladas.</div>}
-                </div>
-              </div>
             </div>
           </>
         )}
