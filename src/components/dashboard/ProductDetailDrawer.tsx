@@ -53,6 +53,7 @@ interface TallaMatrixRow {
   talla: string;
   orden_talla: number;
   skus: string | null;
+  und_asignadas: number | null;
   stock_tiendas: number;
   stock_bodega: number;
   cargado_pct: number | null;
@@ -580,18 +581,53 @@ export function ProductDetailDrawer({
                     <p className="text-xs font-semibold text-foreground">Curva de tallas</p>
                     <div className="min-h-0 flex-1">
                       <ResponsiveContainer width="100%" height="100%">
-                        <ComposedChart data={sizeMatrix.map((s) => ({ talla: s.talla, cargadas: Number(s.stock_tiendas ?? 0), ventas: Number(s.und_vendidas ?? 0) }))} margin={{ top: 10, right: 8, bottom: 0, left: 8 }}>
+                        <ComposedChart
+                          data={sizeMatrix.map((s) => {
+                            const asignado = Number(s.und_asignadas ?? 0);
+                            const vendido = Number(s.und_vendidas_vida ?? 0);
+                            return {
+                              talla: s.talla,
+                              asignado,
+                              vendido,
+                              stock: Number(s.stock_tiendas ?? 0),
+                              sellThrough: asignado > 0 ? (vendido / asignado) * 100 : 0,
+                            };
+                          })}
+                          margin={{ top: 10, right: 8, bottom: 0, left: 8 }}
+                        >
                           <XAxis dataKey="talla" tick={{ fontSize: 11, fontWeight: 600 }} axisLine tickLine={false} />
                           <YAxis hide domain={[0, "dataMax"]} />
-                          <RTooltip formatter={(v: number, n: string) => [Number(v).toLocaleString("es-CO"), n === "cargadas" ? "En tienda" : "Ventas (56d)"]} />
-                          <Area type="monotone" dataKey="cargadas" stroke="hsl(var(--muted-foreground) / 0.45)" fill="hsl(var(--muted-foreground) / 0.2)" isAnimationActive={false} />
-                          <Line type="monotone" dataKey="ventas" stroke="hsl(var(--primary))" strokeWidth={2} dot={{ r: 3 }} isAnimationActive={false} />
+                          <RTooltip
+                            content={({ active, payload, label }) => {
+                              if (!active || !payload?.length) return null;
+                              const point = payload[0]?.payload as {
+                                asignado: number;
+                                vendido: number;
+                                stock: number;
+                                sellThrough: number;
+                              } | undefined;
+                              if (!point) return null;
+                              return (
+                                <div className="rounded-md border border-border bg-background px-3 py-2 text-xs shadow-md">
+                                  <p className="mb-1 font-semibold text-foreground">Talla {label}</p>
+                                  <p className="text-muted-foreground">Asignado: <span className="font-medium text-foreground tabular-nums">{point.asignado.toLocaleString("es-CO")}</span></p>
+                                  <p className="text-muted-foreground">Vendido: <span className="font-medium text-foreground tabular-nums">{point.vendido.toLocaleString("es-CO")}</span></p>
+                                  <p className="text-muted-foreground">Stock: <span className="font-medium text-foreground tabular-nums">{point.stock.toLocaleString("es-CO")}</span></p>
+                                  <p className="text-muted-foreground">Sell-through: <span className="font-medium text-foreground tabular-nums">{point.sellThrough.toLocaleString("es-CO", { maximumFractionDigits: 1 })}%</span></p>
+                                </div>
+                              );
+                            }}
+                          />
+                          <Area type="monotone" dataKey="asignado" stroke="hsl(var(--muted-foreground) / 0.45)" fill="hsl(var(--muted-foreground) / 0.2)" isAnimationActive={false} />
+                          <Line type="monotone" dataKey="vendido" stroke="hsl(var(--primary))" strokeWidth={2} dot={{ r: 3 }} isAnimationActive={false} />
+                          <Line type="monotone" dataKey="stock" stroke="hsl(var(--destructive))" strokeWidth={2} strokeDasharray="5 4" dot={false} isAnimationActive={false} />
                         </ComposedChart>
                       </ResponsiveContainer>
                     </div>
                     <div className="mt-1 flex justify-center gap-4 text-[10px] text-muted-foreground">
-                      <span>■ En tienda</span>
-                      <span className="text-primary">● Ventas</span>
+                      <span>■ Asignado</span>
+                      <span className="text-primary">● Vendido</span>
+                      <span className="text-destructive">┄ Stock</span>
                     </div>
                   </div>
                   <div className="min-w-0 overflow-auto rounded-lg border border-border">
