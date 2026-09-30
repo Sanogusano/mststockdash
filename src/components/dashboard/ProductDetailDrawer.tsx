@@ -449,7 +449,21 @@ export function ProductDetailDrawer({
                         <span className="inline-flex items-center rounded-full border border-border bg-muted/50 px-2 py-0.5 text-[10px] font-medium text-muted-foreground">{metrics.coleccion}</span>
                       )}
                       {parentSku && (
-                        <span className="inline-flex items-center rounded-full border border-border bg-muted/50 px-2 py-0.5 text-[10px] font-medium text-muted-foreground">SKU padre · {parentSku}</span>
+                        <TooltipProvider delayDuration={200}>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <button
+                                type="button"
+                                onClick={() => copySkus("parent", parentSku)}
+                                className="inline-flex items-center gap-1 rounded-full border border-border bg-muted/50 px-2 py-0.5 text-[10px] font-medium text-muted-foreground hover:text-foreground"
+                              >
+                                SKU padre · {parentSku}
+                                {copiedSize === "parent" ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+                              </button>
+                            </TooltipTrigger>
+                            <TooltipContent className="text-xs">{copiedSize === "parent" ? "SKU copiado" : "Copiar SKU padre"}</TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
                       )}
                     </div>
                   )}
@@ -587,14 +601,18 @@ export function ProductDetailDrawer({
                             <TableHead key={size.talla} className="h-auto px-4 py-1 text-right align-bottom">
                               <p className="text-sm font-bold text-foreground leading-tight">{size.talla}</p>
                               {size.skus && (
-                                <button
-                                  type="button"
-                                  onClick={() => copySkus(size.talla, size.skus)}
-                                  title={`Copiar ${size.skus}`}
-                                  className="text-[10px] font-normal text-muted-foreground hover:text-foreground tabular-nums"
-                                >
-                                  {copiedSize === size.talla ? "Copiado" : `…${size.skus.slice(-6)}`}
-                                </button>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <button
+                                      type="button"
+                                      onClick={() => copySkus(size.talla, size.skus)}
+                                      className="text-[10px] font-normal text-muted-foreground hover:text-foreground tabular-nums"
+                                    >
+                                      {copiedSize === size.talla ? "Copiado" : `…${size.skus.slice(-6)}`}
+                                    </button>
+                                  </TooltipTrigger>
+                                  <TooltipContent className="text-xs">{size.skus}</TooltipContent>
+                                </Tooltip>
                               )}
                             </TableHead>
                           ))}
@@ -674,13 +692,13 @@ export function ProductDetailDrawer({
                         <TableHead rowSpan={2} className="align-middle">Salud</TableHead>
                       </TableRow>
                       <TableRow className="bg-muted/30">
-                        {storeFilter !== "all" && <TableHead className="h-7 w-10 min-w-10 border-l border-border px-1" />}
+                        {storeFilter !== "all" && <TableHead className="h-7 w-10 min-w-10 px-1" />}
                         {productSizes.length > 0 ? productSizes.map((size) => (
                           <TableHead
                             key={size.talla}
                             className={cn(
                               "h-7 w-12 min-w-12 px-2 text-center text-[10px] font-bold",
-                              storeFilter === "all" && size === productSizes[0] && "border-l border-border",
+                              size === productSizes[0] && "border-l border-border",
                               size === productSizes[productSizes.length - 1] && "border-r border-border",
                             )}
                           >
@@ -723,7 +741,7 @@ export function ProductDetailDrawer({
                           <TableCell className="text-right text-sm font-semibold tabular-nums">{b ? dash : (row.und_vendidas ?? 0).toLocaleString("es-CO")}</TableCell>
                           <TableCell className="text-right text-sm font-medium tabular-nums">{(row.stock_actual ?? 0).toLocaleString("es-CO")}</TableCell>
                           {storeFilter !== "all" && (
-                            <TableCell className="w-10 min-w-10 border-l border-border px-1 py-2 text-left text-[10px] font-medium leading-5 text-muted-foreground">
+                            <TableCell className="w-10 min-w-10 px-1 py-2 text-left text-[10px] font-medium leading-5 text-muted-foreground">
                               <span className="block">Rec</span>
                               <span className="block">Ven</span>
                               <span className="block">Stk</span>
@@ -751,7 +769,11 @@ export function ProductDetailDrawer({
                               );
                             }
                             return (
-                              <TableCell key={size.talla} className={cn("w-12 min-w-12 px-2 py-2 text-center text-xs leading-5 tabular-nums", isLastSize && "border-r border-border")}>
+                              <TableCell key={size.talla} className={cn(
+                                "w-12 min-w-12 px-2 py-2 text-center text-xs leading-5 tabular-nums",
+                                size === productSizes[0] && "border-l border-border",
+                                isLastSize && "border-r border-border",
+                              )}>
                                 <span className="block">{Number(values?.recibidas ?? 0).toLocaleString("es-CO")}</span>
                                 <span className="block">{Number(values?.vendidas ?? 0).toLocaleString("es-CO")}</span>
                                 <span className={cn("block", stock <= 0 && "font-semibold text-warning")}>{stock > 0 ? stock.toLocaleString("es-CO") : "—"}</span>
