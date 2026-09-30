@@ -513,7 +513,6 @@ export function ProductDetailDrawer({
 
             {/* Detalle por talla */}
             <div className="px-6 pb-4">
-              <p className="text-xs font-semibold text-foreground mb-2">Detalle por talla</p>
               {sizeMatrixLoading ? (
                 <LoadingState rows={4} />
               ) : sizeMatrix.length === 0 ? (
