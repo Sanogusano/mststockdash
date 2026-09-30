@@ -73,6 +73,7 @@ interface LineaTiendaRow {
   dias_en_tienda: number | null;
   semanas_en_tienda: number | null;
   recibido: number;
+  recibido_vida: number;
   und_vendidas: number;
   stock_actual: number;
   productos_con_stock: number;
@@ -81,9 +82,7 @@ interface LineaTiendaRow {
   pct_full: number | null;
   pct_rebaja: number | null;
   pct_promo: number | null;
-  st_120d: number | null;
-  st_acum: number | null;
-  base_st: string | null;
+  st_ventana: number | null;
   wos: number | null;
   estado_salud: string;
 }
@@ -326,11 +325,11 @@ export function LineaDetailDrawer({
                           {rows.map((row) => {
                             const b = row.es_bodega;
                             const dash = <span className="text-muted-foreground">—</span>;
-                            const acum = Number(row.st_acum ?? 0);
-                            const est = row.base_st === "estimada" && (
+                            const stVentana = row.st_ventana == null ? null : Number(row.st_ventana);
+                            const stTip = (
                               <Tooltip>
-                                <TooltipTrigger asChild><span className="cursor-help text-warning font-bold ml-0.5">*</span></TooltipTrigger>
-                                <TooltipContent className="max-w-xs text-xs">Sin historial de traslados suficiente. Lo recibido se estima como vendido más stock.</TooltipContent>
+                                <TooltipTrigger asChild><Info className="inline h-3 w-3 ml-1 text-muted-foreground cursor-help align-[-1px]" /></TooltipTrigger>
+                                <TooltipContent className="max-w-xs text-xs">Vendidas en el periodo sobre vendidas más stock actual. Mismo cálculo para todas las tiendas.</TooltipContent>
                               </Tooltip>
                             );
                             const tiempo = !b && row.semanas_en_tienda != null
@@ -342,7 +341,14 @@ export function LineaDetailDrawer({
                                   <p className="text-sm font-medium text-foreground">{row.tienda}</p>
                                   {(row.zona || tiempo) && <p className="text-[11px] text-muted-foreground">{[row.zona, tiempo].filter(Boolean).join(" · ")}</p>}
                                 </TableCell>
-                                <TableCell className="text-right text-sm tabular-nums">{b ? dash : nf(row.recibido)}</TableCell>
+                                <TableCell className="text-right text-sm tabular-nums">
+                                  {b ? dash : (
+                                    <>
+                                      <p className="font-semibold leading-tight">{nf(row.recibido)}</p>
+                                      <p className="text-[11px] text-muted-foreground leading-tight">{nf(row.recibido_vida)} vida</p>
+                                    </>
+                                  )}
+                                </TableCell>
                                 <TableCell className="text-right text-sm font-semibold tabular-nums">{b ? dash : nf(row.und_vendidas)}</TableCell>
                                 <TableCell className="text-right text-sm font-medium tabular-nums">{nf(row.stock_actual)}</TableCell>
                                 <TableCell className="text-right text-sm tabular-nums">{nf(row.productos_con_stock)}</TableCell>
@@ -353,11 +359,9 @@ export function LineaDetailDrawer({
                                 <TableCell>{b ? dash : <CompositionBar full={row.pct_full} rebaja={row.pct_rebaja} promo={row.pct_promo} />}</TableCell>
                                 <TableCell>
                                   {b ? dash : (
-                                    <div className="w-32">
-                                      <p className="text-sm font-semibold tabular-nums leading-tight">{row.st_120d == null ? "—" : `${row.st_120d}%`} <span className="text-[10px] font-normal text-muted-foreground">120d</span>{est}</p>
-                                      <p className="text-xs tabular-nums text-muted-foreground leading-tight">{row.st_acum == null ? "—" : `${row.st_acum}%`} <span className="text-[10px]">acum.</span>{est}</p>
-                                      <Progress value={Math.min(acum, 100)} className="h-2 mt-1 bg-muted" indicatorClassName={getSellThroughColor(acum)} />
-                                    </div>
+                                    <p className="text-sm font-semibold tabular-nums leading-tight">
+                                      {stVentana == null ? "—" : `${stVentana}%`}{stTip}
+                                    </p>
                                   )}
                                 </TableCell>
                                 <TableCell>
