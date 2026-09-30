@@ -5446,6 +5446,7 @@ export type Database = {
           dist_online: number
           dist_standby: number
           dist_tiendas: number
+          distribucion_antiguedad: Json
           distribucion_wos: Json
           distribuido: number
           estado_salud: string
