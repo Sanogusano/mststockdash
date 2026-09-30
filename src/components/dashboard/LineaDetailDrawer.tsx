@@ -29,6 +29,7 @@ export interface LineaRow {
   pct_uds_en_ventana: number | null;
   cobertura_tallas_pct: number | null;
   distribucion_wos: WosTramo[] | null;
+  distribucion_antiguedad: WosTramo[] | null;
   distribuido: number;
   dist_tiendas: number;
   dist_online: number;
@@ -191,6 +192,47 @@ function WosDistributionCard({ tramos, pctVentana }: { tramos: WosTramo[]; pctVe
   );
 }
 
+export const ANTIGUEDAD_STYLES: Record<string, { bar: string; text: string }> = {
+  "Menos de 16 sem": { bar: "bg-emerald-500", text: "text-emerald-600" },
+  "16 a 26 sem": { bar: "bg-emerald-700", text: "text-emerald-700" },
+  "26 a 52 sem": { bar: "bg-amber-500", text: "text-amber-600" },
+  "Más de 52 sem": { bar: "bg-destructive", text: "text-destructive" },
+  "Sin fecha": { bar: "bg-muted-foreground/40", text: "text-muted-foreground" },
+};
+
+function AntiguedadDistributionCard({ tramos }: { tramos: WosTramo[] }) {
+  const main = tramos.filter((t) => t.tramo !== "Sin fecha");
+  const sinFecha = tramos.find((t) => t.tramo === "Sin fecha");
+  return (
+    <div className="rounded-lg border border-border px-3 py-2 min-w-[280px] flex-1 max-w-md">
+      <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Antigüedad del inventario</p>
+      <p className="text-[10px] text-muted-foreground -mt-0.5">unidades en piso por antigüedad del producto</p>
+      <div className="mt-1.5 space-y-1">
+        {main.map((t) => {
+          const s = ANTIGUEDAD_STYLES[t.tramo] ?? ANTIGUEDAD_STYLES["Sin fecha"];
+          return (
+            <div key={t.tramo} className="flex items-center gap-2 text-[11px]">
+              <span className={cn("w-24 shrink-0 font-semibold", s.text)}>{t.tramo}</span>
+              <span className="w-14 shrink-0 text-[10px] text-muted-foreground">{t.rango}</span>
+              <div className="flex-1 h-2 rounded-full bg-muted overflow-hidden">
+                <div className={cn("h-full rounded-full", s.bar)} style={{ width: `${Math.min(Number(t.pct_uds ?? 0), 100)}%` }} />
+              </div>
+              <span className="w-14 text-right tabular-nums">{nf(t.unidades)}</span>
+              <span className={cn("w-11 text-right tabular-nums font-semibold", s.text)}>{pf(t.pct_uds)}%</span>
+            </div>
+          );
+        })}
+      </div>
+      {sinFecha && (
+        <div className="mt-1.5 flex items-center gap-2 text-[11px] text-muted-foreground border-t border-border/60 pt-1.5">
+          <span className="w-24 shrink-0 font-semibold">Sin fecha</span>
+          <span className="flex-1">{nf(sinFecha.unidades)} uds · {pf(sinFecha.pct_uds)}%</span>
+        </div>
+      )}
+      {sinFecha && <p className="mt-1 text-[10px] text-muted-foreground">Sin fecha: unidades en piso sin fecha de ingreso trazable; no entran en los cuatro tramos.</p>}
+    </div>
+  );
+}
 
 export function LineaDetailDrawer({
   linea, onClose, diasAtras, pHasta, rangeLabel, days, customFrom, customTo, locationId,
@@ -239,6 +281,7 @@ export function LineaDetailDrawer({
   };
 
   const tramos = parseTramos(linea?.distribucion_wos);
+  const antTramos = parseTramos(linea?.distribucion_antiguedad);
 
   return (
     <Sheet open={!!linea} onOpenChange={(o) => { if (!o) { onClose(); setStoreFilter("all"); } }}>
@@ -269,7 +312,6 @@ export function LineaDetailDrawer({
                   </Button>
                 </div>
                 <div className="flex flex-wrap gap-2 mt-3 items-start">
-                  <MetricCard label="Antigüedad promedio" sub={`${nf(linea.dias_en_venta)} días · ponderado por uds.`}>{nf(linea.semanas_en_venta)} sem.</MetricCard>
                   <MetricCard label="Unidades vendidas" sub={rangeLabel}>{nf(linea.und_vendidas)}</MetricCard>
                   <MetricCard label="Ritmo de red" sub="TODA LA RED">
                     <span className="inline-flex items-center gap-1"><Gauge className="h-3 w-3" />{fmtU(linea.ritmo_semanal)} u/sem</span> {d56}
@@ -282,7 +324,10 @@ export function LineaDetailDrawer({
                   <MetricCard label="Cobertura de tallas" sub="% tallas con stock sobre totales">{linea.cobertura_tallas_pct == null ? "—" : `${pf(linea.cobertura_tallas_pct)}%`}</MetricCard>
                   {wosCard("WOS general", "LO DISPONIBILIZADO", linea.wos)}
                   {wosCard("WOS total", "TOTALIDAD DE INVENTARIO", linea.wos_total)}
-                  <WosDistributionCard tramos={tramos} pctVentana={linea.pct_uds_en_ventana} />
+                  <div className="flex flex-wrap gap-2 items-start w-full">
+                    <AntiguedadDistributionCard tramos={antTramos} />
+                    <WosDistributionCard tramos={tramos} pctVentana={linea.pct_uds_en_ventana} />
+                  </div>
                 </div>
               </SheetHeader>
 
