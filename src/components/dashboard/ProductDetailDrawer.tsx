@@ -279,9 +279,28 @@ export function ProductDetailDrawer({
 
   const stockBySize = (row: DetailRow) => {
     const values = new Map<string, StockTallaRow>();
-    if (!Array.isArray(row.stock_por_talla)) return values;
-    for (const size of row.stock_por_talla) {
-      if (size?.talla) values.set(size.talla, size);
+    let stockPorTalla: unknown = row.stock_por_talla;
+    if (typeof stockPorTalla === "string") {
+      try {
+        stockPorTalla = JSON.parse(stockPorTalla);
+      } catch {
+        return values;
+      }
+    }
+    if (!Array.isArray(stockPorTalla)) return values;
+    for (const size of stockPorTalla) {
+      if (!size || typeof size !== "object" || !("talla" in size)) continue;
+      const value = size as Record<string, unknown>;
+      const talla = String(value.talla ?? "").trim();
+      if (!talla) continue;
+      values.set(talla, {
+        talla,
+        orden: Number(value.orden ?? 0),
+        recibidas: Number(value.recibidas ?? 0),
+        vendidas: Number(value.vendidas ?? 0),
+        stock: Number(value.stock ?? 0),
+        st: value.st == null ? null : Number(value.st),
+      });
     }
     return values;
   };
