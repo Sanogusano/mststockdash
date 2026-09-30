@@ -281,6 +281,7 @@ export function LineaDetailDrawer({
   };
 
   const tramos = parseTramos(linea?.distribucion_wos);
+  const antTramos = parseTramos(linea?.distribucion_antiguedad);
 
   return (
     <Sheet open={!!linea} onOpenChange={(o) => { if (!o) { onClose(); setStoreFilter("all"); } }}>
@@ -311,7 +312,6 @@ export function LineaDetailDrawer({
                   </Button>
                 </div>
                 <div className="flex flex-wrap gap-2 mt-3 items-start">
-                  <MetricCard label="Antigüedad promedio" sub={`${nf(linea.dias_en_venta)} días · ponderado por uds.`}>{nf(linea.semanas_en_venta)} sem.</MetricCard>
                   <MetricCard label="Unidades vendidas" sub={rangeLabel}>{nf(linea.und_vendidas)}</MetricCard>
                   <MetricCard label="Ritmo de red" sub="TODA LA RED">
                     <span className="inline-flex items-center gap-1"><Gauge className="h-3 w-3" />{fmtU(linea.ritmo_semanal)} u/sem</span> {d56}
@@ -324,7 +324,10 @@ export function LineaDetailDrawer({
                   <MetricCard label="Cobertura de tallas" sub="% tallas con stock sobre totales">{linea.cobertura_tallas_pct == null ? "—" : `${pf(linea.cobertura_tallas_pct)}%`}</MetricCard>
                   {wosCard("WOS general", "LO DISPONIBILIZADO", linea.wos)}
                   {wosCard("WOS total", "TOTALIDAD DE INVENTARIO", linea.wos_total)}
-                  <WosDistributionCard tramos={tramos} pctVentana={linea.pct_uds_en_ventana} />
+                  <div className="flex flex-wrap gap-2 items-start w-full">
+                    <AntiguedadDistributionCard tramos={antTramos} />
+                    <WosDistributionCard tramos={tramos} pctVentana={linea.pct_uds_en_ventana} />
+                  </div>
                 </div>
               </SheetHeader>
 
