@@ -378,6 +378,7 @@ export default function ReporteFacturacionPage() {
     { key: "pendiente", title: "Pendientes por facturar", cls: "border-destructive/40 text-destructive" },
     { key: "diferencia", title: "Diferencias de facturación", cls: "border-destructive/40 text-destructive" },
     { key: "fallo_dian", title: "Falló emisión DIAN", cls: "border-amber-400 text-amber-700" },
+    { key: "sin_cufe", title: "Sin CUFE", cls: sinCufeStats.nFallo > 0 ? "border-destructive/40 text-destructive" : "border-amber-400 text-amber-700" },
     { key: "esperando", title: "Esperando despacho", cls: "text-muted-foreground" },
     { key: "facturado", title: "Total facturado", cls: "text-foreground" },
   ];
