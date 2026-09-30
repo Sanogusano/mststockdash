@@ -583,14 +583,14 @@ export function ProductDetailDrawer({
                         <ComposedChart data={sizeMatrix.map((s) => ({ talla: s.talla, cargadas: Number(s.stock_tiendas ?? 0), ventas: Number(s.und_vendidas ?? 0) }))} margin={{ top: 10, right: 8, bottom: 0, left: 8 }}>
                           <XAxis dataKey="talla" tick={{ fontSize: 11, fontWeight: 600 }} axisLine tickLine={false} />
                           <YAxis hide domain={[0, "dataMax"]} />
-                          <RTooltip formatter={(v: number, n: string) => [Number(v).toLocaleString("es-CO"), n === "cargadas" ? "Cargadas" : "Ventas"]} />
+                          <RTooltip formatter={(v: number, n: string) => [Number(v).toLocaleString("es-CO"), n === "cargadas" ? "En tienda" : "Ventas (56d)"]} />
                           <Area type="monotone" dataKey="cargadas" stroke="hsl(var(--muted-foreground) / 0.45)" fill="hsl(var(--muted-foreground) / 0.2)" isAnimationActive={false} />
                           <Line type="monotone" dataKey="ventas" stroke="hsl(var(--primary))" strokeWidth={2} dot={{ r: 3 }} isAnimationActive={false} />
                         </ComposedChart>
                       </ResponsiveContainer>
                     </div>
                     <div className="mt-1 flex justify-center gap-4 text-[10px] text-muted-foreground">
-                      <span>■ Cargadas</span>
+                      <span>■ En tienda</span>
                       <span className="text-primary">● Ventas</span>
                     </div>
                   </div>
@@ -624,11 +624,11 @@ export function ProductDetailDrawer({
                       <TableBody>
                         {[
                           { group: "VENTA", rows: [
-                            { label: "Ventas", sub: "56 días", render: (s: TallaMatrixRow) => Number(s.und_vendidas ?? 0).toLocaleString("es-CO") },
+                            { label: "Ventas", sub: "56d", render: (s: TallaMatrixRow) => Number(s.und_vendidas ?? 0).toLocaleString("es-CO") },
                             { label: "RDV", render: (s: TallaMatrixRow) => s.ritmo_semanal == null ? "—" : `${formatDecimal(s.ritmo_semanal)} u/sem` },
                           ] },
                           { group: storeFilter === "all" ? "INVENTARIO" : `INVENTARIO · ${storeFilter}`, rows: [
-                            { label: "Cargadas", render: (s: TallaMatrixRow) => Number(s.stock_tiendas ?? 0).toLocaleString("es-CO") },
+                            { label: "En tienda", render: (s: TallaMatrixRow) => Number(s.stock_tiendas ?? 0).toLocaleString("es-CO") },
                             { label: "En bodega", render: (s: TallaMatrixRow) => Number(s.stock_bodega ?? 0) > 0 ? Number(s.stock_bodega).toLocaleString("es-CO") : "—" },
                             { label: "WOS", render: (s: TallaMatrixRow) => formatDecimal(s.wos_talla) },
                           ] },
@@ -741,7 +741,7 @@ export function ProductDetailDrawer({
                           {detailedMode && (
                             <TableCell className="w-10 min-w-10 px-1 py-2 text-left text-[10px] font-medium leading-5 text-muted-foreground">
                               <span className="block">Rec</span>
-                              <span className="block">Ven</span>
+                              <span className="block whitespace-nowrap">Ven ({dias_atras}d)</span>
                               <span className="block">Stk</span>
                               <span className="block text-[10px]">ST</span>
                             </TableCell>
