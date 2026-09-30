@@ -461,9 +461,9 @@ export default function ReporteFacturacionPage() {
         </div>
         )}
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-7 gap-4 mb-2">
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-8 gap-4 mb-2">
           {resumenQ.isLoading ? (
-            <div className="sm:col-span-2 xl:col-span-6">
+            <div className="sm:col-span-2 xl:col-span-7">
               <LoadingState rows={0} />
             </div>
           ) : (<>{cards.slice(0, 4).map((c) => (
@@ -476,7 +476,14 @@ export default function ReporteFacturacionPage() {
               <CardContent className="p-4">
                 <p className="text-xs font-medium">{c.title}</p>
                 <p className="text-2xl font-semibold tabular-nums">{fmtInt(resumen[c.key].n)}</p>
-                 <p className="text-xs text-muted-foreground tabular-nums">{c.key === "diferencia" ? `${fmtCOP(resumen[c.key].d)} en diferencias` : `${fmtCOP(resumen[c.key].v)} venta neta`}</p>
+                {c.key === "sin_cufe" ? (
+                  <>
+                    <p className="text-xs text-muted-foreground tabular-nums">{fmtCOP(resumen[c.key].v)} venta neta</p>
+                    <p className="text-xs text-muted-foreground tabular-nums">{fmtInt(sinCufeStats.nProceso)} en proceso · {fmtInt(sinCufeStats.nFallo)} con fallo</p>
+                  </>
+                ) : (
+                  <p className="text-xs text-muted-foreground tabular-nums">{c.key === "diferencia" ? `${fmtCOP(resumen[c.key].d)} en diferencias` : `${fmtCOP(resumen[c.key].v)} venta neta`}</p>
+                )}
               </CardContent>
             </Card>
           ))}
