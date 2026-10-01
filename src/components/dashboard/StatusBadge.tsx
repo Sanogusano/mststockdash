@@ -15,6 +15,8 @@ export function StatusBadge({ label }: StatusBadgeProps) {
     if (t.includes("SOBRESTOCK") || t.includes("URGENTE") || t.includes("EXPLOSIVO") || t.includes("CRÍTICO")) {
       return "status-danger";
     }
+    if (t.includes("EN VENTANA")) return "status-optimal";
+    if (t.includes("OBSOLETO") || t.includes("ESTANCADO")) return "status-danger";
     return "status-warning";
   };
 
