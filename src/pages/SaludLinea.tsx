@@ -42,6 +42,29 @@ const ST_FILTERS = [
   { value: "medium", label: "🟡 Medio (30-69%)" },
   { value: "low", label: "🔴 Bajo (<30%)" },
 ];
+const ESTADO_FILTERS = [
+  { value: "all", label: "Todos los estados" },
+  { value: "riesgo", label: "🟡 Riesgo agotados" },
+  { value: "en_ventana", label: "🟢 En ventana" },
+  { value: "excedido", label: "🟠 Excedido" },
+  { value: "obsoleto", label: "🔴 Obsoleto" },
+  { value: "estancado", label: "🔴 Estancado" },
+  { value: "agotado", label: "⚫ Agotado" },
+  { value: "en_bodega", label: "🔵 En bodega" },
+];
+const estadoMatches = (estado: string | null | undefined, filtro: string) => {
+  const e = (estado ?? "").toUpperCase();
+  switch (filtro) {
+    case "riesgo": return e.includes("RIESGO");
+    case "en_ventana": return e.includes("EN VENTANA");
+    case "excedido": return e.includes("EXCEDIDO");
+    case "obsoleto": return e.includes("OBSOLETO");
+    case "estancado": return e.includes("ESTANCADO");
+    case "agotado": return e.includes("AGOTADO") && !e.includes("RIESGO");
+    case "en_bodega": return e.includes("BODEGA");
+    default: return true;
+  }
+};
 
 function StRow({ label, value }: { label: string; value: number | null | undefined }) {
   const v = Number(value ?? 0);
@@ -88,6 +111,7 @@ export default function SaludLineaPage() {
   const [locationId, setLocationId] = useState("all");
   const [wosFilter, setWosFilter] = useState("all");
   const [stFilter, setStFilter] = useState("all");
+  const [estadoFilter, setEstadoFilter] = useState("all");
   const [clasif, setClasif] = useState("all");
   const [page, setPage] = useState(0);
   const [selected, setSelected] = useState<LineaRow | null>(null);
@@ -149,11 +173,12 @@ export default function SaludLineaPage() {
       const s = Number(r.sell_through_pct ?? 0);
       return stFilter === "high" ? s >= 70 : stFilter === "medium" ? s >= 30 && s < 70 : s < 30;
     });
+    if (estadoFilter !== "all") all = all.filter((r) => estadoMatches(r.estado_salud, estadoFilter));
     // Orden por defecto: % del inventario dentro de ventana, nulls al final.
     return all.slice().sort((a, b) => (b.pct_uds_en_ventana ?? -1) - (a.pct_uds_en_ventana ?? -1));
-  }, [data, search, clasif, wosFilter, stFilter]);
+  }, [data, search, clasif, wosFilter, stFilter, estadoFilter]);
 
-  useMemo(() => setPage(0), [search, clasif, wosFilter, stFilter, locationId, canal, dias_atras, p_hasta]);
+  useMemo(() => setPage(0), [search, clasif, wosFilter, stFilter, estadoFilter, locationId, canal, dias_atras, p_hasta]);
   const totalPages = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
   const paged = rows.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
 
@@ -244,6 +269,13 @@ export default function SaludLineaPage() {
               <Select value={stFilter} onValueChange={setStFilter}>
                 <SelectTrigger className="w-full sm:w-[180px] h-10"><SelectValue /></SelectTrigger>
                 <SelectContent>{ST_FILTERS.map((f) => <SelectItem key={f.value} value={f.value}>{f.label}</SelectItem>)}</SelectContent>
+              </Select>
+              <Select value={estadoFilter} onValueChange={setEstadoFilter}>
+                <SelectTrigger className="w-full sm:w-[180px] h-10">
+                  <span className="text-[10px] uppercase font-semibold text-muted-foreground mr-2 shrink-0">Estado</span>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>{ESTADO_FILTERS.map((f) => <SelectItem key={f.value} value={f.value}>{f.label}</SelectItem>)}</SelectContent>
               </Select>
               <Select value={clasif} onValueChange={setClasif}>
                 <SelectTrigger className="w-full sm:w-[200px] h-10"><SelectValue /></SelectTrigger>
