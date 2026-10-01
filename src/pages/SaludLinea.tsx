@@ -42,6 +42,29 @@ const ST_FILTERS = [
   { value: "medium", label: "🟡 Medio (30-69%)" },
   { value: "low", label: "🔴 Bajo (<30%)" },
 ];
+const ESTADO_FILTERS = [
+  { value: "all", label: "Todos los estados" },
+  { value: "riesgo", label: "🟡 Riesgo agotados" },
+  { value: "en_ventana", label: "🟢 En ventana" },
+  { value: "excedido", label: "🟠 Excedido" },
+  { value: "obsoleto", label: "🔴 Obsoleto" },
+  { value: "estancado", label: "🔴 Estancado" },
+  { value: "agotado", label: "⚫ Agotado" },
+  { value: "en_bodega", label: "🔵 En bodega" },
+];
+const estadoMatches = (estado: string | null | undefined, filtro: string) => {
+  const e = (estado ?? "").toUpperCase();
+  switch (filtro) {
+    case "riesgo": return e.includes("RIESGO");
+    case "en_ventana": return e.includes("EN VENTANA");
+    case "excedido": return e.includes("EXCEDIDO");
+    case "obsoleto": return e.includes("OBSOLETO");
+    case "estancado": return e.includes("ESTANCADO");
+    case "agotado": return e.includes("AGOTADO") && !e.includes("RIESGO");
+    case "en_bodega": return e.includes("BODEGA");
+    default: return true;
+  }
+};
 
 function StRow({ label, value }: { label: string; value: number | null | undefined }) {
   const v = Number(value ?? 0);
