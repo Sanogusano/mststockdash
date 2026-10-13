@@ -36,27 +36,41 @@ export function GenerarArchivoShopifyCard() {
   function descargarMatrixify() {
     if (!rows || rows.length === 0) return;
     try {
-      // Pivotar: una fila por variante (Variant SKU) con una columna por ubicación.
+      // Pivotar: una fila por variante (Variant ID) con una columna por ubicación.
       const ubicaciones = Array.from(
         new Set(rows.map((r) => r.ubicacion_shopify))
       ).sort();
 
-      // Agrupar por SKU
-      const porSku = new Map<
+      // Agrupar por variant_id
+      const porVariante = new Map<
         string,
-        { producto: string; celdas: Record<string, number> }
+        {
+          product_id: string;
+          sku: string;
+          producto: string;
+          celdas: Record<string, number>;
+        }
       >();
       for (const r of rows) {
-        let entry = porSku.get(r.sku);
+        let entry = porVariante.get(r.variant_id);
         if (!entry) {
-          entry = { producto: r.producto ?? "", celdas: {} };
-          porSku.set(r.sku, entry);
+          entry = {
+            product_id: r.product_id,
+            sku: r.sku,
+            producto: r.producto ?? "",
+            celdas: {},
+          };
+          porVariante.set(r.variant_id, entry);
         }
-        entry.celdas[r.ubicacion_shopify] = r.disponible_netsuite;
+        entry.celdas[r.ubicacion_shopify] = r.disponible_final;
       }
 
-      // Cabecera formato Matrixify: Variant SKU + "Inventory Available: <ubicación>"
+      // Cabecera formato Matrixify:
+      // ID, Command, Variant ID, Variant SKU, Title, "Inventory Available: <ubicación>"
       const headers = [
+        "ID",
+        "Command",
+        "Variant ID",
         "Variant SKU",
         "Title",
         ...ubicaciones.map((u) => `Inventory Available: ${u}`),
@@ -68,9 +82,12 @@ export function GenerarArchivoShopifyCard() {
       };
 
       const lines = [headers.join(",")];
-      for (const [sku, data] of porSku) {
+      for (const [variantId, data] of porVariante) {
         const cols = [
-          sku,
+          data.product_id,
+          "UPDATE",
+          variantId,
+          data.sku,
           data.producto,
           ...ubicaciones.map((u) =>
             u in data.celdas ? String(data.celdas[u]) : ""
@@ -86,7 +103,7 @@ export function GenerarArchivoShopifyCard() {
       const a = document.createElement("a");
       const fecha = new Date().toISOString().slice(0, 10);
       a.href = url;
-      a.download = `shopify-inventario-matrixify-${fecha}.csv`;
+      a.download = `Products_inventario_shopify_${fecha}.csv`;
       a.click();
       URL.revokeObjectURL(url);
     } catch (e: any) {
