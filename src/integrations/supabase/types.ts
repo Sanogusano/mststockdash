@@ -4710,6 +4710,18 @@ export type Database = {
           variant_id: string
         }[]
       }
+      generar_archivo_shopify_inventario_v3: {
+        Args: never
+        Returns: {
+          existencias_antes: number
+          existencias_netsuite: number
+          product_id: string
+          producto: string
+          sku: string
+          ubicacion_shopify: string
+          variant_id: string
+        }[]
+      }
       generar_export_netsuite: {
         Args: {
           p_empleado: string
