@@ -62,18 +62,18 @@ export function GenerarArchivoShopifyCard() {
           };
           porVariante.set(r.variant_id, entry);
         }
-        entry.celdas[r.ubicacion_shopify] = r.disponible_final;
+        entry.celdas[r.ubicacion_shopify] = r.existencias_netsuite;
       }
 
       // Cabecera formato Matrixify:
-      // ID, Command, Variant ID, Variant SKU, Title, "Inventory Available: <ubicación>"
+      // ID, Command, Variant ID, Variant SKU, Title, "Inventory On Hand: <ubicación>"
       const headers = [
         "ID",
         "Command",
         "Variant ID",
         "Variant SKU",
         "Title",
-        ...ubicaciones.map((u) => `Inventory Available: ${u}`),
+        ...ubicaciones.map((u) => `Inventory On Hand: ${u}`),
       ];
 
       const escape = (v: string | number) => {
@@ -117,9 +117,6 @@ export function GenerarArchivoShopifyCard() {
   const ubicacionesCount = rows
     ? new Set(rows.map((r) => r.ubicacion_shopify)).size
     : 0;
-  const comprometidoTotal = rows
-    ? rows.reduce((acc, r) => acc + (r.comprometido_online ?? 0), 0)
-    : 0;
 
   return (
     <Card>
@@ -129,10 +126,8 @@ export function GenerarArchivoShopifyCard() {
           Paso 3 — Generar archivo para actualizar Shopify
         </CardTitle>
         <CardDescription>
-          Crea el archivo de inventario en formato Matrixify con las cantidades
-          de NetSuite, solo para lo que difiere del inventario actual de
-          Shopify. Actualiza el campo "Disponible" respetando tránsito y
-          preparación de pedidos.
+          Actualiza las existencias (On Hand) en Shopify. Shopify recalcula el
+          disponible respetando los pedidos comprometidos.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -153,7 +148,7 @@ export function GenerarArchivoShopifyCard() {
 
         {rows && rows.length > 0 && (
           <div className="space-y-4">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div className="grid grid-cols-3 gap-3">
               <div className="rounded-lg border p-3">
                 <p className="text-xs text-muted-foreground">Actualizaciones</p>
                 <p className="text-xl font-semibold tabular-nums">
@@ -170,14 +165,6 @@ export function GenerarArchivoShopifyCard() {
                 <p className="text-xs text-muted-foreground">Ubicaciones</p>
                 <p className="text-xl font-semibold tabular-nums">
                   {fmt(ubicacionesCount)}
-                </p>
-              </div>
-              <div className="rounded-lg border p-3">
-                <p className="text-xs text-muted-foreground">
-                  Comprometido online
-                </p>
-                <p className="text-xl font-semibold tabular-nums">
-                  {fmt(comprometidoTotal)}
                 </p>
               </div>
             </div>
@@ -212,9 +199,6 @@ export function GenerarArchivoShopifyCard() {
                   <tr className="text-left">
                     <th className="px-3 py-2">Producto</th>
                     <th className="px-3 py-2">Ubicación</th>
-                    <th className="px-3 py-2 text-right">
-                      Comprometido online
-                    </th>
                     <th className="px-3 py-2 text-right">Shopify</th>
                     <th className="px-3 py-2 text-right">NetSuite</th>
                   </tr>
@@ -227,13 +211,10 @@ export function GenerarArchivoShopifyCard() {
                       </td>
                       <td className="px-3 py-2 text-xs">{r.ubicacion_shopify}</td>
                       <td className="px-3 py-2 text-right tabular-nums text-muted-foreground">
-                        {fmt(r.comprometido_online)}
-                      </td>
-                      <td className="px-3 py-2 text-right tabular-nums text-muted-foreground">
-                        {fmt(r.disponible_shopify_antes)}
+                        {fmt(r.existencias_antes ?? 0)}
                       </td>
                       <td className="px-3 py-2 text-right tabular-nums font-medium text-primary">
-                        {fmt(r.disponible_netsuite)}
+                        {fmt(r.existencias_netsuite)}
                       </td>
                     </tr>
                   ))}
