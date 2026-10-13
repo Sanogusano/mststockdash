@@ -10,7 +10,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.5"
+    PostgrestVersion: "14.1"
   }
   public: {
     Tables: {
@@ -4317,6 +4317,14 @@ export type Database = {
       }
     }
     Functions: {
+      _asignado_por_producto: {
+        Args: { p_location_id?: string }
+        Returns: {
+          product_id: string
+          und_asignadas: number
+          und_recibidas: number
+        }[]
+      }
       _col_date_boundary: {
         Args: { dias: number; p_referencia?: string }
         Returns: string
@@ -4682,6 +4690,20 @@ export type Database = {
         Returns: {
           disponible_netsuite: number
           disponible_shopify_antes: number
+          producto: string
+          sku: string
+          ubicacion_shopify: string
+          variant_id: string
+        }[]
+      }
+      generar_archivo_shopify_inventario_v2: {
+        Args: never
+        Returns: {
+          comprometido_online: number
+          disponible_final: number
+          disponible_netsuite: number
+          disponible_shopify_antes: number
+          product_id: string
           producto: string
           sku: string
           ubicacion_shopify: string
