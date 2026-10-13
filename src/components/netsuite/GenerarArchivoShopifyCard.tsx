@@ -36,27 +36,41 @@ export function GenerarArchivoShopifyCard() {
   function descargarMatrixify() {
     if (!rows || rows.length === 0) return;
     try {
-      // Pivotar: una fila por variante (Variant SKU) con una columna por ubicación.
+      // Pivotar: una fila por variante (Variant ID) con una columna por ubicación.
       const ubicaciones = Array.from(
         new Set(rows.map((r) => r.ubicacion_shopify))
       ).sort();
 
-      // Agrupar por SKU
-      const porSku = new Map<
+      // Agrupar por variant_id
+      const porVariante = new Map<
         string,
-        { producto: string; celdas: Record<string, number> }
+        {
+          product_id: string;
+          sku: string;
+          producto: string;
+          celdas: Record<string, number>;
+        }
       >();
       for (const r of rows) {
-        let entry = porSku.get(r.sku);
+        let entry = porVariante.get(r.variant_id);
         if (!entry) {
-          entry = { producto: r.producto ?? "", celdas: {} };
-          porSku.set(r.sku, entry);
+          entry = {
+            product_id: r.product_id,
+            sku: r.sku,
+            producto: r.producto ?? "",
+            celdas: {},
+          };
+          porVariante.set(r.variant_id, entry);
         }
-        entry.celdas[r.ubicacion_shopify] = r.disponible_netsuite;
+        entry.celdas[r.ubicacion_shopify] = r.disponible_final;
       }
 
-      // Cabecera formato Matrixify: Variant SKU + "Inventory Available: <ubicación>"
+      // Cabecera formato Matrixify:
+      // ID, Command, Variant ID, Variant SKU, Title, "Inventory Available: <ubicación>"
       const headers = [
+        "ID",
+        "Command",
+        "Variant ID",
         "Variant SKU",
         "Title",
         ...ubicaciones.map((u) => `Inventory Available: ${u}`),
@@ -68,9 +82,12 @@ export function GenerarArchivoShopifyCard() {
       };
 
       const lines = [headers.join(",")];
-      for (const [sku, data] of porSku) {
+      for (const [variantId, data] of porVariante) {
         const cols = [
-          sku,
+          data.product_id,
+          "UPDATE",
+          variantId,
+          data.sku,
           data.producto,
           ...ubicaciones.map((u) =>
             u in data.celdas ? String(data.celdas[u]) : ""
@@ -86,7 +103,7 @@ export function GenerarArchivoShopifyCard() {
       const a = document.createElement("a");
       const fecha = new Date().toISOString().slice(0, 10);
       a.href = url;
-      a.download = `shopify-inventario-matrixify-${fecha}.csv`;
+      a.download = `Products_inventario_shopify_${fecha}.csv`;
       a.click();
       URL.revokeObjectURL(url);
     } catch (e: any) {
@@ -99,6 +116,9 @@ export function GenerarArchivoShopifyCard() {
     : 0;
   const ubicacionesCount = rows
     ? new Set(rows.map((r) => r.ubicacion_shopify)).size
+    : 0;
+  const comprometidoTotal = rows
+    ? rows.reduce((acc, r) => acc + (r.comprometido_online ?? 0), 0)
     : 0;
 
   return (
@@ -133,7 +153,7 @@ export function GenerarArchivoShopifyCard() {
 
         {rows && rows.length > 0 && (
           <div className="space-y-4">
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               <div className="rounded-lg border p-3">
                 <p className="text-xs text-muted-foreground">Actualizaciones</p>
                 <p className="text-xl font-semibold tabular-nums">
@@ -150,6 +170,14 @@ export function GenerarArchivoShopifyCard() {
                 <p className="text-xs text-muted-foreground">Ubicaciones</p>
                 <p className="text-xl font-semibold tabular-nums">
                   {fmt(ubicacionesCount)}
+                </p>
+              </div>
+              <div className="rounded-lg border p-3">
+                <p className="text-xs text-muted-foreground">
+                  Comprometido online
+                </p>
+                <p className="text-xl font-semibold tabular-nums">
+                  {fmt(comprometidoTotal)}
                 </p>
               </div>
             </div>
@@ -184,6 +212,9 @@ export function GenerarArchivoShopifyCard() {
                   <tr className="text-left">
                     <th className="px-3 py-2">Producto</th>
                     <th className="px-3 py-2">Ubicación</th>
+                    <th className="px-3 py-2 text-right">
+                      Comprometido online
+                    </th>
                     <th className="px-3 py-2 text-right">Shopify</th>
                     <th className="px-3 py-2 text-right">NetSuite</th>
                   </tr>
@@ -195,6 +226,9 @@ export function GenerarArchivoShopifyCard() {
                         {r.producto ?? r.sku}
                       </td>
                       <td className="px-3 py-2 text-xs">{r.ubicacion_shopify}</td>
+                      <td className="px-3 py-2 text-right tabular-nums text-muted-foreground">
+                        {fmt(r.comprometido_online)}
+                      </td>
                       <td className="px-3 py-2 text-right tabular-nums text-muted-foreground">
                         {fmt(r.disponible_shopify_antes)}
                       </td>
