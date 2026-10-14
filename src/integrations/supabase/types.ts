@@ -2711,6 +2711,33 @@ export type Database = {
         }
         Relationships: []
       }
+      shopify_inventario_actual: {
+        Row: {
+          available: number | null
+          committed: number | null
+          location_id: string
+          on_hand: number | null
+          tomado_en: string
+          variant_id: string
+        }
+        Insert: {
+          available?: number | null
+          committed?: number | null
+          location_id: string
+          on_hand?: number | null
+          tomado_en?: string
+          variant_id: string
+        }
+        Update: {
+          available?: number | null
+          committed?: number | null
+          location_id?: string
+          on_hand?: number | null
+          tomado_en?: string
+          variant_id?: string
+        }
+        Relationships: []
+      }
       shopify_orders: {
         Row: {
           created_at: string | null
@@ -4494,6 +4521,19 @@ export type Database = {
           uds_periodo: number
         }[]
       }
+      conciliar_shopify_real: {
+        Args: { p_location?: string }
+        Returns: {
+          diferencia: number
+          netsuite: number
+          product_id: string
+          producto: string
+          shopify_comprometido: number
+          shopify_on_hand: number
+          sku: string
+          variant_id: string
+        }[]
+      }
       corte_datos_facturacion: {
         Args: never
         Returns: {
@@ -4616,6 +4656,7 @@ export type Database = {
       }
       cron_snapshot_netsuite: { Args: never; Returns: string }
       cruzar_addi_con_shopify: { Args: never; Returns: undefined }
+      encadenar_shopify_inventario: { Args: { p: Json }; Returns: number }
       equipo_tienda: {
         Args: { p_clave: string; p_fecha?: string }
         Returns: {
@@ -4636,6 +4677,18 @@ export type Database = {
           var_upt_pct: number
           vendedor: string
           venta: number
+        }[]
+      }
+      estado_lectura_shopify: {
+        Args: never
+        Returns: {
+          estado: string
+          filas: number
+          iniciado: string
+          netsuite_aplicado: string
+          paginas: number
+          snapshot_netsuite: string
+          terminado: string
         }[]
       }
       estrategia_aplicar: {
