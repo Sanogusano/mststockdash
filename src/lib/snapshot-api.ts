@@ -311,16 +311,43 @@ export interface ArchivoShopifyRow {
   variant_id: string;
   sku: string;
   producto: string | null;
-  ubicacion_shopify: string;
-  existencias_netsuite: number;
-  existencias_antes: number | null;
+  netsuite: number;
+  shopify_on_hand: number;
+  shopify_comprometido: number;
+  diferencia: number;
 }
 
-/** Genera las filas de diferencias NetSuite vs Shopify para el archivo Matrixify. */
+export interface EstadoLecturaShopify {
+  estado: string | null;
+  paginas: number | null;
+  filas: number | null;
+  iniciado: string | null;
+  terminado: string | null;
+  snapshot_netsuite: string | null;
+  netsuite_aplicado: string | null;
+}
+
+/** Dispara la lectura del inventario real de Shopify. 409 = ya hay una en curso. */
+export async function iniciarLecturaShopify(): Promise<{ enCurso: boolean }> {
+  const { error } = await supabase.functions.invoke("shopify-inventario-lectura", { body: {} });
+  if (error) {
+    const status = (error as any)?.context?.status;
+    if (status === 409) return { enCurso: true };
+    throw error;
+  }
+  return { enCurso: false };
+}
+
+export async function estadoLecturaShopify(): Promise<EstadoLecturaShopify | null> {
+  const { data, error } = await supabase.rpc("estado_lectura_shopify" as any);
+  if (error) throw error;
+  const row = Array.isArray(data) ? data[0] : data;
+  return (row ?? null) as EstadoLecturaShopify | null;
+}
+
+/** Concilia NetSuite contra el inventario real leído de Shopify (CEDI Guayabal). */
 export async function generarArchivoShopify(): Promise<ArchivoShopifyRow[]> {
-  const { data, error } = await supabase.rpc(
-    "generar_archivo_shopify_inventario_v3" as any
-  );
+  const { data, error } = await supabase.rpc("conciliar_shopify_real" as any);
   if (error) throw error;
   return (data ?? []) as ArchivoShopifyRow[];
 }
