@@ -55,6 +55,9 @@ export default function FacturaElectronicaPage() {
   const [estado, setEstado] = useState<Estado>("pendiente");
   const [q, setQ] = useState("");
   const [guardando, setGuardando] = useState<string | null>(null);
+  const [etiquetar, setEtiquetar] = useState(false);
+  const [sel, setSel] = useState<Set<string>>(new Set());
+  const toggleSel = (id: string) => setSel((s) => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n; });
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["pedido-factura-electronica"],
@@ -96,6 +99,11 @@ export default function FacturaElectronicaPage() {
   }, [data, estado, q]);
 
   const marcar = async (id: string, nuevo: Estado) => {
+    if (nuevo === "cliente_creado" && etiquetar) {
+      const fila = (data ?? []).find((r) => r.shopify_order_id === id);
+      if (fila) await marcarClienteCreado([fila]);
+      return;
+    }
     setGuardando(id);
     const { error } = await (supabase as any)
       .from("pedido_factura_electronica")
@@ -105,6 +113,44 @@ export default function FacturaElectronicaPage() {
     if (error) { toast.error(`No se pudo actualizar: ${error.message}`); return; }
     toast.success(nuevo === "facturado" ? "Marcado como facturado" : "Marcado como cliente creado");
     qc.invalidateQueries({ queryKey: ["pedido-factura-electronica"] });
+  };
+
+  const marcarClienteCreado = async (lista: RowA[]) => {
+    if (!lista.length) return;
+    if (lista.length > 100) { toast.error("Máximo 100 pedidos por envío"); return; }
+    const ids = lista.map((r) => r.shopify_order_id);
+    setGuardando(lista.length === 1 ? ids[0] : "__lote__");
+    try {
+      if (etiquetar) {
+        const { data: res, error } = await supabase.functions.invoke("shopify-etiquetar", {
+          body: { etiqueta: "REGISTRADO", pedidos: lista.map((r) => ({ pedido: r.pedido })) },
+        });
+        if (error) { toast.error(`No se pudo etiquetar: ${error.message}`); return; }
+        const resultados: { pedido?: string; ok?: boolean; error?: string }[] = res?.resultados ?? [];
+        if (lista.length === 1) {
+          if (!res?.ok) { toast.error(resultados[0]?.error ?? res?.error ?? "Error al etiquetar en Shopify"); return; }
+          toast.success("Etiquetado REGISTRADO y marcado como cliente creado");
+        } else {
+          const fallos = resultados.filter((r) => r.ok === false);
+          const exitos = resultados.length ? resultados.length - fallos.length : (res?.ok ? lista.length : 0);
+          if (exitos) toast.success(`${exitos} pedido(s) etiquetados y marcados como cliente creado`);
+          if (fallos.length) toast.error(`${fallos.length} con error: ${fallos.slice(0, 3).map((f) => `${f.pedido ?? ""} ${f.error ?? ""}`.trim()).join(" · ")}`);
+          if (!exitos && !fallos.length && !res?.ok) { toast.error(res?.error ?? "Error al etiquetar en Shopify"); return; }
+          if (!exitos) return;
+        }
+      } else {
+        const { error } = await (supabase as any)
+          .from("pedido_factura_electronica")
+          .update({ estado: "cliente_creado", actualizado_en: new Date().toISOString() })
+          .in("shopify_order_id", ids);
+        if (error) { toast.error(`No se pudo actualizar: ${error.message}`); return; }
+        toast.success(`${ids.length} pedido(s) marcados como cliente creado`);
+      }
+      setSel(new Set());
+      qc.invalidateQueries({ queryKey: ["pedido-factura-electronica"] });
+    } finally {
+      setGuardando(null);
+    }
   };
 
   const exportar = () => {
