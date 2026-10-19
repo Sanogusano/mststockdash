@@ -14,7 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { fmtCOP, fmtInt } from "@/lib/finanzas-format";
-import { exportToXLS } from "@/lib/xls-export";
+import * as XLSX from "xlsx";
 import { useHasPermission } from "@/hooks/useHasPermission";
 import { useUserRole } from "@/hooks/useUserRole";
 import { cn } from "@/lib/utils";
@@ -89,6 +89,11 @@ const ESTADO_POR_TARJETA: Record<CardKey, string> = {
   facturado: "Facturado",
 };
 
+const ESTADOS_FILTRO = [
+  "SIN ORDEN DE VENTA EN NETSUITE", "PENDIENTE POR FACTURAR", "Esperando despacho", "Sin CUFE", "Descuadre de valor",
+  "Anulado por nota credito", "No facturable (pending)", "No facturable (refunded)", "Facturado",
+];
+
 const hoyBogota = () => new Date().toLocaleDateString("en-CA", { timeZone: "America/Bogota" });
 const PAGE = 100;
 
@@ -137,17 +142,23 @@ export default function ReporteFacturacionPage() {
   const [soloPend, setSoloPend] = useState(false);
   const [busqueda, setBusqueda] = useState("");
   const [busquedaDebounced, setBusquedaDebounced] = useState("");
-  const [searchParams] = useSearchParams();
-  const [cardFiltro, setCardFiltro] = useState<CardKey | null>(() => {
-    const e = searchParams.get("estado");
-    const k = e ? (Object.keys(ESTADO_POR_TARJETA) as CardKey[]).find((x) => ESTADO_POR_TARJETA[x] === e) : undefined;
-    return k ?? null;
-  });
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [estado, setEstadoState] = useState<string | null>(() => searchParams.get("estado"));
   useEffect(() => {
     const e = searchParams.get("estado");
-    const k = e ? (Object.keys(ESTADO_POR_TARJETA) as CardKey[]).find((x) => ESTADO_POR_TARJETA[x] === e) : undefined;
-    if (k) { setCardFiltro(k); setSoloPend(false); }
+    setEstadoState(e);
+    if (e) setSoloPend(false);
   }, [searchParams]);
+  const setEstado = (v: string | null) => {
+    setEstadoState(v);
+    const next = new URLSearchParams(searchParams);
+    if (v) next.set("estado", v); else next.delete("estado");
+    setSearchParams(next, { replace: true });
+  };
+  const cardFiltro: CardKey | null = estado
+    ? ((Object.keys(ESTADO_POR_TARJETA) as CardKey[]).find((x) => ESTADO_POR_TARJETA[x] === estado) ?? null)
+    : null;
+  const setCardFiltro = (k: CardKey | null) => setEstado(k ? ESTADO_POR_TARJETA[k] : null);
   const [page, setPage] = useState(1);
   const [sortKey, setSortKey] = useState<SortKey>("fecha_pedido");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
@@ -160,7 +171,7 @@ export default function ReporteFacturacionPage() {
   const pCanal = canal === "todos" ? null : canal;
   const pZona = zona === "todos" ? null : zona;
   const pLocationId = locationId === "todos" ? null : locationId;
-  const pEstado = cardFiltro ? ESTADO_POR_TARJETA[cardFiltro] : null;
+  const pEstado = estado;
   const s = busquedaDebounced.trim();
   const TOPE = 500;
 
@@ -324,14 +335,15 @@ export default function ReporteFacturacionPage() {
 
   const totalPedidos = useMemo(() => {
     if (cardFiltro) return resumen[cardFiltro].n;
+    if (estado) return (resumenQ.data ?? []).filter((r) => r.estado_facturacion === estado).reduce((a, r) => a + Number(r.pedidos ?? 0), 0);
     if (soloPend) return resumen.pendiente.n;
     return (resumenQ.data ?? []).reduce((a, r) => a + Number(r.pedidos ?? 0), 0);
-  }, [resumen, resumenQ.data, cardFiltro, soloPend]);
+  }, [resumen, resumenQ.data, cardFiltro, estado, soloPend]);
 
   const filasCargadas = q.data ?? [];
   const topeAlcanzado = !!s && filasCargadas.length >= TOPE;
 
-  useEffect(() => setPage(1), [desde, hasta, soloPend, canal, zona, locationId, busqueda, cardFiltro, sortKey, sortDir]);
+  useEffect(() => setPage(1), [desde, hasta, soloPend, canal, zona, locationId, busqueda, estado, sortKey, sortDir]);
   const totalPages = Math.max(1, Math.ceil(totalPedidos / PAGE));
   const pageRows = useMemo(() => {
     try {
@@ -367,19 +379,35 @@ export default function ReporteFacturacionPage() {
         setExportando(all.length);
         if (!data || data.length < 1000) break;
       }
-      exportToXLS(
-        all.map((r) => ({
-          Estado: r.estado_facturacion ?? "", Pedido: r.pedido ?? "", Canal: r.canal ?? "", Zona: r.zona ?? "", Sucursal: r.sucursal ?? "",
-          "Fecha pedido": r.fecha_pedido ?? "", "Método pago": r.metodo_pago ?? "", Despacho: r.estado_despacho ?? "", Colaborador: r.colaborador ?? "", Factura: r.numero_factura ?? "",
-          "Fecha factura": r.fecha_factura ?? "", "N° POS": r.numero_pos ?? "",
-          DIAN: r.emitida_dian ? "Emitida" : r.numero_factura ? "Sin CUFE" : "", "Nota crédito": r.nota_credito ?? "",
-           "Venta total": Number(r.venta_total ?? 0), "Valor facturado": Number(r.valor_facturado ?? 0), Diferencia: Number(r.diferencia_facturacion ?? 0),
-          Impuesto: Number(r.impuesto ?? 0), Descuento: Number(r.descuento ?? 0),
-          Artículos: Number(r.articulos ?? 0), "Días sin facturar": r.dias_sin_facturar ?? "",
-        })),
-        `Reporte de facturacion ${hoyBogota()}`,
-        "Facturación",
-      );
+      if (all.length === 0) {
+        alert("No hay datos para exportar con los filtros actuales");
+        return;
+      }
+      const num = (v: unknown) => (v === null || v === undefined || v === "" ? null : Number(v));
+      const fecha = (v: string | null | undefined) => {
+        if (!v) return null;
+        const d = /^\d{4}-\d{2}-\d{2}$/.test(v) ? fechaLocal(v) : new Date(v);
+        return d && !isNaN(d.getTime()) ? d : null;
+      };
+      const headers = ["Estado", "Pedido", "Canal", "Sucursal", "Zona", "Fecha pedido", "Días sin facturar", "Estado pago", "Método pago", "Estado despacho", "Colaborador", "Factura", "Fecha factura", "POS", "CUFE", "Nota crédito", "Artículos", "Venta neta", "IVA", "Venta total", "Valor facturado", "Diferencia"];
+      const aoa: unknown[][] = [headers, ...all.map((r: any) => [
+        r.estado_facturacion ?? "", r.pedido ?? "", r.canal ?? "", r.sucursal ?? "", r.zona ?? "",
+        fecha(r.fecha_pedido), num(r.dias_sin_facturar), r.estado_pago ?? "", r.metodo_pago ?? "", r.estado_despacho ?? "",
+        r.colaborador ?? "", r.numero_factura ?? "", fecha(r.fecha_factura), r.numero_pos ?? "", r.cufe ?? "", r.nota_credito ?? "",
+        num(r.articulos), num(r.venta_neta), num(r.impuesto), num(r.venta_total), num(r.valor_facturado), num(r.diferencia_facturacion),
+      ])];
+      const ws = XLSX.utils.aoa_to_sheet(aoa, { cellDates: true, dateNF: "yyyy-mm-dd" });
+      const lastRow = aoa.length;
+      ["F", "M"].forEach((c) => { for (let i = 2; i <= lastRow; i++) { const cell = ws[`${c}${i}`]; if (cell && cell.t === "d") cell.z = "yyyy-mm-dd"; } });
+      ["R", "S", "T", "U", "V"].forEach((c) => { for (let i = 2; i <= lastRow; i++) { const cell = ws[`${c}${i}`]; if (cell && cell.t === "n") cell.z = "#,##0"; } });
+      ws["!autofilter"] = { ref: `A1:V${lastRow}` };
+      ws["!freeze"] = { xSplit: 0, ySplit: 1 } as any;
+      (ws as any)["!views"] = [{ state: "frozen", ySplit: 1, topLeftCell: "A2" }];
+      ws["!cols"] = headers.map((h) => ({ wch: Math.max(12, h.length + 2) }));
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Facturación");
+      const nombreEstado = (estado ?? "Todos").replace(/[\\/:*?"<>|]/g, "-");
+      XLSX.writeFile(wb, `Facturacion_${nombreEstado}_${desde}_a_${hasta}.xlsx`);
     } catch (e: any) {
       alert(`Error al exportar: ${e?.message ?? e}`);
     } finally {
@@ -470,7 +498,6 @@ export default function ReporteFacturacionPage() {
           </div>
           <div className="flex items-center gap-3 justify-between">
             <label className="flex items-center gap-2 text-sm"><Switch checked={soloPend} onCheckedChange={setSoloPend} />Solo pendientes</label>
-            {canExport && <Button variant="outline" size="sm" onClick={exportar} disabled={filasCargadas.length === 0 || exportando !== null || q.isFetching}><Download className="h-4 w-4 mr-1" />{exportando !== null ? `Preparando… ${fmtInt(exportando)} filas` : "Excel"}</Button>}
           </div>
         </div>
         )}
@@ -663,6 +690,24 @@ export default function ReporteFacturacionPage() {
             )}
           </div>
         ) : (<>
+        <div className="flex flex-wrap items-end gap-3 mt-4">
+          <div className="space-y-1 w-full sm:w-80">
+            <Label className="text-xs">Estado</Label>
+            <Select value={estado ?? "__todos"} onValueChange={(v) => { setEstado(v === "__todos" ? null : v); if (v !== "__todos") setSoloPend(false); }}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__todos">Todos</SelectItem>
+                {ESTADOS_FILTRO.map((e) => <SelectItem key={e} value={e}>{e}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+          {canExport && (
+            <Button variant="outline" onClick={exportar} disabled={exportando !== null}>
+              <Download className="h-4 w-4 mr-1" />
+              {exportando !== null ? `Exportando… ${fmtInt(exportando)} filas` : "Exportar Excel"}
+            </Button>
+          )}
+        </div>
         {resumenQ.error && <p className="text-sm text-destructive my-4">Error resumen: {(resumenQ.error as any).message}</p>}
         {topeAlcanzado && <p className="text-sm text-amber-700 my-2">La búsqueda alcanzó el tope de {TOPE} filas; refina el texto para ver todos los resultados.</p>}
         {q.error && <p className="text-sm text-destructive my-4">Error: {(q.error as any).message}</p>}
