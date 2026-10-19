@@ -562,7 +562,7 @@ export default function ReporteFacturacionPage() {
             </Card>
           </>)}
         </div>
-        {vista === "pedidos" && cardFiltro && <Button variant="link" size="sm" className="h-auto px-0 mb-4" onClick={() => setCardFiltro(null)}>Quitar filtro de estado</Button>}
+        {vista === "pedidos" && estado && <Button variant="link" size="sm" className="h-auto px-0 mb-4" onClick={() => setEstado(null)}>Quitar filtro de estado</Button>}
 
         {vista === "ordenes" ? (
           <div className="mt-4">
