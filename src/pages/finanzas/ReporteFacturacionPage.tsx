@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { Download, CheckCircle2, AlertTriangle, Search, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -44,7 +45,7 @@ type Row = {
   valor_facturado: number | null; diferencia_facturacion: number | null;
 };
 
-type CardKey = "pendiente" | "diferencia" | "fallo_dian" | "sin_cufe" | "esperando" | "facturado";
+type CardKey = "sin_ov" | "pendiente" | "diferencia" | "fallo_dian" | "sin_cufe" | "esperando" | "facturado";
 type SortKey = "estado_facturacion" | "fecha_pedido" | "venta_total" | "diferencia_facturacion";
 type SortDir = "asc" | "desc";
 
@@ -69,6 +70,7 @@ const comparar = (a: Row, b: Row, campo: SortKey, dir: SortDir) => {
 };
 
 const CARD_ESTADO: Record<CardKey, (e: string) => boolean> = {
+  sin_ov: (e) => e === "SIN ORDEN DE VENTA EN NETSUITE",
   pendiente: (e) => e === "PENDIENTE POR FACTURAR",
   diferencia: (e) => e === "Descuadre de valor",
   fallo_dian: (e) => e === "Fallo la emision a DIAN",
@@ -78,6 +80,7 @@ const CARD_ESTADO: Record<CardKey, (e: string) => boolean> = {
 };
 
 const ESTADO_POR_TARJETA: Record<CardKey, string> = {
+  sin_ov: "SIN ORDEN DE VENTA EN NETSUITE",
   pendiente: "PENDIENTE POR FACTURAR",
   diferencia: "Descuadre de valor",
   fallo_dian: "Fallo la emision a DIAN",
@@ -134,7 +137,17 @@ export default function ReporteFacturacionPage() {
   const [soloPend, setSoloPend] = useState(false);
   const [busqueda, setBusqueda] = useState("");
   const [busquedaDebounced, setBusquedaDebounced] = useState("");
-  const [cardFiltro, setCardFiltro] = useState<CardKey | null>(null);
+  const [searchParams] = useSearchParams();
+  const [cardFiltro, setCardFiltro] = useState<CardKey | null>(() => {
+    const e = searchParams.get("estado");
+    const k = e ? (Object.keys(ESTADO_POR_TARJETA) as CardKey[]).find((x) => ESTADO_POR_TARJETA[x] === e) : undefined;
+    return k ?? null;
+  });
+  useEffect(() => {
+    const e = searchParams.get("estado");
+    const k = e ? (Object.keys(ESTADO_POR_TARJETA) as CardKey[]).find((x) => ESTADO_POR_TARJETA[x] === e) : undefined;
+    if (k) { setCardFiltro(k); setSoloPend(false); }
+  }, [searchParams]);
   const [page, setPage] = useState(1);
   const [sortKey, setSortKey] = useState<SortKey>("fecha_pedido");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
@@ -375,6 +388,7 @@ export default function ReporteFacturacionPage() {
   };
 
   const cards: { key: CardKey; title: string; cls: string }[] = [
+    { key: "sin_ov", title: "Sin orden de venta en NetSuite", cls: resumen.sin_ov.n > 0 ? "border-destructive bg-destructive/5 text-destructive" : "border-emerald-400 text-emerald-700" },
     { key: "pendiente", title: "Pendientes por facturar", cls: "border-destructive/40 text-destructive" },
     { key: "diferencia", title: "Diferencias de facturación", cls: "border-destructive/40 text-destructive" },
     { key: "fallo_dian", title: "Falló emisión DIAN", cls: "border-amber-400 text-amber-700" },
@@ -461,12 +475,12 @@ export default function ReporteFacturacionPage() {
         </div>
         )}
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-8 gap-4 mb-2">
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 2xl:grid-cols-9 gap-4 mb-2">
           {resumenQ.isLoading ? (
             <div className="sm:col-span-2 xl:col-span-7">
               <LoadingState rows={0} />
             </div>
-          ) : (<>{cards.slice(0, 4).map((c) => (
+          ) : (<>{cards.slice(0, 5).map((c) => (
             <Card key={c.key} onClick={() => {
               setCardFiltro(cardFiltro === c.key ? null : c.key);
               if (c.key !== "pendiente") setSoloPend(false);
@@ -476,7 +490,9 @@ export default function ReporteFacturacionPage() {
               <CardContent className="p-4">
                 <p className="text-xs font-medium">{c.title}</p>
                 <p className="text-2xl font-semibold tabular-nums">{fmtInt(resumen[c.key].n)}</p>
-                {c.key === "sin_cufe" ? (
+                {c.key === "sin_ov" ? (
+                  <p className="text-xs text-muted-foreground">{resumen.sin_ov.n > 0 ? `Pedido pagado que no entró a NetSuite (más de 2 h) · ${fmtCOP(resumen.sin_ov.v)}` : "Todos los pedidos entraron a NetSuite"}</p>
+                ) : c.key === "sin_cufe" ? (
                   <>
                     <p className="text-xs text-muted-foreground tabular-nums">{fmtCOP(resumen[c.key].v)} venta neta</p>
                     <p className="text-xs text-muted-foreground tabular-nums">{fmtInt(sinCufeStats.nProceso)} en proceso · {fmtInt(sinCufeStats.nFallo)} con fallo</p>
@@ -495,7 +511,7 @@ export default function ReporteFacturacionPage() {
                 <p className="text-xs text-muted-foreground tabular-nums">{fmtCOP(sfStats.montoTotal)}</p>
               </CardContent>
             </Card>
-            {cards.slice(4).map((c) => (
+            {cards.slice(5).map((c) => (
             <Card key={c.key} onClick={() => {
               setCardFiltro(cardFiltro === c.key ? null : c.key);
               if (c.key !== "pendiente") setSoloPend(false);

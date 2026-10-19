@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { LineChart, BarChart3, TrendingUp, ArrowLeftRight, Package, Tag, Layers, Target, Zap, Trophy, Archive, Users, Calculator, UserCog, Briefcase, ChevronDown, Settings, MapPin, Upload, LogOut, Truck, Shield, Store, Banknote, LayoutDashboard, CreditCard, MessageCircle, AlertTriangle, RefreshCw, Sparkles, Search, LayoutGrid, TrendingDown, Globe, Gauge, ScatterChart, Siren, Database, Split, Activity, Scale } from "lucide-react";
+import { LineChart, BarChart3, TrendingUp, ArrowLeftRight, Package, Tag, Layers, Target, Zap, Trophy, Archive, Users, Calculator, UserCog, Briefcase, ChevronDown, Settings, MapPin, Upload, LogOut, Truck, Shield, Store, Banknote, LayoutDashboard, CreditCard, MessageCircle, AlertTriangle, RefreshCw, Sparkles, Search, LayoutGrid, TrendingDown, Globe, Gauge, ScatterChart, Siren, Database, Split, Activity, Scale, HeartPulse } from "lucide-react";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useAuth } from "@/hooks/useAuth";
 import { useUserPermissions } from "@/hooks/useUserPermissions";
@@ -130,6 +130,7 @@ const configuracionItems: NavItem[] = [
   { title: "Alertas WhatsApp", url: "/configuracion/notificaciones", icon: MessageCircle, description: "Destinatarios y reportes WhatsApp", module: "config.notificaciones", action: "view" },
   { title: "Sync de Inventario", url: "/configuracion/sync-inventario", icon: RefreshCw, description: "Disparar y monitorear sync diario", module: "inventario_netsuite", action: "view" },
   { title: "Fuente de Ventas", url: "/configuracion/fuente-ventas", icon: Database, description: "Shopify POS vs Nxt Sale (NetSuite)", module: "config.fuente_ventas", action: "view" },
+  { title: "Estado del Sistema", url: "/configuracion/estado-sistema", icon: HeartPulse, description: "Chequeos de integridad y ejecuciones", module: "config.ubicaciones", action: "view" },
 ];
 
 export function AppSidebar() {

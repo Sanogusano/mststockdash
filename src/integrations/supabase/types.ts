@@ -1890,6 +1890,7 @@ export type Database = {
           monto_con_iva: number | null
           monto_sin_iva: number | null
           netsuite_transaction_id: string | null
+          shopify_order_number: string | null
           tranid: string
           ubicacion_netsuite: string | null
         }
@@ -1904,6 +1905,7 @@ export type Database = {
           monto_con_iva?: number | null
           monto_sin_iva?: number | null
           netsuite_transaction_id?: string | null
+          shopify_order_number?: string | null
           tranid: string
           ubicacion_netsuite?: string | null
         }
@@ -1918,6 +1920,7 @@ export type Database = {
           monto_con_iva?: number | null
           monto_sin_iva?: number | null
           netsuite_transaction_id?: string | null
+          shopify_order_number?: string | null
           tranid?: string
           ubicacion_netsuite?: string | null
         }
@@ -4519,6 +4522,15 @@ export type Database = {
           productos: number
           tiene_venta: boolean
           uds_periodo: number
+        }[]
+      }
+      chequeo_integridad_diario: {
+        Args: { p_dias?: number }
+        Returns: {
+          chequeo: string
+          detalle: string
+          severidad: string
+          valor: number
         }[]
       }
       conciliar_shopify_real: {

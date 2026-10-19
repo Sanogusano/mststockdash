@@ -51,6 +51,8 @@ import AlertasDistribucionPage from "./pages/AlertasDistribucion";
 import FinanzasDashboardPage from "./pages/finanzas/FinanzasDashboard";
 import AddiPage from "./pages/finanzas/AddiPage";
 import ComposicionIngresosPage from "./pages/finanzas/ComposicionIngresosPage";
+import ConfiguracionEstadoSistemaPage from "./pages/ConfiguracionEstadoSistema";
+import { AlertaCriticaBanner } from "@/components/AlertaCriticaBanner";
 import ReporteFacturacionPage from "./pages/finanzas/ReporteFacturacionPage";
 import { WompiPage, MercadoPagoPage, SistecreditoPage } from "./pages/finanzas/PasarelaPlaceholder";
 
@@ -82,6 +84,7 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
+        <AlertaCriticaBanner />
         <Routes>
           <Route path="/login" element={<LoginPage />} />
           <Route path="/reset-password" element={<ResetPasswordPage />} />
@@ -138,6 +141,8 @@ const App = () => (
           <Route path="/configuracion/notificaciones" element={<ProtectedRoute><ConfiguracionNotificacionesPage /></ProtectedRoute>} />
           <Route path="/configuracion/sync-inventario" element={<Guard module="inventario_netsuite" action="view"><ConfiguracionSyncInventarioPage /></Guard>} />
           <Route path="/configuracion/fuente-ventas" element={<Guard module="config.fuente_ventas" action="view"><ConfiguracionFuenteVentasPage /></Guard>} />
+
+          <Route path="/configuracion/estado-sistema" element={<ProtectedRoute><ConfiguracionEstadoSistemaPage /></ProtectedRoute>} />
 
           <Route path="*" element={<NotFound />} />
         </Routes>
