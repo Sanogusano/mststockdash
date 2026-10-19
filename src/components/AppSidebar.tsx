@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { LineChart, BarChart3, TrendingUp, ArrowLeftRight, Package, Tag, Layers, Target, Zap, Trophy, Archive, Users, Calculator, UserCog, Briefcase, ChevronDown, Settings, MapPin, Upload, LogOut, Truck, Shield, Store, Banknote, LayoutDashboard, CreditCard, MessageCircle, AlertTriangle, RefreshCw, Sparkles, Search, LayoutGrid, TrendingDown, Globe, Gauge, ScatterChart, Siren, Database, Split, Activity, Scale, HeartPulse } from "lucide-react";
+import { LineChart, BarChart3, TrendingUp, ArrowLeftRight, Package, Tag, Layers, Target, Zap, Trophy, Archive, Users, Calculator, UserCog, Briefcase, ChevronDown, Settings, MapPin, Upload, LogOut, Truck, Shield, Store, Banknote, LayoutDashboard, CreditCard, MessageCircle, AlertTriangle, RefreshCw, Sparkles, Search, LayoutGrid, TrendingDown, Globe, Gauge, ScatterChart, Siren, Database, Split, Activity, Scale, HeartPulse, FileText } from "lucide-react";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useAuth } from "@/hooks/useAuth";
 import { useUserPermissions } from "@/hooks/useUserPermissions";
@@ -110,6 +110,7 @@ const gestionComercialItems: NavItem[] = [
 const logisticaItems: NavItem[] = [
   { title: "Allocation & Movimientos", url: "/logistica", icon: ArrowLeftRight, description: "Allocation & movimientos", module: "dashboards.logistica_traslados", action: "view" },
   { title: "Traslados (NetSuite)", url: "/logistica-traslados", icon: Truck, description: "Allocation v2 & exportación", module: "dashboards.logistica_traslados", action: "view" },
+  { title: "Pendientes factura electrónica", url: "/logistica/factura-electronica", icon: FileText, description: "Datos de facturación de pedidos", module: "role:admin,finanzas,gerencia", action: "view" },
 ];
 
 const finanzasItems: NavItem[] = [
@@ -143,6 +144,7 @@ export function AppSidebar() {
 
   const can = (module: string, action: string) => {
     if (isAdmin) return true;
+    if (module.startsWith("role:")) return !!role && module.slice(5).split(",").includes(role);
     return (permissions ?? []).some(
       (p) => p.module_key === module && p.action_key === action && p.granted === true,
     );

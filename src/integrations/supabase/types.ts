@@ -559,6 +559,77 @@ export type Database = {
         }
         Relationships: []
       }
+      cliente_identidades: {
+        Row: {
+          cliente_id: string
+          creado_en: string
+          fuente: string
+          id_externo: string
+        }
+        Insert: {
+          cliente_id: string
+          creado_en?: string
+          fuente: string
+          id_externo: string
+        }
+        Update: {
+          cliente_id?: string
+          creado_en?: string
+          fuente?: string
+          id_externo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cliente_identidades_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      clientes: {
+        Row: {
+          actualizado_en: string | null
+          autoriza_datos: boolean | null
+          ciudad: string | null
+          creado_en: string
+          departamento: string | null
+          documento: string | null
+          documento_tipo: string | null
+          email: string | null
+          id: string
+          nombre: string | null
+          telefono: string | null
+        }
+        Insert: {
+          actualizado_en?: string | null
+          autoriza_datos?: boolean | null
+          ciudad?: string | null
+          creado_en?: string
+          departamento?: string | null
+          documento?: string | null
+          documento_tipo?: string | null
+          email?: string | null
+          id?: string
+          nombre?: string | null
+          telefono?: string | null
+        }
+        Update: {
+          actualizado_en?: string | null
+          autoriza_datos?: boolean | null
+          ciudad?: string | null
+          creado_en?: string
+          departamento?: string | null
+          documento?: string | null
+          documento_tipo?: string | null
+          email?: string | null
+          id?: string
+          nombre?: string | null
+          telefono?: string | null
+        }
+        Relationships: []
+      }
       coleccion_no_remapear: {
         Row: {
           collection_season: string
@@ -2081,6 +2152,7 @@ export type Database = {
         Row: {
           checkout_id: string | null
           checkout_token: string | null
+          cliente_id: string | null
           created_at: string
           financial_status: string | null
           fulfillment_status: string | null
@@ -2102,6 +2174,7 @@ export type Database = {
         Insert: {
           checkout_id?: string | null
           checkout_token?: string | null
+          cliente_id?: string | null
           created_at: string
           financial_status?: string | null
           fulfillment_status?: string | null
@@ -2123,6 +2196,7 @@ export type Database = {
         Update: {
           checkout_id?: string | null
           checkout_token?: string | null
+          cliente_id?: string | null
           created_at?: string
           financial_status?: string | null
           fulfillment_status?: string | null
@@ -2162,6 +2236,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_ubicaciones_gestion"
             referencedColumns: ["location_id"]
+          },
+          {
+            foreignKeyName: "orders_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -2225,6 +2306,60 @@ export type Database = {
           unidad?: string | null
           updated_at?: string
           valor?: number
+        }
+        Relationships: []
+      }
+      pedido_factura_electronica: {
+        Row: {
+          actualizado_en: string | null
+          capturado_en: string
+          ciudad: string | null
+          departamento: string | null
+          direccion: string | null
+          documento: string | null
+          documento_direccion: string | null
+          email: string | null
+          estado: string
+          pedido: string | null
+          razon_social: string | null
+          registrado: boolean
+          shopify_customer_id: string | null
+          shopify_order_id: string
+          telefono: string | null
+        }
+        Insert: {
+          actualizado_en?: string | null
+          capturado_en?: string
+          ciudad?: string | null
+          departamento?: string | null
+          direccion?: string | null
+          documento?: string | null
+          documento_direccion?: string | null
+          email?: string | null
+          estado?: string
+          pedido?: string | null
+          razon_social?: string | null
+          registrado?: boolean
+          shopify_customer_id?: string | null
+          shopify_order_id: string
+          telefono?: string | null
+        }
+        Update: {
+          actualizado_en?: string | null
+          capturado_en?: string
+          ciudad?: string | null
+          departamento?: string | null
+          direccion?: string | null
+          documento?: string | null
+          documento_direccion?: string | null
+          email?: string | null
+          estado?: string
+          pedido?: string | null
+          razon_social?: string | null
+          registrado?: boolean
+          shopify_customer_id?: string | null
+          shopify_order_id?: string
+          telefono?: string | null
         }
         Relationships: []
       }
