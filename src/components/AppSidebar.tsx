@@ -393,6 +393,29 @@ export function AppSidebar() {
                 </>
               )}
 
+              {/* Gestión E-commerce */}
+              {visibleEcommerce.length > 0 && (
+                <>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton asChild>
+                      <button
+                        onClick={() => setEcommerceOpen((v) => !v)}
+                        className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-150 ${
+                          isEcommerceActive
+                            ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
+                            : "text-sidebar-foreground/70 hover:bg-sidebar-accent/40 hover:text-sidebar-foreground"
+                        }`}
+                      >
+                        <Globe className="h-[18px] w-[18px] shrink-0" />
+                        <span className="text-sm leading-tight flex-1 text-left truncate">Gestión E-commerce</span>
+                        <ChevronDown className={`h-3.5 w-3.5 shrink-0 transition-transform ${ecommerceOpen ? "rotate-180" : ""}`} />
+                      </button>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                  {ecommerceOpen && visibleEcommerce.map((item) => renderItem(item, true))}
+                </>
+              )}
+
               {/* 7 - HERRAMIENTAS */}
               {(visibleHerramientas.length > 0 || visibleLogistica.length > 0) && (
                 <>
@@ -473,29 +496,6 @@ export function AppSidebar() {
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                   {finanzasOpen && visibleFinanzas.map((item) => renderItem(item, true))}
-                </>
-              )}
-
-              {/* Gestión E-commerce */}
-              {visibleEcommerce.length > 0 && (
-                <>
-                  <SidebarMenuItem>
-                    <SidebarMenuButton asChild>
-                      <button
-                        onClick={() => setEcommerceOpen((v) => !v)}
-                        className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-150 ${
-                          isEcommerceActive
-                            ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
-                            : "text-sidebar-foreground/70 hover:bg-sidebar-accent/40 hover:text-sidebar-foreground"
-                        }`}
-                      >
-                        <Globe className="h-[18px] w-[18px] shrink-0" />
-                        <span className="text-sm leading-tight flex-1 text-left truncate">Gestión E-commerce</span>
-                        <ChevronDown className={`h-3.5 w-3.5 shrink-0 transition-transform ${ecommerceOpen ? "rotate-180" : ""}`} />
-                      </button>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                  {ecommerceOpen && visibleEcommerce.map((item) => renderItem(item, true))}
                 </>
               )}
 
