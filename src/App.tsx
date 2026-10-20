@@ -52,6 +52,7 @@ import FinanzasDashboardPage from "./pages/finanzas/FinanzasDashboard";
 import AddiPage from "./pages/finanzas/AddiPage";
 import ComposicionIngresosPage from "./pages/finanzas/ComposicionIngresosPage";
 import FacturaElectronicaPage from "./pages/FacturaElectronica";
+import AgotadosPage from "./pages/Agotados";
 import ConfiguracionEstadoSistemaPage from "./pages/ConfiguracionEstadoSistema";
 import { AlertaCriticaBanner } from "@/components/AlertaCriticaBanner";
 import ReporteFacturacionPage from "./pages/finanzas/ReporteFacturacionPage";
@@ -101,6 +102,7 @@ const App = () => (
           <Route path="/logistica" element={<Guard module="dashboards.logistica_traslados" action="view"><LogisticaPage /></Guard>} />
           <Route path="/logistica-traslados" element={<Guard module="dashboards.logistica_traslados" action="view"><LogisticaTrasladosPage /></Guard>} />
           <Route path="/logistica/factura-electronica" element={<ProtectedRoute><FacturaElectronicaPage /></ProtectedRoute>} />
+          <Route path="/logistica/agotados" element={<Guard module="dashboards.logistica_traslados" action="view"><AgotadosPage /></Guard>} />
           <Route path="/producto" element={<Guard module="dashboards.salud_producto" action="view"><ComportamientoProductoPage /></Guard>} />
           <Route path="/lineas" element={<Guard module="dashboards.desempeno_linea" action="view"><LineasProductoPage /></Guard>} />
           <Route path="/desempeno-productos" element={<Guard module="dashboards.desempeno_productos" action="view"><DesempenoProductosPage /></Guard>} />

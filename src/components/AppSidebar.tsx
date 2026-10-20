@@ -111,6 +111,7 @@ const logisticaItems: NavItem[] = [
   { title: "Allocation & Movimientos", url: "/logistica", icon: ArrowLeftRight, description: "Allocation & movimientos", module: "dashboards.logistica_traslados", action: "view" },
   { title: "Traslados (NetSuite)", url: "/logistica-traslados", icon: Truck, description: "Allocation v2 & exportación", module: "dashboards.logistica_traslados", action: "view" },
   { title: "Pendientes factura electrónica", url: "/logistica/factura-electronica", icon: FileText, description: "Datos de facturación de pedidos", module: "role:admin,finanzas,gerencia", action: "view" },
+  { title: "Agotados", url: "/logistica/agotados", icon: AlertTriangle, description: "Faltantes en pedidos y traslados", module: "dashboards.logistica_traslados", action: "view" },
 ];
 
 const finanzasItems: NavItem[] = [

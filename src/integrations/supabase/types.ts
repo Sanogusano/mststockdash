@@ -595,11 +595,13 @@ export type Database = {
           ciudad: string | null
           creado_en: string
           departamento: string | null
+          digito_verificacion: string | null
           documento: string | null
           documento_tipo: string | null
           email: string | null
           id: string
           nombre: string | null
+          ns_modificado_en: string | null
           telefono: string | null
         }
         Insert: {
@@ -608,11 +610,13 @@ export type Database = {
           ciudad?: string | null
           creado_en?: string
           departamento?: string | null
+          digito_verificacion?: string | null
           documento?: string | null
           documento_tipo?: string | null
           email?: string | null
           id?: string
           nombre?: string | null
+          ns_modificado_en?: string | null
           telefono?: string | null
         }
         Update: {
@@ -621,11 +625,13 @@ export type Database = {
           ciudad?: string | null
           creado_en?: string
           departamento?: string | null
+          digito_verificacion?: string | null
           documento?: string | null
           documento_tipo?: string | null
           email?: string | null
           id?: string
           nombre?: string | null
+          ns_modificado_en?: string | null
           telefono?: string | null
         }
         Relationships: []
@@ -2309,17 +2315,89 @@ export type Database = {
         }
         Relationships: []
       }
+      pedido_agotado_linea: {
+        Row: {
+          cantidad_faltante: number
+          detalle_motivo: string | null
+          disponibilidad: Json | null
+          estado: string
+          etiquetado_en: string | null
+          item_id: number | null
+          motivo: string
+          nombre: string | null
+          origen_nombre: string | null
+          origen_ns: number | null
+          pedido: string
+          primera_deteccion: string
+          resuelto_en: string | null
+          shopify_order_id: string
+          sku: string
+          so_tranid: string | null
+          traslado_ext: string | null
+          traslado_tranid: string | null
+          ultima_deteccion: string
+        }
+        Insert: {
+          cantidad_faltante: number
+          detalle_motivo?: string | null
+          disponibilidad?: Json | null
+          estado?: string
+          etiquetado_en?: string | null
+          item_id?: number | null
+          motivo?: string
+          nombre?: string | null
+          origen_nombre?: string | null
+          origen_ns?: number | null
+          pedido: string
+          primera_deteccion?: string
+          resuelto_en?: string | null
+          shopify_order_id: string
+          sku: string
+          so_tranid?: string | null
+          traslado_ext?: string | null
+          traslado_tranid?: string | null
+          ultima_deteccion?: string
+        }
+        Update: {
+          cantidad_faltante?: number
+          detalle_motivo?: string | null
+          disponibilidad?: Json | null
+          estado?: string
+          etiquetado_en?: string | null
+          item_id?: number | null
+          motivo?: string
+          nombre?: string | null
+          origen_nombre?: string | null
+          origen_ns?: number | null
+          pedido?: string
+          primera_deteccion?: string
+          resuelto_en?: string | null
+          shopify_order_id?: string
+          sku?: string
+          so_tranid?: string | null
+          traslado_ext?: string | null
+          traslado_tranid?: string | null
+          ultima_deteccion?: string
+        }
+        Relationships: []
+      }
       pedido_factura_electronica: {
         Row: {
           actualizado_en: string | null
+          alerta: string | null
           capturado_en: string
           ciudad: string | null
+          cliente_ns_id: string | null
+          conciliado_en: string | null
           departamento: string | null
           direccion: string | null
           documento: string | null
           documento_direccion: string | null
           email: string | null
           estado: string
+          factura_cliente: string | null
+          factura_tranid: string | null
+          origen: string
           pedido: string | null
           razon_social: string | null
           registrado: boolean
@@ -2329,14 +2407,20 @@ export type Database = {
         }
         Insert: {
           actualizado_en?: string | null
+          alerta?: string | null
           capturado_en?: string
           ciudad?: string | null
+          cliente_ns_id?: string | null
+          conciliado_en?: string | null
           departamento?: string | null
           direccion?: string | null
           documento?: string | null
           documento_direccion?: string | null
           email?: string | null
           estado?: string
+          factura_cliente?: string | null
+          factura_tranid?: string | null
+          origen?: string
           pedido?: string | null
           razon_social?: string | null
           registrado?: boolean
@@ -2346,14 +2430,20 @@ export type Database = {
         }
         Update: {
           actualizado_en?: string | null
+          alerta?: string | null
           capturado_en?: string
           ciudad?: string | null
+          cliente_ns_id?: string | null
+          conciliado_en?: string | null
           departamento?: string | null
           direccion?: string | null
           documento?: string | null
           documento_direccion?: string | null
           email?: string | null
           estado?: string
+          factura_cliente?: string | null
+          factura_tranid?: string | null
+          origen?: string
           pedido?: string | null
           razon_social?: string | null
           registrado?: boolean
@@ -2897,6 +2987,42 @@ export type Database = {
           name?: string | null
           shopify_id?: string | null
           total_price?: number | null
+        }
+        Relationships: []
+      }
+      so_pedido_cancelado: {
+        Row: {
+          cancelado_en: string | null
+          cerrada_en: string | null
+          detectado_en: string
+          estado_ns: string | null
+          fecha_so: string | null
+          monto_con_iva: number | null
+          pedido: string
+          so_tranid: string
+          ultima_deteccion: string
+        }
+        Insert: {
+          cancelado_en?: string | null
+          cerrada_en?: string | null
+          detectado_en?: string
+          estado_ns?: string | null
+          fecha_so?: string | null
+          monto_con_iva?: number | null
+          pedido: string
+          so_tranid: string
+          ultima_deteccion?: string
+        }
+        Update: {
+          cancelado_en?: string | null
+          cerrada_en?: string | null
+          detectado_en?: string
+          estado_ns?: string | null
+          fecha_so?: string | null
+          monto_con_iva?: number | null
+          pedido?: string
+          so_tranid?: string
+          ultima_deteccion?: string
         }
         Relationships: []
       }
@@ -4553,6 +4679,22 @@ export type Database = {
           p_zona?: string
         }
         Returns: Json
+      }
+      agotados_anular_traslado: { Args: { p_ext: string }; Returns: number }
+      agotados_generar_traslado: {
+        Args: { p_origen: number }
+        Returns: {
+          articulo: string
+          cantidad: number
+          empleado: string
+          fecha: string
+          id_externo: string
+          id_interno_art: number
+          pedidos: string
+          subsidiaria: number
+          ubicacion_destino: number
+          ubicacion_origen: number
+        }[]
       }
       aplicar_conciliacion_netsuite: {
         Args: never
