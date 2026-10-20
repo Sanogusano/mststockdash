@@ -53,6 +53,8 @@ import AddiPage from "./pages/finanzas/AddiPage";
 import ComposicionIngresosPage from "./pages/finanzas/ComposicionIngresosPage";
 import FacturaElectronicaPage from "./pages/FacturaElectronica";
 import AgotadosPage from "./pages/Agotados";
+import IntegracionNetsuitePage from "./pages/IntegracionNetsuite";
+import { RequireRole } from "@/components/RequireRole";
 import ConfiguracionEstadoSistemaPage from "./pages/ConfiguracionEstadoSistema";
 import { AlertaCriticaBanner } from "@/components/AlertaCriticaBanner";
 import ReporteFacturacionPage from "./pages/finanzas/ReporteFacturacionPage";
@@ -127,6 +129,10 @@ const App = () => (
           <Route path="/vendedores" element={<Guard module="vendedores" action="view"><VendedoresPage /></Guard>} />
           <Route path="/accionables" element={<Guard module="dashboards.centro_accion" action="view"><GestionComercialPage /></Guard>} />
           <Route path="/rendimiento-red" element={<Guard module="dashboards.rendimiento_red" action="view"><RendimientoRedPage /></Guard>} />
+
+          {/* ===== Gestión E-commerce ===== */}
+          <Route path="/ecommerce/agotados" element={<ProtectedRoute><RequireRole roles={["admin", "finanzas", "gerencia", "logistica"]}><AgotadosPage mostrarSoCanceladas={false} /></RequireRole></ProtectedRoute>} />
+          <Route path="/ecommerce/integracion-netsuite" element={<ProtectedRoute><RequireRole roles={["admin", "finanzas", "gerencia", "logistica"]}><IntegracionNetsuitePage /></RequireRole></ProtectedRoute>} />
 
           {/* ===== Finanzas ===== */}
           <Route path="/finanzas" element={<Guard module="finanzas.view" action="view"><FinanzasDashboardPage /></Guard>} />
