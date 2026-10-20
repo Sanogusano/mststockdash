@@ -95,7 +95,7 @@ async function fetchAll<T>(build: (from: number, to: number) => PromiseLike<{ da
   return out;
 }
 
-export default function AgotadosPage() {
+export default function AgotadosPage({ mostrarSoCanceladas = true }: { mostrarSoCanceladas?: boolean } = {}) {
   const qc = useQueryClient();
   const { role, isAdmin } = useUserRole();
   const puedeTrasladar = isAdmin || (!!role && ROLES_TRASLADO.includes(role));
@@ -125,6 +125,7 @@ export default function AgotadosPage() {
 
   const soQ = useQuery({
     queryKey: ["agotados-so-canceladas"],
+    enabled: mostrarSoCanceladas,
     queryFn: async () =>
       fetchAll<SoCancelada>((a, b) =>
         supabase
@@ -532,6 +533,7 @@ export default function AgotadosPage() {
               )}
             </section>
 
+            {mostrarSoCanceladas && (
             <Card>
               <CardHeader className="pb-3 flex flex-row items-center justify-between gap-3 space-y-0">
                 <div>
@@ -572,6 +574,7 @@ export default function AgotadosPage() {
                 )}
               </CardContent>
             </Card>
+            )}
           </div>
         </main>
       </div>

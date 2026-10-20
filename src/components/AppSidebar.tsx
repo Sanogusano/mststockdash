@@ -124,6 +124,15 @@ const finanzasItems: NavItem[] = [
   { title: "Conciliación Sistecredito", url: "/finanzas/sistecredito", icon: CreditCard, description: "Sistecredito", module: "finanzas.sistecredito", action: "view" },
 ];
 
+const ecommerceItems: NavItem[] = [
+  { title: "Pendientes Factura Electrónica", url: "/logistica/factura-electronica", icon: FileText, description: "Datos de facturación de pedidos", module: "role:admin,finanzas,gerencia,logistica", action: "view" },
+  { title: "Pendientes de Facturación", url: "/finanzas/reporte-facturacion", icon: LayoutDashboard, description: "Pedidos pendientes por facturar", module: "role:admin,finanzas,gerencia,logistica", action: "view" },
+  { title: "Agotados", url: "/ecommerce/agotados", icon: AlertTriangle, description: "Faltantes en pedidos y traslados", module: "role:admin,finanzas,gerencia,logistica", action: "view" },
+  { title: "Integración NetSuite", url: "/ecommerce/integracion-netsuite", icon: Database, description: "Pedidos sin SO y SO de cancelados", module: "role:admin,finanzas,gerencia,logistica", action: "view" },
+  { title: "Reporte de Rebajas", url: "/reporte-rebajas", icon: Tag, description: "Productos con precio rebajado", module: "role:admin,finanzas,gerencia,logistica", action: "view" },
+  { title: "Salud de Publicación", url: "/salud-publicacion", icon: Globe, description: "Diagnóstico del canal online", module: "role:admin,finanzas,gerencia,logistica", action: "view" },
+];
+
 const configuracionItems: NavItem[] = [
   { title: "Ubicaciones", url: "/configuracion/ubicaciones", icon: MapPin, description: "Tiendas, CEDIs y outlets", module: "config.ubicaciones", action: "view" },
   { title: "Inventario NetSuite", url: "/configuracion/netsuite-upload", icon: Upload, description: "Subir snapshot de inventario", module: "inventario_netsuite", action: "view" },
@@ -171,6 +180,8 @@ export function AppSidebar() {
   const isGestionActive = visibleGestion.some((i) => location.pathname === i.url);
   const isConfigActive = visibleConfig.some((i) => location.pathname === i.url);
   const isLogisticaActive = visibleLogistica.some((i) => location.pathname === i.url);
+  const visibleEcommerce = useMemo(() => ecommerceItems.filter((i) => can(i.module, i.action)), [permissions, isAdmin, role]);
+  const isEcommerceActive = visibleEcommerce.some((i) => location.pathname === i.url);
   const isFinanzasActive = visibleFinanzas.some((i) => location.pathname === i.url);
   const isPresupuestoActive = location.pathname === presupuestoItem.url;
   const isZoomActive = visibleZoom.some((i) => location.pathname === i.url);
@@ -186,6 +197,7 @@ export function AppSidebar() {
   const [configOpen, setConfigOpen] = useState(isConfigActive);
   const [logisticaOpen, setLogisticaOpen] = useState(isLogisticaActive);
   const [finanzasOpen, setFinanzasOpen] = useState(isFinanzasActive);
+  const [ecommerceOpen, setEcommerceOpen] = useState(isEcommerceActive);
   const [presupuestoOpen, setPresupuestoOpen] = useState(isPresupuestoActive);
   const [productoOpen, setProductoOpen] = useState(isProductoActive);
   const [inventarioOpen, setInventarioOpen] = useState(isInventarioActive);
@@ -461,6 +473,29 @@ export function AppSidebar() {
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                   {finanzasOpen && visibleFinanzas.map((item) => renderItem(item, true))}
+                </>
+              )}
+
+              {/* Gestión E-commerce */}
+              {visibleEcommerce.length > 0 && (
+                <>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton asChild>
+                      <button
+                        onClick={() => setEcommerceOpen((v) => !v)}
+                        className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-150 ${
+                          isEcommerceActive
+                            ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
+                            : "text-sidebar-foreground/70 hover:bg-sidebar-accent/40 hover:text-sidebar-foreground"
+                        }`}
+                      >
+                        <Globe className="h-[18px] w-[18px] shrink-0" />
+                        <span className="text-sm leading-tight flex-1 text-left truncate">Gestión E-commerce</span>
+                        <ChevronDown className={`h-3.5 w-3.5 shrink-0 transition-transform ${ecommerceOpen ? "rotate-180" : ""}`} />
+                      </button>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                  {ecommerceOpen && visibleEcommerce.map((item) => renderItem(item, true))}
                 </>
               )}
 
