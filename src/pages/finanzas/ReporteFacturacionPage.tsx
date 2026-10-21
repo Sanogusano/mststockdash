@@ -1,7 +1,7 @@
 import { Fragment, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Download, CheckCircle2, AlertTriangle, Search, ArrowUpDown, ArrowUp, ArrowDown, ChevronDown, ChevronRight } from "lucide-react";
+import { Download, CheckCircle2, AlertTriangle, Search, ArrowUpDown, ArrowUp, ArrowDown, ChevronDown, ChevronRight, FileClock, Landmark, Scale, ReceiptText } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { FinanzasLayout } from "./FinanzasLayout";
 import { Card, CardContent } from "@/components/ui/card";
@@ -9,7 +9,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { LoadingState } from "@/components/dashboard/LoadingState";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -72,6 +71,12 @@ const TABS: { key: TabKey; label: string }[] = [
   { key: "diferencias", label: "Diferencias y ajustes" },
   { key: "notas", label: "Notas crédito" },
 ];
+const TAB_STYLE: Record<TabKey, { icon: typeof FileClock; desc: string; text: string; active: string; bar: string }> = {
+  por_facturar: { icon: FileClock, desc: "Pedidos sin factura o sin orden de venta", text: "text-amber-600", active: "bg-amber-50 dark:bg-amber-950/30 border-amber-500", bar: "bg-amber-500" },
+  dian: { icon: Landmark, desc: "Facturas pendientes de validación", text: "text-blue-600", active: "bg-blue-50 dark:bg-blue-950/30 border-blue-500", bar: "bg-blue-500" },
+  diferencias: { icon: Scale, desc: "Diferencias de valor y documentos de ajuste", text: "text-violet-600", active: "bg-violet-50 dark:bg-violet-950/30 border-violet-500", bar: "bg-violet-500" },
+  notas: { icon: ReceiptText, desc: "Devoluciones y notas emitidas", text: "text-slate-600", active: "bg-slate-50 dark:bg-slate-900/40 border-slate-500", bar: "bg-slate-500" },
+};
 type SortKey = "estado_facturacion" | "fecha_pedido" | "venta_total" | "diferencia_facturacion";
 type SortDir = "asc" | "desc";
 
@@ -546,6 +551,12 @@ export default function ReporteFacturacionPage() {
     dian: resumen.sin_cufe.n,
     diferencias: resumen.diferencia.n + resumen.ajuste_no_cuadra.n,
     notas: notasFilt.length,
+  };
+  const montosTab: Record<TabKey, number | null> = {
+    por_facturar: resumen.sin_ov.v + resumen.pendiente.v + sfStats.montoTotal,
+    dian: resumen.sin_cufe.v,
+    diferencias: resumen.diferencia.d + resumen.ajuste_no_cuadra.d,
+    notas: notasFilt.reduce((a, r) => a + Number(r.monto_con_iva ?? 0), 0),
   };
   const tabUrl = searchParams.get("tab") as TabKey | null;
   const tabValida = tabUrl && TABS.some((t) => t.key === tabUrl) ? tabUrl : null;
