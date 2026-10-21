@@ -9,7 +9,7 @@ import { TimeFilter, THIS_MONTH_SENTINEL, resolveDays, buildRpcDateParams } from
 import { LoadingState, EmptyState } from "@/components/dashboard/LoadingState";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Download, FileText, Search, ArrowLeft, Store, Globe, Pause, Tag, Clock } from "lucide-react";
+import { Download, FileText, Search, ArrowLeft, Store, Globe, Pause, Tag, Clock, Truck } from "lucide-react";
 import { CollectionBadge } from "@/components/dashboard/CollectionBadge";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
@@ -43,6 +43,7 @@ interface ProductRow {
   stock_tiendas: number;
   stock_online: number;
   stock_standby: number;
+  stock_mayoristas: number;
   semanas_vida: number;
   primera_venta: string;
 }
@@ -273,6 +274,27 @@ export default function DesempenoProductosPage() {
     [universe]
   );
 
+  // Inventario del universo filtrado (por canal de depósito)
+  const inventarioUniverso = useMemo(() => {
+    let tiendas = 0, online = 0, standby = 0, mayoristas = 0, total = 0;
+    for (const r of universe) {
+      tiendas += Number(r.stock_tiendas) || 0;
+      online += Number(r.stock_online) || 0;
+      standby += Number(r.stock_standby) || 0;
+      mayoristas += Number(r.stock_mayoristas) || 0;
+      total += Number(r.stock_venta_directa) || 0;
+    }
+    return { tiendas, online, standby, mayoristas, total };
+  }, [universe]);
+
+  const invTotal = inventarioUniverso.tiendas + inventarioUniverso.online + inventarioUniverso.standby + inventarioUniverso.mayoristas;
+  const invBlocks = [
+    { label: "Tiendas", value: inventarioUniverso.tiendas, Icon: Store, iconClass: "text-emerald-600", barClass: "bg-emerald-500" },
+    { label: "Online", value: inventarioUniverso.online, Icon: Globe, iconClass: "text-blue-600", barClass: "bg-blue-500" },
+    { label: "Stand By", value: inventarioUniverso.standby, Icon: Pause, iconClass: "text-amber-600", barClass: "bg-amber-500" },
+    { label: "Mayoristas", value: inventarioUniverso.mayoristas, Icon: Truck, iconClass: "text-violet-600", barClass: "bg-violet-500" },
+  ];
+
   const filtered = useMemo(() => universe.slice(0, topN), [universe, topN]);
 
   const handleExportCSV = () => {
@@ -297,6 +319,7 @@ export default function DesempenoProductosPage() {
         "Stock Tiendas": r.stock_tiendas ?? 0,
         "Stock Online": r.stock_online ?? 0,
         "Stock Stand By": r.stock_standby ?? 0,
+        "Stock Mayoristas": r.stock_mayoristas ?? 0,
       })),
       `desempeno_productos_${new Date().toISOString().slice(0, 10)}`
     );
@@ -427,17 +450,46 @@ export default function DesempenoProductosPage() {
                 </div>
               </div>
 
-              {/* Línea 3: Total del universo filtrado */}
-              <div className="glass-card rounded-xl p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1">
-                <div>
-                  <p className="text-xs text-muted-foreground uppercase tracking-widest">Unidades vendidas — universo filtrado</p>
-                  <p className="text-2xl font-display font-bold text-primary tabular-nums">
-                    {totalUnidadesUniverso.toLocaleString("es-CO")}
+              {/* Línea 3: Totales del universo filtrado */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                <div className="glass-card rounded-xl p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1">
+                  <div>
+                    <p className="text-xs text-muted-foreground uppercase tracking-widest">Unidades vendidas — universo filtrado</p>
+                    <p className="text-2xl font-display font-bold text-primary tabular-nums">
+                      {totalUnidadesUniverso.toLocaleString("es-CO")}
+                    </p>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    {universe.length.toLocaleString("es-CO")} referencias · mostrando {filtered.length.toLocaleString("es-CO")}
                   </p>
                 </div>
-                <p className="text-xs text-muted-foreground">
-                  {universe.length.toLocaleString("es-CO")} referencias · mostrando {filtered.length.toLocaleString("es-CO")}
-                </p>
+                <div className="glass-card rounded-xl p-4">
+                  <p className="text-xs text-muted-foreground uppercase tracking-widest">Inventario — universo filtrado</p>
+                  <p className="text-2xl font-display font-bold text-primary tabular-nums">
+                    {inventarioUniverso.total.toLocaleString("es-CO")}
+                  </p>
+                  <div className="grid grid-cols-4 gap-2 mt-3">
+                    {invBlocks.map(b => (
+                      <div key={b.label}>
+                        <p className="flex items-center gap-1 text-[10px] text-muted-foreground">
+                          <b.Icon className={cn("h-3 w-3 shrink-0", b.iconClass)} />{b.label}
+                        </p>
+                        <p className="text-sm font-semibold tabular-nums">{b.value.toLocaleString("es-CO")}</p>
+                        <p className="text-[10px] text-muted-foreground tabular-nums">
+                          {invTotal > 0 ? `${((b.value / invTotal) * 100).toFixed(1)}%` : "0%"}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="mt-3 flex h-2 w-full overflow-hidden rounded-full bg-muted/40">
+                    {invTotal > 0 && invBlocks.map(b =>
+                      b.value > 0 ? (
+                        <div key={b.label} className={b.barClass} style={{ width: `${(b.value / invTotal) * 100}%` }} />
+                      ) : null
+                    )}
+                  </div>
+                  <p className="mt-2 text-[10px] text-muted-foreground">Inventario del último archivo de NetSuite aplicado</p>
+                </div>
               </div>
             </div>
 
@@ -555,13 +607,16 @@ export default function DesempenoProductosPage() {
                             </div>
                             <div className="flex items-center justify-end gap-2 text-[11px] text-muted-foreground mt-0.5">
                               <span className="flex items-center gap-0.5" title="Tiendas físicas">
-                                <Store className="h-3 w-3" />{(row.stock_tiendas ?? 0).toLocaleString()}
+                                <Store className="h-3 w-3 text-emerald-600" />{(row.stock_tiendas ?? 0).toLocaleString()}
                               </span>
                               <span className="flex items-center gap-0.5" title="Online">
-                                <Globe className="h-3 w-3" />{(row.stock_online ?? 0).toLocaleString()}
+                                <Globe className="h-3 w-3 text-blue-600" />{(row.stock_online ?? 0).toLocaleString()}
                               </span>
                               <span className="flex items-center gap-0.5" title="Stand by">
-                                <Pause className="h-3 w-3" />{(row.stock_standby ?? 0).toLocaleString()}
+                                <Pause className="h-3 w-3 text-amber-600" />{(row.stock_standby ?? 0).toLocaleString()}
+                              </span>
+                              <span className="flex items-center gap-0.5" title="Mayoristas (Reserva Distribuidores)">
+                                <Truck className="h-3 w-3 text-violet-600" />{(row.stock_mayoristas ?? 0).toLocaleString()}
                               </span>
                             </div>
                           </TableCell>

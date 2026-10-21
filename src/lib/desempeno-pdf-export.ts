@@ -15,6 +15,7 @@ interface ProductRow {
   pct_descuento: number;
   clasificacion: string;
   stock_venta_directa: number;
+  stock_mayoristas: number;
   semanas_vida: number;
   primera_venta: string;
 }
@@ -109,7 +110,7 @@ export async function exportDesempenoPDF(data: ProductRow[], days: number) {
   const headers = [
     "#", "Producto", "Categoria", "Coleccion",
     "Tiendas", "Outlets", "Digital", "Total Uds",
-    "Mezcla de Precios", "Clasificacion", "Semanas", "Stock VD"
+    "Mezcla de Precios", "Clasificacion", "Semanas", "Stock VD", "Stock Mayoristas"
   ];
 
   const body = data.map((r, i) => [
@@ -125,6 +126,7 @@ export async function exportDesempenoPDF(data: ProductRow[], days: number) {
     cleanText(r.clasificacion),
     `${r.semanas_vida ?? 0} sem`,
     String(r.stock_venta_directa ?? 0),
+    String(r.stock_mayoristas ?? 0),
   ]);
 
   // Available width: 297 - 20 margin = 277
@@ -155,17 +157,18 @@ export async function exportDesempenoPDF(data: ProductRow[], days: number) {
     },
     columnStyles: {
       0: { halign: "center", cellWidth: 7, fontStyle: "bold" },    // #
-      1: { cellWidth: 55 },                                         // Producto (foto + name)
-      2: { cellWidth: 22, fontSize: 6 },                            // Categoria
-      3: { cellWidth: 22, fontSize: 6 },                            // Coleccion
+      1: { cellWidth: 50 },                                         // Producto (foto + name)
+      2: { cellWidth: 20, fontSize: 6 },                            // Categoria
+      3: { cellWidth: 20, fontSize: 6 },                            // Coleccion
       4: { halign: "right", cellWidth: 14 },                        // Tiendas
       5: { halign: "right", cellWidth: 14 },                        // Outlets
       6: { halign: "right", cellWidth: 14 },                        // Digital
       7: { halign: "right", cellWidth: 16, fontStyle: "bold" },     // Total
-      8: { cellWidth: 50 },                                          // Mezcla precios (bars)
+      8: { cellWidth: 46 },                                          // Mezcla precios (bars)
       9: { cellWidth: 28 },                                          // Clasificacion
       10: { halign: "right", cellWidth: 16, fontStyle: "bold" },    // Semanas
       11: { halign: "right", cellWidth: 16, fontStyle: "bold" },    // Stock VD
+      12: { halign: "right", cellWidth: 16, fontStyle: "bold" },    // Stock Mayoristas
     },
     didParseCell: (hookData) => {
       if (hookData.section === "body" && hookData.column.index === 1) {
