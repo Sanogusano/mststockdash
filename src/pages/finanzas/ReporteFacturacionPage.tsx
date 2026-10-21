@@ -1,7 +1,7 @@
 import { Fragment, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Download, CheckCircle2, AlertTriangle, Search, ArrowUpDown, ArrowUp, ArrowDown, ChevronDown, ChevronRight } from "lucide-react";
+import { Download, CheckCircle2, AlertTriangle, Search, ArrowUpDown, ArrowUp, ArrowDown, ChevronDown, ChevronRight, FileClock, Landmark, Scale, ReceiptText } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { FinanzasLayout } from "./FinanzasLayout";
 import { Card, CardContent } from "@/components/ui/card";
@@ -9,7 +9,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { LoadingState } from "@/components/dashboard/LoadingState";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -72,6 +71,12 @@ const TABS: { key: TabKey; label: string }[] = [
   { key: "diferencias", label: "Diferencias y ajustes" },
   { key: "notas", label: "Notas crédito" },
 ];
+const TAB_STYLE: Record<TabKey, { icon: typeof FileClock; desc: string; text: string; active: string; bar: string }> = {
+  por_facturar: { icon: FileClock, desc: "Pedidos sin factura o sin orden de venta", text: "text-amber-600", active: "bg-amber-50 dark:bg-amber-950/30 border-amber-500", bar: "bg-amber-500" },
+  dian: { icon: Landmark, desc: "Facturas pendientes de validación", text: "text-blue-600", active: "bg-blue-50 dark:bg-blue-950/30 border-blue-500", bar: "bg-blue-500" },
+  diferencias: { icon: Scale, desc: "Diferencias de valor y documentos de ajuste", text: "text-violet-600", active: "bg-violet-50 dark:bg-violet-950/30 border-violet-500", bar: "bg-violet-500" },
+  notas: { icon: ReceiptText, desc: "Devoluciones y notas emitidas", text: "text-slate-600", active: "bg-slate-50 dark:bg-slate-900/40 border-slate-500", bar: "bg-slate-500" },
+};
 type SortKey = "estado_facturacion" | "fecha_pedido" | "venta_total" | "diferencia_facturacion";
 type SortDir = "asc" | "desc";
 
@@ -547,6 +552,12 @@ export default function ReporteFacturacionPage() {
     diferencias: resumen.diferencia.n + resumen.ajuste_no_cuadra.n,
     notas: notasFilt.length,
   };
+  const montosTab: Record<TabKey, number | null> = {
+    por_facturar: resumen.sin_ov.v + resumen.pendiente.v + sfStats.montoTotal,
+    dian: resumen.sin_cufe.v,
+    diferencias: resumen.diferencia.d + resumen.ajuste_no_cuadra.d,
+    notas: notasFilt.reduce((a, r) => a + Number(r.monto_con_iva ?? 0), 0),
+  };
   const tabUrl = searchParams.get("tab") as TabKey | null;
   const tabValida = tabUrl && TABS.some((t) => t.key === tabUrl) ? tabUrl : null;
   const datosTabsListos = resumenQ.isSuccess && sinFacturarQ.isSuccess;
@@ -718,17 +729,52 @@ export default function ReporteFacturacionPage() {
         </div>
 
         {resumenQ.isLoading ? <LoadingState rows={0} /> : (
-          <Tabs value={tab} onValueChange={(v) => cambiarTab(v as TabKey)}>
-            <TabsList className="mb-4 h-auto flex-wrap justify-start">
-              {TABS.map((t) => (
-                <TabsTrigger key={t.key} value={t.key} className="gap-1">
-                  {t.label}
-                  <span className={cn("tabular-nums", t.key !== "notas" && contadores[t.key] > 0 ? "text-destructive font-semibold" : "text-muted-foreground")}>({fmtInt(contadores[t.key])})</span>
-                </TabsTrigger>
-              ))}
-            </TabsList>
+          <div>
+            <div role="tablist" aria-label="Secciones del reporte" className="flex md:grid md:grid-cols-2 lg:grid-cols-4 gap-3 overflow-x-auto pb-1">
+              {TABS.map((t, idx) => {
+                const st = TAB_STYLE[t.key];
+                const Icon = st.icon;
+                const activa = tab === t.key;
+                const n = contadores[t.key];
+                const conColor = n > 0;
+                const monto = montosTab[t.key];
+                return (
+                  <button
+                    key={t.key}
+                    id={`tab-${t.key}`}
+                    type="button"
+                    role="tab"
+                    aria-selected={activa}
+                    tabIndex={activa ? 0 : -1}
+                    onClick={() => cambiarTab(t.key)}
+                    onKeyDown={(e) => {
+                      if (e.key !== "ArrowRight" && e.key !== "ArrowLeft") return;
+                      e.preventDefault();
+                      const sig = TABS[(idx + (e.key === "ArrowRight" ? 1 : TABS.length - 1)) % TABS.length].key;
+                      cambiarTab(sig);
+                      document.getElementById(`tab-${sig}`)?.focus();
+                    }}
+                    className={cn(
+                      "relative min-w-[220px] md:min-w-0 overflow-hidden text-left rounded-xl border bg-card p-4 transition-all duration-200 cursor-pointer hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+                      activa && cn("border-[1.5px] shadow-sm hover:bg-transparent", st.active),
+                    )}
+                  >
+                    <div className="flex items-center gap-2">
+                      <Icon className={cn("h-4 w-4", conColor ? st.text : "text-muted-foreground")} />
+                      <span className="text-sm font-medium">{t.label}</span>
+                    </div>
+                    <div className="mt-2 flex items-baseline gap-2">
+                      <span className={cn("text-2xl font-semibold tabular-nums", conColor ? st.text : "text-muted-foreground")}>{fmtInt(n)}</span>
+                      {monto != null && <span className="text-xs text-muted-foreground tabular-nums">{fmtCOP(monto)}</span>}
+                    </div>
+                    <p className="mt-1 text-xs text-muted-foreground">{st.desc}</p>
+                    {activa && <span className={cn("absolute inset-x-0 bottom-0 h-[3px]", st.bar)} />}
+                  </button>
+                );
+              })}
+            </div>
             {tab !== "notas" && (
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-2">
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-2 mt-4">
                 {tab === "por_facturar" && (<>
                   {renderCard("sin_ov")}{renderCard("pendiente")}{renderCard("esperando")}
                   <Card onClick={() => { setVista(vista === "ordenes" ? "pedidos" : "ordenes"); setCardFiltro(null); }}
@@ -754,7 +800,7 @@ export default function ReporteFacturacionPage() {
                 </>)}
               </div>
             )}
-          </Tabs>
+          </div>
         )}
 
         {vista === "ordenes" ? (
