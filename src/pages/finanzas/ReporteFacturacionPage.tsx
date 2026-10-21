@@ -389,12 +389,13 @@ export default function ReporteFacturacionPage() {
         const d = /^\d{4}-\d{2}-\d{2}$/.test(v) ? fechaLocal(v) : new Date(v);
         return d && !isNaN(d.getTime()) ? d : null;
       };
-      const headers = ["Estado", "Pedido", "Canal", "Sucursal", "Zona", "Fecha pedido", "Días sin facturar", "Estado pago", "Método pago", "Estado despacho", "Colaborador", "Factura", "Fecha factura", "POS", "CUFE", "Nota crédito", "Artículos", "Venta neta", "IVA", "Venta total", "Valor facturado", "Diferencia"];
+      const headers = ["Estado", "Pedido", "Canal", "Sucursal", "Zona", "Fecha pedido", "Días sin facturar", "Estado pago", "Método pago", "Estado despacho", "Colaborador", "Factura", "Fecha factura", "POS", "CUFE", "Nota crédito", "Artículos", "Venta neta", "IVA", "Venta total", "Valor facturado", "Diferencia", "Ajuste sugerido", "Monto ajuste", "Documento de ajuste", "Origen ajuste", "Regla factura"];
       const aoa: unknown[][] = [headers, ...all.map((r: any) => [
         r.estado_facturacion ?? "", r.pedido ?? "", r.canal ?? "", r.sucursal ?? "", r.zona ?? "",
         fecha(r.fecha_pedido), num(r.dias_sin_facturar), r.estado_pago ?? "", r.metodo_pago ?? "", r.estado_despacho ?? "",
         r.colaborador ?? "", r.numero_factura ?? "", fecha(r.fecha_factura), r.numero_pos ?? "", r.cufe ?? "", r.nota_credito ?? "",
         num(r.articulos), num(r.venta_neta), num(r.impuesto), num(r.venta_total), num(r.valor_facturado), num(r.diferencia_facturacion),
+        r.ajuste_sugerido ?? "", num(r.monto_ajuste), r.documento_ajuste ?? "", r.origen_ajuste ?? "", r.regla_factura ?? "",
       ])];
       const ws = XLSX.utils.aoa_to_sheet(aoa, { cellDates: true, dateNF: "yyyy-mm-dd" });
       const lastRow = aoa.length;
@@ -423,10 +424,67 @@ export default function ReporteFacturacionPage() {
     { key: "sin_cufe", title: "Sin CUFE", cls: sinCufeStats.nFallo > 0 ? "border-destructive/40 text-destructive" : "border-amber-400 text-amber-700" },
     { key: "esperando", title: "Esperando despacho", cls: "text-muted-foreground" },
     { key: "facturado", title: "Total facturado", cls: "text-foreground" },
+    { key: "ajustado", title: "Ajustados", cls: "border-emerald-400 text-emerald-700" },
+    { key: "ajuste_no_cuadra", title: "Ajuste no cuadra", cls: resumen.ajuste_no_cuadra.n > 0 ? "border-destructive/40 text-destructive" : "text-muted-foreground" },
+    { key: "no_pagados", title: "No pagados", cls: "text-muted-foreground" },
   ];
+
+  const recargar = () => {
+    queryClient.invalidateQueries({ queryKey: ["reporte-facturacion"] });
+    queryClient.invalidateQueries({ queryKey: ["reporte-facturacion-resumen"] });
+  };
+
+  const confirmarMarcar = async () => {
+    if (!marcarFila?.pedido || !marcarDoc.trim()) return;
+    setGuardando(true);
+    const { error } = await (supabase.rpc as any)("marcar_pedido_ajustado", {
+      p_pedido: marcarFila.pedido, p_tranid: marcarDoc.trim(), p_nota: marcarNota.trim() || null,
+    });
+    setGuardando(false);
+    if (error) { toast.error(error.message); return; }
+    toast.success(`Pedido ${marcarFila.pedido} marcado como ajustado`);
+    setMarcarFila(null);
+    recargar();
+  };
+
+  const confirmarDesmarcar = async () => {
+    if (!desmarcarFila?.pedido) return;
+    setGuardando(true);
+    const { error } = await (supabase.rpc as any)("desmarcar_pedido_ajustado", { p_pedido: desmarcarFila.pedido });
+    setGuardando(false);
+    if (error) { toast.error(error.message); return; }
+    toast.success(`Pedido ${desmarcarFila.pedido} desmarcado`);
+    setDesmarcarFila(null);
+    recargar();
+  };
 
   return (
     <TooltipProvider delayDuration={200}>
+      <Dialog open={!!marcarFila} onOpenChange={(o) => !o && setMarcarFila(null)}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Marcar ajustado · {marcarFila?.pedido}</DialogTitle></DialogHeader>
+          <div className="space-y-3">
+            <div className="space-y-1"><Label className="text-xs">Documento (CM o INV)</Label><Input value={marcarDoc} onChange={(e) => setMarcarDoc(e.target.value)} placeholder="CM12345" /></div>
+            <div className="space-y-1"><Label className="text-xs">Nota (opcional)</Label><Textarea value={marcarNota} onChange={(e) => setMarcarNota(e.target.value)} /></div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setMarcarFila(null)}>Cancelar</Button>
+            <Button onClick={confirmarMarcar} disabled={!marcarDoc.trim() || guardando}>{guardando ? "Guardando…" : "Confirmar"}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      <AlertDialog open={!!desmarcarFila} onOpenChange={(o) => !o && setDesmarcarFila(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Desmarcar {desmarcarFila?.pedido}</AlertDialogTitle>
+            <AlertDialogDescription>El pedido vuelve a Descuadre de valor.</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmarDesmarcar} disabled={guardando}>Desmarcar</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
       <FinanzasLayout
         title="Reporte de Facturación"
         fullWidth
@@ -560,6 +618,14 @@ export default function ReporteFacturacionPage() {
                 <p className="text-xs text-muted-foreground tabular-nums">{fmtCOP(notasMonto)}</p>
               </CardContent>
             </Card>
+            <Card onClick={() => { setVista(vista === "ajustes" ? "pedidos" : "ajustes"); setCardFiltro(null); }}
+              className={cn("cursor-pointer transition-shadow hover:shadow-md text-muted-foreground", vista === "ajustes" && "ring-2 ring-primary")}>
+              <CardContent className="p-4">
+                <p className="text-xs font-medium">Documentos de ajuste</p>
+                <p className="text-2xl font-semibold tabular-nums">{docsQ.isLoading ? "…" : fmtInt((docsQ.data ?? []).length)}</p>
+                <p className="text-xs text-muted-foreground tabular-nums">{fmtInt((docsQ.data ?? []).filter((d) => !d.cuadra).length)} no cuadran</p>
+              </CardContent>
+            </Card>
           </>)}
         </div>
         {vista === "pedidos" && estado && <Button variant="link" size="sm" className="h-auto px-0 mb-4" onClick={() => setEstado(null)}>Quitar filtro de estado</Button>}
@@ -689,6 +755,84 @@ export default function ReporteFacturacionPage() {
               </div>
             )}
           </div>
+        ) : vista === "ajustes" ? (
+          <div className="mt-4">
+            <Button variant="link" size="sm" className="h-auto px-0 mb-3" onClick={() => setVista("pedidos")}>← Volver a pedidos</Button>
+            <div className="mb-3 w-full sm:w-60 space-y-1">
+              <Label className="text-xs">Estado</Label>
+              <Select value={docsFiltro} onValueChange={(v) => setDocsFiltro(v as any)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todos">Todos</SelectItem>
+                  <SelectItem value="cuadran">Cuadran</SelectItem>
+                  <SelectItem value="no_cuadran">No cuadran</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            {docsQ.error ? (
+              <p className="text-sm text-destructive">Error: {(docsQ.error as any).message}</p>
+            ) : docsQ.isLoading ? (
+              <LoadingState rows={0} />
+            ) : docsFiltrados.length === 0 ? (
+              <p className="text-center text-muted-foreground py-8">Sin documentos de ajuste</p>
+            ) : (
+              <div className="overflow-x-auto rounded-md border border-border">
+                <Table className="min-w-[1100px] table-fixed">
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-[40px]" />
+                      <TableHead className="w-[140px]">Documento</TableHead>
+                      <TableHead className="w-[120px]">Tipo</TableHead>
+                      <TableHead className="w-[110px]">Fecha</TableHead>
+                      <TableHead className="w-[130px] text-right">Total</TableHead>
+                      <TableHead className="w-[90px] text-right">Pedidos</TableHead>
+                      <TableHead className="w-[150px] text-right">Suma de diferencias</TableHead>
+                      <TableHead className="w-[130px] text-right">Diferencia</TableHead>
+                      <TableHead className="w-[200px]">Estado</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {docsFiltrados.map((d) => {
+                      const abierto = docAbierto === d.tranid;
+                      const peds = d.pedidos ?? [];
+                      return (
+                        <>
+                          <TableRow key={d.tranid} className="cursor-pointer align-top" onClick={() => setDocAbierto(abierto ? null : d.tranid)}>
+                            <TableCell>{abierto ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}</TableCell>
+                            <TableCell className="font-semibold">{d.tranid}</TableCell>
+                            <TableCell>{d.tipo === "nota_credito" ? "Nota crédito" : "Factura"}</TableCell>
+                            <TableCell className="whitespace-nowrap">{fmtFechaSolo(d.fecha)}</TableCell>
+                            <TableCell className="text-right tabular-nums font-semibold">{fmtCOP(d.total_con_iva)}</TableCell>
+                            <TableCell className="text-right tabular-nums">
+                              <Tooltip><TooltipTrigger asChild><span className="cursor-help underline decoration-dotted">{fmtInt(peds.length)}</span></TooltipTrigger>
+                                <TooltipContent className="max-w-xs break-words">{peds.length ? peds.join(", ") : "Sin pedidos"}</TooltipContent></Tooltip>
+                            </TableCell>
+                            <TableCell className="text-right tabular-nums">{fmtCOP(d.suma_diferencias)}</TableCell>
+                            <TableCell className="text-right tabular-nums">{fmtCOP(d.diferencia)}</TableCell>
+                            <TableCell>
+                              <div className="flex flex-wrap gap-1">
+                                <span className={cn("rounded border px-2 py-0.5 text-xs", d.cuadra ? "bg-emerald-100 text-emerald-800 border-emerald-300" : "bg-destructive/10 text-destructive border-destructive/30")}>{d.cuadra ? "Cuadra" : "No cuadra"}</span>
+                                {Number(d.pedidos_sin_factura ?? 0) > 0 && <span className="rounded border border-amber-300 bg-amber-100 px-2 py-0.5 text-xs text-amber-800">{fmtInt(d.pedidos_sin_factura)} pedidos sin factura</span>}
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                          {abierto && (
+                            <TableRow key={d.tranid + "-memo"}>
+                              <TableCell />
+                              <TableCell colSpan={8} className="whitespace-pre-wrap text-xs text-muted-foreground">{d.memo || "Sin nota"}</TableCell>
+                            </TableRow>
+                          )}
+                        </>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+            <p className="mt-3 text-xs text-muted-foreground">
+              Selliq lee de NetSuite cada hora las notas crédito y facturas sin artículos cuya Nota lista pedidos. Un documento cuadra si la suma de las diferencias de sus pedidos iguala el documento con máximo $50 de diferencia; si cuadra, sus pedidos pasan a Ajustado. Última lectura: {fmtDateTime(ajustesLogQ.data)}.
+            </p>
+          </div>
         ) : (<>
         <div className="flex flex-wrap items-end gap-3 mt-4">
           <div className="space-y-1 w-full sm:w-80">
@@ -712,7 +856,7 @@ export default function ReporteFacturacionPage() {
         {topeAlcanzado && <p className="text-sm text-amber-700 my-2">La búsqueda alcanzó el tope de {TOPE} filas; refina el texto para ver todos los resultados.</p>}
         {q.error && <p className="text-sm text-destructive my-4">Error: {(q.error as any).message}</p>}
          <div className="overflow-x-auto rounded-md border border-border mt-4">
-             <Table className="min-w-[1100px] table-fixed">
+             <Table className="min-w-[1270px] table-fixed">
               <TableHeader>
                 <TableRow>
                    <TableHead className="w-[175px]"><SortLabel field="estado_facturacion">Estado</SortLabel></TableHead>
@@ -722,6 +866,7 @@ export default function ReporteFacturacionPage() {
                    <TableHead className="w-[155px]">Factura</TableHead>
                    <TableHead className="w-[135px] text-right"><SortLabel field="venta_total">Venta</SortLabel></TableHead>
                    <TableHead className="w-[160px] text-right"><SortLabel field="diferencia_facturacion">Facturado</SortLabel></TableHead>
+                   <TableHead className="w-[170px]">Ajuste</TableHead>
                    <TableHead className="w-[165px]">Responsable</TableHead>
                 </TableRow>
               </TableHeader>
@@ -757,7 +902,16 @@ export default function ReporteFacturacionPage() {
                          <p className="mt-1 text-xs text-muted-foreground">Factura {r.fecha_factura ? fmtFechaSolo(r.fecha_factura) : "—"}</p>
                        </TableCell>
                        <TableCell>
-                         <p className="font-medium">{r.numero_factura ?? "—"}</p>
+                         <div className="flex items-center gap-1.5">
+                           {r.numero_factura && Number(r.facturas_asociadas ?? 0) > 1 && r.regla_factura === "referencia" ? (
+                             <Tooltip><TooltipTrigger asChild><p className="font-medium cursor-help underline decoration-dotted">{r.numero_factura}</p></TooltipTrigger>
+                               <TooltipContent className="max-w-xs">Tiene {fmtInt(r.facturas_asociadas)} facturas asociadas; se tomó la que trae el pedido como referencia.</TooltipContent></Tooltip>
+                           ) : <p className="font-medium">{r.numero_factura ?? "—"}</p>}
+                           {r.regla_factura === "ambigua" && (
+                             <Tooltip><TooltipTrigger asChild><span className="inline-flex cursor-help"><AlertTriangle className="h-3.5 w-3.5 text-amber-600" /></span></TooltipTrigger>
+                               <TooltipContent className="max-w-xs">El pedido tiene varias facturas y ninguna trae el pedido como referencia en NetSuite. Revisar.</TooltipContent></Tooltip>
+                           )}
+                         </div>
                          <div className="mt-1 flex items-center gap-1.5 text-xs text-muted-foreground">
                            <span>{r.numero_pos ?? "—"}</span><span>·</span>
                            {r.emitida_dian ? (
@@ -777,6 +931,27 @@ export default function ReporteFacturacionPage() {
                        <TableCell className="text-right tabular-nums">
                          <p className="font-medium">{fmtCOP(r.valor_facturado)}</p>
                          {superaTolerancia && <p className="mt-1 text-xs font-medium text-destructive">{diferencia > 0 ? "Falta facturar" : "Facturado de más"} {fmtCOP(Math.abs(diferencia))}</p>}
+                       </TableCell>
+                       <TableCell>
+                         {r.ajuste_sugerido && (
+                           <>
+                             <p className="text-xs font-medium">{r.ajuste_sugerido === "Nota credito" ? "Nota crédito" : r.ajuste_sugerido}</p>
+                             <p className="text-xs text-muted-foreground tabular-nums">{fmtCOP(r.monto_ajuste)}</p>
+                           </>
+                         )}
+                         {r.documento_ajuste && (
+                           <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                             <span className="font-semibold text-sm">{r.documento_ajuste}</span>
+                             {r.origen_ajuste && <span className={cn("rounded border px-1.5 py-0.5 text-[10px]", ORIGEN_AJUSTE[r.origen_ajuste]?.cls ?? "bg-muted text-muted-foreground border-border")}>{ORIGEN_AJUSTE[r.origen_ajuste]?.label ?? r.origen_ajuste}</span>}
+                           </div>
+                         )}
+                         {!r.ajuste_sugerido && !r.documento_ajuste && <span className="text-xs text-muted-foreground">—</span>}
+                         {puedeAjustar && (e === "Descuadre de valor" || e === "Ajuste no cuadra") && (
+                           <Button variant="outline" size="sm" className="mt-1 h-7 text-xs" onClick={() => { setMarcarFila(r); setMarcarDoc(""); setMarcarNota(""); }}>Marcar ajustado</Button>
+                         )}
+                         {puedeAjustar && e === "Ajustado" && (
+                           <Button variant="ghost" size="sm" className="mt-1 h-7 text-xs" onClick={() => setDesmarcarFila(r)}>Desmarcar</Button>
+                         )}
                        </TableCell>
                        <TableCell>
                          <p className="font-medium">{r.colaborador ?? "—"}</p>
