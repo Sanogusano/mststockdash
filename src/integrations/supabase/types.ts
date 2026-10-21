@@ -4904,6 +4904,14 @@ export type Database = {
           uds_periodo: number
         }[]
       }
+      causa_sin_orden_venta: {
+        Args: { p_pedidos: string[] }
+        Returns: {
+          causa: string
+          detalle: string
+          pedido: string
+        }[]
+      }
       chequeo_integridad_diario: {
         Args: { p_dias?: number }
         Returns: {
