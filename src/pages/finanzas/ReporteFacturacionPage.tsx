@@ -548,12 +548,18 @@ export default function ReporteFacturacionPage() {
           </span>
         ) : null}
       >
-        <p className="text-xs text-muted-foreground -mt-4 mb-6">
+        <p className="text-xs text-muted-foreground -mt-4 mb-2">
           Ventas hasta {fmtFechaSolo(corteQ.data?.ultima_venta)} · Facturas hasta {fmtFechaSolo(corteQ.data?.ultima_factura)} · Última sincronización {fmtDateTime(corteQ.data?.ultima_sync_netsuite)}.
         </p>
+        <p className="text-sm mb-6 tabular-nums">
+          <span className="font-medium">Total facturado {fmtCOP(resumen.facturado.v)}</span> · {fmtInt(resumen.facturado.n)} pedidos ·{" "}
+          <button type="button" className={cn("underline-offset-2 hover:underline text-primary", estado === "No pagados" && "font-semibold underline")}
+            onClick={() => { setEstado(estado === "No pagados" ? null : "No pagados"); setSoloPend(false); setVista("pedidos"); }}>
+            No pagados {fmtInt(resumen.no_pagados.n)} ({fmtCOP(resumen.no_pagados.v)})
+          </button>
+        </p>
 
-        {vista === "pedidos" && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-7 gap-4 mb-6 items-end">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 2xl:grid-cols-8 gap-4 mb-6 items-end">
           <div className="space-y-1"><Label className="text-xs">Desde</Label><Input type="date" value={desde} onChange={(e) => setDesde(e.target.value)} /></div>
           <div className="space-y-1"><Label className="text-xs">Hasta</Label><Input type="date" value={hasta} onChange={(e) => setHasta(e.target.value)} /></div>
           <div className="space-y-1">
@@ -613,75 +619,45 @@ export default function ReporteFacturacionPage() {
         </div>
         )}
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 2xl:grid-cols-9 gap-4 mb-2">
-          {resumenQ.isLoading ? (
-            <div className="sm:col-span-2 xl:col-span-7">
-              <LoadingState rows={0} />
-            </div>
-          ) : (<>{cards.slice(0, 5).map((c) => (
-            <Card key={c.key} onClick={() => {
-              setCardFiltro(cardFiltro === c.key ? null : c.key);
-              if (c.key !== "pendiente") setSoloPend(false);
-              setVista("pedidos");
-            }}
-              className={cn("cursor-pointer transition-shadow hover:shadow-md", c.cls, vista === "pedidos" && cardFiltro === c.key && "ring-2 ring-primary")}>
-              <CardContent className="p-4">
-                <p className="text-xs font-medium">{c.title}</p>
-                <p className="text-2xl font-semibold tabular-nums">{fmtInt(resumen[c.key].n)}</p>
-                {c.key === "sin_ov" ? (
-                  <p className="text-xs text-muted-foreground">{resumen.sin_ov.n > 0 ? `Pedido pagado que no entró a NetSuite (más de 2 h) · ${fmtCOP(resumen.sin_ov.v)}` : "Todos los pedidos entraron a NetSuite"}</p>
-                ) : c.key === "sin_cufe" ? (
-                  <>
-                    <p className="text-xs text-muted-foreground tabular-nums">{fmtCOP(resumen[c.key].v)} venta neta</p>
-                    <p className="text-xs text-muted-foreground tabular-nums">{fmtInt(sinCufeStats.nProceso)} en proceso · {fmtInt(sinCufeStats.nFallo)} con fallo</p>
-                  </>
-                ) : (
-                  <p className="text-xs text-muted-foreground tabular-nums">{c.key === "diferencia" ? `${fmtCOP(resumen[c.key].d)} en diferencias` : `${fmtCOP(resumen[c.key].v)} venta neta`}</p>
-                )}
-              </CardContent>
-            </Card>
-          ))}
-            <Card onClick={() => { setVista(vista === "ordenes" ? "pedidos" : "ordenes"); setCardFiltro(null); }}
-              className={cn("cursor-pointer transition-shadow hover:shadow-md", sfStats.mas7 > 0 ? "border-destructive/40 text-destructive" : "text-muted-foreground", vista === "ordenes" && "ring-2 ring-primary")}>
-              <CardContent className="p-4">
-                <p className="text-xs font-medium">Órdenes sin facturar</p>
-                <p className="text-2xl font-semibold tabular-nums">{fmtInt(sfStats.total)}</p>
-                <p className="text-xs text-muted-foreground tabular-nums">{fmtCOP(sfStats.montoTotal)}</p>
-              </CardContent>
-            </Card>
-            {cards.slice(5).map((c) => (
-            <Card key={c.key} onClick={() => {
-              setCardFiltro(cardFiltro === c.key ? null : c.key);
-              if (c.key !== "pendiente") setSoloPend(false);
-              setVista("pedidos");
-            }}
-              className={cn("cursor-pointer transition-shadow hover:shadow-md", c.cls, vista === "pedidos" && cardFiltro === c.key && "ring-2 ring-primary")}>
-              <CardContent className="p-4">
-                <p className="text-xs font-medium">{c.title}</p>
-                <p className="text-2xl font-semibold tabular-nums">{fmtInt(resumen[c.key].n)}</p>
-                 <p className="text-xs text-muted-foreground tabular-nums">{c.key === "diferencia" ? `${fmtCOP(resumen[c.key].d)} en diferencias` : `${fmtCOP(resumen[c.key].v)} venta neta`}</p>
-              </CardContent>
-            </Card>
-          ))}
-            <Card onClick={() => { setVista(vista === "notas" ? "pedidos" : "notas"); setCardFiltro(null); }}
-              className={cn("cursor-pointer transition-shadow hover:shadow-md text-muted-foreground", vista === "notas" && "ring-2 ring-primary")}>
-              <CardContent className="p-4">
-                <p className="text-xs font-medium">Notas crédito</p>
-                <p className="text-2xl font-semibold tabular-nums">{notasQ.isLoading ? "…" : fmtInt(notas.length)}</p>
-                <p className="text-xs text-muted-foreground tabular-nums">{fmtCOP(notasMonto)}</p>
-              </CardContent>
-            </Card>
-            <Card onClick={() => { setVista(vista === "ajustes" ? "pedidos" : "ajustes"); setCardFiltro(null); }}
-              className={cn("cursor-pointer transition-shadow hover:shadow-md text-muted-foreground", vista === "ajustes" && "ring-2 ring-primary")}>
-              <CardContent className="p-4">
-                <p className="text-xs font-medium">Documentos de ajuste</p>
-                <p className="text-2xl font-semibold tabular-nums">{docsQ.isLoading ? "…" : fmtInt((docsQ.data ?? []).length)}</p>
-                <p className="text-xs text-muted-foreground tabular-nums">{fmtInt((docsQ.data ?? []).filter((d) => !d.cuadra).length)} no cuadran</p>
-              </CardContent>
-            </Card>
-          </>)}
-        </div>
-        {vista === "pedidos" && estado && <Button variant="link" size="sm" className="h-auto px-0 mb-4" onClick={() => setEstado(null)}>Quitar filtro de estado</Button>}
+        {resumenQ.isLoading ? <LoadingState rows={0} /> : (
+          <Tabs value={tab} onValueChange={(v) => cambiarTab(v as TabKey)}>
+            <TabsList className="mb-4 h-auto flex-wrap justify-start">
+              {TABS.map((t) => (
+                <TabsTrigger key={t.key} value={t.key} className="gap-1">
+                  {t.label}
+                  <span className={cn("tabular-nums", t.key !== "notas" && contadores[t.key] > 0 ? "text-destructive font-semibold" : "text-muted-foreground")}>({fmtInt(contadores[t.key])})</span>
+                </TabsTrigger>
+              ))}
+            </TabsList>
+            {tab !== "notas" && (
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-2">
+                {tab === "por_facturar" && (<>
+                  {renderCard("sin_ov")}{renderCard("pendiente")}{renderCard("esperando")}
+                  <Card onClick={() => { setVista(vista === "ordenes" ? "pedidos" : "ordenes"); setCardFiltro(null); }}
+                    className={cn("cursor-pointer transition-shadow hover:shadow-md", sfStats.mas7 > 0 ? "border-destructive/40 text-destructive" : "text-muted-foreground", vista === "ordenes" && "ring-2 ring-primary")}>
+                    <CardContent className="p-4">
+                      <p className="text-xs font-medium">Órdenes sin facturar</p>
+                      <p className="text-2xl font-semibold tabular-nums">{fmtInt(sfStats.total)}</p>
+                      <p className="text-xs text-muted-foreground tabular-nums">{fmtCOP(sfStats.montoTotal)}</p>
+                    </CardContent>
+                  </Card>
+                </>)}
+                {tab === "dian" && renderCard("sin_cufe")}
+                {tab === "diferencias" && (<>
+                  {renderCard("diferencia")}{renderCard("ajuste_no_cuadra")}{renderCard("ajustado")}
+                  <Card onClick={() => { setVista(vista === "ajustes" ? "pedidos" : "ajustes"); setCardFiltro(null); }}
+                    className={cn("cursor-pointer transition-shadow hover:shadow-md text-muted-foreground", vista === "ajustes" && "ring-2 ring-primary")}>
+                    <CardContent className="p-4">
+                      <p className="text-xs font-medium">Documentos de ajuste</p>
+                      <p className="text-2xl font-semibold tabular-nums">{docsQ.isLoading ? "…" : fmtInt(docsFiltradosBase.length)}</p>
+                      <p className="text-xs text-muted-foreground tabular-nums">{fmtInt(docsFiltradosBase.filter((d) => !d.cuadra).length)} no cuadran</p>
+                    </CardContent>
+                  </Card>
+                </>)}
+              </div>
+            )}
+          </Tabs>
+        )}
 
         {vista === "ordenes" ? (
           <div className="mt-4">
