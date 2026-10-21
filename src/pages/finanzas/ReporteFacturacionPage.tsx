@@ -1,7 +1,7 @@
 import { Fragment, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Download, CheckCircle2, AlertTriangle, Search, ArrowUpDown, ArrowUp, ArrowDown, ChevronDown, ChevronRight, FileClock, Landmark, Scale, ReceiptText } from "lucide-react";
+import { Download, CheckCircle2, AlertTriangle, Search, ArrowUpDown, ArrowUp, ArrowDown, ChevronDown, ChevronRight, BadgeCheck, FileClock, Landmark, Scale, ReceiptText } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { FinanzasLayout } from "./FinanzasLayout";
 import { Card, CardContent } from "@/components/ui/card";
@@ -107,6 +107,7 @@ const CARD_ESTADO: Record<CardKey, (e: string) => boolean> = {
   pendiente: (e) => e === "PENDIENTE POR FACTURAR",
   diferencia: (e) => e === "Descuadre de valor",
   fallo_dian: (e) => e === "Fallo la emision a DIAN",
+  en_proceso: (e) => e === "Emision en proceso",
   sin_cufe: (e) => e === "Emision en proceso" || e === "Fallo la emision a DIAN",
   esperando: (e) => e === "Esperando despacho",
   facturado: (e) => e === "Facturado",
@@ -120,6 +121,7 @@ const ESTADO_POR_TARJETA: Record<CardKey, string> = {
   pendiente: "PENDIENTE POR FACTURAR",
   diferencia: "Descuadre de valor",
   fallo_dian: "Fallo la emision a DIAN",
+  en_proceso: "Emision en proceso",
   sin_cufe: "Sin CUFE",
   esperando: "Esperando despacho",
   facturado: "Facturado",
@@ -129,7 +131,7 @@ const ESTADO_POR_TARJETA: Record<CardKey, string> = {
 };
 
 const ESTADOS_FILTRO = [
-  "SIN ORDEN DE VENTA EN NETSUITE", "PENDIENTE POR FACTURAR", "Esperando despacho", "Sin CUFE", "Fallo la emision a DIAN", "Descuadre de valor",
+  "SIN ORDEN DE VENTA EN NETSUITE", "PENDIENTE POR FACTURAR", "Esperando despacho", "Sin CUFE", "Emision en proceso", "Fallo la emision a DIAN", "Descuadre de valor",
   "Anulado por nota credito", "Facturado", "Ajustado", "Ajuste no cuadra", "No pagados",
 ];
 
