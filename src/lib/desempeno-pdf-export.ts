@@ -110,7 +110,7 @@ export async function exportDesempenoPDF(data: ProductRow[], days: number) {
   const headers = [
     "#", "Producto", "Categoria", "Coleccion",
     "Tiendas", "Outlets", "Digital", "Total Uds",
-    "Mezcla de Precios", "Clasificacion", "Semanas", "Stock VD"
+    "Mezcla de Precios", "Clasificacion", "Semanas", "Stock VD", "Stock Mayoristas"
   ];
 
   const body = data.map((r, i) => [
