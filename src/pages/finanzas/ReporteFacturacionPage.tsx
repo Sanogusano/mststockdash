@@ -63,19 +63,21 @@ const ORIGEN_AJUSTE: Record<string, { label: string; cls: string }> = {
   no_cuadra: { label: "No cuadra", cls: "bg-destructive/10 text-destructive border-destructive/30" },
 };
 
-type CardKey = "sin_ov" | "pendiente" | "diferencia" | "fallo_dian" | "sin_cufe" | "esperando" | "facturado" | "ajustado" | "ajuste_no_cuadra" | "no_pagados";
-type TabKey = "por_facturar" | "dian" | "diferencias" | "notas";
+type CardKey = "sin_ov" | "pendiente" | "diferencia" | "fallo_dian" | "en_proceso" | "sin_cufe" | "esperando" | "facturado" | "ajustado" | "ajuste_no_cuadra" | "no_pagados";
+type TabKey = "facturado" | "por_facturar" | "dian" | "diferencias" | "notas";
 const TABS: { key: TabKey; label: string }[] = [
+  { key: "facturado", label: "Facturado" },
   { key: "por_facturar", label: "Por facturar" },
   { key: "dian", label: "DIAN" },
   { key: "diferencias", label: "Diferencias y ajustes" },
   { key: "notas", label: "Notas crédito" },
 ];
-const TAB_STYLE: Record<TabKey, { icon: typeof FileClock; desc: string; text: string; active: string; bar: string }> = {
-  por_facturar: { icon: FileClock, desc: "Pedidos sin factura o sin orden de venta", text: "text-amber-600", active: "bg-amber-50 dark:bg-amber-950/30 border-amber-500", bar: "bg-amber-500" },
-  dian: { icon: Landmark, desc: "Facturas pendientes de validación", text: "text-blue-600", active: "bg-blue-50 dark:bg-blue-950/30 border-blue-500", bar: "bg-blue-500" },
-  diferencias: { icon: Scale, desc: "Diferencias de valor y documentos de ajuste", text: "text-violet-600", active: "bg-violet-50 dark:bg-violet-950/30 border-violet-500", bar: "bg-violet-500" },
-  notas: { icon: ReceiptText, desc: "Devoluciones y notas emitidas", text: "text-slate-600", active: "bg-slate-50 dark:bg-slate-900/40 border-slate-500", bar: "bg-slate-500" },
+const TAB_STYLE: Record<TabKey, { icon: typeof FileClock; text: string; bar: string; badge: string; ring: string }> = {
+  facturado: { icon: BadgeCheck, text: "text-emerald-600", bar: "bg-emerald-500", badge: "bg-emerald-100 text-emerald-800", ring: "ring-emerald-500" },
+  por_facturar: { icon: FileClock, text: "text-amber-600", bar: "bg-amber-500", badge: "bg-amber-100 text-amber-800", ring: "ring-amber-500" },
+  dian: { icon: Landmark, text: "text-blue-600", bar: "bg-blue-500", badge: "bg-blue-100 text-blue-800", ring: "ring-blue-500" },
+  diferencias: { icon: Scale, text: "text-violet-600", bar: "bg-violet-500", badge: "bg-violet-100 text-violet-800", ring: "ring-violet-500" },
+  notas: { icon: ReceiptText, text: "text-slate-600", bar: "bg-slate-500", badge: "bg-slate-200 text-slate-800", ring: "ring-slate-500" },
 };
 type SortKey = "estado_facturacion" | "fecha_pedido" | "venta_total" | "diferencia_facturacion";
 type SortDir = "asc" | "desc";
@@ -509,71 +511,58 @@ export default function ReporteFacturacionPage() {
     }
   };
 
-  const cards: { key: CardKey; title: string; cls: string }[] = [
-    { key: "sin_ov", title: "Sin orden de venta en NetSuite", cls: resumen.sin_ov.n > 0 ? "border-destructive bg-destructive/5 text-destructive" : "border-emerald-400 text-emerald-700" },
-    { key: "pendiente", title: "Pendientes por facturar", cls: "border-destructive/40 text-destructive" },
-    { key: "diferencia", title: "Diferencias de facturación", cls: "border-destructive/40 text-destructive" },
-    { key: "sin_cufe", title: "Sin CUFE", cls: sinCufeStats.nFallo > 0 ? "border-destructive/40 text-destructive" : "border-amber-400 text-amber-700" },
-    { key: "esperando", title: "Esperando despacho", cls: "text-muted-foreground" },
-    { key: "ajustado", title: "Ajustados", cls: "border-emerald-400 text-emerald-700" },
-    { key: "ajuste_no_cuadra", title: "Ajuste no cuadra", cls: resumen.ajuste_no_cuadra.n > 0 ? "border-destructive/40 text-destructive" : "text-muted-foreground" },
+  const cards: { key: CardKey; title: string; tone: string }[] = [
+    { key: "facturado", title: "Total facturado", tone: "text-emerald-700" },
+    { key: "no_pagados", title: "No pagados", tone: "text-muted-foreground" },
+    { key: "sin_ov", title: "Sin orden de venta en NetSuite", tone: resumen.sin_ov.n > 0 ? "text-destructive" : "text-emerald-700" },
+    { key: "pendiente", title: "Pendientes por facturar", tone: "text-destructive" },
+    { key: "diferencia", title: "Diferencias de facturación", tone: "text-destructive" },
+    { key: "en_proceso", title: "Emisión en proceso", tone: "text-amber-700" },
+    { key: "fallo_dian", title: "Falló emisión DIAN", tone: resumen.fallo_dian.n > 0 ? "text-destructive" : "text-muted-foreground" },
+    { key: "esperando", title: "Esperando despacho", tone: "text-muted-foreground" },
+    { key: "ajustado", title: "Ajustados", tone: "text-emerald-700" },
+    { key: "ajuste_no_cuadra", title: "Ajuste no cuadra", tone: resumen.ajuste_no_cuadra.n > 0 ? "text-destructive" : "text-muted-foreground" },
   ];
+
+  const flatCard = (o: { title: string; n: string; sub: React.ReactNode; tone: string; selected: boolean; onClick: () => void }) => (
+    <div key={o.title} role="button" tabIndex={0} onClick={o.onClick}
+      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); o.onClick(); } }}
+      className={cn("group cursor-pointer rounded-lg border bg-muted/30 p-3 transition-colors hover:bg-muted/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring", o.selected && cn("ring-2", TAB_STYLE[tab].ring))}>
+      <div className="flex items-start justify-between gap-2">
+        <p className="text-xs font-medium">{o.title}</p>
+        <span className="text-[10px] text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 whitespace-nowrap">Ver pedidos →</span>
+      </div>
+      <p className={cn("text-2xl font-semibold tabular-nums", o.tone)}>{o.n}</p>
+      <div className="text-xs text-muted-foreground tabular-nums">{o.sub}</div>
+    </div>
+  );
 
   const renderCard = (key: CardKey) => {
     const c = cards.find((x) => x.key === key)!;
-    return (
-      <Card key={c.key} onClick={() => {
+    const sub = c.key === "sin_ov"
+      ? (resumen.sin_ov.n > 0 ? `Pedido pagado que no entró a NetSuite (más de 2 h) · ${fmtCOP(resumen.sin_ov.v)}` : "Todos los pedidos entraron a NetSuite")
+      : c.key === "diferencia" ? `${fmtCOP(resumen[c.key].d)} en diferencias` : `${fmtCOP(resumen[c.key].v)} venta neta`;
+    return flatCard({
+      title: c.title, n: fmtInt(resumen[c.key].n), sub, tone: c.tone,
+      selected: vista === "pedidos" && cardFiltro === c.key,
+      onClick: () => {
         setCardFiltro(cardFiltro === c.key ? null : c.key);
         if (c.key !== "pendiente") setSoloPend(false);
         setVista("pedidos");
-      }}
-        className={cn("cursor-pointer transition-shadow hover:shadow-md", c.cls, vista === "pedidos" && cardFiltro === c.key && "ring-2 ring-primary")}>
-        <CardContent className="p-4">
-          <p className="text-xs font-medium">{c.title}</p>
-          <p className="text-2xl font-semibold tabular-nums">{fmtInt(resumen[c.key].n)}</p>
-          {c.key === "sin_ov" ? (
-            <p className="text-xs text-muted-foreground">{resumen.sin_ov.n > 0 ? `Pedido pagado que no entró a NetSuite (más de 2 h) · ${fmtCOP(resumen.sin_ov.v)}` : "Todos los pedidos entraron a NetSuite"}</p>
-          ) : c.key === "sin_cufe" ? (
-            <>
-              <p className="text-xs text-muted-foreground tabular-nums">{fmtCOP(resumen[c.key].v)} venta neta</p>
-              <p className="text-xs text-muted-foreground tabular-nums">{fmtInt(sinCufeStats.nProceso)} en proceso · {fmtInt(sinCufeStats.nFallo)} con fallo</p>
-            </>
-          ) : (
-            <p className="text-xs text-muted-foreground tabular-nums">{c.key === "diferencia" ? `${fmtCOP(resumen[c.key].d)} en diferencias` : `${fmtCOP(resumen[c.key].v)} venta neta`}</p>
-          )}
-        </CardContent>
-      </Card>
-    );
+      },
+    });
   };
 
   const contadores: Record<TabKey, number> = {
+    facturado: resumen.facturado.n,
     por_facturar: resumen.sin_ov.n + resumen.pendiente.n + sfStats.total,
     dian: resumen.sin_cufe.n,
     diferencias: resumen.diferencia.n + resumen.ajuste_no_cuadra.n,
     notas: notasFilt.length,
   };
-  const montosTab: Record<TabKey, number | null> = {
-    por_facturar: resumen.sin_ov.v + resumen.pendiente.v + sfStats.montoTotal,
-    dian: resumen.sin_cufe.v,
-    diferencias: resumen.diferencia.d + resumen.ajuste_no_cuadra.d,
-    notas: notasFilt.reduce((a, r) => a + Number(r.monto_con_iva ?? 0), 0),
-  };
   const tabUrl = searchParams.get("tab") as TabKey | null;
-  const tabValida = tabUrl && TABS.some((t) => t.key === tabUrl) ? tabUrl : null;
-  const datosTabsListos = resumenQ.isSuccess && sinFacturarQ.isSuccess;
-  const tabAuto: TabKey = (["por_facturar", "dian", "diferencias"] as TabKey[]).find((k) => contadores[k] > 0) ?? "por_facturar";
-  const tab: TabKey = tabValida ?? (datosTabsListos ? tabAuto : "por_facturar");
-  const [tabFijada, setTabFijada] = useState(!!tabValida);
-  useEffect(() => {
-    if (tabFijada || !datosTabsListos) return;
-    setTabFijada(true);
-    const next = new URLSearchParams(searchParams);
-    next.set("tab", tabAuto);
-    setSearchParams(next, { replace: true });
-    if (tabAuto === "notas") setVista("notas");
-  }, [datosTabsListos]); // eslint-disable-line react-hooks/exhaustive-deps
+  const tab: TabKey = tabUrl && TABS.some((t) => t.key === tabUrl) ? tabUrl : "por_facturar";
   const cambiarTab = (t: TabKey) => {
-    setTabFijada(true);
     const next = new URLSearchParams(searchParams);
     next.set("tab", t);
     next.delete("estado");
