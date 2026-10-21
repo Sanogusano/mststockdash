@@ -613,11 +613,20 @@ export default function ReporteFacturacionPage() {
               <Input className="pl-8" placeholder="Pedido o factura" value={busqueda} onChange={(e) => setBusqueda(e.target.value)} />
             </div>
           </div>
+          <div className="space-y-1">
+            <Label className="text-xs">Estado</Label>
+            <Select value={estado ?? "__todos"} onValueChange={(v) => { setEstado(v === "__todos" ? null : v); if (v !== "__todos") setSoloPend(false); if (v !== "__todos") setVista(tab === "notas" ? "notas" : "pedidos"); }}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__todos">Todos</SelectItem>
+                {ESTADOS_FILTRO.map((e) => <SelectItem key={e} value={e}>{e}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
           <div className="flex items-center gap-3 justify-between">
             <label className="flex items-center gap-2 text-sm"><Switch checked={soloPend} onCheckedChange={setSoloPend} />Solo pendientes</label>
           </div>
         </div>
-        )}
 
         {resumenQ.isLoading ? <LoadingState rows={0} /> : (
           <Tabs value={tab} onValueChange={(v) => cambiarTab(v as TabKey)}>
