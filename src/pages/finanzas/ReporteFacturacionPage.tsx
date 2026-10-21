@@ -691,7 +691,7 @@ export default function ReporteFacturacionPage() {
             ) : sinFacturarQ.isLoading ? (
               <LoadingState rows={0} />
             ) : (<>
-                    {sinFacturar.length === 0 ? (
+                    {sinFacturarFilt.length === 0 ? (
                       <p className="text-center text-muted-foreground py-8">Sin órdenes sin facturar en los últimos 60 días</p>
                     ) : (
                       <div className="overflow-x-auto rounded-md border border-border">
@@ -710,7 +710,7 @@ export default function ReporteFacturacionPage() {
                             </TableRow>
                           </TableHeader>
                           <TableBody>
-                            {sinFacturar.map((r, i) => (
+                            {sinFacturarFilt.map((r, i) => (
                               <TableRow key={(r.tranid ?? "") + i} className="align-top">
                                 <TableCell>
                                   {r.alerta ? (
@@ -745,12 +745,11 @@ export default function ReporteFacturacionPage() {
           </div>
         ) : vista === "notas" ? (
           <div className="mt-4">
-            <Button variant="link" size="sm" className="h-auto px-0 mb-3" onClick={() => setVista("pedidos")}>← Volver a pedidos</Button>
             {notasQ.error ? (
               <p className="text-sm text-destructive">Error: {(notasQ.error as any).message}</p>
             ) : notasQ.isLoading ? (
               <LoadingState rows={0} />
-            ) : notas.length === 0 ? (
+            ) : notasFilt.length === 0 ? (
               <p className="text-center text-muted-foreground py-8">Sin notas crédito en los últimos 60 días</p>
             ) : (
               <div className="overflow-x-auto rounded-md border border-border">
@@ -769,7 +768,7 @@ export default function ReporteFacturacionPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {notas.map((r, i) => (
+                    {notasFilt.map((r, i) => (
                       <TableRow key={(r.tranid ?? "") + i} className="align-top">
                         <TableCell>
                           {r.alerta ? (
@@ -888,18 +887,9 @@ export default function ReporteFacturacionPage() {
           </div>
         ) : (<>
         <div className="flex flex-wrap items-end gap-3 mt-4">
-          <div className="space-y-1 w-full sm:w-80">
-            <Label className="text-xs">Estado</Label>
-            <Select value={estado ?? "__todos"} onValueChange={(v) => { setEstado(v === "__todos" ? null : v); if (v !== "__todos") setSoloPend(false); }}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="__todos">Todos</SelectItem>
-                {ESTADOS_FILTRO.map((e) => <SelectItem key={e} value={e}>{e}</SelectItem>)}
-              </SelectContent>
-            </Select>
-          </div>
+          {estado && <Button variant="link" size="sm" className="h-auto px-0" onClick={() => setEstado(null)}>Quitar filtro de estado</Button>}
           {canExport && (
-            <Button variant="outline" onClick={exportar} disabled={exportando !== null}>
+            <Button variant="outline" className="ml-auto" onClick={exportar} disabled={exportando !== null}>
               <Download className="h-4 w-4 mr-1" />
               {exportando !== null ? `Exportando… ${fmtInt(exportando)} filas` : "Exportar Excel"}
             </Button>
