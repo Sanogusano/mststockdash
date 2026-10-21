@@ -1,7 +1,7 @@
 import { Fragment, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Download, CheckCircle2, AlertTriangle, Search, ArrowUpDown, ArrowUp, ArrowDown, ChevronDown, ChevronRight, BadgeCheck, FileClock, Landmark, Scale, ReceiptText } from "lucide-react";
+import { Download, CheckCircle2, AlertTriangle, Search, ArrowUpDown, ArrowUp, ArrowDown, ChevronDown, ChevronRight, BadgeCheck, FileClock, Landmark, Scale, ReceiptText, PackageX, Store, FilePlus, Clock } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { FinanzasLayout } from "./FinanzasLayout";
 import { Card, CardContent } from "@/components/ui/card";
@@ -84,6 +84,20 @@ const ESTADOS_TAB: Partial<Record<TabKey, string[]>> = {
   por_facturar: ["SIN ORDEN DE VENTA EN NETSUITE", "PENDIENTE POR FACTURAR", "Esperando despacho"],
   dian: ["Emision en proceso", "Fallo la emision a DIAN"],
   diferencias: ["Descuadre de valor", "Ajuste no cuadra", "Ajustado"],
+};
+type CausaSO = { pedido: string; causa: string | null; detalle: string | null };
+const CAUSA_STYLE: Record<string, { cls: string; icon: typeof Clock; corto: string }> = {
+  "Sin stock en Guayabal": { cls: "bg-red-100 text-red-800 border-red-300", icon: PackageX, corto: "sin stock" },
+  "Marketplace": { cls: "bg-blue-100 text-blue-800 border-blue-300", icon: Store, corto: "marketplace" },
+  "Stock repuesto · crear SO manual": { cls: "bg-amber-100 text-amber-800 border-amber-300", icon: FilePlus, corto: "crear SO manual" },
+  "En espera de integración": { cls: "bg-muted text-muted-foreground border-border", icon: Clock, corto: "en espera" },
+  "Sin causa identificada · revisar integración": { cls: "bg-red-200 text-red-900 border-red-300", icon: AlertTriangle, corto: "sin causa" },
+};
+const fetchCausas = async (pedidos: string[]) => {
+  if (!pedidos.length) return [] as CausaSO[];
+  const { data, error } = await (supabase.rpc as any)("causa_sin_orden_venta", { p_pedidos: pedidos });
+  if (error) throw error;
+  return (data ?? []) as CausaSO[];
 };
 type SortKey = "estado_facturacion" | "fecha_pedido" | "venta_total" | "diferencia_facturacion";
 type SortDir = "asc" | "desc";
@@ -453,6 +467,18 @@ export default function ReporteFacturacionPage() {
 
   useEffect(() => setPage(1), [desde, hasta, soloPend, canal, zona, locationId, busqueda, estado, sortKey, sortDir]);
   const totalPages = Math.max(1, Math.ceil(totalPedidos / PAGE));
+  const pedidosSinOV = useMemo(() => Array.from(new Set(filasCargadas.filter((r) => r.estado_facturacion === "SIN ORDEN DE VENTA EN NETSUITE" && r.pedido).map((r) => String(r.pedido)))).sort(), [filasCargadas]);
+  const causasQ = useQuery({
+    queryKey: ["causa-sin-orden-venta", pedidosSinOV],
+    enabled: pedidosSinOV.length > 0,
+    queryFn: () => fetchCausas(pedidosSinOV),
+  });
+  const causasMap = useMemo(() => new Map((causasQ.data ?? []).map((c) => [String(c.pedido), c])), [causasQ.data]);
+  const desgloseCausas = useMemo(() => {
+    const cnt = new Map<string, number>();
+    (causasQ.data ?? []).forEach((c) => { const k = c.causa ?? "Sin causa"; cnt.set(k, (cnt.get(k) ?? 0) + 1); });
+    return Array.from(cnt.entries()).sort((a, b) => b[1] - a[1]).map(([k, n]) => `${fmtInt(n)} ${CAUSA_STYLE[k]?.corto ?? k.toLowerCase()}`).join(" · ");
+  }, [causasQ.data]);
   const pageRows = useMemo(() => {
     try {
       return [...filasCargadas].sort((a, b) => comparar(a, b, sortKey, sortDir));
@@ -497,9 +523,12 @@ export default function ReporteFacturacionPage() {
         const d = /^\d{4}-\d{2}-\d{2}$/.test(v) ? fechaLocal(v) : new Date(v);
         return d && !isNaN(d.getTime()) ? d : null;
       };
-      const headers = ["Estado", "Pedido", "Canal", "Sucursal", "Zona", "Fecha pedido", "Días sin facturar", "Estado pago", "Método pago", "Estado despacho", "Colaborador", "Factura", "Fecha factura", "POS", "CUFE", "Nota crédito", "Artículos", "Venta neta", "IVA", "Venta total", "Valor facturado", "Diferencia", "Ajuste sugerido", "Monto ajuste", "Documento de ajuste", "Origen ajuste", "Regla factura"];
+      const headers = ["Estado", "Causa sin SO", "Detalle causa", "Pedido", "Canal", "Sucursal", "Zona", "Fecha pedido", "Días sin facturar", "Estado pago", "Método pago", "Estado despacho", "Colaborador", "Factura", "Fecha factura", "POS", "CUFE", "Nota crédito", "Artículos", "Venta neta", "IVA", "Venta total", "Valor facturado", "Diferencia", "Ajuste sugerido", "Monto ajuste", "Documento de ajuste", "Origen ajuste", "Regla factura"];
+      const exportCausas = new Map<string, CausaSO>();
+      const sovs = Array.from(new Set(all.filter((r) => r.estado_facturacion === "SIN ORDEN DE VENTA EN NETSUITE" && r.pedido).map((r) => String(r.pedido))));
+      for (let i = 0; i < sovs.length; i += 200) (await fetchCausas(sovs.slice(i, i + 200))).forEach((c) => exportCausas.set(String(c.pedido), c));
       const aoa: unknown[][] = [headers, ...all.map((r: any) => [
-        r.estado_facturacion ?? "", r.pedido ?? "", r.canal ?? "", r.sucursal ?? "", r.zona ?? "",
+        r.estado_facturacion ?? "", exportCausas.get(String(r.pedido))?.causa ?? "", exportCausas.get(String(r.pedido))?.detalle ?? "", r.pedido ?? "", r.canal ?? "", r.sucursal ?? "", r.zona ?? "",
         fecha(r.fecha_pedido), num(r.dias_sin_facturar), r.estado_pago ?? "", r.metodo_pago ?? "", r.estado_despacho ?? "",
         r.colaborador ?? "", r.numero_factura ?? "", fecha(r.fecha_factura), r.numero_pos ?? "", r.cufe ?? "", r.nota_credito ?? "",
         num(r.articulos), num(r.venta_neta), num(r.impuesto), num(r.venta_total), num(r.valor_facturado), num(r.diferencia_facturacion),
@@ -507,9 +536,9 @@ export default function ReporteFacturacionPage() {
       ])];
       const ws = XLSX.utils.aoa_to_sheet(aoa, { cellDates: true, dateNF: "yyyy-mm-dd" });
       const lastRow = aoa.length;
-      ["F", "M"].forEach((c) => { for (let i = 2; i <= lastRow; i++) { const cell = ws[`${c}${i}`]; if (cell && cell.t === "d") cell.z = "yyyy-mm-dd"; } });
-      ["R", "S", "T", "U", "V", "X"].forEach((c) => { for (let i = 2; i <= lastRow; i++) { const cell = ws[`${c}${i}`]; if (cell && cell.t === "n") cell.z = "#,##0"; } });
-      ws["!autofilter"] = { ref: `A1:AA${lastRow}` };
+      ["H", "O"].forEach((c) => { for (let i = 2; i <= lastRow; i++) { const cell = ws[`${c}${i}`]; if (cell && cell.t === "d") cell.z = "yyyy-mm-dd"; } });
+      ["T", "U", "V", "W", "X", "Z"].forEach((c) => { for (let i = 2; i <= lastRow; i++) { const cell = ws[`${c}${i}`]; if (cell && cell.t === "n") cell.z = "#,##0"; } });
+      ws["!autofilter"] = { ref: `A1:AC${lastRow}` };
       ws["!freeze"] = { xSplit: 0, ySplit: 1 } as any;
       (ws as any)["!views"] = [{ state: "frozen", ySplit: 1, topLeftCell: "A2" }];
       ws["!cols"] = headers.map((h) => ({ wch: Math.max(12, h.length + 2) }));
@@ -553,7 +582,7 @@ export default function ReporteFacturacionPage() {
   const renderCard = (key: CardKey) => {
     const c = cards.find((x) => x.key === key)!;
     const sub = c.key === "sin_ov"
-      ? (resumen.sin_ov.n > 0 ? `Pedido pagado que no entró a NetSuite (más de 2 h) · ${fmtCOP(resumen.sin_ov.v)}` : "Todos los pedidos entraron a NetSuite")
+      ? (resumen.sin_ov.n > 0 ? <><p>{`Pedido pagado que no entró a NetSuite (más de 2 h) · ${fmtCOP(resumen.sin_ov.v)}`}</p>{desgloseCausas && <p className="mt-0.5">{desgloseCausas}</p>}</> : "Todos los pedidos entraron a NetSuite")
       : c.key === "diferencia" ? `${fmtCOP(resumen[c.key].d)} en diferencias` : `${fmtCOP(resumen[c.key].v)} venta neta`;
     return flatCard({
       title: c.title, n: fmtInt(resumen[c.key].n), sub, tone: c.tone,
@@ -1034,7 +1063,17 @@ export default function ReporteFacturacionPage() {
                   return (
                      <TableRow key={(r.pedido ?? "") + i} className="align-top">
                        <TableCell>
-                         <span className={cn("inline-block max-w-full text-xs px-2 py-0.5 rounded border", badgeClass(e))}>{e}</span>
+                         {(() => {
+                           const c = e === "SIN ORDEN DE VENTA EN NETSUITE" && r.pedido ? causasMap.get(String(r.pedido)) : undefined;
+                           if (!c?.causa) return <span className={cn("inline-block max-w-full text-xs px-2 py-0.5 rounded border", badgeClass(e))}>{e}</span>;
+                           const st = CAUSA_STYLE[c.causa] ?? { cls: "bg-muted text-muted-foreground border-border", icon: AlertTriangle };
+                           const Ic = st.icon;
+                           return (<>
+                             <p className="text-[11px] text-muted-foreground">Sin orden de venta</p>
+                             <span className={cn("mt-0.5 inline-flex max-w-full items-center gap-1 text-xs px-2 py-0.5 rounded border", st.cls)}><Ic className="h-3 w-3 shrink-0" /><span className="truncate">{c.causa}</span></span>
+                             {c.detalle && <p className="mt-0.5 text-xs text-muted-foreground line-clamp-2" title={c.detalle}>{c.detalle}</p>}
+                           </>);
+                         })()}
                          {r.dias_sin_facturar != null && <p className={cn("mt-1 text-xs text-muted-foreground", r.dias_sin_facturar > 30 && "text-destructive font-medium")}>hace {fmtInt(r.dias_sin_facturar)} días</p>}
                        </TableCell>
                        <TableCell>
