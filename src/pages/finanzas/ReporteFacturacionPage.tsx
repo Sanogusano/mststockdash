@@ -500,14 +500,68 @@ export default function ReporteFacturacionPage() {
     { key: "sin_ov", title: "Sin orden de venta en NetSuite", cls: resumen.sin_ov.n > 0 ? "border-destructive bg-destructive/5 text-destructive" : "border-emerald-400 text-emerald-700" },
     { key: "pendiente", title: "Pendientes por facturar", cls: "border-destructive/40 text-destructive" },
     { key: "diferencia", title: "Diferencias de facturación", cls: "border-destructive/40 text-destructive" },
-    { key: "fallo_dian", title: "Falló emisión DIAN", cls: "border-amber-400 text-amber-700" },
     { key: "sin_cufe", title: "Sin CUFE", cls: sinCufeStats.nFallo > 0 ? "border-destructive/40 text-destructive" : "border-amber-400 text-amber-700" },
     { key: "esperando", title: "Esperando despacho", cls: "text-muted-foreground" },
-    { key: "facturado", title: "Total facturado", cls: "text-foreground" },
     { key: "ajustado", title: "Ajustados", cls: "border-emerald-400 text-emerald-700" },
     { key: "ajuste_no_cuadra", title: "Ajuste no cuadra", cls: resumen.ajuste_no_cuadra.n > 0 ? "border-destructive/40 text-destructive" : "text-muted-foreground" },
-    { key: "no_pagados", title: "No pagados", cls: "text-muted-foreground" },
   ];
+
+  const renderCard = (key: CardKey) => {
+    const c = cards.find((x) => x.key === key)!;
+    return (
+      <Card key={c.key} onClick={() => {
+        setCardFiltro(cardFiltro === c.key ? null : c.key);
+        if (c.key !== "pendiente") setSoloPend(false);
+        setVista("pedidos");
+      }}
+        className={cn("cursor-pointer transition-shadow hover:shadow-md", c.cls, vista === "pedidos" && cardFiltro === c.key && "ring-2 ring-primary")}>
+        <CardContent className="p-4">
+          <p className="text-xs font-medium">{c.title}</p>
+          <p className="text-2xl font-semibold tabular-nums">{fmtInt(resumen[c.key].n)}</p>
+          {c.key === "sin_ov" ? (
+            <p className="text-xs text-muted-foreground">{resumen.sin_ov.n > 0 ? `Pedido pagado que no entró a NetSuite (más de 2 h) · ${fmtCOP(resumen.sin_ov.v)}` : "Todos los pedidos entraron a NetSuite"}</p>
+          ) : c.key === "sin_cufe" ? (
+            <>
+              <p className="text-xs text-muted-foreground tabular-nums">{fmtCOP(resumen[c.key].v)} venta neta</p>
+              <p className="text-xs text-muted-foreground tabular-nums">{fmtInt(sinCufeStats.nProceso)} en proceso · {fmtInt(sinCufeStats.nFallo)} con fallo</p>
+            </>
+          ) : (
+            <p className="text-xs text-muted-foreground tabular-nums">{c.key === "diferencia" ? `${fmtCOP(resumen[c.key].d)} en diferencias` : `${fmtCOP(resumen[c.key].v)} venta neta`}</p>
+          )}
+        </CardContent>
+      </Card>
+    );
+  };
+
+  const contadores: Record<TabKey, number> = {
+    por_facturar: resumen.sin_ov.n + resumen.pendiente.n + sfStats.total,
+    dian: resumen.sin_cufe.n,
+    diferencias: resumen.diferencia.n + resumen.ajuste_no_cuadra.n,
+    notas: notasFilt.length,
+  };
+  const tabUrl = searchParams.get("tab") as TabKey | null;
+  const tabValida = tabUrl && TABS.some((t) => t.key === tabUrl) ? tabUrl : null;
+  const datosTabsListos = resumenQ.isSuccess && sinFacturarQ.isSuccess;
+  const tabAuto: TabKey = (["por_facturar", "dian", "diferencias"] as TabKey[]).find((k) => contadores[k] > 0) ?? "por_facturar";
+  const tab: TabKey = tabValida ?? (datosTabsListos ? tabAuto : "por_facturar");
+  const [tabFijada, setTabFijada] = useState(!!tabValida);
+  useEffect(() => {
+    if (tabFijada || !datosTabsListos) return;
+    setTabFijada(true);
+    const next = new URLSearchParams(searchParams);
+    next.set("tab", tabAuto);
+    setSearchParams(next, { replace: true });
+    if (tabAuto === "notas") setVista("notas");
+  }, [datosTabsListos]); // eslint-disable-line react-hooks/exhaustive-deps
+  const cambiarTab = (t: TabKey) => {
+    setTabFijada(true);
+    const next = new URLSearchParams(searchParams);
+    next.set("tab", t);
+    next.delete("estado");
+    setEstadoState(null);
+    setSearchParams(next, { replace: true });
+    setVista(t === "notas" ? "notas" : "pedidos");
+  };
 
   const recargar = () => {
     queryClient.invalidateQueries({ queryKey: ["reporte-facturacion"] });
