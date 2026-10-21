@@ -718,17 +718,52 @@ export default function ReporteFacturacionPage() {
         </div>
 
         {resumenQ.isLoading ? <LoadingState rows={0} /> : (
-          <Tabs value={tab} onValueChange={(v) => cambiarTab(v as TabKey)}>
-            <TabsList className="mb-4 h-auto flex-wrap justify-start">
-              {TABS.map((t) => (
-                <TabsTrigger key={t.key} value={t.key} className="gap-1">
-                  {t.label}
-                  <span className={cn("tabular-nums", t.key !== "notas" && contadores[t.key] > 0 ? "text-destructive font-semibold" : "text-muted-foreground")}>({fmtInt(contadores[t.key])})</span>
-                </TabsTrigger>
-              ))}
-            </TabsList>
+          <div>
+            <div role="tablist" aria-label="Secciones del reporte" className="flex md:grid md:grid-cols-2 lg:grid-cols-4 gap-3 overflow-x-auto pb-1">
+              {TABS.map((t, idx) => {
+                const st = TAB_STYLE[t.key];
+                const Icon = st.icon;
+                const activa = tab === t.key;
+                const n = contadores[t.key];
+                const conColor = n > 0;
+                const monto = montosTab[t.key];
+                return (
+                  <button
+                    key={t.key}
+                    id={`tab-${t.key}`}
+                    type="button"
+                    role="tab"
+                    aria-selected={activa}
+                    tabIndex={activa ? 0 : -1}
+                    onClick={() => cambiarTab(t.key)}
+                    onKeyDown={(e) => {
+                      if (e.key !== "ArrowRight" && e.key !== "ArrowLeft") return;
+                      e.preventDefault();
+                      const sig = TABS[(idx + (e.key === "ArrowRight" ? 1 : TABS.length - 1)) % TABS.length].key;
+                      cambiarTab(sig);
+                      document.getElementById(`tab-${sig}`)?.focus();
+                    }}
+                    className={cn(
+                      "relative min-w-[220px] md:min-w-0 overflow-hidden text-left rounded-xl border bg-card p-4 transition-all duration-200 cursor-pointer hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+                      activa && cn("border-[1.5px] shadow-sm hover:bg-transparent", st.active),
+                    )}
+                  >
+                    <div className="flex items-center gap-2">
+                      <Icon className={cn("h-4 w-4", conColor ? st.text : "text-muted-foreground")} />
+                      <span className="text-sm font-medium">{t.label}</span>
+                    </div>
+                    <div className="mt-2 flex items-baseline gap-2">
+                      <span className={cn("text-2xl font-semibold tabular-nums", conColor ? st.text : "text-muted-foreground")}>{fmtInt(n)}</span>
+                      {monto != null && <span className="text-xs text-muted-foreground tabular-nums">{fmtCOP(monto)}</span>}
+                    </div>
+                    <p className="mt-1 text-xs text-muted-foreground">{st.desc}</p>
+                    {activa && <span className={cn("absolute inset-x-0 bottom-0 h-[3px]", st.bar)} />}
+                  </button>
+                );
+              })}
+            </div>
             {tab !== "notas" && (
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-2">
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-2 mt-4">
                 {tab === "por_facturar" && (<>
                   {renderCard("sin_ov")}{renderCard("pendiente")}{renderCard("esperando")}
                   <Card onClick={() => { setVista(vista === "ordenes" ? "pedidos" : "ordenes"); setCardFiltro(null); }}
