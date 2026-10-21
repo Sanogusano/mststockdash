@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { LoadingState } from "@/components/dashboard/LoadingState";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -28,7 +29,7 @@ type SinFacturarRow = {
   canal: string | null; tienda: string | null; zona: string | null;
   estado: string | null; estado_nombre: string | null; monto_con_iva: number | null;
   factura_tranid: string | null; fecha_factura: string | null; dias_hasta_factura: number | null;
-  alerta: string | null;
+  alerta: string | null; location_id?: string | null;
 };
 
 type NotaCreditoRow = {
@@ -64,6 +65,13 @@ const ORIGEN_AJUSTE: Record<string, { label: string; cls: string }> = {
 };
 
 type CardKey = "sin_ov" | "pendiente" | "diferencia" | "fallo_dian" | "sin_cufe" | "esperando" | "facturado" | "ajustado" | "ajuste_no_cuadra" | "no_pagados";
+type TabKey = "por_facturar" | "dian" | "diferencias" | "notas";
+const TABS: { key: TabKey; label: string }[] = [
+  { key: "por_facturar", label: "Por facturar" },
+  { key: "dian", label: "DIAN" },
+  { key: "diferencias", label: "Diferencias y ajustes" },
+  { key: "notas", label: "Notas crédito" },
+];
 type SortKey = "estado_facturacion" | "fecha_pedido" | "venta_total" | "diferencia_facturacion";
 type SortDir = "asc" | "desc";
 
@@ -114,7 +122,7 @@ const ESTADO_POR_TARJETA: Record<CardKey, string> = {
 };
 
 const ESTADOS_FILTRO = [
-  "SIN ORDEN DE VENTA EN NETSUITE", "PENDIENTE POR FACTURAR", "Esperando despacho", "Sin CUFE", "Descuadre de valor",
+  "SIN ORDEN DE VENTA EN NETSUITE", "PENDIENTE POR FACTURAR", "Esperando despacho", "Sin CUFE", "Fallo la emision a DIAN", "Descuadre de valor",
   "Anulado por nota credito", "Facturado", "Ajustado", "Ajuste no cuadra", "No pagados",
 ];
 
@@ -288,9 +296,12 @@ export default function ReporteFacturacionPage() {
     },
   });
 
-  const sinFacturar = sinFacturarQ.data ?? [];
+  const hayFiltroUbic = !!(pCanal || pZona || pLocationId);
+  const pasaUbic = (r: { canal: string | null; zona: string | null; location_id?: string | null }) =>
+    (!pCanal || r.canal === pCanal) && (!pZona || r.zona === pZona) && (!pLocationId || r.location_id === pLocationId);
+  const sinFacturarFilt = useMemo(() => (sinFacturarQ.data ?? []).filter(pasaUbic), [sinFacturarQ.data, pCanal, pZona, pLocationId]); // eslint-disable-line react-hooks/exhaustive-deps
   const sfStats = useMemo(() => {
-    const rows = sinFacturar;
+    const rows = sinFacturarFilt;
     const sinFactura = rows.filter((r) => !r.factura_tranid);
     const mas7 = sinFactura.filter((r) => Number(r.dias ?? 0) > 7);
     const masAntigua = sinFactura.reduce<SinFacturarRow | null>((acc, r) => {
@@ -304,7 +315,7 @@ export default function ReporteFacturacionPage() {
       montoMas7: mas7.reduce((a, r) => a + Number(r.monto_con_iva ?? 0), 0),
       masAntigua,
     };
-  }, [sinFacturarQ.data]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [sinFacturarFilt]);
 
   const notasQ = useQuery({
     queryKey: ["notas-credito-directa"],
@@ -314,10 +325,9 @@ export default function ReporteFacturacionPage() {
       return (data ?? []) as NotaCreditoRow[];
     },
   });
-  const notas = notasQ.data ?? [];
-  const notasMonto = useMemo(() => notas.reduce((a, r) => a + Number(r.monto_con_iva ?? 0), 0), [notasQ.data]); // eslint-disable-line react-hooks/exhaustive-deps
+  const notasFilt = useMemo(() => (notasQ.data ?? []).filter(pasaUbic), [notasQ.data, pCanal, pZona, pLocationId]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const [vista, setVista] = useState<"pedidos" | "ordenes" | "notas" | "ajustes">("pedidos");
+  const [vista, setVista] = useState<"pedidos" | "ordenes" | "notas" | "ajustes">(() => searchParams.get("tab") === "notas" ? "notas" : "pedidos");
   const [docsFiltro, setDocsFiltro] = useState<"todos" | "cuadran" | "no_cuadran">("todos");
   const [docAbierto, setDocAbierto] = useState<string | null>(null);
   const docsQ = useQuery({
@@ -328,7 +338,32 @@ export default function ReporteFacturacionPage() {
       return (data ?? []) as AjusteDocRow[];
     },
   });
-  const docsFiltrados = useMemo(() => (docsQ.data ?? []).filter((d) => docsFiltro === "todos" ? true : docsFiltro === "cuadran" ? d.cuadra : !d.cuadra), [docsQ.data, docsFiltro]);
+  // Pedidos del reporte con el mismo rango y filtros de canal/zona/tienda, para cruzar documentos de ajuste.
+  const pedidosUbicQ = useQuery({
+    queryKey: ["reporte-facturacion-pedidos-ubic", desde, hasta, pCanal, pZona, pLocationId],
+    enabled: hayFiltroUbic,
+    queryFn: async () => {
+      const set = new Set<string>();
+      for (let off = 0; ; off += 1000) {
+        const { data, error } = await (supabase.rpc as any)("reporte_pendientes_facturacion", {
+          p_desde: desde, p_hasta: hasta, p_solo_pendientes: false, p_canal: pCanal,
+          p_zona: pZona, p_location_id: pLocationId, p_estado: null, p_buscar: null,
+        }).select("pedido").range(off, off + 999);
+        if (error) throw error;
+        (data ?? []).forEach((r: any) => r.pedido && set.add(String(r.pedido)));
+        if (!data || data.length < 1000) break;
+      }
+      return set;
+    },
+  });
+  const docsFiltradosBase = useMemo(() => {
+    const docs = docsQ.data ?? [];
+    if (!hayFiltroUbic) return docs;
+    const set = pedidosUbicQ.data;
+    if (!set) return [];
+    return docs.filter((d) => (d.pedidos ?? []).some((p) => set.has(String(p))));
+  }, [docsQ.data, hayFiltroUbic, pedidosUbicQ.data]);
+  const docsFiltrados = useMemo(() => docsFiltradosBase.filter((d) => docsFiltro === "todos" ? true : docsFiltro === "cuadran" ? d.cuadra : !d.cuadra), [docsFiltradosBase, docsFiltro]);
   const ajustesLogQ = useQuery({
     queryKey: ["log-ajustes-facturacion"],
     queryFn: async () => {
@@ -473,14 +508,68 @@ export default function ReporteFacturacionPage() {
     { key: "sin_ov", title: "Sin orden de venta en NetSuite", cls: resumen.sin_ov.n > 0 ? "border-destructive bg-destructive/5 text-destructive" : "border-emerald-400 text-emerald-700" },
     { key: "pendiente", title: "Pendientes por facturar", cls: "border-destructive/40 text-destructive" },
     { key: "diferencia", title: "Diferencias de facturación", cls: "border-destructive/40 text-destructive" },
-    { key: "fallo_dian", title: "Falló emisión DIAN", cls: "border-amber-400 text-amber-700" },
     { key: "sin_cufe", title: "Sin CUFE", cls: sinCufeStats.nFallo > 0 ? "border-destructive/40 text-destructive" : "border-amber-400 text-amber-700" },
     { key: "esperando", title: "Esperando despacho", cls: "text-muted-foreground" },
-    { key: "facturado", title: "Total facturado", cls: "text-foreground" },
     { key: "ajustado", title: "Ajustados", cls: "border-emerald-400 text-emerald-700" },
     { key: "ajuste_no_cuadra", title: "Ajuste no cuadra", cls: resumen.ajuste_no_cuadra.n > 0 ? "border-destructive/40 text-destructive" : "text-muted-foreground" },
-    { key: "no_pagados", title: "No pagados", cls: "text-muted-foreground" },
   ];
+
+  const renderCard = (key: CardKey) => {
+    const c = cards.find((x) => x.key === key)!;
+    return (
+      <Card key={c.key} onClick={() => {
+        setCardFiltro(cardFiltro === c.key ? null : c.key);
+        if (c.key !== "pendiente") setSoloPend(false);
+        setVista("pedidos");
+      }}
+        className={cn("cursor-pointer transition-shadow hover:shadow-md", c.cls, vista === "pedidos" && cardFiltro === c.key && "ring-2 ring-primary")}>
+        <CardContent className="p-4">
+          <p className="text-xs font-medium">{c.title}</p>
+          <p className="text-2xl font-semibold tabular-nums">{fmtInt(resumen[c.key].n)}</p>
+          {c.key === "sin_ov" ? (
+            <p className="text-xs text-muted-foreground">{resumen.sin_ov.n > 0 ? `Pedido pagado que no entró a NetSuite (más de 2 h) · ${fmtCOP(resumen.sin_ov.v)}` : "Todos los pedidos entraron a NetSuite"}</p>
+          ) : c.key === "sin_cufe" ? (
+            <>
+              <p className="text-xs text-muted-foreground tabular-nums">{fmtCOP(resumen[c.key].v)} venta neta</p>
+              <p className="text-xs text-muted-foreground tabular-nums">{fmtInt(sinCufeStats.nProceso)} en proceso · {fmtInt(sinCufeStats.nFallo)} con fallo</p>
+            </>
+          ) : (
+            <p className="text-xs text-muted-foreground tabular-nums">{c.key === "diferencia" ? `${fmtCOP(resumen[c.key].d)} en diferencias` : `${fmtCOP(resumen[c.key].v)} venta neta`}</p>
+          )}
+        </CardContent>
+      </Card>
+    );
+  };
+
+  const contadores: Record<TabKey, number> = {
+    por_facturar: resumen.sin_ov.n + resumen.pendiente.n + sfStats.total,
+    dian: resumen.sin_cufe.n,
+    diferencias: resumen.diferencia.n + resumen.ajuste_no_cuadra.n,
+    notas: notasFilt.length,
+  };
+  const tabUrl = searchParams.get("tab") as TabKey | null;
+  const tabValida = tabUrl && TABS.some((t) => t.key === tabUrl) ? tabUrl : null;
+  const datosTabsListos = resumenQ.isSuccess && sinFacturarQ.isSuccess;
+  const tabAuto: TabKey = (["por_facturar", "dian", "diferencias"] as TabKey[]).find((k) => contadores[k] > 0) ?? "por_facturar";
+  const tab: TabKey = tabValida ?? (datosTabsListos ? tabAuto : "por_facturar");
+  const [tabFijada, setTabFijada] = useState(!!tabValida);
+  useEffect(() => {
+    if (tabFijada || !datosTabsListos) return;
+    setTabFijada(true);
+    const next = new URLSearchParams(searchParams);
+    next.set("tab", tabAuto);
+    setSearchParams(next, { replace: true });
+    if (tabAuto === "notas") setVista("notas");
+  }, [datosTabsListos]); // eslint-disable-line react-hooks/exhaustive-deps
+  const cambiarTab = (t: TabKey) => {
+    setTabFijada(true);
+    const next = new URLSearchParams(searchParams);
+    next.set("tab", t);
+    next.delete("estado");
+    setEstadoState(null);
+    setSearchParams(next, { replace: true });
+    setVista(t === "notas" ? "notas" : "pedidos");
+  };
 
   const recargar = () => {
     queryClient.invalidateQueries({ queryKey: ["reporte-facturacion"] });
@@ -548,12 +637,18 @@ export default function ReporteFacturacionPage() {
           </span>
         ) : null}
       >
-        <p className="text-xs text-muted-foreground -mt-4 mb-6">
+        <p className="text-xs text-muted-foreground -mt-4 mb-2">
           Ventas hasta {fmtFechaSolo(corteQ.data?.ultima_venta)} · Facturas hasta {fmtFechaSolo(corteQ.data?.ultima_factura)} · Última sincronización {fmtDateTime(corteQ.data?.ultima_sync_netsuite)}.
         </p>
+        <p className="text-sm mb-6 tabular-nums">
+          <span className="font-medium">Total facturado {fmtCOP(resumen.facturado.v)}</span> · {fmtInt(resumen.facturado.n)} pedidos ·{" "}
+          <button type="button" className={cn("underline-offset-2 hover:underline text-primary", estado === "No pagados" && "font-semibold underline")}
+            onClick={() => { setEstado(estado === "No pagados" ? null : "No pagados"); setSoloPend(false); setVista("pedidos"); }}>
+            No pagados {fmtInt(resumen.no_pagados.n)} ({fmtCOP(resumen.no_pagados.v)})
+          </button>
+        </p>
 
-        {vista === "pedidos" && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-7 gap-4 mb-6 items-end">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 2xl:grid-cols-8 gap-4 mb-6 items-end">
           <div className="space-y-1"><Label className="text-xs">Desde</Label><Input type="date" value={desde} onChange={(e) => setDesde(e.target.value)} /></div>
           <div className="space-y-1"><Label className="text-xs">Hasta</Label><Input type="date" value={hasta} onChange={(e) => setHasta(e.target.value)} /></div>
           <div className="space-y-1">
@@ -607,81 +702,60 @@ export default function ReporteFacturacionPage() {
               <Input className="pl-8" placeholder="Pedido o factura" value={busqueda} onChange={(e) => setBusqueda(e.target.value)} />
             </div>
           </div>
+          <div className="space-y-1">
+            <Label className="text-xs">Estado</Label>
+            <Select value={estado ?? "__todos"} onValueChange={(v) => { setEstado(v === "__todos" ? null : v); if (v !== "__todos") setSoloPend(false); if (v !== "__todos") setVista(tab === "notas" ? "notas" : "pedidos"); }}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__todos">Todos</SelectItem>
+                {ESTADOS_FILTRO.map((e) => <SelectItem key={e} value={e}>{e}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
           <div className="flex items-center gap-3 justify-between">
             <label className="flex items-center gap-2 text-sm"><Switch checked={soloPend} onCheckedChange={setSoloPend} />Solo pendientes</label>
           </div>
         </div>
-        )}
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 2xl:grid-cols-9 gap-4 mb-2">
-          {resumenQ.isLoading ? (
-            <div className="sm:col-span-2 xl:col-span-7">
-              <LoadingState rows={0} />
-            </div>
-          ) : (<>{cards.slice(0, 5).map((c) => (
-            <Card key={c.key} onClick={() => {
-              setCardFiltro(cardFiltro === c.key ? null : c.key);
-              if (c.key !== "pendiente") setSoloPend(false);
-              setVista("pedidos");
-            }}
-              className={cn("cursor-pointer transition-shadow hover:shadow-md", c.cls, vista === "pedidos" && cardFiltro === c.key && "ring-2 ring-primary")}>
-              <CardContent className="p-4">
-                <p className="text-xs font-medium">{c.title}</p>
-                <p className="text-2xl font-semibold tabular-nums">{fmtInt(resumen[c.key].n)}</p>
-                {c.key === "sin_ov" ? (
-                  <p className="text-xs text-muted-foreground">{resumen.sin_ov.n > 0 ? `Pedido pagado que no entró a NetSuite (más de 2 h) · ${fmtCOP(resumen.sin_ov.v)}` : "Todos los pedidos entraron a NetSuite"}</p>
-                ) : c.key === "sin_cufe" ? (
-                  <>
-                    <p className="text-xs text-muted-foreground tabular-nums">{fmtCOP(resumen[c.key].v)} venta neta</p>
-                    <p className="text-xs text-muted-foreground tabular-nums">{fmtInt(sinCufeStats.nProceso)} en proceso · {fmtInt(sinCufeStats.nFallo)} con fallo</p>
-                  </>
-                ) : (
-                  <p className="text-xs text-muted-foreground tabular-nums">{c.key === "diferencia" ? `${fmtCOP(resumen[c.key].d)} en diferencias` : `${fmtCOP(resumen[c.key].v)} venta neta`}</p>
-                )}
-              </CardContent>
-            </Card>
-          ))}
-            <Card onClick={() => { setVista(vista === "ordenes" ? "pedidos" : "ordenes"); setCardFiltro(null); }}
-              className={cn("cursor-pointer transition-shadow hover:shadow-md", sfStats.mas7 > 0 ? "border-destructive/40 text-destructive" : "text-muted-foreground", vista === "ordenes" && "ring-2 ring-primary")}>
-              <CardContent className="p-4">
-                <p className="text-xs font-medium">Órdenes sin facturar</p>
-                <p className="text-2xl font-semibold tabular-nums">{fmtInt(sfStats.total)}</p>
-                <p className="text-xs text-muted-foreground tabular-nums">{fmtCOP(sfStats.montoTotal)}</p>
-              </CardContent>
-            </Card>
-            {cards.slice(5).map((c) => (
-            <Card key={c.key} onClick={() => {
-              setCardFiltro(cardFiltro === c.key ? null : c.key);
-              if (c.key !== "pendiente") setSoloPend(false);
-              setVista("pedidos");
-            }}
-              className={cn("cursor-pointer transition-shadow hover:shadow-md", c.cls, vista === "pedidos" && cardFiltro === c.key && "ring-2 ring-primary")}>
-              <CardContent className="p-4">
-                <p className="text-xs font-medium">{c.title}</p>
-                <p className="text-2xl font-semibold tabular-nums">{fmtInt(resumen[c.key].n)}</p>
-                 <p className="text-xs text-muted-foreground tabular-nums">{c.key === "diferencia" ? `${fmtCOP(resumen[c.key].d)} en diferencias` : `${fmtCOP(resumen[c.key].v)} venta neta`}</p>
-              </CardContent>
-            </Card>
-          ))}
-            <Card onClick={() => { setVista(vista === "notas" ? "pedidos" : "notas"); setCardFiltro(null); }}
-              className={cn("cursor-pointer transition-shadow hover:shadow-md text-muted-foreground", vista === "notas" && "ring-2 ring-primary")}>
-              <CardContent className="p-4">
-                <p className="text-xs font-medium">Notas crédito</p>
-                <p className="text-2xl font-semibold tabular-nums">{notasQ.isLoading ? "…" : fmtInt(notas.length)}</p>
-                <p className="text-xs text-muted-foreground tabular-nums">{fmtCOP(notasMonto)}</p>
-              </CardContent>
-            </Card>
-            <Card onClick={() => { setVista(vista === "ajustes" ? "pedidos" : "ajustes"); setCardFiltro(null); }}
-              className={cn("cursor-pointer transition-shadow hover:shadow-md text-muted-foreground", vista === "ajustes" && "ring-2 ring-primary")}>
-              <CardContent className="p-4">
-                <p className="text-xs font-medium">Documentos de ajuste</p>
-                <p className="text-2xl font-semibold tabular-nums">{docsQ.isLoading ? "…" : fmtInt((docsQ.data ?? []).length)}</p>
-                <p className="text-xs text-muted-foreground tabular-nums">{fmtInt((docsQ.data ?? []).filter((d) => !d.cuadra).length)} no cuadran</p>
-              </CardContent>
-            </Card>
-          </>)}
-        </div>
-        {vista === "pedidos" && estado && <Button variant="link" size="sm" className="h-auto px-0 mb-4" onClick={() => setEstado(null)}>Quitar filtro de estado</Button>}
+        {resumenQ.isLoading ? <LoadingState rows={0} /> : (
+          <Tabs value={tab} onValueChange={(v) => cambiarTab(v as TabKey)}>
+            <TabsList className="mb-4 h-auto flex-wrap justify-start">
+              {TABS.map((t) => (
+                <TabsTrigger key={t.key} value={t.key} className="gap-1">
+                  {t.label}
+                  <span className={cn("tabular-nums", t.key !== "notas" && contadores[t.key] > 0 ? "text-destructive font-semibold" : "text-muted-foreground")}>({fmtInt(contadores[t.key])})</span>
+                </TabsTrigger>
+              ))}
+            </TabsList>
+            {tab !== "notas" && (
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-2">
+                {tab === "por_facturar" && (<>
+                  {renderCard("sin_ov")}{renderCard("pendiente")}{renderCard("esperando")}
+                  <Card onClick={() => { setVista(vista === "ordenes" ? "pedidos" : "ordenes"); setCardFiltro(null); }}
+                    className={cn("cursor-pointer transition-shadow hover:shadow-md", sfStats.mas7 > 0 ? "border-destructive/40 text-destructive" : "text-muted-foreground", vista === "ordenes" && "ring-2 ring-primary")}>
+                    <CardContent className="p-4">
+                      <p className="text-xs font-medium">Órdenes sin facturar</p>
+                      <p className="text-2xl font-semibold tabular-nums">{fmtInt(sfStats.total)}</p>
+                      <p className="text-xs text-muted-foreground tabular-nums">{fmtCOP(sfStats.montoTotal)}</p>
+                    </CardContent>
+                  </Card>
+                </>)}
+                {tab === "dian" && renderCard("sin_cufe")}
+                {tab === "diferencias" && (<>
+                  {renderCard("diferencia")}{renderCard("ajuste_no_cuadra")}{renderCard("ajustado")}
+                  <Card onClick={() => { setVista(vista === "ajustes" ? "pedidos" : "ajustes"); setCardFiltro(null); }}
+                    className={cn("cursor-pointer transition-shadow hover:shadow-md text-muted-foreground", vista === "ajustes" && "ring-2 ring-primary")}>
+                    <CardContent className="p-4">
+                      <p className="text-xs font-medium">Documentos de ajuste</p>
+                      <p className="text-2xl font-semibold tabular-nums">{docsQ.isLoading ? "…" : fmtInt(docsFiltradosBase.length)}</p>
+                      <p className="text-xs text-muted-foreground tabular-nums">{fmtInt(docsFiltradosBase.filter((d) => !d.cuadra).length)} no cuadran</p>
+                    </CardContent>
+                  </Card>
+                </>)}
+              </div>
+            )}
+          </Tabs>
+        )}
 
         {vista === "ordenes" ? (
           <div className="mt-4">
@@ -691,7 +765,7 @@ export default function ReporteFacturacionPage() {
             ) : sinFacturarQ.isLoading ? (
               <LoadingState rows={0} />
             ) : (<>
-                    {sinFacturar.length === 0 ? (
+                    {sinFacturarFilt.length === 0 ? (
                       <p className="text-center text-muted-foreground py-8">Sin órdenes sin facturar en los últimos 60 días</p>
                     ) : (
                       <div className="overflow-x-auto rounded-md border border-border">
@@ -710,7 +784,7 @@ export default function ReporteFacturacionPage() {
                             </TableRow>
                           </TableHeader>
                           <TableBody>
-                            {sinFacturar.map((r, i) => (
+                            {sinFacturarFilt.map((r, i) => (
                               <TableRow key={(r.tranid ?? "") + i} className="align-top">
                                 <TableCell>
                                   {r.alerta ? (
@@ -745,12 +819,11 @@ export default function ReporteFacturacionPage() {
           </div>
         ) : vista === "notas" ? (
           <div className="mt-4">
-            <Button variant="link" size="sm" className="h-auto px-0 mb-3" onClick={() => setVista("pedidos")}>← Volver a pedidos</Button>
             {notasQ.error ? (
               <p className="text-sm text-destructive">Error: {(notasQ.error as any).message}</p>
             ) : notasQ.isLoading ? (
               <LoadingState rows={0} />
-            ) : notas.length === 0 ? (
+            ) : notasFilt.length === 0 ? (
               <p className="text-center text-muted-foreground py-8">Sin notas crédito en los últimos 60 días</p>
             ) : (
               <div className="overflow-x-auto rounded-md border border-border">
@@ -769,7 +842,7 @@ export default function ReporteFacturacionPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {notas.map((r, i) => (
+                    {notasFilt.map((r, i) => (
                       <TableRow key={(r.tranid ?? "") + i} className="align-top">
                         <TableCell>
                           {r.alerta ? (
@@ -888,18 +961,9 @@ export default function ReporteFacturacionPage() {
           </div>
         ) : (<>
         <div className="flex flex-wrap items-end gap-3 mt-4">
-          <div className="space-y-1 w-full sm:w-80">
-            <Label className="text-xs">Estado</Label>
-            <Select value={estado ?? "__todos"} onValueChange={(v) => { setEstado(v === "__todos" ? null : v); if (v !== "__todos") setSoloPend(false); }}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="__todos">Todos</SelectItem>
-                {ESTADOS_FILTRO.map((e) => <SelectItem key={e} value={e}>{e}</SelectItem>)}
-              </SelectContent>
-            </Select>
-          </div>
+          {estado && <Button variant="link" size="sm" className="h-auto px-0" onClick={() => setEstado(null)}>Quitar filtro de estado</Button>}
           {canExport && (
-            <Button variant="outline" onClick={exportar} disabled={exportando !== null}>
+            <Button variant="outline" className="ml-auto" onClick={exportar} disabled={exportando !== null}>
               <Download className="h-4 w-4 mr-1" />
               {exportando !== null ? `Exportando… ${fmtInt(exportando)} filas` : "Exportar Excel"}
             </Button>
