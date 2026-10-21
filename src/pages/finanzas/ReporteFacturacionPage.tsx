@@ -1,7 +1,7 @@
-import { useEffect, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
-import { Download, CheckCircle2, AlertTriangle, Search, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { Download, CheckCircle2, AlertTriangle, Search, ArrowUpDown, ArrowUp, ArrowDown, ChevronDown, ChevronRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { FinanzasLayout } from "./FinanzasLayout";
 import { Card, CardContent } from "@/components/ui/card";
@@ -18,6 +18,10 @@ import * as XLSX from "xlsx";
 import { useHasPermission } from "@/hooks/useHasPermission";
 import { useUserRole } from "@/hooks/useUserRole";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
+import { Textarea } from "@/components/ui/textarea";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 
 type SinFacturarRow = {
   tranid: string | null; fecha: string | null; dias: number | null;
@@ -43,9 +47,23 @@ type Row = {
   venta_total: number | null; articulos: number | null; estado_facturacion: string | null; dias_sin_facturar: number | null;
   metodo_pago: string | null; estado_despacho: string | null; es_gift_card: boolean | null;
   valor_facturado: number | null; diferencia_facturacion: number | null;
+  ajuste_sugerido: string | null; monto_ajuste: number | null; documento_ajuste: string | null;
+  origen_ajuste: string | null; regla_factura: string | null; facturas_asociadas: number | null;
 };
 
-type CardKey = "sin_ov" | "pendiente" | "diferencia" | "fallo_dian" | "sin_cufe" | "esperando" | "facturado";
+type AjusteDocRow = {
+  tranid: string; tipo: string | null; fecha: string | null; total_con_iva: number | null; memo: string | null;
+  pedidos: string[] | null; suma_diferencias: number | null; diferencia: number | null;
+  pedidos_sin_factura: number | null; cuadra: boolean | null; validado_en: string | null;
+};
+
+const ORIGEN_AJUSTE: Record<string, { label: string; cls: string }> = {
+  automatico: { label: "Automático", cls: "bg-emerald-100 text-emerald-800 border-emerald-300" },
+  manual: { label: "Manual", cls: "bg-blue-100 text-blue-800 border-blue-300" },
+  no_cuadra: { label: "No cuadra", cls: "bg-destructive/10 text-destructive border-destructive/30" },
+};
+
+type CardKey = "sin_ov" | "pendiente" | "diferencia" | "fallo_dian" | "sin_cufe" | "esperando" | "facturado" | "ajustado" | "ajuste_no_cuadra" | "no_pagados";
 type SortKey = "estado_facturacion" | "fecha_pedido" | "venta_total" | "diferencia_facturacion";
 type SortDir = "asc" | "desc";
 
@@ -77,6 +95,9 @@ const CARD_ESTADO: Record<CardKey, (e: string) => boolean> = {
   sin_cufe: (e) => e === "Emision en proceso" || e === "Fallo la emision a DIAN",
   esperando: (e) => e === "Esperando despacho",
   facturado: (e) => e === "Facturado",
+  ajustado: (e) => e === "Ajustado",
+  ajuste_no_cuadra: (e) => e === "Ajuste no cuadra",
+  no_pagados: (e) => e === "No pagados",
 };
 
 const ESTADO_POR_TARJETA: Record<CardKey, string> = {
@@ -87,11 +108,14 @@ const ESTADO_POR_TARJETA: Record<CardKey, string> = {
   sin_cufe: "Sin CUFE",
   esperando: "Esperando despacho",
   facturado: "Facturado",
+  ajustado: "Ajustado",
+  ajuste_no_cuadra: "Ajuste no cuadra",
+  no_pagados: "No pagados",
 };
 
 const ESTADOS_FILTRO = [
   "SIN ORDEN DE VENTA EN NETSUITE", "PENDIENTE POR FACTURAR", "Esperando despacho", "Sin CUFE", "Descuadre de valor",
-  "Anulado por nota credito", "No facturable (pending)", "No facturable (refunded)", "Facturado",
+  "Anulado por nota credito", "Facturado", "Ajustado", "Ajuste no cuadra", "No pagados",
 ];
 
 const hoyBogota = () => new Date().toLocaleDateString("en-CA", { timeZone: "America/Bogota" });
@@ -102,6 +126,9 @@ function badgeClass(e: string) {
   if (e === "Fallo la emision a DIAN" || e === "Emision en proceso") return "bg-amber-100 text-amber-800 border-amber-300";
   if (e === "Esperando despacho" || e.startsWith("No facturable")) return "bg-muted text-muted-foreground border-border";
   if (e === "Anulado por nota credito") return "bg-muted text-muted-foreground border-border";
+  if (e === "Ajustado") return "bg-emerald-100 text-emerald-800 border-emerald-300";
+  if (e === "Ajuste no cuadra") return "bg-destructive/10 text-destructive border-destructive/30";
+  if (e === "No pagados") return "bg-muted text-muted-foreground border-border";
   if (e === "Facturado") return "bg-emerald-100 text-emerald-800 border-emerald-300";
   return "bg-secondary text-secondary-foreground border-border";
 }
@@ -163,7 +190,14 @@ export default function ReporteFacturacionPage() {
   const [sortKey, setSortKey] = useState<SortKey>("fecha_pedido");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
 
-  const { isAdmin } = useUserRole();
+  const { isAdmin, role } = useUserRole();
+  const puedeAjustar = isAdmin || role === "finanzas";
+  const queryClient = useQueryClient();
+  const [marcarFila, setMarcarFila] = useState<Row | null>(null);
+  const [marcarDoc, setMarcarDoc] = useState("");
+  const [marcarNota, setMarcarNota] = useState("");
+  const [desmarcarFila, setDesmarcarFila] = useState<Row | null>(null);
+  const [guardando, setGuardando] = useState(false);
   const canExport = useHasPermission({ module: "financiero.reporte_facturacion", action: "export" }) || isAdmin;
 
   const [exportando, setExportando] = useState<number | null>(null);
@@ -283,7 +317,26 @@ export default function ReporteFacturacionPage() {
   const notas = notasQ.data ?? [];
   const notasMonto = useMemo(() => notas.reduce((a, r) => a + Number(r.monto_con_iva ?? 0), 0), [notasQ.data]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const [vista, setVista] = useState<"pedidos" | "ordenes" | "notas">("pedidos");
+  const [vista, setVista] = useState<"pedidos" | "ordenes" | "notas" | "ajustes">("pedidos");
+  const [docsFiltro, setDocsFiltro] = useState<"todos" | "cuadran" | "no_cuadran">("todos");
+  const [docAbierto, setDocAbierto] = useState<string | null>(null);
+  const docsQ = useQuery({
+    queryKey: ["ajuste-facturacion-doc"],
+    queryFn: async () => {
+      const { data, error } = await (supabase.from as any)("ajuste_facturacion_doc").select("*").order("fecha", { ascending: false }).limit(1000);
+      if (error) throw error;
+      return (data ?? []) as AjusteDocRow[];
+    },
+  });
+  const docsFiltrados = useMemo(() => (docsQ.data ?? []).filter((d) => docsFiltro === "todos" ? true : docsFiltro === "cuadran" ? d.cuadra : !d.cuadra), [docsQ.data, docsFiltro]);
+  const ajustesLogQ = useQuery({
+    queryKey: ["log-ajustes-facturacion"],
+    queryFn: async () => {
+      const { data, error } = await (supabase.from as any)("proceso_ejecucion_log").select("ultima_ejecucion").eq("proceso", "ajustes_facturacion").maybeSingle();
+      if (error) throw error;
+      return (data?.ultima_ejecucion ?? null) as string | null;
+    },
+  });
 
   useEffect(() => {
     const nuevos = (q.data ?? []).map((r) => r.canal).filter(Boolean) as string[];
@@ -337,7 +390,7 @@ export default function ReporteFacturacionPage() {
     if (cardFiltro) return resumen[cardFiltro].n;
     if (estado) return (resumenQ.data ?? []).filter((r) => r.estado_facturacion === estado).reduce((a, r) => a + Number(r.pedidos ?? 0), 0);
     if (soloPend) return resumen.pendiente.n;
-    return (resumenQ.data ?? []).reduce((a, r) => a + Number(r.pedidos ?? 0), 0);
+    return (resumenQ.data ?? []).filter((r) => r.estado_facturacion !== "No pagados").reduce((a, r) => a + Number(r.pedidos ?? 0), 0);
   }, [resumen, resumenQ.data, cardFiltro, estado, soloPend]);
 
   const filasCargadas = q.data ?? [];
@@ -400,8 +453,8 @@ export default function ReporteFacturacionPage() {
       const ws = XLSX.utils.aoa_to_sheet(aoa, { cellDates: true, dateNF: "yyyy-mm-dd" });
       const lastRow = aoa.length;
       ["F", "M"].forEach((c) => { for (let i = 2; i <= lastRow; i++) { const cell = ws[`${c}${i}`]; if (cell && cell.t === "d") cell.z = "yyyy-mm-dd"; } });
-      ["R", "S", "T", "U", "V"].forEach((c) => { for (let i = 2; i <= lastRow; i++) { const cell = ws[`${c}${i}`]; if (cell && cell.t === "n") cell.z = "#,##0"; } });
-      ws["!autofilter"] = { ref: `A1:V${lastRow}` };
+      ["R", "S", "T", "U", "V", "X"].forEach((c) => { for (let i = 2; i <= lastRow; i++) { const cell = ws[`${c}${i}`]; if (cell && cell.t === "n") cell.z = "#,##0"; } });
+      ws["!autofilter"] = { ref: `A1:AA${lastRow}` };
       ws["!freeze"] = { xSplit: 0, ySplit: 1 } as any;
       (ws as any)["!views"] = [{ state: "frozen", ySplit: 1, topLeftCell: "A2" }];
       ws["!cols"] = headers.map((h) => ({ wch: Math.max(12, h.length + 2) }));
@@ -796,8 +849,8 @@ export default function ReporteFacturacionPage() {
                       const abierto = docAbierto === d.tranid;
                       const peds = d.pedidos ?? [];
                       return (
-                        <>
-                          <TableRow key={d.tranid} className="cursor-pointer align-top" onClick={() => setDocAbierto(abierto ? null : d.tranid)}>
+                        <Fragment key={d.tranid}>
+                          <TableRow className="cursor-pointer align-top" onClick={() => setDocAbierto(abierto ? null : d.tranid)}>
                             <TableCell>{abierto ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}</TableCell>
                             <TableCell className="font-semibold">{d.tranid}</TableCell>
                             <TableCell>{d.tipo === "nota_credito" ? "Nota crédito" : "Factura"}</TableCell>
@@ -822,7 +875,7 @@ export default function ReporteFacturacionPage() {
                               <TableCell colSpan={8} className="whitespace-pre-wrap text-xs text-muted-foreground">{d.memo || "Sin nota"}</TableCell>
                             </TableRow>
                           )}
-                        </>
+                        </Fragment>
                       );
                     })}
                   </TableBody>
