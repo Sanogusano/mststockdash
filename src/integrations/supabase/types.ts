@@ -7271,6 +7271,7 @@ export type Database = {
           producto: string
           semanas_vida: number
           sku: string
+          stock_mayoristas: number
           stock_online: number
           stock_standby: number
           stock_tiendas: number
