@@ -789,7 +789,7 @@ export default function ReporteFacturacionPage() {
                 </>)}
               </div>
             )}
-          </Tabs>
+          </div>
         )}
 
         {vista === "ordenes" ? (
