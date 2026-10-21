@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { LoadingState } from "@/components/dashboard/LoadingState";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -28,7 +29,7 @@ type SinFacturarRow = {
   canal: string | null; tienda: string | null; zona: string | null;
   estado: string | null; estado_nombre: string | null; monto_con_iva: number | null;
   factura_tranid: string | null; fecha_factura: string | null; dias_hasta_factura: number | null;
-  alerta: string | null;
+  alerta: string | null; location_id?: string | null;
 };
 
 type NotaCreditoRow = {
@@ -64,6 +65,13 @@ const ORIGEN_AJUSTE: Record<string, { label: string; cls: string }> = {
 };
 
 type CardKey = "sin_ov" | "pendiente" | "diferencia" | "fallo_dian" | "sin_cufe" | "esperando" | "facturado" | "ajustado" | "ajuste_no_cuadra" | "no_pagados";
+type TabKey = "por_facturar" | "dian" | "diferencias" | "notas";
+const TABS: { key: TabKey; label: string }[] = [
+  { key: "por_facturar", label: "Por facturar" },
+  { key: "dian", label: "DIAN" },
+  { key: "diferencias", label: "Diferencias y ajustes" },
+  { key: "notas", label: "Notas crédito" },
+];
 type SortKey = "estado_facturacion" | "fecha_pedido" | "venta_total" | "diferencia_facturacion";
 type SortDir = "asc" | "desc";
 
@@ -114,7 +122,7 @@ const ESTADO_POR_TARJETA: Record<CardKey, string> = {
 };
 
 const ESTADOS_FILTRO = [
-  "SIN ORDEN DE VENTA EN NETSUITE", "PENDIENTE POR FACTURAR", "Esperando despacho", "Sin CUFE", "Descuadre de valor",
+  "SIN ORDEN DE VENTA EN NETSUITE", "PENDIENTE POR FACTURAR", "Esperando despacho", "Sin CUFE", "Fallo la emision a DIAN", "Descuadre de valor",
   "Anulado por nota credito", "Facturado", "Ajustado", "Ajuste no cuadra", "No pagados",
 ];
 
