@@ -288,9 +288,12 @@ export default function ReporteFacturacionPage() {
     },
   });
 
-  const sinFacturar = sinFacturarQ.data ?? [];
+  const hayFiltroUbic = !!(pCanal || pZona || pLocationId);
+  const pasaUbic = (r: { canal: string | null; zona: string | null; location_id?: string | null }) =>
+    (!pCanal || r.canal === pCanal) && (!pZona || r.zona === pZona) && (!pLocationId || r.location_id === pLocationId);
+  const sinFacturarFilt = useMemo(() => (sinFacturarQ.data ?? []).filter(pasaUbic), [sinFacturarQ.data, pCanal, pZona, pLocationId]); // eslint-disable-line react-hooks/exhaustive-deps
   const sfStats = useMemo(() => {
-    const rows = sinFacturar;
+    const rows = sinFacturarFilt;
     const sinFactura = rows.filter((r) => !r.factura_tranid);
     const mas7 = sinFactura.filter((r) => Number(r.dias ?? 0) > 7);
     const masAntigua = sinFactura.reduce<SinFacturarRow | null>((acc, r) => {
@@ -304,7 +307,7 @@ export default function ReporteFacturacionPage() {
       montoMas7: mas7.reduce((a, r) => a + Number(r.monto_con_iva ?? 0), 0),
       masAntigua,
     };
-  }, [sinFacturarQ.data]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [sinFacturarFilt]);
 
   const notasQ = useQuery({
     queryKey: ["notas-credito-directa"],
@@ -314,10 +317,9 @@ export default function ReporteFacturacionPage() {
       return (data ?? []) as NotaCreditoRow[];
     },
   });
-  const notas = notasQ.data ?? [];
-  const notasMonto = useMemo(() => notas.reduce((a, r) => a + Number(r.monto_con_iva ?? 0), 0), [notasQ.data]); // eslint-disable-line react-hooks/exhaustive-deps
+  const notasFilt = useMemo(() => (notasQ.data ?? []).filter(pasaUbic), [notasQ.data, pCanal, pZona, pLocationId]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const [vista, setVista] = useState<"pedidos" | "ordenes" | "notas" | "ajustes">("pedidos");
+  const [vista, setVista] = useState<"pedidos" | "ordenes" | "notas" | "ajustes">(() => searchParams.get("tab") === "notas" ? "notas" : "pedidos");
   const [docsFiltro, setDocsFiltro] = useState<"todos" | "cuadran" | "no_cuadran">("todos");
   const [docAbierto, setDocAbierto] = useState<string | null>(null);
   const docsQ = useQuery({
@@ -328,7 +330,32 @@ export default function ReporteFacturacionPage() {
       return (data ?? []) as AjusteDocRow[];
     },
   });
-  const docsFiltrados = useMemo(() => (docsQ.data ?? []).filter((d) => docsFiltro === "todos" ? true : docsFiltro === "cuadran" ? d.cuadra : !d.cuadra), [docsQ.data, docsFiltro]);
+  // Pedidos del reporte con el mismo rango y filtros de canal/zona/tienda, para cruzar documentos de ajuste.
+  const pedidosUbicQ = useQuery({
+    queryKey: ["reporte-facturacion-pedidos-ubic", desde, hasta, pCanal, pZona, pLocationId],
+    enabled: hayFiltroUbic,
+    queryFn: async () => {
+      const set = new Set<string>();
+      for (let off = 0; ; off += 1000) {
+        const { data, error } = await (supabase.rpc as any)("reporte_pendientes_facturacion", {
+          p_desde: desde, p_hasta: hasta, p_solo_pendientes: false, p_canal: pCanal,
+          p_zona: pZona, p_location_id: pLocationId, p_estado: null, p_buscar: null,
+        }).select("pedido").range(off, off + 999);
+        if (error) throw error;
+        (data ?? []).forEach((r: any) => r.pedido && set.add(String(r.pedido)));
+        if (!data || data.length < 1000) break;
+      }
+      return set;
+    },
+  });
+  const docsFiltradosBase = useMemo(() => {
+    const docs = docsQ.data ?? [];
+    if (!hayFiltroUbic) return docs;
+    const set = pedidosUbicQ.data;
+    if (!set) return [];
+    return docs.filter((d) => (d.pedidos ?? []).some((p) => set.has(String(p))));
+  }, [docsQ.data, hayFiltroUbic, pedidosUbicQ.data]);
+  const docsFiltrados = useMemo(() => docsFiltradosBase.filter((d) => docsFiltro === "todos" ? true : docsFiltro === "cuadran" ? d.cuadra : !d.cuadra), [docsFiltradosBase, docsFiltro]);
   const ajustesLogQ = useQuery({
     queryKey: ["log-ajustes-facturacion"],
     queryFn: async () => {
