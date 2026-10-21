@@ -728,80 +728,65 @@ export default function ReporteFacturacionPage() {
           </div>
         </div>
 
-        {resumenQ.isLoading ? <LoadingState rows={0} /> : (
-          <div>
-            <div role="tablist" aria-label="Secciones del reporte" className="flex md:grid md:grid-cols-2 lg:grid-cols-4 gap-3 overflow-x-auto pb-1">
-              {TABS.map((t, idx) => {
-                const st = TAB_STYLE[t.key];
-                const Icon = st.icon;
-                const activa = tab === t.key;
-                const n = contadores[t.key];
-                const conColor = n > 0;
-                const monto = montosTab[t.key];
-                return (
-                  <button
-                    key={t.key}
-                    id={`tab-${t.key}`}
-                    type="button"
-                    role="tab"
-                    aria-selected={activa}
-                    tabIndex={activa ? 0 : -1}
-                    onClick={() => cambiarTab(t.key)}
-                    onKeyDown={(e) => {
-                      if (e.key !== "ArrowRight" && e.key !== "ArrowLeft") return;
-                      e.preventDefault();
-                      const sig = TABS[(idx + (e.key === "ArrowRight" ? 1 : TABS.length - 1)) % TABS.length].key;
-                      cambiarTab(sig);
-                      document.getElementById(`tab-${sig}`)?.focus();
-                    }}
-                    className={cn(
-                      "relative min-w-[220px] md:min-w-0 overflow-hidden text-left rounded-xl border bg-card p-4 transition-all duration-200 cursor-pointer hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
-                      activa && cn("border-[1.5px] shadow-sm hover:bg-transparent", st.active),
-                    )}
-                  >
-                    <div className="flex items-center gap-2">
-                      <Icon className={cn("h-4 w-4", conColor ? st.text : "text-muted-foreground")} />
-                      <span className="text-sm font-medium">{t.label}</span>
-                    </div>
-                    <div className="mt-2 flex items-baseline gap-2">
-                      <span className={cn("text-2xl font-semibold tabular-nums", conColor ? st.text : "text-muted-foreground")}>{fmtInt(n)}</span>
-                      {monto != null && <span className="text-xs text-muted-foreground tabular-nums">{fmtCOP(monto)}</span>}
-                    </div>
-                    <p className="mt-1 text-xs text-muted-foreground">{st.desc}</p>
-                    {activa && <span className={cn("absolute inset-x-0 bottom-0 h-[3px]", st.bar)} />}
-                  </button>
-                );
-              })}
-            </div>
-            {tab !== "notas" && (
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-2 mt-4">
+        <div>
+          <div role="tablist" aria-label="Secciones del reporte" className="flex gap-1 border-b-2 border-border overflow-x-auto">
+            {TABS.map((t, idx) => {
+              const st = TAB_STYLE[t.key];
+              const Icon = st.icon;
+              const activa = tab === t.key;
+              return (
+                <button
+                  key={t.key}
+                  id={`tab-${t.key}`}
+                  type="button"
+                  role="tab"
+                  aria-selected={activa}
+                  aria-controls="panel-facturacion"
+                  tabIndex={activa ? 0 : -1}
+                  onClick={() => cambiarTab(t.key)}
+                  onKeyDown={(e) => {
+                    if (e.key !== "ArrowRight" && e.key !== "ArrowLeft") return;
+                    e.preventDefault();
+                    const sig = TABS[(idx + (e.key === "ArrowRight" ? 1 : TABS.length - 1)) % TABS.length].key;
+                    cambiarTab(sig);
+                    document.getElementById(`tab-${sig}`)?.focus();
+                  }}
+                  className={cn(
+                    "relative -mb-[2px] flex shrink-0 items-center gap-2 whitespace-nowrap rounded-t-lg border-2 px-5 py-3 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                    activa
+                      ? "bg-card border-border border-b-card text-foreground font-semibold"
+                      : "border-transparent text-muted-foreground hover:text-foreground hover:bg-muted/50",
+                  )}
+                >
+                  {activa && <span className={cn("absolute inset-x-0 top-0 h-[3px] rounded-t-lg", st.bar)} />}
+                  <Icon className={cn("h-4 w-4", activa && st.text)} />
+                  {t.label}
+                  <span className={cn("rounded-full px-2 py-0.5 text-xs font-semibold tabular-nums", activa ? st.badge : "bg-muted text-muted-foreground")}>
+                    {fmtInt(contadores[t.key])}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+          <div id="panel-facturacion" role="tabpanel" aria-labelledby={`tab-${tab}`} className="rounded-b-xl rounded-tr-xl border-2 border-t-0 border-border bg-card p-4">
+            {tab !== "notas" && (resumenQ.isLoading ? <LoadingState rows={0} /> : (
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-2">
+                {tab === "facturado" && (<>
+                  {renderCard("facturado")}{renderCard("no_pagados")}
+                </>)}
                 {tab === "por_facturar" && (<>
                   {renderCard("sin_ov")}{renderCard("pendiente")}{renderCard("esperando")}
-                  <Card onClick={() => { setVista(vista === "ordenes" ? "pedidos" : "ordenes"); setCardFiltro(null); }}
-                    className={cn("cursor-pointer transition-shadow hover:shadow-md", sfStats.mas7 > 0 ? "border-destructive/40 text-destructive" : "text-muted-foreground", vista === "ordenes" && "ring-2 ring-primary")}>
-                    <CardContent className="p-4">
-                      <p className="text-xs font-medium">Órdenes sin facturar</p>
-                      <p className="text-2xl font-semibold tabular-nums">{fmtInt(sfStats.total)}</p>
-                      <p className="text-xs text-muted-foreground tabular-nums">{fmtCOP(sfStats.montoTotal)}</p>
-                    </CardContent>
-                  </Card>
+                  {flatCard({ title: "Órdenes sin facturar", n: fmtInt(sfStats.total), sub: fmtCOP(sfStats.montoTotal), tone: sfStats.mas7 > 0 ? "text-destructive" : "text-muted-foreground", selected: vista === "ordenes", onClick: () => { setVista(vista === "ordenes" ? "pedidos" : "ordenes"); setCardFiltro(null); } })}
                 </>)}
-                {tab === "dian" && renderCard("sin_cufe")}
+                {tab === "dian" && (<>
+                  {renderCard("en_proceso")}{renderCard("fallo_dian")}
+                </>)}
                 {tab === "diferencias" && (<>
                   {renderCard("diferencia")}{renderCard("ajuste_no_cuadra")}{renderCard("ajustado")}
-                  <Card onClick={() => { setVista(vista === "ajustes" ? "pedidos" : "ajustes"); setCardFiltro(null); }}
-                    className={cn("cursor-pointer transition-shadow hover:shadow-md text-muted-foreground", vista === "ajustes" && "ring-2 ring-primary")}>
-                    <CardContent className="p-4">
-                      <p className="text-xs font-medium">Documentos de ajuste</p>
-                      <p className="text-2xl font-semibold tabular-nums">{docsQ.isLoading ? "…" : fmtInt(docsFiltradosBase.length)}</p>
-                      <p className="text-xs text-muted-foreground tabular-nums">{fmtInt(docsFiltradosBase.filter((d) => !d.cuadra).length)} no cuadran</p>
-                    </CardContent>
-                  </Card>
+                  {flatCard({ title: "Documentos de ajuste", n: docsQ.isLoading ? "…" : fmtInt(docsFiltradosBase.length), sub: `${fmtInt(docsFiltradosBase.filter((d) => !d.cuadra).length)} no cuadran`, tone: "text-muted-foreground", selected: vista === "ajustes", onClick: () => { setVista(vista === "ajustes" ? "pedidos" : "ajustes"); setCardFiltro(null); } })}
                 </>)}
               </div>
-            )}
-          </div>
-        )}
+            ))}
 
         {vista === "ordenes" ? (
           <div className="mt-4">
@@ -1137,6 +1122,8 @@ export default function ReporteFacturacionPage() {
           </div>
         )}
         </>)}
+          </div>
+        </div>
       </FinanzasLayout>
     </TooltipProvider>
   );
