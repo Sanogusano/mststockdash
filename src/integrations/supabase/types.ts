@@ -209,6 +209,84 @@ export type Database = {
         }
         Relationships: []
       }
+      ajuste_facturacion_doc: {
+        Row: {
+          cuadra: boolean | null
+          diferencia: number | null
+          fecha: string | null
+          memo: string | null
+          ns_id: number | null
+          pedidos: string[]
+          pedidos_sin_factura: number | null
+          sincronizado_en: string
+          suma_diferencias: number | null
+          tipo: string
+          total_con_iva: number | null
+          tranid: string
+          validado_en: string | null
+        }
+        Insert: {
+          cuadra?: boolean | null
+          diferencia?: number | null
+          fecha?: string | null
+          memo?: string | null
+          ns_id?: number | null
+          pedidos?: string[]
+          pedidos_sin_factura?: number | null
+          sincronizado_en?: string
+          suma_diferencias?: number | null
+          tipo: string
+          total_con_iva?: number | null
+          tranid: string
+          validado_en?: string | null
+        }
+        Update: {
+          cuadra?: boolean | null
+          diferencia?: number | null
+          fecha?: string | null
+          memo?: string | null
+          ns_id?: number | null
+          pedidos?: string[]
+          pedidos_sin_factura?: number | null
+          sincronizado_en?: string
+          suma_diferencias?: number | null
+          tipo?: string
+          total_con_iva?: number | null
+          tranid?: string
+          validado_en?: string | null
+        }
+        Relationships: []
+      }
+      ajuste_facturacion_pedido: {
+        Row: {
+          activo: boolean
+          marcado_en: string
+          marcado_por: string | null
+          nota: string | null
+          origen: string
+          pedido: string
+          tranid: string
+        }
+        Insert: {
+          activo?: boolean
+          marcado_en?: string
+          marcado_por?: string | null
+          nota?: string | null
+          origen: string
+          pedido: string
+          tranid: string
+        }
+        Update: {
+          activo?: boolean
+          marcado_en?: string
+          marcado_por?: string | null
+          nota?: string | null
+          origen?: string
+          pedido?: string
+          tranid?: string
+        }
+        Relationships: []
+      }
       allocation_reglas_origen: {
         Row: {
           location_id: string
@@ -1544,6 +1622,7 @@ export type Database = {
           numero_factura: string | null
           numero_pos: string | null
           origen: string
+          referencia: string | null
           shopify_order_id: string | null
           shopify_order_number: string | null
           tipo_discrepancia: string | null
@@ -1573,6 +1652,7 @@ export type Database = {
           numero_factura?: string | null
           numero_pos?: string | null
           origen?: string
+          referencia?: string | null
           shopify_order_id?: string | null
           shopify_order_number?: string | null
           tipo_discrepancia?: string | null
@@ -1602,6 +1682,7 @@ export type Database = {
           numero_factura?: string | null
           numero_pos?: string | null
           origen?: string
+          referencia?: string | null
           shopify_order_id?: string | null
           shopify_order_number?: string | null
           tipo_discrepancia?: string | null
@@ -4504,6 +4585,19 @@ export type Database = {
         }
         Relationships: []
       }
+      v_facturado_pedido: {
+        Row: {
+          cufe: string | null
+          facturas_asociadas: number | null
+          fecha_factura: string | null
+          numero_factura: string | null
+          numero_pos: string | null
+          pedido: string | null
+          regla: string | null
+          valor_facturado: number | null
+        }
+        Relationships: []
+      }
       v_inv_ejec_base: {
         Row: {
           bodega: string | null
@@ -4694,6 +4788,15 @@ export type Database = {
           subsidiaria: number
           ubicacion_destino: number
           ubicacion_origen: number
+        }[]
+      }
+      aplicar_ajustes_facturacion: {
+        Args: never
+        Returns: {
+          cuadran: number
+          documentos: number
+          no_cuadran: number
+          pedidos_marcados: number
         }[]
       }
       aplicar_conciliacion_netsuite: {
@@ -4945,6 +5048,19 @@ export type Database = {
       }
       cron_snapshot_netsuite: { Args: never; Returns: string }
       cruzar_addi_con_shopify: { Args: never; Returns: undefined }
+      desmarcar_pedido_ajustado: {
+        Args: { p_pedido: string }
+        Returns: undefined
+      }
+      diferencia_facturacion_pedidos: {
+        Args: { p_pedidos: string[] }
+        Returns: {
+          diferencia: number
+          facturado_con_iva: number
+          pedido: string
+          total_pedido: number
+        }[]
+      }
       encadenar_shopify_inventario: { Args: { p: Json }; Returns: number }
       equipo_tienda: {
         Args: { p_clave: string; p_fecha?: string }
@@ -5024,6 +5140,12 @@ export type Database = {
           relevancia: number
           responsable: string
           riesgo_margen: number
+        }[]
+      }
+      facturas_sin_referencia: {
+        Args: { p_desde: string }
+        Returns: {
+          numero_factura: string
         }[]
       }
       fecha_bogota: { Args: { p_offset_dias?: number }; Returns: string }
@@ -5353,6 +5475,10 @@ export type Database = {
           unidades: number
           venta: number
         }[]
+      }
+      marcar_pedido_ajustado: {
+        Args: { p_nota?: string; p_pedido: string; p_tranid: string }
+        Returns: undefined
       }
       mayorista_resolver_padres: { Args: never; Returns: number }
       mejor_dia_semana: {
@@ -6812,6 +6938,7 @@ export type Database = {
           p_zona?: string
         }
         Returns: {
+          ajuste_sugerido: string
           articulos: number
           canal: string
           colaborador: string
@@ -6819,20 +6946,25 @@ export type Database = {
           descuento: number
           dias_sin_facturar: number
           diferencia_facturacion: number
+          documento_ajuste: string
           emitida_dian: boolean
           es_gift_card: boolean
           estado_despacho: string
           estado_facturacion: string
           estado_pago: string
+          facturas_asociadas: number
           fecha_factura: string
           fecha_nota: string
           fecha_pedido: string
           impuesto: number
           metodo_pago: string
+          monto_ajuste: number
           nota_credito: string
           numero_factura: string
           numero_pos: string
+          origen_ajuste: string
           pedido: string
+          regla_factura: string
           sucursal: string
           tiene_nota: boolean
           valor_facturado: number
@@ -7343,6 +7475,7 @@ export type Database = {
         }[]
       }
       sincronizar_params_desde_tipo_tienda: { Args: never; Returns: number }
+      snapshot_netsuite_al_subir: { Args: never; Returns: string }
       snapshot_proyecciones_diario: { Args: never; Returns: number }
       sources_digitales: { Args: never; Returns: string[] }
       stock_general_por_producto: {
