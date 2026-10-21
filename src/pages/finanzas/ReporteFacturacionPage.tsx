@@ -1,7 +1,7 @@
 import { Fragment, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Download, CheckCircle2, AlertTriangle, Search, ArrowUpDown, ArrowUp, ArrowDown, ChevronDown, ChevronRight, FileClock, Landmark, Scale, ReceiptText } from "lucide-react";
+import { Download, CheckCircle2, AlertTriangle, Search, ArrowUpDown, ArrowUp, ArrowDown, ChevronDown, ChevronRight, BadgeCheck, FileClock, Landmark, Scale, ReceiptText } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { FinanzasLayout } from "./FinanzasLayout";
 import { Card, CardContent } from "@/components/ui/card";
@@ -63,19 +63,21 @@ const ORIGEN_AJUSTE: Record<string, { label: string; cls: string }> = {
   no_cuadra: { label: "No cuadra", cls: "bg-destructive/10 text-destructive border-destructive/30" },
 };
 
-type CardKey = "sin_ov" | "pendiente" | "diferencia" | "fallo_dian" | "sin_cufe" | "esperando" | "facturado" | "ajustado" | "ajuste_no_cuadra" | "no_pagados";
-type TabKey = "por_facturar" | "dian" | "diferencias" | "notas";
+type CardKey = "sin_ov" | "pendiente" | "diferencia" | "fallo_dian" | "en_proceso" | "sin_cufe" | "esperando" | "facturado" | "ajustado" | "ajuste_no_cuadra" | "no_pagados";
+type TabKey = "facturado" | "por_facturar" | "dian" | "diferencias" | "notas";
 const TABS: { key: TabKey; label: string }[] = [
+  { key: "facturado", label: "Facturado" },
   { key: "por_facturar", label: "Por facturar" },
   { key: "dian", label: "DIAN" },
   { key: "diferencias", label: "Diferencias y ajustes" },
   { key: "notas", label: "Notas crédito" },
 ];
-const TAB_STYLE: Record<TabKey, { icon: typeof FileClock; desc: string; text: string; active: string; bar: string }> = {
-  por_facturar: { icon: FileClock, desc: "Pedidos sin factura o sin orden de venta", text: "text-amber-600", active: "bg-amber-50 dark:bg-amber-950/30 border-amber-500", bar: "bg-amber-500" },
-  dian: { icon: Landmark, desc: "Facturas pendientes de validación", text: "text-blue-600", active: "bg-blue-50 dark:bg-blue-950/30 border-blue-500", bar: "bg-blue-500" },
-  diferencias: { icon: Scale, desc: "Diferencias de valor y documentos de ajuste", text: "text-violet-600", active: "bg-violet-50 dark:bg-violet-950/30 border-violet-500", bar: "bg-violet-500" },
-  notas: { icon: ReceiptText, desc: "Devoluciones y notas emitidas", text: "text-slate-600", active: "bg-slate-50 dark:bg-slate-900/40 border-slate-500", bar: "bg-slate-500" },
+const TAB_STYLE: Record<TabKey, { icon: typeof FileClock; text: string; bar: string; badge: string; ring: string }> = {
+  facturado: { icon: BadgeCheck, text: "text-emerald-600", bar: "bg-emerald-500", badge: "bg-emerald-100 text-emerald-800", ring: "ring-emerald-500" },
+  por_facturar: { icon: FileClock, text: "text-amber-600", bar: "bg-amber-500", badge: "bg-amber-100 text-amber-800", ring: "ring-amber-500" },
+  dian: { icon: Landmark, text: "text-blue-600", bar: "bg-blue-500", badge: "bg-blue-100 text-blue-800", ring: "ring-blue-500" },
+  diferencias: { icon: Scale, text: "text-violet-600", bar: "bg-violet-500", badge: "bg-violet-100 text-violet-800", ring: "ring-violet-500" },
+  notas: { icon: ReceiptText, text: "text-slate-600", bar: "bg-slate-500", badge: "bg-slate-200 text-slate-800", ring: "ring-slate-500" },
 };
 type SortKey = "estado_facturacion" | "fecha_pedido" | "venta_total" | "diferencia_facturacion";
 type SortDir = "asc" | "desc";
@@ -105,6 +107,7 @@ const CARD_ESTADO: Record<CardKey, (e: string) => boolean> = {
   pendiente: (e) => e === "PENDIENTE POR FACTURAR",
   diferencia: (e) => e === "Descuadre de valor",
   fallo_dian: (e) => e === "Fallo la emision a DIAN",
+  en_proceso: (e) => e === "Emision en proceso",
   sin_cufe: (e) => e === "Emision en proceso" || e === "Fallo la emision a DIAN",
   esperando: (e) => e === "Esperando despacho",
   facturado: (e) => e === "Facturado",
@@ -118,6 +121,7 @@ const ESTADO_POR_TARJETA: Record<CardKey, string> = {
   pendiente: "PENDIENTE POR FACTURAR",
   diferencia: "Descuadre de valor",
   fallo_dian: "Fallo la emision a DIAN",
+  en_proceso: "Emision en proceso",
   sin_cufe: "Sin CUFE",
   esperando: "Esperando despacho",
   facturado: "Facturado",
@@ -127,7 +131,7 @@ const ESTADO_POR_TARJETA: Record<CardKey, string> = {
 };
 
 const ESTADOS_FILTRO = [
-  "SIN ORDEN DE VENTA EN NETSUITE", "PENDIENTE POR FACTURAR", "Esperando despacho", "Sin CUFE", "Fallo la emision a DIAN", "Descuadre de valor",
+  "SIN ORDEN DE VENTA EN NETSUITE", "PENDIENTE POR FACTURAR", "Esperando despacho", "Sin CUFE", "Emision en proceso", "Fallo la emision a DIAN", "Descuadre de valor",
   "Anulado por nota credito", "Facturado", "Ajustado", "Ajuste no cuadra", "No pagados",
 ];
 
@@ -509,71 +513,58 @@ export default function ReporteFacturacionPage() {
     }
   };
 
-  const cards: { key: CardKey; title: string; cls: string }[] = [
-    { key: "sin_ov", title: "Sin orden de venta en NetSuite", cls: resumen.sin_ov.n > 0 ? "border-destructive bg-destructive/5 text-destructive" : "border-emerald-400 text-emerald-700" },
-    { key: "pendiente", title: "Pendientes por facturar", cls: "border-destructive/40 text-destructive" },
-    { key: "diferencia", title: "Diferencias de facturación", cls: "border-destructive/40 text-destructive" },
-    { key: "sin_cufe", title: "Sin CUFE", cls: sinCufeStats.nFallo > 0 ? "border-destructive/40 text-destructive" : "border-amber-400 text-amber-700" },
-    { key: "esperando", title: "Esperando despacho", cls: "text-muted-foreground" },
-    { key: "ajustado", title: "Ajustados", cls: "border-emerald-400 text-emerald-700" },
-    { key: "ajuste_no_cuadra", title: "Ajuste no cuadra", cls: resumen.ajuste_no_cuadra.n > 0 ? "border-destructive/40 text-destructive" : "text-muted-foreground" },
+  const cards: { key: CardKey; title: string; tone: string }[] = [
+    { key: "facturado", title: "Total facturado", tone: "text-emerald-700" },
+    { key: "no_pagados", title: "No pagados", tone: "text-muted-foreground" },
+    { key: "sin_ov", title: "Sin orden de venta en NetSuite", tone: resumen.sin_ov.n > 0 ? "text-destructive" : "text-emerald-700" },
+    { key: "pendiente", title: "Pendientes por facturar", tone: "text-destructive" },
+    { key: "diferencia", title: "Diferencias de facturación", tone: "text-destructive" },
+    { key: "en_proceso", title: "Emisión en proceso", tone: "text-amber-700" },
+    { key: "fallo_dian", title: "Falló emisión DIAN", tone: resumen.fallo_dian.n > 0 ? "text-destructive" : "text-muted-foreground" },
+    { key: "esperando", title: "Esperando despacho", tone: "text-muted-foreground" },
+    { key: "ajustado", title: "Ajustados", tone: "text-emerald-700" },
+    { key: "ajuste_no_cuadra", title: "Ajuste no cuadra", tone: resumen.ajuste_no_cuadra.n > 0 ? "text-destructive" : "text-muted-foreground" },
   ];
+
+  const flatCard = (o: { title: string; n: string; sub: React.ReactNode; tone: string; selected: boolean; onClick: () => void }) => (
+    <div key={o.title} role="button" tabIndex={0} onClick={o.onClick}
+      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); o.onClick(); } }}
+      className={cn("group cursor-pointer rounded-lg border bg-muted/30 p-3 transition-colors hover:bg-muted/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring", o.selected && cn("ring-2", TAB_STYLE[tab].ring))}>
+      <div className="flex items-start justify-between gap-2">
+        <p className="text-xs font-medium">{o.title}</p>
+        <span className="text-[10px] text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 whitespace-nowrap">Ver pedidos →</span>
+      </div>
+      <p className={cn("text-2xl font-semibold tabular-nums", o.tone)}>{o.n}</p>
+      <div className="text-xs text-muted-foreground tabular-nums">{o.sub}</div>
+    </div>
+  );
 
   const renderCard = (key: CardKey) => {
     const c = cards.find((x) => x.key === key)!;
-    return (
-      <Card key={c.key} onClick={() => {
+    const sub = c.key === "sin_ov"
+      ? (resumen.sin_ov.n > 0 ? `Pedido pagado que no entró a NetSuite (más de 2 h) · ${fmtCOP(resumen.sin_ov.v)}` : "Todos los pedidos entraron a NetSuite")
+      : c.key === "diferencia" ? `${fmtCOP(resumen[c.key].d)} en diferencias` : `${fmtCOP(resumen[c.key].v)} venta neta`;
+    return flatCard({
+      title: c.title, n: fmtInt(resumen[c.key].n), sub, tone: c.tone,
+      selected: vista === "pedidos" && cardFiltro === c.key,
+      onClick: () => {
         setCardFiltro(cardFiltro === c.key ? null : c.key);
         if (c.key !== "pendiente") setSoloPend(false);
         setVista("pedidos");
-      }}
-        className={cn("cursor-pointer transition-shadow hover:shadow-md", c.cls, vista === "pedidos" && cardFiltro === c.key && "ring-2 ring-primary")}>
-        <CardContent className="p-4">
-          <p className="text-xs font-medium">{c.title}</p>
-          <p className="text-2xl font-semibold tabular-nums">{fmtInt(resumen[c.key].n)}</p>
-          {c.key === "sin_ov" ? (
-            <p className="text-xs text-muted-foreground">{resumen.sin_ov.n > 0 ? `Pedido pagado que no entró a NetSuite (más de 2 h) · ${fmtCOP(resumen.sin_ov.v)}` : "Todos los pedidos entraron a NetSuite"}</p>
-          ) : c.key === "sin_cufe" ? (
-            <>
-              <p className="text-xs text-muted-foreground tabular-nums">{fmtCOP(resumen[c.key].v)} venta neta</p>
-              <p className="text-xs text-muted-foreground tabular-nums">{fmtInt(sinCufeStats.nProceso)} en proceso · {fmtInt(sinCufeStats.nFallo)} con fallo</p>
-            </>
-          ) : (
-            <p className="text-xs text-muted-foreground tabular-nums">{c.key === "diferencia" ? `${fmtCOP(resumen[c.key].d)} en diferencias` : `${fmtCOP(resumen[c.key].v)} venta neta`}</p>
-          )}
-        </CardContent>
-      </Card>
-    );
+      },
+    });
   };
 
   const contadores: Record<TabKey, number> = {
+    facturado: resumen.facturado.n,
     por_facturar: resumen.sin_ov.n + resumen.pendiente.n + sfStats.total,
     dian: resumen.sin_cufe.n,
     diferencias: resumen.diferencia.n + resumen.ajuste_no_cuadra.n,
     notas: notasFilt.length,
   };
-  const montosTab: Record<TabKey, number | null> = {
-    por_facturar: resumen.sin_ov.v + resumen.pendiente.v + sfStats.montoTotal,
-    dian: resumen.sin_cufe.v,
-    diferencias: resumen.diferencia.d + resumen.ajuste_no_cuadra.d,
-    notas: notasFilt.reduce((a, r) => a + Number(r.monto_con_iva ?? 0), 0),
-  };
   const tabUrl = searchParams.get("tab") as TabKey | null;
-  const tabValida = tabUrl && TABS.some((t) => t.key === tabUrl) ? tabUrl : null;
-  const datosTabsListos = resumenQ.isSuccess && sinFacturarQ.isSuccess;
-  const tabAuto: TabKey = (["por_facturar", "dian", "diferencias"] as TabKey[]).find((k) => contadores[k] > 0) ?? "por_facturar";
-  const tab: TabKey = tabValida ?? (datosTabsListos ? tabAuto : "por_facturar");
-  const [tabFijada, setTabFijada] = useState(!!tabValida);
-  useEffect(() => {
-    if (tabFijada || !datosTabsListos) return;
-    setTabFijada(true);
-    const next = new URLSearchParams(searchParams);
-    next.set("tab", tabAuto);
-    setSearchParams(next, { replace: true });
-    if (tabAuto === "notas") setVista("notas");
-  }, [datosTabsListos]); // eslint-disable-line react-hooks/exhaustive-deps
+  const tab: TabKey = tabUrl && TABS.some((t) => t.key === tabUrl) ? tabUrl : "por_facturar";
   const cambiarTab = (t: TabKey) => {
-    setTabFijada(true);
     const next = new URLSearchParams(searchParams);
     next.set("tab", t);
     next.delete("estado");
@@ -728,80 +719,65 @@ export default function ReporteFacturacionPage() {
           </div>
         </div>
 
-        {resumenQ.isLoading ? <LoadingState rows={0} /> : (
-          <div>
-            <div role="tablist" aria-label="Secciones del reporte" className="flex md:grid md:grid-cols-2 lg:grid-cols-4 gap-3 overflow-x-auto pb-1">
-              {TABS.map((t, idx) => {
-                const st = TAB_STYLE[t.key];
-                const Icon = st.icon;
-                const activa = tab === t.key;
-                const n = contadores[t.key];
-                const conColor = n > 0;
-                const monto = montosTab[t.key];
-                return (
-                  <button
-                    key={t.key}
-                    id={`tab-${t.key}`}
-                    type="button"
-                    role="tab"
-                    aria-selected={activa}
-                    tabIndex={activa ? 0 : -1}
-                    onClick={() => cambiarTab(t.key)}
-                    onKeyDown={(e) => {
-                      if (e.key !== "ArrowRight" && e.key !== "ArrowLeft") return;
-                      e.preventDefault();
-                      const sig = TABS[(idx + (e.key === "ArrowRight" ? 1 : TABS.length - 1)) % TABS.length].key;
-                      cambiarTab(sig);
-                      document.getElementById(`tab-${sig}`)?.focus();
-                    }}
-                    className={cn(
-                      "relative min-w-[220px] md:min-w-0 overflow-hidden text-left rounded-xl border bg-card p-4 transition-all duration-200 cursor-pointer hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
-                      activa && cn("border-[1.5px] shadow-sm hover:bg-transparent", st.active),
-                    )}
-                  >
-                    <div className="flex items-center gap-2">
-                      <Icon className={cn("h-4 w-4", conColor ? st.text : "text-muted-foreground")} />
-                      <span className="text-sm font-medium">{t.label}</span>
-                    </div>
-                    <div className="mt-2 flex items-baseline gap-2">
-                      <span className={cn("text-2xl font-semibold tabular-nums", conColor ? st.text : "text-muted-foreground")}>{fmtInt(n)}</span>
-                      {monto != null && <span className="text-xs text-muted-foreground tabular-nums">{fmtCOP(monto)}</span>}
-                    </div>
-                    <p className="mt-1 text-xs text-muted-foreground">{st.desc}</p>
-                    {activa && <span className={cn("absolute inset-x-0 bottom-0 h-[3px]", st.bar)} />}
-                  </button>
-                );
-              })}
-            </div>
-            {tab !== "notas" && (
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-2 mt-4">
+        <div>
+          <div role="tablist" aria-label="Secciones del reporte" className="flex gap-1 border-b-2 border-border overflow-x-auto">
+            {TABS.map((t, idx) => {
+              const st = TAB_STYLE[t.key];
+              const Icon = st.icon;
+              const activa = tab === t.key;
+              return (
+                <button
+                  key={t.key}
+                  id={`tab-${t.key}`}
+                  type="button"
+                  role="tab"
+                  aria-selected={activa}
+                  aria-controls="panel-facturacion"
+                  tabIndex={activa ? 0 : -1}
+                  onClick={() => cambiarTab(t.key)}
+                  onKeyDown={(e) => {
+                    if (e.key !== "ArrowRight" && e.key !== "ArrowLeft") return;
+                    e.preventDefault();
+                    const sig = TABS[(idx + (e.key === "ArrowRight" ? 1 : TABS.length - 1)) % TABS.length].key;
+                    cambiarTab(sig);
+                    document.getElementById(`tab-${sig}`)?.focus();
+                  }}
+                  className={cn(
+                    "relative -mb-[2px] flex shrink-0 items-center gap-2 whitespace-nowrap rounded-t-lg border-2 px-5 py-3 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                    activa
+                      ? "bg-card border-border border-b-card text-foreground font-semibold"
+                      : "border-transparent text-muted-foreground hover:text-foreground hover:bg-muted/50",
+                  )}
+                >
+                  {activa && <span className={cn("absolute inset-x-0 top-0 h-[3px] rounded-t-lg", st.bar)} />}
+                  <Icon className={cn("h-4 w-4", activa && st.text)} />
+                  {t.label}
+                  <span className={cn("rounded-full px-2 py-0.5 text-xs font-semibold tabular-nums", activa ? st.badge : "bg-muted text-muted-foreground")}>
+                    {fmtInt(contadores[t.key])}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+          <div id="panel-facturacion" role="tabpanel" aria-labelledby={`tab-${tab}`} className="rounded-b-xl rounded-tr-xl border-2 border-t-0 border-border bg-card p-4">
+            {tab !== "notas" && (resumenQ.isLoading ? <LoadingState rows={0} /> : (
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-2">
+                {tab === "facturado" && (<>
+                  {renderCard("facturado")}{renderCard("no_pagados")}
+                </>)}
                 {tab === "por_facturar" && (<>
                   {renderCard("sin_ov")}{renderCard("pendiente")}{renderCard("esperando")}
-                  <Card onClick={() => { setVista(vista === "ordenes" ? "pedidos" : "ordenes"); setCardFiltro(null); }}
-                    className={cn("cursor-pointer transition-shadow hover:shadow-md", sfStats.mas7 > 0 ? "border-destructive/40 text-destructive" : "text-muted-foreground", vista === "ordenes" && "ring-2 ring-primary")}>
-                    <CardContent className="p-4">
-                      <p className="text-xs font-medium">Órdenes sin facturar</p>
-                      <p className="text-2xl font-semibold tabular-nums">{fmtInt(sfStats.total)}</p>
-                      <p className="text-xs text-muted-foreground tabular-nums">{fmtCOP(sfStats.montoTotal)}</p>
-                    </CardContent>
-                  </Card>
+                  {flatCard({ title: "Órdenes sin facturar", n: fmtInt(sfStats.total), sub: fmtCOP(sfStats.montoTotal), tone: sfStats.mas7 > 0 ? "text-destructive" : "text-muted-foreground", selected: vista === "ordenes", onClick: () => { setVista(vista === "ordenes" ? "pedidos" : "ordenes"); setCardFiltro(null); } })}
                 </>)}
-                {tab === "dian" && renderCard("sin_cufe")}
+                {tab === "dian" && (<>
+                  {renderCard("en_proceso")}{renderCard("fallo_dian")}
+                </>)}
                 {tab === "diferencias" && (<>
                   {renderCard("diferencia")}{renderCard("ajuste_no_cuadra")}{renderCard("ajustado")}
-                  <Card onClick={() => { setVista(vista === "ajustes" ? "pedidos" : "ajustes"); setCardFiltro(null); }}
-                    className={cn("cursor-pointer transition-shadow hover:shadow-md text-muted-foreground", vista === "ajustes" && "ring-2 ring-primary")}>
-                    <CardContent className="p-4">
-                      <p className="text-xs font-medium">Documentos de ajuste</p>
-                      <p className="text-2xl font-semibold tabular-nums">{docsQ.isLoading ? "…" : fmtInt(docsFiltradosBase.length)}</p>
-                      <p className="text-xs text-muted-foreground tabular-nums">{fmtInt(docsFiltradosBase.filter((d) => !d.cuadra).length)} no cuadran</p>
-                    </CardContent>
-                  </Card>
+                  {flatCard({ title: "Documentos de ajuste", n: docsQ.isLoading ? "…" : fmtInt(docsFiltradosBase.length), sub: `${fmtInt(docsFiltradosBase.filter((d) => !d.cuadra).length)} no cuadran`, tone: "text-muted-foreground", selected: vista === "ajustes", onClick: () => { setVista(vista === "ajustes" ? "pedidos" : "ajustes"); setCardFiltro(null); } })}
                 </>)}
               </div>
-            )}
-          </div>
-        )}
+            ))}
 
         {vista === "ordenes" ? (
           <div className="mt-4">
@@ -1137,6 +1113,8 @@ export default function ReporteFacturacionPage() {
           </div>
         )}
         </>)}
+          </div>
+        </div>
       </FinanzasLayout>
     </TooltipProvider>
   );
