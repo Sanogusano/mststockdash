@@ -79,6 +79,12 @@ const TAB_STYLE: Record<TabKey, { icon: typeof FileClock; text: string; bar: str
   diferencias: { icon: Scale, text: "text-violet-600", bar: "bg-violet-500", badge: "bg-violet-100 text-violet-800", ring: "ring-violet-500" },
   notas: { icon: ReceiptText, text: "text-slate-600", bar: "bg-slate-500", badge: "bg-slate-200 text-slate-800", ring: "ring-slate-500" },
 };
+const ESTADOS_TAB: Partial<Record<TabKey, string[]>> = {
+  facturado: ["Facturado"],
+  por_facturar: ["SIN ORDEN DE VENTA EN NETSUITE", "PENDIENTE POR FACTURAR", "Esperando despacho"],
+  dian: ["Emision en proceso", "Fallo la emision a DIAN"],
+  diferencias: ["Descuadre de valor", "Ajuste no cuadra", "Ajustado"],
+};
 type SortKey = "estado_facturacion" | "fecha_pedido" | "venta_total" | "diferencia_facturacion";
 type SortDir = "asc" | "desc";
 
@@ -203,6 +209,9 @@ export default function ReporteFacturacionPage() {
     ? ((Object.keys(ESTADO_POR_TARJETA) as CardKey[]).find((x) => ESTADO_POR_TARJETA[x] === estado) ?? null)
     : null;
   const setCardFiltro = (k: CardKey | null) => setEstado(k ? ESTADO_POR_TARJETA[k] : null);
+  const tabParam = searchParams.get("tab") as TabKey | null;
+  const tab: TabKey = tabParam && TABS.some((t) => t.key === tabParam) ? tabParam : "por_facturar";
+  const estadosTab: string[] | null = estado ? null : (ESTADOS_TAB[tab] ?? null);
   const [page, setPage] = useState(1);
   const [sortKey, setSortKey] = useState<SortKey>("fecha_pedido");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
@@ -268,14 +277,15 @@ export default function ReporteFacturacionPage() {
   });
 
   const buildQuery = () => {
-    return (supabase.rpc as any)("reporte_pendientes_facturacion", {
+    const qb = (supabase.rpc as any)("reporte_pendientes_facturacion", {
       p_desde: desde, p_hasta: hasta, p_solo_pendientes: soloPend, p_canal: pCanal,
       p_zona: pZona, p_location_id: pLocationId, p_estado: pEstado, p_buscar: s || null,
     });
+    return estadosTab ? qb.in("estado_facturacion", estadosTab) : qb;
   };
 
   const q = useQuery({
-    queryKey: ["reporte-facturacion", desde, hasta, soloPend, pCanal, pZona, pLocationId, pEstado, s, page, sortKey, sortDir],
+    queryKey: ["reporte-facturacion", tab, desde, hasta, soloPend, pCanal, pZona, pLocationId, pEstado, s, page, sortKey, sortDir],
     queryFn: async () => {
       const qb = buildQuery().order(sortKey, { ascending: sortDir === "asc", nullsFirst: false }).order("pedido", { ascending: true });
       const { data, error } = s ? await qb.range(0, TOPE - 1) : await qb.range((page - 1) * PAGE, (page - 1) * PAGE + PAGE - 1);
@@ -433,9 +443,10 @@ export default function ReporteFacturacionPage() {
   const totalPedidos = useMemo(() => {
     if (cardFiltro) return resumen[cardFiltro].n;
     if (estado) return (resumenQ.data ?? []).filter((r) => r.estado_facturacion === estado).reduce((a, r) => a + Number(r.pedidos ?? 0), 0);
+    if (estadosTab) return (resumenQ.data ?? []).filter((r) => estadosTab.includes(r.estado_facturacion) && (!soloPend || r.estado_facturacion === "PENDIENTE POR FACTURAR")).reduce((a, r) => a + Number(r.pedidos ?? 0), 0);
     if (soloPend) return resumen.pendiente.n;
     return (resumenQ.data ?? []).filter((r) => r.estado_facturacion !== "No pagados").reduce((a, r) => a + Number(r.pedidos ?? 0), 0);
-  }, [resumen, resumenQ.data, cardFiltro, estado, soloPend]);
+  }, [resumen, resumenQ.data, cardFiltro, estado, soloPend, estadosTab]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const filasCargadas = q.data ?? [];
   const topeAlcanzado = !!s && filasCargadas.length >= TOPE;
@@ -562,8 +573,6 @@ export default function ReporteFacturacionPage() {
     diferencias: resumen.diferencia.n + resumen.ajuste_no_cuadra.n,
     notas: notasFilt.length,
   };
-  const tabUrl = searchParams.get("tab") as TabKey | null;
-  const tab: TabKey = tabUrl && TABS.some((t) => t.key === tabUrl) ? tabUrl : "por_facturar";
   const cambiarTab = (t: TabKey) => {
     const next = new URLSearchParams(searchParams);
     next.set("tab", t);
@@ -720,7 +729,7 @@ export default function ReporteFacturacionPage() {
         </div>
 
         <div>
-          <div role="tablist" aria-label="Secciones del reporte" className="flex gap-1 border-b-2 border-border overflow-x-auto">
+          <div role="tablist" aria-label="Secciones del reporte" className="flex flex-nowrap gap-1 border-b-2 border-border overflow-x-auto md:overflow-visible [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             {TABS.map((t, idx) => {
               const st = TAB_STYLE[t.key];
               const Icon = st.icon;
@@ -743,9 +752,9 @@ export default function ReporteFacturacionPage() {
                     document.getElementById(`tab-${sig}`)?.focus();
                   }}
                   className={cn(
-                    "relative -mb-[2px] flex shrink-0 items-center gap-2 whitespace-nowrap rounded-t-lg border-2 px-5 py-3 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                    "relative flex shrink-0 items-center gap-2 whitespace-nowrap rounded-t-lg border-2 px-3 xl:px-5 py-3 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                     activa
-                      ? "bg-card border-border border-b-card text-foreground font-semibold"
+                      ? "top-[2px] bg-card border-border border-b-card text-foreground font-semibold"
                       : "border-transparent text-muted-foreground hover:text-foreground hover:bg-muted/50",
                   )}
                 >
