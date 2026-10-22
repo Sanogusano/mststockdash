@@ -7,6 +7,7 @@ export interface Lote {
   aprobado_en: string | null;
   netsuite_completo_en: string | null;
   shopify_fin_en: string | null;
+  lote_revertido_id?: number | null;
 }
 
 export interface LoteItem {
