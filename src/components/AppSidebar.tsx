@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { LineChart, BarChart3, TrendingUp, ArrowLeftRight, Package, Tag, Layers, Target, Zap, Trophy, Archive, Users, Calculator, UserCog, Briefcase, ChevronDown, Settings, MapPin, Upload, LogOut, Truck, Shield, Store, Banknote, LayoutDashboard, CreditCard, MessageCircle, AlertTriangle, RefreshCw, Sparkles, Search, LayoutGrid, TrendingDown, Globe, Gauge, ScatterChart, Siren, Database, Split, Activity, Scale, HeartPulse, FileText } from "lucide-react";
+import { LineChart, BarChart3, TrendingUp, ArrowLeftRight, Package, Tag, Layers, Target, Zap, Trophy, Archive, Users, Calculator, UserCog, Briefcase, ChevronDown, Settings, MapPin, Upload, LogOut, Truck, Shield, Store, Banknote, LayoutDashboard, CreditCard, MessageCircle, AlertTriangle, RefreshCw, Sparkles, Search, LayoutGrid, TrendingDown, Globe, Gauge, ScatterChart, Siren, Database, Split, Activity, Scale, HeartPulse, FileText, Tags } from "lucide-react";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useAuth } from "@/hooks/useAuth";
 import { useUserPermissions } from "@/hooks/useUserPermissions";
@@ -129,6 +129,7 @@ const ecommerceItems: NavItem[] = [
   { title: "Pendientes de Facturación", url: "/finanzas/reporte-facturacion", icon: LayoutDashboard, description: "Pedidos pendientes por facturar", module: "role:admin,finanzas,gerencia,logistica", action: "view" },
   { title: "Agotados", url: "/ecommerce/agotados", icon: AlertTriangle, description: "Faltantes en pedidos y traslados", module: "role:admin,finanzas,gerencia,logistica", action: "view" },
   { title: "Integración NetSuite", url: "/ecommerce/integracion-netsuite", icon: Database, description: "Pedidos sin SO y SO de cancelados", module: "role:admin,finanzas,gerencia,logistica", action: "view" },
+  { title: "Precios Ecommerce", url: "/ecommerce/precios", icon: Tags, description: "Monitor de precios y descuentos", module: "role:admin,finanzas,gerencia,logistica", action: "view" },
   { title: "Reporte de Rebajas", url: "/reporte-rebajas", icon: Tag, description: "Productos con precio rebajado", module: "role:admin,finanzas,gerencia,logistica", action: "view" },
   { title: "Salud de Publicación", url: "/salud-publicacion", icon: Globe, description: "Diagnóstico del canal online", module: "role:admin,finanzas,gerencia,logistica", action: "view" },
 ];
