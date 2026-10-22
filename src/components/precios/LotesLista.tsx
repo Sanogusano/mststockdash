@@ -6,6 +6,7 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { LoadingState } from "@/components/dashboard/LoadingState";
 import { cn } from "@/lib/utils";
+import { PasosLote, PasoBadge } from "./PasosLote";
 import { ESTADO_LOTE, Lote, fechaHoraLote } from "./lotes";
 
 export function LotesLista({ onOpen }: { onOpen: (id: number) => void }) {
@@ -44,6 +45,7 @@ export function LotesLista({ onOpen }: { onOpen: (id: number) => void }) {
 
   return (
     <div className="space-y-3">
+      <PasosLote />
       <div className="flex items-center gap-2 text-xs">
         <Switch id="ver-canc" checked={verCancelados} onCheckedChange={setVerCancelados} />
         <Label htmlFor="ver-canc" className="text-xs">Ver cancelados</Label>
@@ -52,20 +54,21 @@ export function LotesLista({ onOpen }: { onOpen: (id: number) => void }) {
         <table className="w-full min-w-[1100px] text-xs">
           <thead className="bg-muted/50 text-muted-foreground">
             <tr className="text-left">
-              <th className="px-2 py-2">#</th><th className="px-2 py-2">Nombre</th><th className="px-2 py-2">Estado</th>
+              <th className="px-2 py-2">#</th><th className="px-2 py-2">Nombre</th><th className="px-2 py-2">Paso</th><th className="px-2 py-2">Estado</th>
               <th className="px-2 py-2">Notas</th><th className="px-2 py-2">Creado</th><th className="px-2 py-2">Aprobado</th>
               <th className="px-2 py-2">NetSuite completo</th><th className="px-2 py-2">Shopify fin</th>
               <th className="px-2 py-2 text-right">NetSuite</th><th className="px-2 py-2 text-right">Shopify</th>
             </tr>
           </thead>
           <tbody>
-            {rows.length === 0 && <tr><td colSpan={10} className="p-6 text-center text-muted-foreground">Sin lotes</td></tr>}
+            {rows.length === 0 && <tr><td colSpan={11} className="p-6 text-center text-muted-foreground">Sin lotes</td></tr>}
             {rows.map((l) => {
               const e = ESTADO_LOTE[l.estado];
               return (
                 <tr key={l.id} className="border-t hover:bg-muted/30 cursor-pointer" onClick={() => onOpen(l.id)}>
                   <td className="px-2 py-2 tabular-nums text-muted-foreground">{l.id}</td>
                   <td className="px-2 py-2 font-medium">{l.nombre}</td>
+                  <td className="px-2 py-2"><PasoBadge estado={l.estado} /></td>
                   <td className="px-2 py-2"><Badge variant="outline" className={cn("text-[10px]", e?.cls)}>{e?.label ?? l.estado}</Badge></td>
                   <td className="px-2 py-2 max-w-[260px] truncate" title={l.notas ?? ""}>{l.notas ?? "—"}</td>
                   <td className="px-2 py-2 whitespace-nowrap">{fechaHoraLote(l.creado_en)}</td>

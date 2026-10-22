@@ -1,20 +1,27 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { ESTADO_LOTE } from "@/components/precios/lotes";
+import { cn } from "@/lib/utils";
 
 export const LOTES_PRECIO_KEY = "estado-lotes-precio";
 
-interface LoteLog { id: number; netsuite?: unknown; ns_ok?: number; ns_total?: number; shopify_productos_aplicados?: number; shopify_pendientes?: number; error?: string | null }
+interface LoteLog {
+  id: number;
+  estado_inicial?: string;
+  estado_final?: string;
+  netsuite?: string;
+  shopify_productos_aplicados?: number;
+  shopify_productos_fallidos?: number;
+  shopify_pendientes?: number;
+  continua_en_proxima_corrida?: boolean;
+  error?: string | null;
+}
 
 const fechaHora = (d: string) => new Date(d).toLocaleString("es-CO", { timeZone: "America/Bogota", day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit", hour12: false });
-const ns = (l: LoteLog) => {
-  const v = l.netsuite as any;
-  if (typeof v === "string") return v;
-  if (v && typeof v === "object") return `${v.ok ?? v.x ?? "?"}/${v.total ?? v.y ?? "?"}`;
-  if (l.ns_ok != null) return `${l.ns_ok}/${l.ns_total ?? "?"}`;
-  return "—";
-};
+const EstadoB = ({ e }: { e?: string }) => e ? <Badge variant="outline" className={cn("text-[10px]", ESTADO_LOTE[e]?.cls)}>{ESTADO_LOTE[e]?.label ?? e}</Badge> : <span className="text-muted-foreground">—</span>;
 
 export function LotesPrecioCard() {
   const q = useQuery({
@@ -26,8 +33,10 @@ export function LotesPrecioCard() {
       return data as { ultima_ejecucion: string; duracion_ms: number | null; detalle: any } | null;
     },
   });
-  const lotes: LoteLog[] = Array.isArray(q.data?.detalle?.lotes) ? q.data!.detalle.lotes : [];
-  const errores: unknown[] = Array.isArray(q.data?.detalle?.errores) ? q.data!.detalle.errores : [];
+  const det = q.data?.detalle ?? null;
+  const lotes: LoteLog[] = Array.isArray(det?.lotes) ? det.lotes : [];
+  const errores: unknown[] = Array.isArray(det?.errores) ? det.errores : [];
+  const sinLotes = q.data && (det?.sin_lotes === true || lotes.length === 0);
 
   return (
     <Card>
@@ -42,17 +51,29 @@ export function LotesPrecioCard() {
             {errores.map((e, i) => <li key={i}>{typeof e === "string" ? e : JSON.stringify(e)}</li>)}
           </ul>
         )}
+        {sinLotes && <p className="text-sm">Sin lotes en proceso</p>}
         {lotes.length > 0 && (
-          <Table>
-            <TableHeader><TableRow><TableHead>Lote</TableHead><TableHead>NetSuite</TableHead><TableHead className="text-right">Shopify aplicados</TableHead><TableHead className="text-right">Shopify pendientes</TableHead><TableHead>Error</TableHead></TableRow></TableHeader>
+          <Table className="text-xs">
+            <TableHeader><TableRow>
+              <TableHead>Lote</TableHead><TableHead>Estado</TableHead><TableHead>NetSuite</TableHead>
+              <TableHead className="text-right">Shopify aplicados</TableHead><TableHead className="text-right">Fallidos</TableHead>
+              <TableHead className="text-right">Pendientes</TableHead><TableHead>Nota</TableHead>
+            </TableRow></TableHeader>
             <TableBody>
               {lotes.map((l) => (
                 <TableRow key={l.id}>
                   <TableCell className="font-medium">#{l.id}</TableCell>
-                  <TableCell className="tabular-nums">{ns(l)}</TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-1"><EstadoB e={l.estado_inicial} />{l.estado_final && l.estado_final !== l.estado_inicial && <>→ <EstadoB e={l.estado_final} /></>}</div>
+                  </TableCell>
+                  <TableCell className="tabular-nums">{l.netsuite ?? "—"}</TableCell>
                   <TableCell className="text-right tabular-nums">{l.shopify_productos_aplicados ?? "—"}</TableCell>
+                  <TableCell className={cn("text-right tabular-nums", (l.shopify_productos_fallidos ?? 0) > 0 && "font-semibold text-red-600")}>{l.shopify_productos_fallidos ?? "—"}</TableCell>
                   <TableCell className="text-right tabular-nums">{l.shopify_pendientes ?? "—"}</TableCell>
-                  <TableCell className="text-xs text-destructive">{l.error ?? ""}</TableCell>
+                  <TableCell className="text-xs">
+                    {l.continua_en_proxima_corrida && <div className="text-muted-foreground">Continúa en la próxima corrida</div>}
+                    {l.error && <div className="text-destructive">{l.error}</div>}
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>

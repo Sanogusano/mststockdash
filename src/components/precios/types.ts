@@ -44,3 +44,36 @@ export const cop = (n: number | null | undefined) =>
   n == null ? "—" : `$ ${Math.round(Number(n)).toLocaleString("es-CO")}`;
 export const pct = (n: number | null | undefined) => (n == null ? "—" : `${Math.round(Number(n) * 100)}%`);
 export const num = (n: number | null | undefined) => (n == null ? "—" : Math.round(Number(n)).toLocaleString("es-CO"));
+
+SUGERENCIAS.mantener = { label: "Mantener", card: "Mantener", badge: "bg-muted text-muted-foreground border-border", ring: "ring-muted-foreground" };
+SUGERENCIAS.revisar = { label: "Revisar", card: "Revisar", badge: "bg-violet-100 text-violet-800 border-violet-300", ring: "ring-violet-500" };
+SUGERENCIAS.no_admite.label = "No admite más";
+
+export type AccionLote = "subir" | "fijar" | "quitar" | "sugerido";
+
+/** Precio nuevo = round(precio_lista × (1 − dcto) / 1000) × 1000 */
+export const precioConDcto = (precioLista: number, dcto: number) =>
+  Math.round((precioLista * (1 - dcto)) / 1000) * 1000;
+
+/** Margen = 1 − costo / (precio / 1.19) */
+export const margenDe = (costo: number | null, precio: number) =>
+  costo == null || precio <= 0 ? null : 1 - costo / (precio / 1.19);
+
+/** Descuento resultante de una acción para una fila (null = no aplica) */
+export function dctoNuevo(r: Pick<PrecioRow, "dcto_actual" | "dcto_sugerido">, accion: AccionLote, valor: number): number | null {
+  if (accion === "quitar") return 0;
+  if (accion === "fijar") return valor / 100;
+  if (accion === "subir") return Math.min(0.95, Number(r.dcto_actual ?? 0) + valor / 100);
+  return r.dcto_sugerido == null ? null : Number(r.dcto_sugerido);
+}
+
+export type CambioRdv = { tipo: "na" } | { tipo: "pronto" } | { tipo: "nuevo" } | { tipo: "pct"; v: number };
+export function cambioRdv(r: Pick<PrecioRow, "dcto_actual" | "efecto" | "rdv_antes" | "rdv_desde" | "inicio_rebaja">): CambioRdv {
+  if (!r.dcto_actual || Number(r.dcto_actual) <= 0) return { tipo: "na" };
+  if (r.efecto === "muy_pronto" || r.efecto === "muy pronto") return { tipo: "pronto" };
+  const a = r.rdv_antes == null ? null : Number(r.rdv_antes);
+  const d = r.rdv_desde == null ? null : Number(r.rdv_desde);
+  if (a == null || d == null) return { tipo: "na" };
+  if (a === 0) return d > 0 ? { tipo: "nuevo" } : { tipo: "na" };
+  return { tipo: "pct", v: (d - a) / a };
+}
