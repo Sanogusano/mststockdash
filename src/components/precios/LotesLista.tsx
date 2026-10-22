@@ -6,7 +6,7 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { LoadingState } from "@/components/dashboard/LoadingState";
 import { cn } from "@/lib/utils";
-import { PasosLote, PasoBadge } from "./PasosLote";
+import { PasoBadge } from "./PasosLote";
 import { ESTADO_LOTE, Lote, fechaHoraLote } from "./lotes";
 
 export function LotesLista({ onOpen }: { onOpen: (id: number) => void }) {
@@ -45,7 +45,6 @@ export function LotesLista({ onOpen }: { onOpen: (id: number) => void }) {
 
   return (
     <div className="space-y-3">
-      <PasosLote />
       <div className="flex items-center gap-2 text-xs">
         <Switch id="ver-canc" checked={verCancelados} onCheckedChange={setVerCancelados} />
         <Label htmlFor="ver-canc" className="text-xs">Ver cancelados</Label>

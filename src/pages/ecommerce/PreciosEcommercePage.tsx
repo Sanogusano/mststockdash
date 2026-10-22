@@ -3,7 +3,6 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useSearchParams } from "react-router-dom";
 import { useUserRole } from "@/hooks/useUserRole";
 import { CrearLoteDialog, ModoLote } from "@/components/precios/CrearLoteDialog";
-import { PasosLote } from "@/components/precios/PasosLote";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { LotesLista } from "@/components/precios/LotesLista";
@@ -225,7 +224,6 @@ export default function PreciosEcommercePage() {
               <Button type="button" variant="link" size="sm" className="h-auto p-0 text-xs" onClick={() => setF({ ...f, sugerencia: "todas" })}>Quitar filtro de sugerencia</Button>
             )}
 
-            <PasosLote />
 
             {error ? <div className="rounded-md border border-destructive/40 bg-destructive/5 p-3 text-sm text-destructive">{error.message}</div>
               : loading ? <LoadingState />
@@ -234,7 +232,7 @@ export default function PreciosEcommercePage() {
           )}
 
           {tab === "monitor" && puedeGestionar && selected.size > 0 && (
-            <div className="sticky bottom-0 z-20 border-t bg-background/95 backdrop-blur px-4 sm:px-6 py-3 flex items-center justify-between gap-3">
+            <div className="sticky bottom-0 mt-auto z-30 shadow-[0_-4px_12px_hsl(var(--foreground)/0.06)] border-t bg-background/95 backdrop-blur px-4 sm:px-6 py-3 flex items-center justify-between gap-3">
               <span className="text-sm font-medium">{selected.size.toLocaleString("es-CO")} productos seleccionados</span>
               <div className="flex flex-wrap gap-2">
                 <Button size="sm" variant="ghost" onClick={() => setSelected(new Set())}>Limpiar</Button>
