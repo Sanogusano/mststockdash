@@ -14,13 +14,13 @@ import { ESTADO_LOTE, Lote, LoteItem, csvNetsuite, fechaHoraLote } from "./lotes
 
 const PISO_DEFAULT = 0.4;
 
-interface Props { loteId: number; puedeGestionar: boolean; onBack: () => void }
+interface Props { loteId: number; puedeGestionar: boolean; onBack: () => void; onOpen?: (id: number) => void }
 
-export function LoteDetalle({ loteId, puedeGestionar, onBack }: Props) {
+export function LoteDetalle({ loteId, puedeGestionar, onBack, onOpen }: Props) {
   const qc = useQueryClient();
   const { toast } = useToast();
   const [open, setOpen] = useState<Set<string>>(new Set());
-  const [confirm, setConfirm] = useState<null | "aprobar" | "cancelar">(null);
+  const [confirm, setConfirm] = useState<null | "aprobar" | "cancelar" | "revertir">(null);
   const [busy, setBusy] = useState(false);
 
   const q = useQuery({
@@ -37,7 +37,12 @@ export function LoteDetalle({ loteId, puedeGestionar, onBack }: Props) {
         if (!data || data.length < 1000) break;
         from += 1000;
       }
-      return { lote: lote as Lote | null, items };
+      let reversion: number | null = null;
+      if (lote?.estado === "revertido") {
+        const { data: rv } = await (supabase.from as any)("precio_lote").select("id").eq("lote_revertido_id", loteId).order("id", { ascending: false }).limit(1);
+        reversion = rv?.[0]?.id ?? null;
+      }
+      return { lote: lote as Lote | null, items, reversion };
     },
     refetchInterval: (query) => {
       const e = (query.state.data as { lote: Lote | null } | undefined)?.lote?.estado;
@@ -80,6 +85,17 @@ export function LoteDetalle({ loteId, puedeGestionar, onBack }: Props) {
     if (error) return err(error.message);
     toast({ title: "Lote cancelado" });
     refrescar();
+  };
+  const revertir = async () => {
+    setBusy(true);
+    const { data, error } = await (supabase.rpc as any)("precio_lote_revertir", { p_lote: loteId });
+    setBusy(false); setConfirm(null);
+    if (error) return err(error.message);
+    const r = Array.isArray(data) ? data[0] : data;
+    const nuevo = typeof r === "number" ? r : Number(r?.id ?? r?.lote_id ?? r?.precio_lote_revertir ?? r);
+    toast({ title: "Lote de reversión creado" });
+    refrescar();
+    if (Number.isFinite(nuevo) && nuevo > 0) onOpen?.(nuevo);
   };
   const descargar = async () => {
     setBusy(true);
@@ -158,6 +174,8 @@ export function LoteDetalle({ loteId, puedeGestionar, onBack }: Props) {
           <div>
             <div className="flex items-center gap-2"><h2 className="text-lg font-semibold">{lote.nombre}</h2><Badge variant="outline" className={cn("text-[10px]", e?.cls)}>{e?.label ?? lote.estado}</Badge></div>
             <p className="text-xs text-muted-foreground">Lote #{lote.id} · creado {fechaHoraLote(lote.creado_en)}{lote.aprobado_en && ` · aprobado ${fechaHoraLote(lote.aprobado_en)}`}</p>
+            {lote.lote_revertido_id != null && <p className="text-xs">Reversión del lote <button className="text-primary underline" onClick={() => onOpen?.(lote.lote_revertido_id!)}>#{lote.lote_revertido_id}</button></p>}
+            {lote.estado === "revertido" && q.data?.reversion != null && <p className="text-xs">Revertido por el lote <button className="text-primary underline" onClick={() => onOpen?.(q.data!.reversion!)}>#{q.data.reversion}</button></p>}
             {lote.notas && <p className="mt-1 text-sm">{lote.notas}</p>}
           </div>
           {puedeGestionar && (
@@ -165,6 +183,7 @@ export function LoteDetalle({ loteId, puedeGestionar, onBack }: Props) {
               {lote.estado === "borrador" && <Button size="sm" onClick={() => setConfirm("aprobar")} disabled={busy}>Aprobar</Button>}
               {lote.estado === "esperando_netsuite" && <Button size="sm" onClick={descargar} disabled={busy}><Download className="h-4 w-4 mr-1" /> Descargar archivo NetSuite</Button>}
               {(lote.estado === "esperando_netsuite" || lote.estado === "aplicando_shopify") && <Button size="sm" variant="outline" onClick={revisar} disabled={busy}><RefreshCw className={cn("h-4 w-4 mr-1", busy && "animate-spin")} /> Revisar ahora</Button>}
+              {lote.estado === "aplicado" && <Button size="sm" variant="outline" onClick={() => setConfirm("revertir")} disabled={busy}>Revertir lote</Button>}
               {(lote.estado === "borrador" || lote.estado === "esperando_netsuite") && <Button size="sm" variant="outline" onClick={() => setConfirm("cancelar")} disabled={busy}>Cancelar</Button>}
             </div>
           )}
@@ -216,16 +235,18 @@ export function LoteDetalle({ loteId, puedeGestionar, onBack }: Props) {
       <AlertDialog open={confirm != null} onOpenChange={(v) => !v && setConfirm(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>{confirm === "aprobar" ? "Aprobar lote" : "Cancelar lote"}</AlertDialogTitle>
+            <AlertDialogTitle>{confirm === "aprobar" ? "Aprobar lote" : confirm === "revertir" ? "Revertir lote" : "Cancelar lote"}</AlertDialogTitle>
             <AlertDialogDescription>
               {confirm === "aprobar"
                 ? `Se aprobarán ${productosValidos.toLocaleString("es-CO")} productos. Los productos con alguna talla en error quedan excluidos completos.`
+                : confirm === "revertir"
+                ? "Se creará un lote en borrador que devuelve cada talla al precio, precio tachado y etiqueta que tenía antes de este lote. Seguirá el flujo normal: aprobar, archivo NetSuite y Shopify."
                 : "El lote quedará cancelado y no se aplicará ningún precio."}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={busy}>Volver</AlertDialogCancel>
-            <AlertDialogAction disabled={busy} onClick={(ev) => { ev.preventDefault(); confirm === "aprobar" ? aprobar() : cancelar(); }}>{confirm === "aprobar" ? "Aprobar" : "Cancelar lote"}</AlertDialogAction>
+            <AlertDialogAction disabled={busy} onClick={(ev) => { ev.preventDefault(); confirm === "aprobar" ? aprobar() : confirm === "revertir" ? revertir() : cancelar(); }}>{confirm === "aprobar" ? "Aprobar" : confirm === "revertir" ? "Revertir lote" : "Cancelar lote"}</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
