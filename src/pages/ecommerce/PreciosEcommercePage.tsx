@@ -197,7 +197,7 @@ export default function PreciosEcommercePage() {
 
           {tab === "lotes" ? (
             <div className="p-4 sm:p-6">
-              {loteId ? <LoteDetalle loteId={loteId} puedeGestionar={puedeGestionar} onBack={() => abrirLote(null)} />
+              {loteId ? <LoteDetalle loteId={loteId} puedeGestionar={puedeGestionar} onBack={() => abrirLote(null)} onOpen={(id) => abrirLote(id)} />
                 : <LotesLista onOpen={(id) => abrirLote(id)} />}
             </div>
           ) : (

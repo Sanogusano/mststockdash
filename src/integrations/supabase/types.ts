@@ -5817,6 +5817,7 @@ export type Database = {
         }
         Returns: number
       }
+      precio_lote_revertir: { Args: { p_lote: number }; Returns: number }
       precios_monitor: {
         Args: {
           p_buscar?: string
