@@ -2,7 +2,10 @@ import { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useSearchParams } from "react-router-dom";
 import { useUserRole } from "@/hooks/useUserRole";
-import { CrearLoteDialog } from "@/components/precios/CrearLoteDialog";
+import { CrearLoteDialog, ModoLote } from "@/components/precios/CrearLoteDialog";
+import { PasosLote } from "@/components/precios/PasosLote";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { TooltipProvider } from "@/components/ui/tooltip";
 import { LotesLista } from "@/components/precios/LotesLista";
 import { LoteDetalle } from "@/components/precios/LoteDetalle";
 import { PUEDE_GESTIONAR_LOTES } from "@/components/precios/lotes";
@@ -16,7 +19,7 @@ import { LoadingState } from "@/components/dashboard/LoadingState";
 import { cn } from "@/lib/utils";
 import { PreciosFiltros, FILTROS_INICIALES, FiltrosState } from "@/components/precios/PreciosFiltros";
 import { PreciosTabla } from "@/components/precios/PreciosTabla";
-import { PrecioRow, SUGERENCIAS, esEtiquetaDesalineada } from "@/components/precios/types";
+import { PrecioRow, SUGERENCIAS } from "@/components/precios/types";
 
 function useDebounced<T>(v: T, ms = 400) {
   const [d, setD] = useState(v);
@@ -32,18 +35,18 @@ const haceTexto = (iso: string) => {
   return `${Math.round(h / 24)} días`;
 };
 
-const CARDS: { key: string; title: string; color: string; ring: string }[] = [
-  { key: "entrar", title: SUGERENCIAS.entrar.card, color: "border-emerald-300 bg-emerald-50 text-emerald-900", ring: "ring-emerald-500" },
-  { key: "subir", title: SUGERENCIAS.subir.card, color: "border-amber-300 bg-amber-50 text-amber-900", ring: "ring-amber-500" },
-  { key: "no_admite", title: SUGERENCIAS.no_admite.card, color: "border-red-400 bg-red-50 text-red-900", ring: "ring-red-500" },
-  { key: "quitar", title: SUGERENCIAS.quitar.card, color: "border-sky-300 bg-sky-50 text-sky-900", ring: "ring-sky-500" },
-  { key: "etiquetas", title: "Etiquetas desalineadas", color: "border-border bg-muted/40 text-foreground", ring: "ring-muted-foreground" },
+const CARDS: { key: string; title: string; text: string; ring: string; modo: ModoLote | null }[] = [
+  { key: "entrar", title: SUGERENCIAS.entrar.card, text: "text-emerald-700", ring: "ring-emerald-400 bg-emerald-50", modo: "sugerido" },
+  { key: "subir", title: SUGERENCIAS.subir.card, text: "text-amber-700", ring: "ring-amber-400 bg-amber-50", modo: "poner" },
+  { key: "no_admite", title: SUGERENCIAS.no_admite.card, text: "text-red-700", ring: "ring-red-400 bg-red-50", modo: null },
+  { key: "quitar", title: SUGERENCIAS.quitar.card, text: "text-sky-700", ring: "ring-sky-400 bg-sky-50", modo: "quitar" },
 ];
 
 export default function PreciosEcommercePage() {
   const [f, setF] = useState<FiltrosState>(FILTROS_INICIALES);
   const [selected, setSelected] = useState<Set<string>>(new Set());
-  const [crearOpen, setCrearOpen] = useState(false);
+  const [modo, setModo] = useState<ModoLote | null>(null);
+  const [modoAbierto, setModoAbierto] = useState<ModoLote>("poner");
   const qc = useQueryClient();
   const { role } = useUserRole();
   const puedeGestionar = PUEDE_GESTIONAR_LOTES(role);
@@ -107,21 +110,25 @@ export default function PreciosEcommercePage() {
 
   const opciones = useMemo(() => {
     const uniq = (k: keyof PrecioRow) => Array.from(new Set(base.map((r) => r[k] as string | null).filter(Boolean) as string[])).sort((a, b) => a.localeCompare(b, "es"));
-    return { coleccion: uniq("coleccion"), tipo: uniq("tipo"), genero: uniq("genero"), sugerencia: uniq("sugerencia") };
+    return { coleccion: uniq("coleccion"), tipo: uniq("tipo"), genero: uniq("genero") };
   }, [base]);
 
   const filtradas = useMemo(() => {
     if (f.sugerencia === "todas") return universo;
-    if (f.sugerencia === "etiquetas") return universo.filter(esEtiquetaDesalineada);
     return universo.filter((r) => r.sugerencia === f.sugerencia);
   }, [universo, f.sugerencia]);
 
   useEffect(() => { setSelected(new Set()); }, [filtradas]);
 
   const resumen = useMemo(() => CARDS.map((c) => {
-    const rows = c.key === "etiquetas" ? universo.filter(esEtiquetaDesalineada) : universo.filter((r) => r.sugerencia === c.key);
+    const rows = universo.filter((r) => r.sugerencia === c.key);
     return { ...c, productos: rows.length, uds: rows.reduce((s, r) => s + Number(r.stock_guayabal ?? 0), 0) };
   }), [universo]);
+
+  const selRows = useMemo(() => filtradas.filter((r) => selected.has(r.product_id)), [filtradas, selected]);
+  const haySugerido = selRows.some((r) => r.dcto_sugerido != null);
+  const modoSugerido = CARDS.find((c) => c.key === f.sugerencia)?.modo ?? null;
+  const abrir = (m: ModoLote) => { setModoAbierto(m); setModo(m); };
 
   const exportar = () => {
     const rows = filtradas.map((r) => ({
@@ -155,6 +162,7 @@ export default function PreciosEcommercePage() {
   };
 
   return (
+    <TooltipProvider delayDuration={150}>
     <SidebarProvider>
       <div className="flex min-h-screen w-full bg-background">
         <AppSidebar />
@@ -196,19 +204,28 @@ export default function PreciosEcommercePage() {
           <div className="p-4 sm:p-6 space-y-5 pb-24">
             <PreciosFiltros value={f} onChange={setF} opciones={opciones} />
 
-            <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-3">
+            <div className="grid grid-cols-2 xl:grid-cols-4 gap-3">
               {resumen.map((c) => {
                 const active = f.sugerencia === c.key;
+                const toggleCard = () => setF({ ...f, sugerencia: active ? "todas" : c.key });
                 return (
-                  <button key={c.key} onClick={() => setF({ ...f, sugerencia: active ? "todas" : c.key })}
-                    className={cn("rounded-lg border p-3 text-left transition", c.color, active && `ring-2 ring-offset-1 ${c.ring}`, c.key === "no_admite" && "border-2")}>
-                    <div className="text-xs font-medium leading-tight">{c.title}</div>
-                    <div className="mt-2 text-2xl font-semibold tabular-nums">{c.productos.toLocaleString("es-CO")}</div>
-                    <div className="text-[11px] opacity-80 tabular-nums">productos · {c.uds.toLocaleString("es-CO")} uds en Guayabal</div>
-                  </button>
+                  <Card key={c.key} role="button" tabIndex={0} onClick={toggleCard}
+                    onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") toggleCard(); }}
+                    className={cn("cursor-pointer transition-shadow hover:shadow-md", active && `ring-2 ${c.ring}`)}>
+                    <CardHeader className="pb-2"><CardTitle className={cn("text-sm font-medium", c.text)}>{c.title}</CardTitle></CardHeader>
+                    <CardContent>
+                      <div className="text-3xl font-semibold tabular-nums">{c.productos.toLocaleString("es-CO")}</div>
+                      <p className="text-xs text-muted-foreground mt-1 tabular-nums">productos · {c.uds.toLocaleString("es-CO")} uds en Guayabal</p>
+                    </CardContent>
+                  </Card>
                 );
               })}
             </div>
+            {f.sugerencia !== "todas" && (
+              <Button type="button" variant="link" size="sm" className="h-auto p-0 text-xs" onClick={() => setF({ ...f, sugerencia: "todas" })}>Quitar filtro de sugerencia</Button>
+            )}
+
+            <PasosLote />
 
             {error ? <div className="rounded-md border border-destructive/40 bg-destructive/5 p-3 text-sm text-destructive">{error.message}</div>
               : loading ? <LoadingState />
@@ -219,16 +236,19 @@ export default function PreciosEcommercePage() {
           {tab === "monitor" && puedeGestionar && selected.size > 0 && (
             <div className="sticky bottom-0 z-20 border-t bg-background/95 backdrop-blur px-4 sm:px-6 py-3 flex items-center justify-between gap-3">
               <span className="text-sm font-medium">{selected.size.toLocaleString("es-CO")} productos seleccionados</span>
-              <div className="flex gap-2">
+              <div className="flex flex-wrap gap-2">
                 <Button size="sm" variant="ghost" onClick={() => setSelected(new Set())}>Limpiar</Button>
-                <Button size="sm" onClick={() => setCrearOpen(true)}>Crear lote</Button>
+                <Button size="sm" variant={modoSugerido === "poner" ? "default" : "outline"} onClick={() => abrir("poner")}>Poner o subir descuento</Button>
+                <Button size="sm" variant={modoSugerido === "quitar" ? "default" : "outline"} onClick={() => abrir("quitar")}>Quitar descuento</Button>
+                <Button size="sm" variant={modoSugerido === "sugerido" ? "default" : "outline"} disabled={!haySugerido} onClick={() => abrir("sugerido")}>Aplicar sugerido</Button>
               </div>
             </div>
           )}
-          <CrearLoteDialog open={crearOpen} onOpenChange={setCrearOpen} productIds={Array.from(selected)}
+          <CrearLoteDialog open={modo != null} onOpenChange={(o) => { if (!o) setModo(null); }} modo={modoAbierto} rows={selRows}
             onCreated={(id) => { setSelected(new Set()); qc.invalidateQueries({ queryKey: ["precio-lotes"] }); abrirLote(id); }} />
         </main>
       </div>
     </SidebarProvider>
+    </TooltipProvider>
   );
 }
