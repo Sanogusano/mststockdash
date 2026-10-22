@@ -1,6 +1,7 @@
 import { useMemo, useState, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { SyncInventarioCard, SYNC_INV_KEY } from "@/components/estado-sistema/SyncInventarioCard";
+import { LotesPrecioCard, LOTES_PRECIO_KEY } from "@/components/estado-sistema/LotesPrecioCard";
 import { RefreshCw } from "lucide-react";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
@@ -49,7 +50,7 @@ export default function ConfiguracionEstadoSistema() {
 
   const filas = useMemo(() => [...(chequeo.data ?? [])].sort((a, b) => (ORDEN[a.severidad] ?? 9) - (ORDEN[b.severidad] ?? 9)), [chequeo.data]);
   const cuenta = (s: string) => filas.filter((r) => r.severidad === s).length;
-  const actualizar = () => { chequeo.refetch(); log.refetch(); qc.invalidateQueries({ queryKey: [SYNC_INV_KEY] }); };
+  const actualizar = () => { chequeo.refetch(); log.refetch(); qc.invalidateQueries({ queryKey: [SYNC_INV_KEY] }); qc.invalidateQueries({ queryKey: [LOTES_PRECIO_KEY] }); };
   const cargando = chequeo.isFetching || log.isFetching;
 
   return (
@@ -103,6 +104,8 @@ export default function ConfiguracionEstadoSistema() {
             </Card>
 
             <SyncInventarioCard />
+
+            <LotesPrecioCard />
 
             <Card>
               <CardHeader><CardTitle className="text-base">Últimas ejecuciones</CardTitle></CardHeader>
