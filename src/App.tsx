@@ -54,6 +54,7 @@ import ComposicionIngresosPage from "./pages/finanzas/ComposicionIngresosPage";
 import FacturaElectronicaPage from "./pages/FacturaElectronica";
 import AgotadosPage from "./pages/Agotados";
 import IntegracionNetsuitePage from "./pages/IntegracionNetsuite";
+import PreciosEcommercePage from "./pages/ecommerce/PreciosEcommercePage";
 import { RequireRole } from "@/components/RequireRole";
 import ConfiguracionEstadoSistemaPage from "./pages/ConfiguracionEstadoSistema";
 import { AlertaCriticaBanner } from "@/components/AlertaCriticaBanner";
@@ -133,6 +134,7 @@ const App = () => (
           {/* ===== Gestión E-commerce ===== */}
           <Route path="/ecommerce/agotados" element={<ProtectedRoute><RequireRole roles={["admin", "finanzas", "gerencia", "logistica"]}><AgotadosPage mostrarSoCanceladas={false} /></RequireRole></ProtectedRoute>} />
           <Route path="/ecommerce/integracion-netsuite" element={<ProtectedRoute><RequireRole roles={["admin", "finanzas", "gerencia", "logistica"]}><IntegracionNetsuitePage /></RequireRole></ProtectedRoute>} />
+          <Route path="/ecommerce/precios" element={<ProtectedRoute><RequireRole roles={["admin", "finanzas", "gerencia", "logistica"]}><PreciosEcommercePage /></RequireRole></ProtectedRoute>} />
 
           {/* ===== Finanzas ===== */}
           <Route path="/finanzas" element={<Guard module="finanzas.view" action="view"><FinanzasDashboardPage /></Guard>} />

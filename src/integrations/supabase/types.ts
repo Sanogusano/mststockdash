@@ -2570,6 +2570,133 @@ export type Database = {
         }
         Relationships: []
       }
+      precio_lote: {
+        Row: {
+          aprobado_en: string | null
+          creado_en: string
+          creado_por: string | null
+          estado: string
+          id: number
+          lote_revertido_id: number | null
+          netsuite_completo_en: string | null
+          nombre: string
+          notas: string | null
+          shopify_fin_en: string | null
+          shopify_inicio_en: string | null
+        }
+        Insert: {
+          aprobado_en?: string | null
+          creado_en?: string
+          creado_por?: string | null
+          estado?: string
+          id?: number
+          lote_revertido_id?: number | null
+          netsuite_completo_en?: string | null
+          nombre: string
+          notas?: string | null
+          shopify_fin_en?: string | null
+          shopify_inicio_en?: string | null
+        }
+        Update: {
+          aprobado_en?: string | null
+          creado_en?: string
+          creado_por?: string | null
+          estado?: string
+          id?: number
+          lote_revertido_id?: number | null
+          netsuite_completo_en?: string | null
+          nombre?: string
+          notas?: string | null
+          shopify_fin_en?: string | null
+          shopify_inicio_en?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "precio_lote_lote_revertido_id_fkey"
+            columns: ["lote_revertido_id"]
+            isOneToOne: false
+            referencedRelation: "precio_lote"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      precio_lote_item: {
+        Row: {
+          compare_antes: number | null
+          compare_nuevo: number | null
+          costo: number | null
+          error: string | null
+          etiqueta_antes: string | null
+          etiqueta_nueva: string | null
+          lote_id: number
+          margen_nuevo: number | null
+          ns_ok: boolean
+          ns_precio: number | null
+          ns_verificado_en: string | null
+          precio_antes: number
+          precio_lista: number
+          precio_nuevo: number
+          product_id: string
+          shopify_aplicado_en: string | null
+          shopify_ok: boolean
+          sku: string
+          titulo: string | null
+          variant_id: string
+        }
+        Insert: {
+          compare_antes?: number | null
+          compare_nuevo?: number | null
+          costo?: number | null
+          error?: string | null
+          etiqueta_antes?: string | null
+          etiqueta_nueva?: string | null
+          lote_id: number
+          margen_nuevo?: number | null
+          ns_ok?: boolean
+          ns_precio?: number | null
+          ns_verificado_en?: string | null
+          precio_antes: number
+          precio_lista: number
+          precio_nuevo: number
+          product_id: string
+          shopify_aplicado_en?: string | null
+          shopify_ok?: boolean
+          sku: string
+          titulo?: string | null
+          variant_id: string
+        }
+        Update: {
+          compare_antes?: number | null
+          compare_nuevo?: number | null
+          costo?: number | null
+          error?: string | null
+          etiqueta_antes?: string | null
+          etiqueta_nueva?: string | null
+          lote_id?: number
+          margen_nuevo?: number | null
+          ns_ok?: boolean
+          ns_precio?: number | null
+          ns_verificado_en?: string | null
+          precio_antes?: number
+          precio_lista?: number
+          precio_nuevo?: number
+          product_id?: string
+          shopify_aplicado_en?: string | null
+          shopify_ok?: boolean
+          sku?: string
+          titulo?: string | null
+          variant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "precio_lote_item_lote_id_fkey"
+            columns: ["lote_id"]
+            isOneToOne: false
+            referencedRelation: "precio_lote"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       presupuestos_config: {
         Row: {
           anio: number
@@ -3026,6 +3153,8 @@ export type Database = {
           committed: number | null
           location_id: string
           on_hand: number | null
+          product_id: string | null
+          sku: string | null
           tomado_en: string
           variant_id: string
         }
@@ -3034,6 +3163,8 @@ export type Database = {
           committed?: number | null
           location_id: string
           on_hand?: number | null
+          product_id?: string | null
+          sku?: string | null
           tomado_en?: string
           variant_id: string
         }
@@ -3042,6 +3173,8 @@ export type Database = {
           committed?: number | null
           location_id?: string
           on_hand?: number | null
+          product_id?: string | null
+          sku?: string | null
           tomado_en?: string
           variant_id?: string
         }
@@ -3068,6 +3201,36 @@ export type Database = {
           name?: string | null
           shopify_id?: string | null
           total_price?: number | null
+        }
+        Relationships: []
+      }
+      shopify_precio_actual: {
+        Row: {
+          compare_at: number | null
+          leido_en: string
+          price: number
+          product_id: string
+          sku: string
+          tags: string[]
+          variant_id: string
+        }
+        Insert: {
+          compare_at?: number | null
+          leido_en?: string
+          price: number
+          product_id: string
+          sku: string
+          tags?: string[]
+          variant_id: string
+        }
+        Update: {
+          compare_at?: number | null
+          leido_en?: string
+          price?: number
+          product_id?: string
+          sku?: string
+          tags?: string[]
+          variant_id?: string
         }
         Relationships: []
       }
@@ -5613,6 +5776,54 @@ export type Database = {
       obtener_siguiente_consecutivo: {
         Args: { p_origen_netsuite_id: number }
         Returns: number
+      }
+      precios_monitor: {
+        Args: {
+          p_buscar?: string
+          p_coleccion?: string[]
+          p_estado?: string
+          p_etiqueta?: string
+          p_genero?: string[]
+          p_piso_margen?: number
+          p_stock_min?: number
+          p_sugerencia?: string
+          p_tipo?: string[]
+          p_vida_max_sem?: number
+          p_vida_min_entrar?: number
+          p_vida_min_sem?: number
+          p_wos_max?: number
+        }
+        Returns: {
+          alertas: string[]
+          coleccion: string
+          costo: number
+          dcto_actual: number
+          dcto_sugerido: number
+          efecto: string
+          etiqueta_ht: string
+          etiquetas: string[]
+          genero: string
+          inicio_rebaja: string
+          margen_actual: number
+          margen_sugerido: number
+          precio_actual: number
+          precio_lista: number
+          precio_sugerido: number
+          precio_uniforme: boolean
+          product_id: string
+          producto: string
+          rdv_antes: number
+          rdv_desde: number
+          rdv_semana: number
+          semanas_vida: number
+          stock_guayabal: number
+          sugerencia: string
+          tallas: number
+          tipo: string
+          venta_28d: number
+          venta_7d: number
+          wos: number
+        }[]
       }
       preview_conciliacion_netsuite: {
         Args: never
