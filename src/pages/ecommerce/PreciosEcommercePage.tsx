@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { LotesLista } from "@/components/precios/LotesLista";
 import { LoteDetalle } from "@/components/precios/LoteDetalle";
-import { PUEDE_GESTIONAR_LOTES } from "@/components/precios/lotes";
+import { useHasPermission } from "@/hooks/useHasPermission";
 import { Download, Tags } from "lucide-react";
 import * as XLSX from "xlsx";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
@@ -47,8 +47,9 @@ export default function PreciosEcommercePage() {
   const [modo, setModo] = useState<ModoLote | null>(null);
   const [modoAbierto, setModoAbierto] = useState<ModoLote>("poner");
   const qc = useQueryClient();
-  const { role } = useUserRole();
-  const puedeGestionar = PUEDE_GESTIONAR_LOTES(role);
+  const { isAdmin } = useUserRole();
+  const puedeEditar = useHasPermission({ module: "ecommerce.precios", action: "edit" });
+  const puedeGestionar = isAdmin || puedeEditar;
   const [sp, setSp] = useSearchParams();
   const tab = sp.get("tab") === "lotes" ? "lotes" : "monitor";
   const loteId = sp.get("lote") ? Number(sp.get("lote")) : null;
@@ -227,7 +228,7 @@ export default function PreciosEcommercePage() {
 
             {error ? <div className="rounded-md border border-destructive/40 bg-destructive/5 p-3 text-sm text-destructive">{error.message}</div>
               : loading ? <LoadingState />
-              : <PreciosTabla rows={filtradas} selected={selected} onSelectedChange={setSelected} />}
+              : <PreciosTabla rows={filtradas} selected={selected} onSelectedChange={setSelected} selectable={puedeGestionar} />}
           </div>
           )}
 

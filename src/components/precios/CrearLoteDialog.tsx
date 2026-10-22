@@ -38,7 +38,7 @@ export function CrearLoteDialog({ open, onOpenChange, modo, rows, onCreated }: P
   const necesitaValor = modo === "poner";
   const v = Number(valor);
   const pisoN = Number(piso) / 100;
-  const valido = nombre.trim() !== "" && (!necesitaValor || (v >= 1 && v <= 80)) && piso !== "" && rows.length > 0;
+  const valido = nombre.trim() !== "" && (!necesitaValor || (v >= 1 && v <= 80)) && piso !== "" && Number(piso) >= 20 && rows.length > 0;
 
   const preview = useMemo(() => rows.slice(0, 10).map((r) => {
     const d = dctoNuevo(r, accion, v);
@@ -109,7 +109,7 @@ export function CrearLoteDialog({ open, onOpenChange, modo, rows, onCreated }: P
             <div className="mt-3 space-y-3">
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1"><Label className="text-xs">Nombre del lote</Label><Input value={nombre} onChange={(e) => setNombre(e.target.value)} /></div>
-                <div className="space-y-1"><Label className="text-xs">Piso de margen %</Label><Input type="number" value={piso} onChange={(e) => setPiso(e.target.value)} className="w-28" /></div>
+                <div className="space-y-1"><Label className="text-xs">Piso de margen %</Label><Input type="number" min={20} value={piso} onChange={(e) => setPiso(e.target.value)} className="w-28" /><p className="text-[11px] text-muted-foreground">Mínimo 20%</p></div>
                 <div className="space-y-1"><Label className="text-xs">Etiqueta a poner</Label><Input value={poner} onChange={(e) => setPoner(e.target.value)} /></div>
                 <div className="space-y-1"><Label className="text-xs">Etiqueta a quitar</Label><Input value={quitar} onChange={(e) => setQuitar(e.target.value)} /></div>
               </div>

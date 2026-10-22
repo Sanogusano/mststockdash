@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { supabase } from "@/integrations/supabase/client";
+import { useHasPermission } from "@/hooks/useHasPermission";
 import { useChequeoIntegridad } from "@/hooks/useChequeoIntegridad";
 import { cn } from "@/lib/utils";
 
@@ -34,6 +35,8 @@ const fechaHora = (d: string) => new Date(d).toLocaleString("es-CO", { timeZone:
 export default function ConfiguracionEstadoSistema() {
   const chequeo = useChequeoIntegridad();
   const qc = useQueryClient();
+  const verSync = useHasPermission({ module: "config.sync_inventario", action: "view" });
+  const verLotes = useHasPermission({ module: "ecommerce.precios", action: "view" });
   const log = useQuery({
     queryKey: ["proceso_ejecucion_log"],
     refetchInterval: 5 * 60 * 1000,
@@ -103,9 +106,9 @@ export default function ConfiguracionEstadoSistema() {
               </CardContent>
             </Card>
 
-            <SyncInventarioCard />
+            {verSync && <SyncInventarioCard />}
 
-            <LotesPrecioCard />
+            {verLotes && <LotesPrecioCard />}
 
             <Card>
               <CardHeader><CardTitle className="text-base">Últimas ejecuciones</CardTitle></CardHeader>
