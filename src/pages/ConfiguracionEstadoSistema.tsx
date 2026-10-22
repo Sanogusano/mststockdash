@@ -1,5 +1,6 @@
 import { useMemo, useState, useEffect } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { SyncInventarioCard, SYNC_INV_KEY } from "@/components/estado-sistema/SyncInventarioCard";
 import { RefreshCw } from "lucide-react";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
@@ -31,6 +32,7 @@ const fechaHora = (d: string) => new Date(d).toLocaleString("es-CO", { timeZone:
 
 export default function ConfiguracionEstadoSistema() {
   const chequeo = useChequeoIntegridad();
+  const qc = useQueryClient();
   const log = useQuery({
     queryKey: ["proceso_ejecucion_log"],
     refetchInterval: 5 * 60 * 1000,
@@ -47,7 +49,7 @@ export default function ConfiguracionEstadoSistema() {
 
   const filas = useMemo(() => [...(chequeo.data ?? [])].sort((a, b) => (ORDEN[a.severidad] ?? 9) - (ORDEN[b.severidad] ?? 9)), [chequeo.data]);
   const cuenta = (s: string) => filas.filter((r) => r.severidad === s).length;
-  const actualizar = () => { chequeo.refetch(); log.refetch(); };
+  const actualizar = () => { chequeo.refetch(); log.refetch(); qc.invalidateQueries({ queryKey: [SYNC_INV_KEY] }); };
   const cargando = chequeo.isFetching || log.isFetching;
 
   return (
@@ -99,6 +101,8 @@ export default function ConfiguracionEstadoSistema() {
                 </Table>
               </CardContent>
             </Card>
+
+            <SyncInventarioCard />
 
             <Card>
               <CardHeader><CardTitle className="text-base">Últimas ejecuciones</CardTitle></CardHeader>
