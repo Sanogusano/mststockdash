@@ -48,6 +48,18 @@ export function PreciosFiltros({ value, onChange, opciones }: Props) {
                 <SelectItem value="sin">Sin descuento</SelectItem>
               </SelectContent>
             </Select></div>
+          <div className="space-y-1"><Label className="text-xs text-muted-foreground">Sugerencia</Label>
+            <Select value={value.sugerencia} onValueChange={(v) => set("sugerencia", v)}>
+              <SelectTrigger className="h-8 w-44 text-xs"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todas">Todas</SelectItem>
+                <SelectItem value="entrar">Entrar a descuento</SelectItem>
+                <SelectItem value="subir">Subir descuento</SelectItem>
+                <SelectItem value="no_admite">No admite más</SelectItem>
+                <SelectItem value="quitar">Quitar descuento</SelectItem>
+                <SelectItem value="mantener">Mantener</SelectItem>
+              </SelectContent>
+            </Select></div>
           <div className="space-y-1"><Label className="text-xs text-muted-foreground">Tiempo de vida (semanas)</Label>
             <div className="flex items-center gap-1">
               <Input type="number" min={0} className="h-8 w-20 text-xs" value={value.vidaMin} onChange={(e) => set("vidaMin", e.target.value)} placeholder="desde" aria-label="Tiempo de vida desde" />
