@@ -3331,6 +3331,111 @@ export type Database = {
         }
         Relationships: []
       }
+      sync_inventario_ns_ultimo: {
+        Row: {
+          fisico: number
+          item_id: number
+          sku: string | null
+          visto_en: string
+        }
+        Insert: {
+          fisico: number
+          item_id: number
+          sku?: string | null
+          visto_en?: string
+        }
+        Update: {
+          fisico?: number
+          item_id?: number
+          sku?: string | null
+          visto_en?: string
+        }
+        Relationships: []
+      }
+      sync_inventario_shopify_config: {
+        Row: {
+          id: number
+          modo: string
+          tope_ajustes: number
+          ultima_completa: string | null
+          ultima_corrida: string | null
+        }
+        Insert: {
+          id?: number
+          modo?: string
+          tope_ajustes?: number
+          ultima_completa?: string | null
+          ultima_corrida?: string | null
+        }
+        Update: {
+          id?: number
+          modo?: string
+          tope_ajustes?: number
+          ultima_completa?: string | null
+          ultima_corrida?: string | null
+        }
+        Relationships: []
+      }
+      sync_inventario_shopify_log: {
+        Row: {
+          aplicado: boolean
+          corrida_en: string
+          delta: number | null
+          documentos: Json | null
+          error: string | null
+          id: number
+          modo: string
+          motivo_texto: string | null
+          motivo_tipo: string | null
+          nombre: string | null
+          ns_comprometido: number | null
+          ns_fisico: number | null
+          referencia_shopify: string | null
+          shopify_antes: number | null
+          shopify_objetivo: number | null
+          sku: string
+          variant_id: string | null
+        }
+        Insert: {
+          aplicado?: boolean
+          corrida_en: string
+          delta?: number | null
+          documentos?: Json | null
+          error?: string | null
+          id?: number
+          modo: string
+          motivo_texto?: string | null
+          motivo_tipo?: string | null
+          nombre?: string | null
+          ns_comprometido?: number | null
+          ns_fisico?: number | null
+          referencia_shopify?: string | null
+          shopify_antes?: number | null
+          shopify_objetivo?: number | null
+          sku: string
+          variant_id?: string | null
+        }
+        Update: {
+          aplicado?: boolean
+          corrida_en?: string
+          delta?: number | null
+          documentos?: Json | null
+          error?: string | null
+          id?: number
+          modo?: string
+          motivo_texto?: string | null
+          motivo_tipo?: string | null
+          nombre?: string | null
+          ns_comprometido?: number | null
+          ns_fisico?: number | null
+          referencia_shopify?: string | null
+          shopify_antes?: number | null
+          shopify_objetivo?: number | null
+          sku?: string
+          variant_id?: string | null
+        }
+        Relationships: []
+      }
       traffic_ingest_config: {
         Row: {
           created_at: string
