@@ -5777,6 +5777,46 @@ export type Database = {
         Args: { p_origen_netsuite_id: number }
         Returns: number
       }
+      precio_lote_aprobar: {
+        Args: { p_lote: number }
+        Returns: {
+          excluidas: number
+          productos: number
+          variantes: number
+        }[]
+      }
+      precio_lote_archivo_netsuite: {
+        Args: { p_lote: number }
+        Returns: {
+          b_precio_shopify: number
+          internal_id: string
+          parque93_precio_sin_iva: number
+          website_precio_sin_iva: number
+        }[]
+      }
+      precio_lote_cancelar: { Args: { p_lote: number }; Returns: undefined }
+      precio_lote_crear: {
+        Args: {
+          p_accion: string
+          p_etiqueta_poner?: string
+          p_etiqueta_quitar?: string
+          p_nombre: string
+          p_piso_margen?: number
+          p_product_ids: string[]
+          p_valor?: number
+        }
+        Returns: number
+      }
+      precio_lote_crear_obsoleta: {
+        Args: {
+          p_accion: string
+          p_nombre: string
+          p_piso_margen?: number
+          p_product_ids: string[]
+          p_valor?: number
+        }
+        Returns: number
+      }
       precios_monitor: {
         Args: {
           p_buscar?: string

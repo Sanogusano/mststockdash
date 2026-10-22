@@ -1,5 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useSearchParams } from "react-router-dom";
+import { useUserRole } from "@/hooks/useUserRole";
+import { CrearLoteDialog } from "@/components/precios/CrearLoteDialog";
+import { LotesLista } from "@/components/precios/LotesLista";
+import { LoteDetalle } from "@/components/precios/LoteDetalle";
+import { PUEDE_GESTIONAR_LOTES } from "@/components/precios/lotes";
 import { Download, Tags } from "lucide-react";
 import * as XLSX from "xlsx";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
@@ -37,6 +43,15 @@ const CARDS: { key: string; title: string; color: string; ring: string }[] = [
 export default function PreciosEcommercePage() {
   const [f, setF] = useState<FiltrosState>(FILTROS_INICIALES);
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [crearOpen, setCrearOpen] = useState(false);
+  const qc = useQueryClient();
+  const { role } = useUserRole();
+  const puedeGestionar = PUEDE_GESTIONAR_LOTES(role);
+  const [sp, setSp] = useSearchParams();
+  const tab = sp.get("tab") === "lotes" ? "lotes" : "monitor";
+  const loteId = sp.get("lote") ? Number(sp.get("lote")) : null;
+  const irTab = (t: "monitor" | "lotes") => { const n = new URLSearchParams(); if (t === "lotes") n.set("tab", "lotes"); setSp(n); };
+  const abrirLote = (id: number | null) => { const n = new URLSearchParams(); n.set("tab", "lotes"); if (id) n.set("lote", String(id)); setSp(n); };
   const etiqueta = useDebounced(f.etiqueta.trim());
   const buscar = useDebounced(f.buscar.trim());
   const vidaMin = useDebounced(f.vidaMin);
@@ -160,7 +175,25 @@ export default function PreciosEcommercePage() {
             </Button>
           </header>
 
-          <div className="p-4 sm:p-6 space-y-5">
+          <div className="px-4 sm:px-6 pt-4">
+            <div role="tablist" className="flex gap-1 border-b-2 border-border">
+              {([["monitor", "Monitor"], ["lotes", "Lotes"]] as const).map(([k, l]) => (
+                <button key={k} role="tab" aria-selected={tab === k} onClick={() => irTab(k)}
+                  className={cn("px-4 py-2 text-sm font-medium rounded-t-md border-2 border-b-0 transition",
+                    tab === k ? "relative top-[2px] bg-background border-border text-foreground" : "border-transparent text-muted-foreground hover:text-foreground hover:bg-muted/40")}>
+                  {l}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {tab === "lotes" ? (
+            <div className="p-4 sm:p-6">
+              {loteId ? <LoteDetalle loteId={loteId} puedeGestionar={puedeGestionar} onBack={() => abrirLote(null)} />
+                : <LotesLista onOpen={(id) => abrirLote(id)} />}
+            </div>
+          ) : (
+          <div className="p-4 sm:p-6 space-y-5 pb-24">
             <PreciosFiltros value={f} onChange={setF} opciones={opciones} />
 
             <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-3">
@@ -181,6 +214,19 @@ export default function PreciosEcommercePage() {
               : loading ? <LoadingState />
               : <PreciosTabla rows={filtradas} selected={selected} onSelectedChange={setSelected} />}
           </div>
+          )}
+
+          {tab === "monitor" && puedeGestionar && selected.size > 0 && (
+            <div className="sticky bottom-0 z-20 border-t bg-background/95 backdrop-blur px-4 sm:px-6 py-3 flex items-center justify-between gap-3">
+              <span className="text-sm font-medium">{selected.size.toLocaleString("es-CO")} productos seleccionados</span>
+              <div className="flex gap-2">
+                <Button size="sm" variant="ghost" onClick={() => setSelected(new Set())}>Limpiar</Button>
+                <Button size="sm" onClick={() => setCrearOpen(true)}>Crear lote</Button>
+              </div>
+            </div>
+          )}
+          <CrearLoteDialog open={crearOpen} onOpenChange={setCrearOpen} productIds={Array.from(selected)}
+            onCreated={(id) => { setSelected(new Set()); qc.invalidateQueries({ queryKey: ["precio-lotes"] }); abrirLote(id); }} />
         </main>
       </div>
     </SidebarProvider>
