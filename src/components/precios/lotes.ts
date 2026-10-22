@@ -39,7 +39,6 @@ export const ESTADO_LOTE: Record<string, { label: string; cls: string }> = {
   revertido: { label: "Revertido", cls: "bg-violet-100 text-violet-800 border-violet-300" },
 };
 
-export const PUEDE_GESTIONAR_LOTES = (role?: string) => role === "admin" || role === "gerencia";
 
 export const fechaHoraLote = (s: string | null) =>
   s ? new Date(s).toLocaleString("es-CO", { timeZone: "America/Bogota", day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit", hour12: false }) : "—";

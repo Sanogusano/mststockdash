@@ -125,13 +125,13 @@ const finanzasItems: NavItem[] = [
 ];
 
 const ecommerceItems: NavItem[] = [
-  { title: "Pendientes Factura Electrónica", url: "/logistica/factura-electronica", icon: FileText, description: "Datos de facturación de pedidos", module: "role:admin,finanzas,gerencia,logistica", action: "view" },
-  { title: "Pendientes de Facturación", url: "/finanzas/reporte-facturacion", icon: LayoutDashboard, description: "Pedidos pendientes por facturar", module: "role:admin,finanzas,gerencia,logistica", action: "view" },
-  { title: "Agotados", url: "/ecommerce/agotados", icon: AlertTriangle, description: "Faltantes en pedidos y traslados", module: "role:admin,finanzas,gerencia,logistica", action: "view" },
-  { title: "Integración NetSuite", url: "/ecommerce/integracion-netsuite", icon: Database, description: "Pedidos sin SO y SO de cancelados", module: "role:admin,finanzas,gerencia,logistica", action: "view" },
-  { title: "Precios Ecommerce", url: "/ecommerce/precios", icon: Tags, description: "Monitor de precios y descuentos", module: "role:admin,finanzas,gerencia,logistica", action: "view" },
-  { title: "Reporte de Rebajas", url: "/reporte-rebajas", icon: Tag, description: "Productos con precio rebajado", module: "role:admin,finanzas,gerencia,logistica", action: "view" },
-  { title: "Salud de Publicación", url: "/salud-publicacion", icon: Globe, description: "Diagnóstico del canal online", module: "role:admin,finanzas,gerencia,logistica", action: "view" },
+  { title: "Pendientes Factura Electrónica", url: "/logistica/factura-electronica", icon: FileText, description: "Datos de facturación de pedidos", module: "ecommerce.precios", action: "view" },
+  { title: "Pendientes de Facturación", url: "/finanzas/reporte-facturacion", icon: LayoutDashboard, description: "Pedidos pendientes por facturar", module: "ecommerce.precios", action: "view" },
+  { title: "Agotados", url: "/ecommerce/agotados", icon: AlertTriangle, description: "Faltantes en pedidos y traslados", module: "ecommerce.precios", action: "view" },
+  { title: "Integración NetSuite", url: "/ecommerce/integracion-netsuite", icon: Database, description: "Pedidos sin SO y SO de cancelados", module: "ecommerce.precios", action: "view" },
+  { title: "Precios Ecommerce", url: "/ecommerce/precios", icon: Tags, description: "Monitor de precios y descuentos", module: "ecommerce.precios", action: "view" },
+  { title: "Reporte de Rebajas", url: "/reporte-rebajas", icon: Tag, description: "Productos con precio rebajado", module: "ecommerce.precios", action: "view" },
+  { title: "Salud de Publicación", url: "/salud-publicacion", icon: Globe, description: "Diagnóstico del canal online", module: "ecommerce.precios", action: "view" },
 ];
 
 const configuracionItems: NavItem[] = [

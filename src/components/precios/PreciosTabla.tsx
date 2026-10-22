@@ -31,9 +31,10 @@ interface Props {
   rows: PrecioRow[];
   selected: Set<string>;
   onSelectedChange: (s: Set<string>) => void;
+  selectable?: boolean;
 }
 
-export function PreciosTabla({ rows, selected, onSelectedChange }: Props) {
+export function PreciosTabla({ rows, selected, onSelectedChange, selectable = true }: Props) {
   const [sort, setSort] = useState<{ key: SortKey; dir: 1 | -1 }>({ key: "stock_guayabal", dir: -1 });
   const [page, setPage] = useState(0);
 
@@ -96,18 +97,18 @@ export function PreciosTabla({ rows, selected, onSelectedChange }: Props) {
   return (
     <Card>
       <CardContent className="pt-4 space-y-3">
-        <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+        {selectable && <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
           <label className="flex items-center gap-2 cursor-pointer">
             <Checkbox checked={allSel} onCheckedChange={() => onSelectedChange(allSel ? new Set() : new Set(rows.map((r) => r.product_id)))} />
             Seleccionar todo lo filtrado ({rows.length.toLocaleString("es-CO")})
           </label>
           {selected.size > 0 && <span className="font-medium text-foreground">{selected.size.toLocaleString("es-CO")} seleccionados</span>}
-        </div>
+        </div>}
         <div className="rounded-md border">
           <Table className="text-xs table-fixed w-full">
             <TableHeader className="sticky top-0 z-10 bg-background">
               <TableRow>
-                <TableHead className="w-10" />
+                {selectable && <TableHead className="w-10" />}
                 <H k="producto" className="w-[34%]">Producto</H>
                 <H k="precio_actual" right>Precio</H>
                 <H k="stock_guayabal" right>Stock</H>
@@ -117,7 +118,7 @@ export function PreciosTabla({ rows, selected, onSelectedChange }: Props) {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {visible.length === 0 && <TableRow><TableCell colSpan={7} className="p-6 text-center text-muted-foreground">Sin productos con estos filtros</TableCell></TableRow>}
+              {visible.length === 0 && <TableRow><TableCell colSpan={selectable ? 7 : 6} className="p-6 text-center text-muted-foreground">Sin productos con estos filtros</TableCell></TableRow>}
               {visible.map((r) => {
                 const sug = r.sugerencia ? SUGERENCIAS[r.sugerencia] : undefined;
                 const img = imagesMap[r.product_id];
@@ -125,7 +126,7 @@ export function PreciosTabla({ rows, selected, onSelectedChange }: Props) {
                 const conDcto = r.dcto_actual != null && Number(r.dcto_actual) > 0;
                 return (
                   <TableRow key={r.product_id}>
-                    <TableCell className="py-2 px-2"><Checkbox checked={selected.has(r.product_id)} onCheckedChange={() => toggle(r.product_id)} /></TableCell>
+                    {selectable && <TableCell className="py-2 px-2"><Checkbox checked={selected.has(r.product_id)} onCheckedChange={() => toggle(r.product_id)} /></TableCell>}
                     <TableCell className="py-2">
                       <div className="flex items-center gap-2 min-w-0">
                         {img ? (

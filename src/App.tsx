@@ -134,7 +134,7 @@ const App = () => (
           {/* ===== Gestión E-commerce ===== */}
           <Route path="/ecommerce/agotados" element={<ProtectedRoute><RequireRole roles={["admin", "finanzas", "gerencia", "logistica"]}><AgotadosPage mostrarSoCanceladas={false} /></RequireRole></ProtectedRoute>} />
           <Route path="/ecommerce/integracion-netsuite" element={<ProtectedRoute><RequireRole roles={["admin", "finanzas", "gerencia", "logistica"]}><IntegracionNetsuitePage /></RequireRole></ProtectedRoute>} />
-          <Route path="/ecommerce/precios" element={<ProtectedRoute><RequireRole roles={["admin", "finanzas", "gerencia", "logistica"]}><PreciosEcommercePage /></RequireRole></ProtectedRoute>} />
+          <Route path="/ecommerce/precios" element={<Guard module="ecommerce.precios" action="view"><PreciosEcommercePage /></Guard>} />
 
           {/* ===== Finanzas ===== */}
           <Route path="/finanzas" element={<Guard module="finanzas.view" action="view"><FinanzasDashboardPage /></Guard>} />
