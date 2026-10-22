@@ -1,6 +1,6 @@
-import { Fragment, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { AlertTriangle, ArrowUpDown, ChevronDown, ChevronRight, Info } from "lucide-react";
+import { ArrowUpDown, Info } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
@@ -14,7 +14,6 @@ import { PrecioRow, SUGERENCIAS, cop, pct, num, cambioRdv } from "./types";
 
 type SortKey = keyof PrecioRow | "cambio_rdv";
 const PAGE = 50;
-const ANCHO = "hidden min-[1366px]:table-cell"; // columnas que se ocultan bajo 1366px
 
 const fechaCorta = (s: string | null) => {
   if (!s) return "";
@@ -37,7 +36,6 @@ interface Props {
 export function PreciosTabla({ rows, selected, onSelectedChange }: Props) {
   const [sort, setSort] = useState<{ key: SortKey; dir: 1 | -1 }>({ key: "stock_guayabal", dir: -1 });
   const [page, setPage] = useState(0);
-  const [open, setOpen] = useState<Set<string>>(new Set());
 
   const sorted = useMemo(() => {
     const val = (r: PrecioRow): unknown => (sort.key === "cambio_rdv" ? cambioOrden(r) : r[sort.key]);
@@ -105,112 +103,61 @@ export function PreciosTabla({ rows, selected, onSelectedChange }: Props) {
           </label>
           {selected.size > 0 && <span className="font-medium text-foreground">{selected.size.toLocaleString("es-CO")} seleccionados</span>}
         </div>
-        <div className="overflow-x-auto rounded-md border">
-          <Table className="text-xs">
+        <div className="rounded-md border">
+          <Table className="text-xs table-fixed w-full">
             <TableHeader className="sticky top-0 z-10 bg-background">
               <TableRow>
-                <TableHead className="w-12" />
-                <H k="producto">Producto</H>
-                <H k="semanas_vida" right>Tiempo de vida</H>
-                <H k="precio_lista" right className={ANCHO}>Precio lista</H>
-                <H k="precio_actual" right>Precio actual</H>
-                <H k="dcto_actual" right>Descuento</H>
-                <H k="margen_actual" right>Margen</H>
-                <H k="stock_guayabal" right className={ANCHO}>Stock Guayabal</H>
-                <H k="rdv_semana" right>Venta semanal</H>
-                <H k="cambio_rdv" right tip="Venta semanal desde el inicio del descuento (inicio_rebaja) vs. antes">Cambio RDV</H>
+                <TableHead className="w-10" />
+                <H k="producto" className="w-[34%]">Producto</H>
+                <H k="precio_actual" right>Precio</H>
+                <H k="stock_guayabal" right>Stock</H>
+                <H k="rdv_semana" right tip="Unidades por semana a precio lleno → con descuento">Venta semanal</H>
                 <H k="wos" right tip="Stock Guayabal / venta semanal actual">Semanas para evacuar</H>
                 <H k="sugerencia">Sugerencia</H>
-                <TableHead className="text-center">Alertas</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {visible.length === 0 && <TableRow><TableCell colSpan={13} className="p-6 text-center text-muted-foreground">Sin productos con estos filtros</TableCell></TableRow>}
+              {visible.length === 0 && <TableRow><TableCell colSpan={7} className="p-6 text-center text-muted-foreground">Sin productos con estos filtros</TableCell></TableRow>}
               {visible.map((r) => {
-                const isOpen = open.has(r.product_id);
                 const sug = r.sugerencia ? SUGERENCIAS[r.sugerencia] : undefined;
-                const alertas = r.alertas ?? [];
                 const img = imagesMap[r.product_id];
-                const c = cambioRdv(r);
                 const wos = r.wos == null ? null : Number(r.wos);
+                const conDcto = r.dcto_actual != null && Number(r.dcto_actual) > 0;
                 return (
-                  <Fragment key={r.product_id}>
-                    <TableRow className="align-top">
-                      <TableCell className="p-2">
-                        <div className="flex items-center gap-1">
-                          <Checkbox checked={selected.has(r.product_id)} onCheckedChange={() => toggle(r.product_id)} />
-                          <button aria-label="Expandir" onClick={() => { const s = new Set(open); isOpen ? s.delete(r.product_id) : s.add(r.product_id); setOpen(s); }}>
-                            {isOpen ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
-                          </button>
+                  <TableRow key={r.product_id}>
+                    <TableCell className="py-2 px-2"><Checkbox checked={selected.has(r.product_id)} onCheckedChange={() => toggle(r.product_id)} /></TableCell>
+                    <TableCell className="py-2">
+                      <div className="flex items-center gap-2 min-w-0">
+                        {img ? (
+                          <ProductImageThumb src={img} alt={r.producto} productId={r.product_id} title={r.producto}
+                            className="h-8 w-8 shrink-0 aspect-square rounded object-cover border border-border bg-muted" />
+                        ) : <div className="h-8 w-8 shrink-0 rounded border border-dashed border-border bg-muted" />}
+                        <div className="min-w-0">
+                          <div className="font-medium truncate" title={r.producto}>{r.producto}</div>
+                          <div className="text-[10px] text-muted-foreground truncate">{[r.coleccion, r.tipo].filter(Boolean).join(" · ")}</div>
                         </div>
-                      </TableCell>
-                      <TableCell className="min-w-[220px]">
-                        <div className="flex gap-2">
-                          {img ? (
-                            <ProductImageThumb src={img} alt={r.producto} productId={r.product_id} title={r.producto}
-                              className="h-12 w-12 shrink-0 aspect-square rounded object-cover border border-border bg-muted" />
-                          ) : (
-                            <div className="h-12 w-12 shrink-0 aspect-square rounded border border-dashed border-border bg-muted" />
-                          )}
-                          <div className="min-w-0">
-                            <div className="font-medium text-sm line-clamp-2" title={r.producto}>{r.producto}</div>
-                            <div className="text-[10px] text-muted-foreground">{[r.coleccion, r.tipo, r.genero].filter(Boolean).join(" · ")}</div>
-                          </div>
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-right tabular-nums whitespace-nowrap">{r.semanas_vida == null ? "—" : `${r.semanas_vida} sem`}</TableCell>
-                      <TableCell className={cn("text-right tabular-nums whitespace-nowrap", ANCHO)}>{cop(r.precio_lista)}</TableCell>
-                      <TableCell className="text-right tabular-nums whitespace-nowrap">{cop(r.precio_actual)}</TableCell>
-                      <TableCell className="text-right tabular-nums">
-                        <div>{pct(r.dcto_actual)}</div>
-                        {r.precio_uniforme === false && <Badge variant="outline" className="mt-1 border-red-300 bg-red-50 text-[10px] text-red-700">precios distintos por talla</Badge>}
-                      </TableCell>
-                      <TableCell className={cn("text-right tabular-nums", r.margen_actual != null && r.margen_actual < 0.4 && "font-semibold text-red-600")}>{pct(r.margen_actual)}</TableCell>
-                      <TableCell className={cn("text-right tabular-nums", ANCHO)}>{num(r.stock_guayabal)}</TableCell>
-                      <TableCell className="text-right tabular-nums whitespace-nowrap">{r.rdv_semana == null ? "—" : `${dec1(r.rdv_semana)} u/sem`}</TableCell>
-                      <TableCell className="text-right tabular-nums whitespace-nowrap">
-                        {c.tipo === "na" ? <span className="text-muted-foreground">—</span>
-                          : c.tipo === "pronto" ? <span className="text-muted-foreground">Muy pronto</span>
-                          : c.tipo === "nuevo" ? <span className="font-medium text-emerald-700">Nuevo ritmo</span>
-                          : <span className={cn("font-medium", c.v > 0 ? "text-emerald-700" : c.v < 0 ? "text-red-600" : "text-muted-foreground")}>{c.v > 0 ? "+" : ""}{Math.round(c.v * 100)}%</span>}
-                      </TableCell>
-                      <TableCell className="text-right tabular-nums">
-                        {sinVenta(r) ? <span className="font-medium text-red-600">Sin venta</span>
-                          : <span className={cn("font-medium", wos! <= 8 ? "text-emerald-700" : wos! <= 18 ? "text-amber-600" : "text-red-600")}>{dec1(wos)}</span>}
-                      </TableCell>
-                      <TableCell className="min-w-[150px]">
-                        {r.sugerencia && <Badge variant="outline" className={cn("text-[10px]", sug?.badge ?? "bg-muted text-muted-foreground")}>{sug?.label ?? r.sugerencia}</Badge>}
-                        {r.dcto_sugerido != null && (
-                          <div className="mt-1 text-[10px] text-muted-foreground whitespace-nowrap">→ {pct(r.dcto_sugerido)} · {cop(r.precio_sugerido)}</div>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-center">
-                        {alertas.length > 0 && (
-                          <Tooltip>
-                            <TooltipTrigger className="inline-flex items-center gap-1 text-amber-600"><AlertTriangle className="h-3.5 w-3.5" />{alertas.length}</TooltipTrigger>
-                            <TooltipContent className="max-w-xs"><ul className="list-disc pl-4 text-xs">{alertas.map((a, i) => <li key={i}>{a}</li>)}</ul></TooltipContent>
-                          </Tooltip>
-                        )}
-                      </TableCell>
-                    </TableRow>
-                    {isOpen && (
-                      <TableRow className="bg-muted/20 hover:bg-muted/20">
-                        <TableCell />
-                        <TableCell colSpan={12} className="py-3">
-                          <div className="flex flex-wrap gap-6 text-xs">
-                            <div><span className="text-muted-foreground">Ritmo de venta: </span>
-                              {r.inicio_rebaja ? `${dec1(r.rdv_antes)} → ${dec1(r.rdv_desde)} u/sem desde ${fechaCorta(r.inicio_rebaja)}` : `${dec1(r.rdv_semana)} u/sem`}</div>
-                            <div><span className="text-muted-foreground">Venta 28d / 7d: </span>{num(r.venta_28d)} / {num(r.venta_7d)}</div>
-                            <div><span className="text-muted-foreground">Costo unitario: </span>{cop(r.costo)}</div>
-                            {r.dcto_sugerido != null && <div><span className="text-muted-foreground">Margen sugerido: </span>{pct(r.margen_sugerido)}</div>}
-                            {r.tallas && <div><span className="text-muted-foreground">Tallas: </span>{r.tallas}</div>}
-                            <div className="flex flex-wrap items-center gap-1"><span className="text-muted-foreground">Etiquetas: </span>
-                              {(r.etiquetas ?? []).length === 0 ? "—" : (r.etiquetas ?? []).map((e) => <Badge key={e} variant="secondary" className="text-[10px]">{e}</Badge>)}</div>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    )}
-                  </Fragment>
+                      </div>
+                    </TableCell>
+                    <TableCell className="py-2 text-right tabular-nums whitespace-nowrap">
+                      <div className="font-semibold">{cop(r.precio_actual)}</div>
+                      {conDcto && <div className="text-[10px] text-muted-foreground"><span className="line-through">{cop(r.precio_lista)}</span> −{Math.round(Number(r.dcto_actual) * 100)}%</div>}
+                    </TableCell>
+                    <TableCell className="py-2 text-right tabular-nums">{num(r.stock_guayabal)}</TableCell>
+                    <TableCell className="py-2 text-right tabular-nums whitespace-nowrap">
+                      <Tooltip>
+                        <TooltipTrigger asChild><span>{conDcto ? `${dec1(r.rdv_antes)} → ${dec1(r.rdv_desde)}` : dec1(r.rdv_antes ?? r.rdv_semana)}</span></TooltipTrigger>
+                        <TooltipContent className="text-xs">Unidades por semana a precio lleno → con descuento</TooltipContent>
+                      </Tooltip>
+                    </TableCell>
+                    <TableCell className="py-2 text-right tabular-nums">
+                      {sinVenta(r) ? <span className="font-medium text-red-600">Sin venta</span>
+                        : <span className={cn("font-medium", wos! <= 8 ? "text-emerald-700" : wos! <= 18 ? "text-amber-600" : "text-red-600")}>{dec1(wos)}</span>}
+                    </TableCell>
+                    <TableCell className="py-2">
+                      {r.sugerencia && <Badge variant="outline" className={cn("text-[10px]", sug?.badge ?? "bg-muted text-muted-foreground")}>{sug?.label ?? r.sugerencia}</Badge>}
+                      {r.dcto_sugerido != null && <div className="mt-1 text-[10px] text-muted-foreground">→ {pct(r.dcto_sugerido)}</div>}
+                    </TableCell>
+                  </TableRow>
                 );
               })}
             </TableBody>
