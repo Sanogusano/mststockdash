@@ -24,6 +24,8 @@ import {
   fetchSnapshotHistory,
 } from "@/lib/snapshot-api";
 import type { NetsuiteSnapshotData } from "@/lib/parse-netsuite-xls";
+import type { LocationMatchReport } from "@/lib/snapshot-api";
+import { LocationMatchSummary } from "@/components/netsuite/LocationMatchSummary";
 
 const fmt = (n: number | null | undefined) =>
   n == null ? "—" : n.toLocaleString("es-CO");
@@ -59,8 +61,11 @@ export default function NetsuiteUpload() {
     enabled: isAdmin,
   });
 
-  const handleSuccess = () => {
+  const [matchReport, setMatchReport] = useState<LocationMatchReport | null>(null);
+
+  const handleSuccess = (report?: LocationMatchReport) => {
     setParsed(null);
+    setMatchReport(report ?? null);
     qc.invalidateQueries({ queryKey: ["snapshot-active"] });
     qc.invalidateQueries({ queryKey: ["snapshot-history"] });
   };
@@ -159,6 +164,13 @@ export default function NetsuiteUpload() {
                 data={parsed}
                 onSuccess={handleSuccess}
                 onCancel={() => setParsed(null)}
+              />
+            )}
+
+            {!parsed && matchReport && (
+              <LocationMatchSummary
+                report={matchReport}
+                onClose={() => setMatchReport(null)}
               />
             )}
 
