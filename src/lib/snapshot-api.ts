@@ -166,6 +166,7 @@ export async function uploadSnapshot(
       .update({ status: "processed" })
       .eq("id", snapshot.id);
 
+    onMappingReport?.(report);
     return snapshot.id;
   } catch (err: any) {
     await supabase

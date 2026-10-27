@@ -19,12 +19,13 @@ import {
 import {
   uploadSnapshot,
   existsActiveSnapshotForDate,
+  type LocationMatchReport,
 } from "@/lib/snapshot-api";
 import type { NetsuiteSnapshotData } from "@/lib/parse-netsuite-xls";
 
 interface Props {
   data: NetsuiteSnapshotData;
-  onSuccess: () => void;
+  onSuccess: (report?: LocationMatchReport) => void;
   onCancel: () => void;
 }
 
@@ -41,6 +42,7 @@ export function SnapshotPreview({ data, onSuccess, onCancel }: Props) {
   const doUpload = async () => {
     setUploading(true);
     setProgress(0);
+    let report: LocationMatchReport | undefined;
     try {
       await uploadSnapshot(
         {
@@ -51,10 +53,11 @@ export function SnapshotPreview({ data, onSuccess, onCancel }: Props) {
           totalLocations: data.totalLocations,
           lines: data.lines,
         },
-        (pct) => setProgress(pct)
+        (pct) => setProgress(pct),
+        (r) => { report = r; }
       );
       toast.success(`Snapshot guardado: ${fmt(data.totalSkus)} SKUs`);
-      onSuccess();
+      onSuccess(report);
     } catch (err: any) {
       toast.error(err?.message ?? "Error al guardar el snapshot");
     } finally {
