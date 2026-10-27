@@ -27,7 +27,7 @@ export function LocationMatchSummary({ report, onClose }: Props) {
     enabled: ids.length > 0,
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("locations")
+        .from("locations" as any)
         .select("*")
         .in("id", ids);
       if (error) throw error;
