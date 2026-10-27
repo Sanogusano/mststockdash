@@ -2,7 +2,8 @@
  * API para gestionar snapshots de inventario NetSuite en Supabase.
  */
 import { supabase } from "@/integrations/supabase/client";
-import type { NetsuiteLine } from "./parse-netsuite-xls";
+import type { NetsuiteLine, LocationMappingRow } from "./parse-netsuite-xls";
+import { matchLocation } from "./parse-netsuite-xls";
 
 export interface UploadSnapshotParams {
   fileName: string;
@@ -42,10 +43,29 @@ export async function findUnmappedLocations(
  * Sube un snapshot completo: desactiva otros del mismo día,
  * crea el registro maestro e inserta líneas en lotes.
  */
+export interface LocationMatchReport {
+  partial: { fileName: string; mappingName: string; internalLocationId: string; units: number }[];
+  unmapped: { fileName: string; units: number }[];
+}
+
+/** Actualiza el nombre NetSuite de un mapeo existente al nombre que trae el archivo. */
+export async function updateMappingLocationName(
+  oldName: string,
+  newName: string
+): Promise<void> {
+  const { error } = await supabase
+    .from("netsuite_location_mapping")
+    .update({ netsuite_location_name: newName })
+    .eq("netsuite_location_name", oldName);
+  if (error) throw error;
+}
+
 export async function uploadSnapshot(
   params: UploadSnapshotParams,
-  onProgress?: (pct: number) => void
+  onProgress?: (pct: number) => void,
+  onMappingReport?: (report: LocationMatchReport) => void
 ): Promise<string> {
+  const report: LocationMatchReport = { partial: [], unmapped: [] };
   // 1. Desactivar TODOS los snapshots activos (solo uno debe quedar activo:
   //    el que se está subiendo). Antes solo desactivaba los del mismo día,
   //    lo que dejaba activos los de días anteriores y acumulaba varios activos.
@@ -78,20 +98,37 @@ export async function uploadSnapshot(
   if (insErr || !snapshot) throw insErr ?? new Error("No se creó el snapshot");
 
   try {
-    // 3. Resolver mapeo de ubicaciones (una sola vez para todo el archivo)
+    // 3. Resolver mapeo de ubicaciones (exacto, luego por nombre parcial único)
     const allLocs = [...new Set(params.lines.map((l) => l.netsuiteLocationName))];
     const { data: mappings, error: mapErr } = await supabase
       .from("netsuite_location_mapping")
-      .select("netsuite_location_name, internal_location_id")
-      .in("netsuite_location_name", allLocs);
+      .select("netsuite_location_name, internal_location_id");
     if (mapErr) throw mapErr;
 
-    const mappingDict: Record<string, string | null> = Object.fromEntries(
-      (mappings || []).map((m) => [
-        m.netsuite_location_name,
-        m.internal_location_id,
-      ])
-    );
+    const unitsByLoc = new Map<string, number>();
+    for (const l of params.lines) {
+      unitsByLoc.set(
+        l.netsuiteLocationName,
+        (unitsByLoc.get(l.netsuiteLocationName) ?? 0) + (Number(l.quantity) || 0)
+      );
+    }
+
+    const mappingDict: Record<string, string | null> = {};
+    for (const name of allLocs) {
+      const m = matchLocation(name, (mappings || []) as LocationMappingRow[]);
+      mappingDict[name] = m?.internalLocationId ?? null;
+      const units = unitsByLoc.get(name) ?? 0;
+      if (m?.partial) {
+        report.partial.push({
+          fileName: name,
+          mappingName: m.mappingName,
+          internalLocationId: m.internalLocationId,
+          units,
+        });
+      } else if (!m) {
+        report.unmapped.push({ fileName: name, units });
+      }
+    }
 
     // 4. Insertar líneas en lotes
     const total = params.lines.length;
