@@ -335,3 +335,68 @@ export async function parseNetsuiteXls(
     );
   }
 }
+
+// ============= Cruce de ubicaciones con netsuite_location_mapping =============
+
+export interface LocationMappingRow {
+  netsuite_location_name: string;
+  internal_location_id: string | null;
+}
+
+export interface LocationMatch {
+  fileName: string;
+  internalLocationId: string;
+  mappingName: string;
+  partial: boolean;
+}
+
+/** Normaliza: sin mayúsculas, sin tildes, espacios colapsados. */
+export function normalizeLocationPart(s: string): string {
+  return s
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+/** Última parte del nombre (después del último " : "). */
+export function lastLocationPart(s: string): string {
+  const parts = s.split(" : ");
+  return parts[parts.length - 1];
+}
+
+/**
+ * 1) nombre completo exacto; 2) última parte normalizada, solo si hay UNA coincidencia.
+ * Devuelve null si no se puede mapear.
+ */
+export function matchLocation(
+  fileName: string,
+  mappings: LocationMappingRow[]
+): LocationMatch | null {
+  const exact = mappings.find(
+    (m) => m.netsuite_location_name === fileName && m.internal_location_id
+  );
+  if (exact) {
+    return {
+      fileName,
+      internalLocationId: exact.internal_location_id!,
+      mappingName: exact.netsuite_location_name,
+      partial: false,
+    };
+  }
+  const key = normalizeLocationPart(lastLocationPart(fileName));
+  if (!key) return null;
+  const candidates = mappings.filter(
+    (m) =>
+      m.internal_location_id &&
+      normalizeLocationPart(lastLocationPart(m.netsuite_location_name)) === key
+  );
+  if (candidates.length !== 1) return null;
+  return {
+    fileName,
+    internalLocationId: candidates[0].internal_location_id!,
+    mappingName: candidates[0].netsuite_location_name,
+    partial: true,
+  };
+}
