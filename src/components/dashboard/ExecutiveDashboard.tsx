@@ -8,6 +8,8 @@ import { resolveDays, resolveComparisonRange, getDateRange, needsDateRange, toDa
 import { CumplimientoPresupuestoCard } from "@/components/dashboard/CumplimientoPresupuestoCard";
 import { exportToCSV } from "@/lib/csv-export";
 import { cn } from "@/lib/utils";
+import { formatKpiMoney } from "@/lib/kpi-money";
+import type { BudgetChannel } from "@/lib/executive-budget";
 import { exportToPDF } from "@/lib/pdf-export";
 import { LoadingState, EmptyState } from "./LoadingState";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -293,14 +295,14 @@ function KpiCard({ label, value, mobileValue, prefix = "", icon: Icon, className
 }) {
   return (
     <div
-      className={cn("glass-card p-5 flex items-start gap-4", ventaM2Status && `border ${ventaM2Status.borderClass}`, onClick && "cursor-pointer hover:ring-2 hover:ring-primary/30 transition-all")}
+      className={cn("glass-card min-w-0 p-3 sm:p-5 flex items-start gap-2 sm:gap-4", ventaM2Status && `border ${ventaM2Status.borderClass}`, onClick && "cursor-pointer hover:ring-2 hover:ring-primary/30 transition-all")}
       onClick={onClick}
     >
       <div className={cn("h-10 w-10 rounded-lg flex items-center justify-center shrink-0", ventaM2Status ? ventaM2Status.bgClass : "bg-primary/10")}>
         {ventaM2Status ? <ventaM2Status.icon className={cn("h-5 w-5", ventaM2Status.colorClass)} /> : <Icon className={cn("h-5 w-5 text-primary", className)} />}
       </div>
       <div className="min-w-0 flex-1">
-        <div className="flex items-center gap-2">
+        <div className="flex min-w-0 flex-wrap items-center gap-2">
           <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">{label}</p>
           {ventaM2Status && (
             <span className={cn("inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-bold", ventaM2Status.bgClass, ventaM2Status.colorClass)}>
@@ -312,7 +314,7 @@ function KpiCard({ label, value, mobileValue, prefix = "", icon: Icon, className
           {mobileValue ? (
             <>
               <span className="sm:hidden">{prefix}{mobileValue}</span>
-              <span className="hidden sm:inline">{prefix}{value}</span>
+              <span className="hidden sm:inline">{prefix}{mobileValue}</span>
             </>
           ) : (
             <>{prefix}{value}</>
@@ -416,7 +418,7 @@ function ProductTable({ data, title, exportFilename, days, canalFiltro, location
 
   return (
     <div className="glass-card overflow-hidden">
-      <div className="flex items-center justify-between px-5 py-4 border-b border-border">
+      <div className="flex min-w-0 flex-wrap gap-2 items-center justify-between px-5 py-4 border-b border-border">
         <h3 className="text-sm font-semibold text-foreground">{title}</h3>
         <Button variant="link" size="sm" onClick={() => navigate(buildDesempenoUrl({
           orden: title.startsWith("Bottom") ? "BOTTOM" : "TOP", days,
@@ -762,12 +764,7 @@ const fmtCurrency = (v: number) =>
 const fmtPromDia = (v: number) => (v > 0 ? fmtCurrency(v) : "\u2014");
 const fmtPromDiaCompact = (v: number) => (v > 0 ? fmtCurrencyCompact(v) : "\u2014");
 
-const fmtCurrencyCompact = (v: number) => {
-  const abs = Math.abs(v);
-  if (abs >= 1_000_000_000) return `$${(v / 1_000_000_000).toLocaleString("es-CO", { maximumFractionDigits: 2 })}MM`;
-  if (abs >= 1_000_000) return `$${(v / 1_000_000).toLocaleString("es-CO", { maximumFractionDigits: 3 })}M`;
-  return fmtCurrency(v);
-};
+const fmtCurrencyCompact = formatKpiMoney;
 
 /* ── Performance classification based on avg daily sales vs peers ── */
 function getPerformanceClass(storeSales: number, allSales: number[]) {
@@ -1350,7 +1347,7 @@ function ChannelPanel({ days, canal, showLocationFilter, locationFilter, compari
               <span className="text-sm font-semibold text-foreground">Sucursal:</span>
             </div>
             <Select value={selectedLocation} onValueChange={setSelectedLocation}>
-              <SelectTrigger className="w-[340px] bg-card border-2 border-primary/30 font-medium shadow-sm">
+              <SelectTrigger className="w-full sm:w-[340px] min-w-0 bg-card border-2 border-primary/30 font-medium shadow-sm">
                 <SelectValue placeholder="Todas las tiendas" />
               </SelectTrigger>
               <SelectContent className="bg-popover border border-border shadow-lg z-50">
@@ -1395,7 +1392,9 @@ function ChannelPanel({ days, canal, showLocationFilter, locationFilter, compari
               return <CumplimientoPresupuestoCard desde={desde} hasta={hasta}
                 zona={null}
                 canal={canal === "digital" ? "online" : "tienda"}
-                locationId={locParam} />;
+                locationId={locParam}
+                channels={[canal as BudgetChannel]} venta={kpis?.ingresos_netos ?? 0}
+                universo={locations.find(l => l.location_id === locParam)?.name ?? (canal === "digital" ? "Digital" : canal === "outlets" ? "Outlets" : "Tiendas")} />;
             })()}
             {/* Row 1: Ventas Netas + Ticket + Precio Promedio */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -1809,7 +1808,9 @@ function BrandOverviewPanel({ days, comparisonPeriod = "previous", customFrom, c
               <CumplimientoPresupuestoCard desde={desde} hasta={hasta}
                 zona={null}
                 canal={singleCanal === "digital" ? "online" : singleCanal ? "tienda" : null}
-                locationId={null} />
+                locationId={null} channels={activeChannels as BudgetChannel[]} venta={kpis.ingresos_netos}
+                universo={activeChannels.length === 3 ? "Venta Directa" : activeChannels.map(c => CHANNEL_LABELS[c]).join(" + ")}
+                preserveTotal={activeChannels.length === 3} />
             </div>
           );
         })()}
@@ -1993,7 +1994,7 @@ function ZonePanel({ days, locationFilter, comparisonPeriod = "previous", custom
           <span className="text-sm font-semibold text-foreground">Zona:</span>
         </div>
         <Select value={selectedZone} onValueChange={setSelectedZone}>
-          <SelectTrigger className="w-[220px] bg-card border-2 border-primary/30 font-medium shadow-sm">
+          <SelectTrigger className="w-full sm:w-[220px] min-w-0 bg-card border-2 border-primary/30 font-medium shadow-sm">
             <SelectValue placeholder="Todas las zonas" />
           </SelectTrigger>
           <SelectContent className="bg-popover border border-border shadow-lg z-50">
@@ -2009,7 +2010,7 @@ function ZonePanel({ days, locationFilter, comparisonPeriod = "previous", custom
               <span className="text-sm font-semibold text-foreground">Sucursal:</span>
             </div>
             <Select value={selectedLocation} onValueChange={setSelectedLocation}>
-              <SelectTrigger className="w-[340px] bg-card border-2 border-primary/30 font-medium shadow-sm">
+              <SelectTrigger className="w-full sm:w-[340px] min-w-0 bg-card border-2 border-primary/30 font-medium shadow-sm">
                 <SelectValue placeholder="Todas las sucursales" />
               </SelectTrigger>
               <SelectContent className="bg-popover border border-border shadow-lg z-50">
@@ -2026,7 +2027,9 @@ function ZonePanel({ days, locationFilter, comparisonPeriod = "previous", custom
         return <CumplimientoPresupuestoCard desde={desde} hasta={hasta}
           zona={selectedZone !== "all" ? selectedZone : null}
           canal="tienda"
-          locationId={selectedLocation !== "all" ? selectedLocation : null} />;
+          locationId={selectedLocation !== "all" ? selectedLocation : null}
+          channels={[locationFilter]} venta={kpis?.ingresos_netos ?? 0}
+          universo={selectedLoc?.name ?? `${locationFilter === "outlets" ? "Outlets" : "Tiendas"}${zonaParam ? ` · ${zonaParam}` : ""}`} />;
       })()}
 
       {/* KPI Cards */}
@@ -2136,7 +2139,7 @@ function ZonePanel({ days, locationFilter, comparisonPeriod = "previous", custom
       {/* Top Tiendas Table */}
       {!(selectedLocation !== "all" && selectedLoc) && (
         <div className="glass-card overflow-hidden">
-          <div className="flex items-center justify-between px-5 py-4 border-b border-border">
+          <div className="flex min-w-0 flex-wrap gap-2 items-center justify-between px-5 py-4 border-b border-border">
             <div className="flex items-center gap-3">
               <Trophy className="h-5 w-5 text-primary" />
               <h3 className="text-sm font-semibold text-foreground">Top Tiendas</h3>
@@ -2375,7 +2378,7 @@ function ZoneStoreRankCard({ days, canal, locationId, locationName, allRanking, 
 export function ExecutiveDashboard({ days, comparisonPeriod = "previous", customFrom, customTo }: Props) {
   return (
     <Tabs defaultValue="venta-directa" className="w-full">
-      <TabsList className="w-full grid grid-cols-3 bg-muted/50 rounded-xl p-1 h-auto border border-border mb-6">
+      <TabsList className="w-full min-w-0 flex justify-start overflow-x-auto sm:grid sm:grid-cols-3 bg-muted/50 rounded-xl p-1 h-auto border border-border mb-6">
         <TabsTrigger value="venta-directa" className="flex items-center justify-center gap-2 sm:gap-2.5 text-sm sm:text-base font-medium rounded-lg px-4 py-2.5 sm:py-3 transition-all duration-200 data-[state=active]:bg-emerald-600 data-[state=active]:text-white data-[state=active]:shadow-sm text-muted-foreground hover:text-foreground hover:bg-muted">
           <Package className="h-4 w-4 sm:h-5 sm:w-5" />
           <span className="hidden sm:inline">Desempeño Comercial Venta Directa</span>
@@ -2401,7 +2404,7 @@ export function ExecutiveDashboard({ days, comparisonPeriod = "previous", custom
 
       <TabsContent value="por-zona">
         <Tabs defaultValue="tiendas" className="w-full">
-          <TabsList className="w-full grid grid-cols-2 bg-muted/50 rounded-xl p-1 h-auto border border-border">
+          <TabsList className="w-full min-w-0 flex justify-start overflow-x-auto sm:grid sm:grid-cols-2 bg-muted/50 rounded-xl p-1 h-auto border border-border">
             <TabsTrigger value="tiendas" className="flex items-center justify-center gap-2 sm:gap-2.5 text-sm sm:text-base font-medium rounded-lg px-4 py-2.5 sm:py-3 transition-all duration-200 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm text-muted-foreground hover:text-foreground hover:bg-muted">
               <Store className="h-4 w-4 sm:h-5 sm:w-5" />
               <span className="hidden sm:inline">Tiendas de Línea</span>
@@ -2424,7 +2427,7 @@ export function ExecutiveDashboard({ days, comparisonPeriod = "previous", custom
 
       <TabsContent value="por-canal">
         <Tabs defaultValue="tiendas" className="w-full">
-          <TabsList className="w-full grid grid-cols-3 bg-muted/50 rounded-xl p-1 h-auto border border-border">
+          <TabsList className="w-full min-w-0 flex justify-start overflow-x-auto sm:grid sm:grid-cols-3 bg-muted/50 rounded-xl p-1 h-auto border border-border">
             <TabsTrigger value="tiendas" className="flex items-center justify-center gap-2 sm:gap-2.5 text-sm sm:text-base font-medium rounded-lg px-4 py-2.5 sm:py-3 transition-all duration-200 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm text-muted-foreground hover:text-foreground hover:bg-muted">
               <Store className="h-4 w-4 sm:h-5 sm:w-5" />
               <span className="hidden sm:inline">Tiendas de Línea</span>
