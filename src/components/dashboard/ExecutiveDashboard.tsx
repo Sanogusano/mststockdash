@@ -1589,7 +1589,7 @@ function ChannelContributionChart({ channelData }: {
 }) {
   if (!channelData.length) return null;
 
-  const fmtMillions = (v: number) => `$${(v / 1_000_000).toFixed(1)}M`;
+  const fmtMillions = formatKpiMoney;
 
   return (
     <div className="glass-card p-5 mt-4">
