@@ -79,9 +79,9 @@ export function CumplimientoPresupuestoCard({ desde, hasta, zona, canal, locatio
       <div className="col-span-2 relative h-1.5 w-full sm:w-auto sm:flex-1 sm:min-w-[80px] rounded-full bg-muted overflow-hidden">
         <div className={`absolute inset-y-0 left-0 rounded-full ${barra}`} style={{ width: `${Math.max(0, Math.min(100, pct ?? 0))}%` }} />
       </div>
-      <div className="col-span-2 min-w-0 flex flex-wrap justify-between sm:justify-start gap-x-3 gap-y-1 text-sm sm:text-xs tabular-nums">
-        <span className="min-w-0 text-muted-foreground">{universo} · <span className="font-medium text-foreground">{formatKpiMoney(venta)}</span>{pct != null && ` de ${formatKpiMoney(presupuesto)}`}</span>
-        {pct != null && <span className={cumplio ? "text-success" : "text-muted-foreground"}>{cumplio ? `+${formatKpiMoney(diferencia)} sobre meta` : `Faltan ${formatKpiMoney(-diferencia)}`}</span>}
+      <div className="col-span-2 min-w-0 grid grid-cols-[minmax(0,1fr)_auto] sm:flex sm:flex-wrap sm:justify-start gap-x-3 gap-y-1 text-sm sm:text-xs tabular-nums">
+        <span className="min-w-0 text-muted-foreground"><span className="block text-xs sm:inline">{universo}<span className="hidden sm:inline"> · </span></span><span className="font-medium text-foreground">{formatKpiMoney(venta)}</span>{pct != null && ` de ${formatKpiMoney(presupuesto)}`}</span>
+        {pct != null && <span className={`self-end max-w-[110px] sm:max-w-none text-right ${cumplio ? "text-success" : "text-muted-foreground"}`}>{cumplio ? `+${formatKpiMoney(diferencia)} sobre meta` : `Faltan ${formatKpiMoney(-diferencia)}`}</span>}
       </div>
     </div>
   );

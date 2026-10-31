@@ -1039,27 +1039,27 @@ function StoreRankCard({ days, canal, locationId, locationName, customFrom, cust
               <div className="p-3 rounded-lg bg-emerald-500/5 border border-emerald-500/20">
                 <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">🟢 Mejor Día</p>
                 <p className="text-sm font-semibold text-foreground">{translateDay(extraMetrics?.mejor_dia_semana ?? "N/A")}</p>
-                <p className="text-xs text-muted-foreground"><span className="sm:hidden">{fmtCurrencyCompact(extraMetrics?.venta_mejor_dia ?? 0)}</span><span className="hidden sm:inline">{fmtCurrency(extraMetrics?.venta_mejor_dia ?? 0)}</span></p>
+                <p className="text-xs text-muted-foreground"><span className="sm:hidden">{fmtCurrencyCompact(extraMetrics?.venta_mejor_dia ?? 0)}</span><span className="hidden sm:inline">{fmtCurrencyCompact(extraMetrics?.venta_mejor_dia ?? 0)}</span></p>
               </div>
               <div className="p-3 rounded-lg bg-destructive/5 border border-destructive/20">
                 <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">🔴 Peor Día</p>
                 <p className="text-sm font-semibold text-foreground">{translateDay(extraMetrics?.peor_dia_semana ?? "N/A")}</p>
-                <p className="text-xs text-muted-foreground"><span className="sm:hidden">{fmtCurrencyCompact(extraMetrics?.venta_peor_dia ?? 0)}</span><span className="hidden sm:inline">{fmtCurrency(extraMetrics?.venta_peor_dia ?? 0)}</span></p>
+                <p className="text-xs text-muted-foreground"><span className="sm:hidden">{fmtCurrencyCompact(extraMetrics?.venta_peor_dia ?? 0)}</span><span className="hidden sm:inline">{fmtCurrencyCompact(extraMetrics?.venta_peor_dia ?? 0)}</span></p>
               </div>
               <div className="p-3 rounded-lg bg-muted/40 border border-border">
                 <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Prom. Lun-Vie</p>
-                <p className="text-sm font-semibold text-foreground"><span className="sm:hidden">{fmtPromDiaCompact(extraMetrics?.venta_promedio_semana ?? 0)}</span><span className="hidden sm:inline">{fmtPromDia(extraMetrics?.venta_promedio_semana ?? 0)}</span></p>
+                <p className="text-sm font-semibold text-foreground"><span className="sm:hidden">{fmtPromDiaCompact(extraMetrics?.venta_promedio_semana ?? 0)}</span><span className="hidden sm:inline">{fmtPromDiaCompact(extraMetrics?.venta_promedio_semana ?? 0)}</span></p>
               </div>
               <div className="p-3 rounded-lg bg-muted/40 border border-border">
                 <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Prom. Sáb-Dom</p>
-                <p className="text-sm font-semibold text-foreground"><span className="sm:hidden">{fmtPromDiaCompact(extraMetrics?.venta_promedio_finde ?? 0)}</span><span className="hidden sm:inline">{fmtPromDia(extraMetrics?.venta_promedio_finde ?? 0)}</span></p>
+                <p className="text-sm font-semibold text-foreground"><span className="sm:hidden">{fmtPromDiaCompact(extraMetrics?.venta_promedio_finde ?? 0)}</span><span className="hidden sm:inline">{fmtPromDiaCompact(extraMetrics?.venta_promedio_finde ?? 0)}</span></p>
               </div>
             </div>
             {/* Row 2: Promedios diarios con comparativa */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div className="p-3 rounded-lg bg-muted/30 border border-border">
                 <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Venta Prom/Día</p>
-                <p className="text-base font-semibold text-foreground"><span className="sm:hidden">{fmtCurrencyCompact(extraMetrics?.venta_promedio_diaria_actual ?? 0)}</span><span className="hidden sm:inline">{fmtCurrency(extraMetrics?.venta_promedio_diaria_actual ?? 0)}</span></p>
+                <p className="text-base font-semibold text-foreground"><span className="sm:hidden">{fmtCurrencyCompact(extraMetrics?.venta_promedio_diaria_actual ?? 0)}</span><span className="hidden sm:inline">{fmtCurrencyCompact(extraMetrics?.venta_promedio_diaria_actual ?? 0)}</span></p>
                 <ComparisonIndicator actual={extraMetrics?.venta_promedio_diaria_actual ?? 0} anterior={extraMetrics?.venta_promedio_diaria_anterior ?? 0} label="vs ant." />
               </div>
               <div className="p-3 rounded-lg bg-muted/30 border border-border">
@@ -1169,26 +1169,26 @@ function DigitalChannelCard({ days, customFrom, customTo }: { days: number; cust
               <div className="p-3 rounded-lg bg-emerald-500/5 border border-emerald-500/20">
                 <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">🟢 Mejor Día</p>
                 <p className="text-sm font-semibold text-foreground">{translateDay(extraMetrics?.mejor_dia_semana ?? "N/A")}</p>
-                <p className="text-xs text-muted-foreground"><span className="sm:hidden">{fmtCurrencyCompact(extraMetrics?.venta_mejor_dia ?? 0)}</span><span className="hidden sm:inline">{fmtCurrency(extraMetrics?.venta_mejor_dia ?? 0)}</span></p>
+                <p className="text-xs text-muted-foreground"><span className="sm:hidden">{fmtCurrencyCompact(extraMetrics?.venta_mejor_dia ?? 0)}</span><span className="hidden sm:inline">{fmtCurrencyCompact(extraMetrics?.venta_mejor_dia ?? 0)}</span></p>
               </div>
               <div className="p-3 rounded-lg bg-destructive/5 border border-destructive/20">
                 <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">🔴 Peor Día</p>
                 <p className="text-sm font-semibold text-foreground">{translateDay(extraMetrics?.peor_dia_semana ?? "N/A")}</p>
-                <p className="text-xs text-muted-foreground"><span className="sm:hidden">{fmtCurrencyCompact(extraMetrics?.venta_peor_dia ?? 0)}</span><span className="hidden sm:inline">{fmtCurrency(extraMetrics?.venta_peor_dia ?? 0)}</span></p>
+                <p className="text-xs text-muted-foreground"><span className="sm:hidden">{fmtCurrencyCompact(extraMetrics?.venta_peor_dia ?? 0)}</span><span className="hidden sm:inline">{fmtCurrencyCompact(extraMetrics?.venta_peor_dia ?? 0)}</span></p>
               </div>
               <div className="p-3 rounded-lg bg-muted/40 border border-border">
                 <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Prom. Lun-Vie</p>
-                <p className="text-sm font-semibold text-foreground"><span className="sm:hidden">{fmtPromDiaCompact(extraMetrics?.venta_promedio_semana ?? 0)}</span><span className="hidden sm:inline">{fmtPromDia(extraMetrics?.venta_promedio_semana ?? 0)}</span></p>
+                <p className="text-sm font-semibold text-foreground"><span className="sm:hidden">{fmtPromDiaCompact(extraMetrics?.venta_promedio_semana ?? 0)}</span><span className="hidden sm:inline">{fmtPromDiaCompact(extraMetrics?.venta_promedio_semana ?? 0)}</span></p>
               </div>
               <div className="p-3 rounded-lg bg-muted/40 border border-border">
                 <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Prom. Sáb-Dom</p>
-                <p className="text-sm font-semibold text-foreground"><span className="sm:hidden">{fmtPromDiaCompact(extraMetrics?.venta_promedio_finde ?? 0)}</span><span className="hidden sm:inline">{fmtPromDia(extraMetrics?.venta_promedio_finde ?? 0)}</span></p>
+                <p className="text-sm font-semibold text-foreground"><span className="sm:hidden">{fmtPromDiaCompact(extraMetrics?.venta_promedio_finde ?? 0)}</span><span className="hidden sm:inline">{fmtPromDiaCompact(extraMetrics?.venta_promedio_finde ?? 0)}</span></p>
               </div>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div className="p-3 rounded-lg bg-muted/30 border border-border">
                 <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Venta Prom/Día</p>
-                <p className="text-base font-semibold text-foreground"><span className="sm:hidden">{fmtCurrencyCompact(extraMetrics?.venta_promedio_diaria_actual ?? 0)}</span><span className="hidden sm:inline">{fmtCurrency(extraMetrics?.venta_promedio_diaria_actual ?? 0)}</span></p>
+                <p className="text-base font-semibold text-foreground"><span className="sm:hidden">{fmtCurrencyCompact(extraMetrics?.venta_promedio_diaria_actual ?? 0)}</span><span className="hidden sm:inline">{fmtCurrencyCompact(extraMetrics?.venta_promedio_diaria_actual ?? 0)}</span></p>
                 <ComparisonIndicator actual={extraMetrics?.venta_promedio_diaria_actual ?? 0} anterior={extraMetrics?.venta_promedio_diaria_anterior ?? 0} label="vs ant." />
               </div>
               <div className="p-3 rounded-lg bg-muted/30 border border-border">
@@ -2083,12 +2083,12 @@ function ZonePanel({ days, locationFilter, comparisonPeriod = "previous", custom
               <div className="p-3 rounded-lg bg-emerald-500/5 border border-emerald-500/20">
                 <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">🟢 Mejor Día</p>
                 <p className="text-sm font-semibold text-foreground">{translateDay(zoneMetrics?.mejor_dia_semana ?? "N/A")}</p>
-                <p className="text-xs text-muted-foreground"><span className="sm:hidden">{fmtCurrencyCompact(zoneMetrics?.venta_mejor_dia ?? 0)}</span><span className="hidden sm:inline">{fmtCurrency(zoneMetrics?.venta_mejor_dia ?? 0)}</span></p>
+                <p className="text-xs text-muted-foreground"><span className="sm:hidden">{fmtCurrencyCompact(zoneMetrics?.venta_mejor_dia ?? 0)}</span><span className="hidden sm:inline">{fmtCurrencyCompact(zoneMetrics?.venta_mejor_dia ?? 0)}</span></p>
               </div>
               <div className="p-3 rounded-lg bg-destructive/5 border border-destructive/20">
                 <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">🔴 Peor Día</p>
                 <p className="text-sm font-semibold text-foreground">{translateDay(zoneMetrics?.peor_dia_semana ?? "N/A")}</p>
-                <p className="text-xs text-muted-foreground"><span className="sm:hidden">{fmtCurrencyCompact(zoneMetrics?.venta_peor_dia ?? 0)}</span><span className="hidden sm:inline">{fmtCurrency(zoneMetrics?.venta_peor_dia ?? 0)}</span></p>
+                <p className="text-xs text-muted-foreground"><span className="sm:hidden">{fmtCurrencyCompact(zoneMetrics?.venta_peor_dia ?? 0)}</span><span className="hidden sm:inline">{fmtCurrencyCompact(zoneMetrics?.venta_peor_dia ?? 0)}</span></p>
               </div>
               <div className="p-3 rounded-lg bg-muted/40 border border-border">
                 <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Prom. Lun-Vie</p>
@@ -2103,7 +2103,7 @@ function ZonePanel({ days, locationFilter, comparisonPeriod = "previous", custom
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div className="p-3 rounded-lg bg-muted/30 border border-border">
                 <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Venta Prom/Día</p>
-                <p className="text-base font-semibold text-foreground"><span className="sm:hidden">{fmtCurrencyCompact(zoneMetrics?.venta_promedio_diaria_actual ?? 0)}</span><span className="hidden sm:inline">{fmtCurrency(zoneMetrics?.venta_promedio_diaria_actual ?? 0)}</span></p>
+                <p className="text-base font-semibold text-foreground"><span className="sm:hidden">{fmtCurrencyCompact(zoneMetrics?.venta_promedio_diaria_actual ?? 0)}</span><span className="hidden sm:inline">{fmtCurrencyCompact(zoneMetrics?.venta_promedio_diaria_actual ?? 0)}</span></p>
                 <ComparisonIndicator actual={zoneMetrics?.venta_promedio_diaria_actual ?? 0} anterior={zoneMetrics?.venta_promedio_diaria_anterior ?? 0} label="vs ant." />
               </div>
               <div className="p-3 rounded-lg bg-muted/30 border border-border">
@@ -2318,26 +2318,26 @@ function ZoneStoreRankCard({ days, canal, locationId, locationName, allRanking, 
               <div className="p-3 rounded-lg bg-emerald-500/5 border border-emerald-500/20">
                 <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">🟢 Mejor Día</p>
                 <p className="text-sm font-semibold text-foreground">{translateDay(extraMetrics?.mejor_dia_semana ?? "N/A")}</p>
-                <p className="text-xs text-muted-foreground"><span className="sm:hidden">{fmtCurrencyCompact(extraMetrics?.venta_mejor_dia ?? 0)}</span><span className="hidden sm:inline">{fmtCurrency(extraMetrics?.venta_mejor_dia ?? 0)}</span></p>
+                <p className="text-xs text-muted-foreground"><span className="sm:hidden">{fmtCurrencyCompact(extraMetrics?.venta_mejor_dia ?? 0)}</span><span className="hidden sm:inline">{fmtCurrencyCompact(extraMetrics?.venta_mejor_dia ?? 0)}</span></p>
               </div>
               <div className="p-3 rounded-lg bg-destructive/5 border border-destructive/20">
                 <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">🔴 Peor Día</p>
                 <p className="text-sm font-semibold text-foreground">{translateDay(extraMetrics?.peor_dia_semana ?? "N/A")}</p>
-                <p className="text-xs text-muted-foreground"><span className="sm:hidden">{fmtCurrencyCompact(extraMetrics?.venta_peor_dia ?? 0)}</span><span className="hidden sm:inline">{fmtCurrency(extraMetrics?.venta_peor_dia ?? 0)}</span></p>
+                <p className="text-xs text-muted-foreground"><span className="sm:hidden">{fmtCurrencyCompact(extraMetrics?.venta_peor_dia ?? 0)}</span><span className="hidden sm:inline">{fmtCurrencyCompact(extraMetrics?.venta_peor_dia ?? 0)}</span></p>
               </div>
               <div className="p-3 rounded-lg bg-muted/40 border border-border">
                 <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Prom. Lun-Vie</p>
-                <p className="text-sm font-semibold text-foreground"><span className="sm:hidden">{fmtPromDiaCompact(extraMetrics?.venta_promedio_semana ?? 0)}</span><span className="hidden sm:inline">{fmtPromDia(extraMetrics?.venta_promedio_semana ?? 0)}</span></p>
+                <p className="text-sm font-semibold text-foreground"><span className="sm:hidden">{fmtPromDiaCompact(extraMetrics?.venta_promedio_semana ?? 0)}</span><span className="hidden sm:inline">{fmtPromDiaCompact(extraMetrics?.venta_promedio_semana ?? 0)}</span></p>
               </div>
               <div className="p-3 rounded-lg bg-muted/40 border border-border">
                 <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Prom. Sáb-Dom</p>
-                <p className="text-sm font-semibold text-foreground"><span className="sm:hidden">{fmtPromDiaCompact(extraMetrics?.venta_promedio_finde ?? 0)}</span><span className="hidden sm:inline">{fmtPromDia(extraMetrics?.venta_promedio_finde ?? 0)}</span></p>
+                <p className="text-sm font-semibold text-foreground"><span className="sm:hidden">{fmtPromDiaCompact(extraMetrics?.venta_promedio_finde ?? 0)}</span><span className="hidden sm:inline">{fmtPromDiaCompact(extraMetrics?.venta_promedio_finde ?? 0)}</span></p>
               </div>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div className="p-3 rounded-lg bg-muted/30 border border-border">
                 <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Venta Prom/Día</p>
-                <p className="text-base font-semibold text-foreground"><span className="sm:hidden">{fmtCurrencyCompact(extraMetrics?.venta_promedio_diaria_actual ?? 0)}</span><span className="hidden sm:inline">{fmtCurrency(extraMetrics?.venta_promedio_diaria_actual ?? 0)}</span></p>
+                <p className="text-base font-semibold text-foreground"><span className="sm:hidden">{fmtCurrencyCompact(extraMetrics?.venta_promedio_diaria_actual ?? 0)}</span><span className="hidden sm:inline">{fmtCurrencyCompact(extraMetrics?.venta_promedio_diaria_actual ?? 0)}</span></p>
                 <ComparisonIndicator actual={extraMetrics?.venta_promedio_diaria_actual ?? 0} anterior={extraMetrics?.venta_promedio_diaria_anterior ?? 0} label="vs ant." />
               </div>
               <div className="p-3 rounded-lg bg-muted/30 border border-border">

@@ -621,7 +621,7 @@ export default function ComposicionIngresosPage() {
                       <Skeleton className="h-6 w-24" />
                     ) : (
                       <>
-                        <div className="text-base font-semibold">{fmtCOP(v.brutas)}</div>
+                        <div className="text-base font-semibold">{formatKpiMoney(v.brutas)}</div>
                         <p className="text-[11px] text-muted-foreground mt-0.5">
                           {fmtInt(v.ordenes)} órdenes
                         </p>
@@ -698,7 +698,7 @@ export default function ComposicionIngresosPage() {
                         <Skeleton className="h-6 w-24" />
                       ) : (
                         <>
-                          <div className="text-base font-semibold">{fmtCOP(v.brutas)}</div>
+                          <div className="text-base font-semibold">{formatKpiMoney(v.brutas)}</div>
                           <p className="text-[11px] text-muted-foreground mt-0.5">
                             {fmtInt(v.ordenes)} órdenes
                           </p>
