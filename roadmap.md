@@ -1,5 +1,10 @@
 # Roadmap
 
+- [x] Evitar desbordamiento móvil y revisar a 375px Resumen Ejecutivo, Precios monitor/lotes, Estado del Sistema (Integridad) y Logística/Traslados con datos de prueba.
+- [x] Corregir presupuesto por universo seleccionado usando la misma venta del KPI, sin cambiar RPCs.
+- [x] Unificar montos compactos de KPIs, pasar 21 pruebas y confirmar octubre mediante lectura de datos: Tiendas 90,6%, Outlets 85,3%.
+- [ ] Verificación autenticada con datos reales de estas pantallas: Supabase externo sin sesión disponible; revisión visual completada con datos de prueba.
+
 - [x] Publicar Participación por Género (tarjeta visible en pestaña Venta Directa)
 - [x] Rediseñar tarjeta "Participación por Género": barras por género con escala fija 0–100%, stock atenuado, frase de brecha, rango de fechas en subtítulo, debajo de "Participación por Línea"
 - [x] Publicar cambios

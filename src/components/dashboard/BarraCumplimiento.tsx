@@ -1,3 +1,4 @@
+import { formatKpiMoney } from "@/lib/kpi-money";
 /**
  * Barra compacta de cumplimiento de presupuesto.
  * Para filas de tabla y cards pequeñas, donde el badge grande satura.
@@ -15,12 +16,7 @@ interface Props {
   mostrarMontos?: boolean;
 }
 
-const money = (v: number) => {
-  const m = Math.abs(v);
-  if (m >= 1_000_000_000) return `$${(v / 1_000_000_000).toLocaleString("es-CO", { maximumFractionDigits: 2 })}MM`;
-  if (m >= 1_000_000)     return `$${(v / 1_000_000).toLocaleString("es-CO", { maximumFractionDigits: 0 })}M`;
-  return `$${v.toLocaleString("es-CO", { maximumFractionDigits: 0 })}`;
-};
+const money = formatKpiMoney;
 
 function color(pct: number) {
   if (pct >= 100) return { barra: "bg-emerald-500", texto: "text-emerald-700" };

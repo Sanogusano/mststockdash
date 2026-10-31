@@ -21,7 +21,7 @@ function ColombiaDateTime() {
     hour: "2-digit",
     minute: "2-digit",
   });
-  return <span className="text-xs text-muted-foreground">{formatted}</span>;
+  return <span className="text-sm sm:text-xs text-muted-foreground">{formatted}</span>;
 }
 
 export default function ExecutivePage() {
@@ -46,17 +46,18 @@ export default function ExecutivePage() {
   return (
     <MainLayout>
       <header className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 px-4 sm:px-6 py-3 sm:py-4 border-b border-border sticky top-0 bg-background/95 backdrop-blur-sm z-10">
-        <div className="flex items-center gap-3">
+        <div className="flex min-w-0 items-start sm:items-center gap-3">
           <SidebarTrigger className="text-muted-foreground hover:text-foreground" />
-          <div>
+          <div className="min-w-0">
             <div className="flex items-center gap-3">
               <h2 className="text-base sm:text-lg font-semibold text-foreground">Resumen Ejecutivo</h2>
-              <ColombiaDateTime />
+              <div className="hidden sm:block"><ColombiaDateTime /></div>
             </div>
             <p className="text-[10px] sm:text-xs text-muted-foreground">Desempeño comercial por canal</p>
+            <div className="mt-1 sm:hidden"><ColombiaDateTime /></div>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex w-full min-w-0 flex-col sm:w-auto sm:flex-row sm:items-center gap-2 [&>button]:w-full sm:[&>button]:w-auto [&>button]:whitespace-nowrap [&>div]:w-full sm:[&>div]:w-auto [&>div>button]:w-full sm:[&>div>button]:w-auto [&>div>button]:justify-center">
           <TimeFilter
             value={days}
             onChange={handleDaysChange}

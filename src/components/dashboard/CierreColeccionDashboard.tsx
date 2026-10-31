@@ -1,3 +1,4 @@
+import { formatKpiMoney } from "@/lib/kpi-money";
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -208,12 +209,7 @@ export function CierreColeccionDashboard({ days, customFrom, customTo }: Props) 
   }, [categoriaTalla]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const fmt = (n: number) => new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 }).format(n);
-  const fmtCompact = (n: number) => {
-    const abs = Math.abs(n);
-    if (abs >= 1_000_000_000) return `$${(n / 1_000_000_000).toLocaleString("es-CO", { maximumFractionDigits: 2 })}MM`;
-    if (abs >= 1_000_000) return `$${(n / 1_000_000).toLocaleString("es-CO", { maximumFractionDigits: 3 })}M`;
-    return fmt(n);
-  };
+  const fmtCompact = formatKpiMoney;
   const fmtNum = (n: number) => new Intl.NumberFormat("es-CO").format(n);
 
   // Build category → collection breakdown map — only show ordered collections
@@ -708,7 +704,7 @@ function KpiCard({ title, value, mobileValue, subtitle, icon }: { title: string;
           <span className="text-xs text-muted-foreground">{title}</span>
           <span className="text-muted-foreground/50">{icon}</span>
         </div>
-        <p className="text-xl font-semibold text-foreground whitespace-normal break-words tabular-nums">{mobileValue ? <><span className="sm:hidden">{mobileValue}</span><span className="hidden sm:inline">{value}</span></> : value}</p>
+        <p className="text-xl font-semibold text-foreground whitespace-normal break-words tabular-nums">{mobileValue ? <><span className="sm:hidden">{mobileValue}</span><span className="hidden sm:inline">{mobileValue}</span></> : value}</p>
         {subtitle && <p className="text-[10px] text-muted-foreground mt-0.5">{subtitle}</p>}
       </CardContent>
     </Card>

@@ -1,3 +1,4 @@
+import { formatKpiMoney } from "@/lib/kpi-money";
 import { useState, useEffect, useMemo } from "react";
 import { useParams, Link, Navigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -61,25 +62,20 @@ const getBarColor = (semanas: number | null) => {
   return "hsl(152,60%,40%)";
 };
 
-function formatCompactMoney(value: number) {
-  const abs = Math.abs(value);
-  if (abs >= 1_000_000_000) return `${(value / 1_000_000_000).toLocaleString("es-CO", { maximumFractionDigits: 2 })}MM`;
-  if (abs >= 1_000_000) return `${(value / 1_000_000).toLocaleString("es-CO", { maximumFractionDigits: 3 })}M`;
-  return value.toLocaleString("es-CO");
-}
+const formatCompactMoney = (value: number) => formatKpiMoney(value).slice(1);
 
 function KpiCard({ label, value, mobileValue, prefix = "", icon: Icon, className }: {
   label: string; value: string; mobileValue?: string; prefix?: string; icon: React.ElementType; className?: string;
 }) {
   return (
-    <div className="glass-card p-5 flex items-start gap-4">
+    <div className="glass-card p-3 sm:p-5 flex items-start gap-2 sm:gap-4">
       <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
         <Icon className={cn("h-5 w-5 text-primary", className)} />
       </div>
-      <div>
+      <div className="min-w-0">
         <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">{label}</p>
         <p className={cn("text-2xl font-semibold text-foreground mt-0.5 whitespace-normal break-words tabular-nums", className)}>
-          {mobileValue ? <><span className="sm:hidden">{prefix}{mobileValue}</span><span className="hidden sm:inline">{prefix}{value}</span></> : <>{prefix}{value}</>}
+          {mobileValue ? <><span className="sm:hidden">{prefix}{mobileValue}</span><span className="hidden sm:inline">{prefix}{mobileValue}</span></> : <>{prefix}{value}</>}
         </p>
       </div>
     </div>

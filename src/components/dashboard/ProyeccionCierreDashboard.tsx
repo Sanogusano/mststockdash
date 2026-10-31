@@ -1,3 +1,4 @@
+import { formatKpiMoney } from "@/lib/kpi-money";
 import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -21,12 +22,7 @@ function fmtCOP(n: number) {
   return "$" + Math.round(n).toLocaleString("es-CO");
 }
 
-function fmtCOPCompact(n: number) {
-  const abs = Math.abs(n);
-  if (abs >= 1_000_000_000) return `$${(n / 1_000_000_000).toLocaleString("es-CO", { maximumFractionDigits: 2 })}MM`;
-  if (abs >= 1_000_000) return `$${(n / 1_000_000).toLocaleString("es-CO", { maximumFractionDigits: 3 })}M`;
-  return fmtCOP(n);
-}
+const fmtCOPCompact = formatKpiMoney;
 
 type CumplimientoLevel = "sobrecumple" | "si-cumple-verde" | "si-cumple-amarillo" | "cumplimiento-regular" | "no-cumple" | "no-cumple-critico";
 
@@ -445,9 +441,9 @@ export function ProyeccionCierreDashboard() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-xl font-bold text-foreground whitespace-normal break-words tabular-nums"><span className="sm:hidden">{fmtCOPCompact(totals.ventaActual)}</span><span className="hidden sm:inline">{fmtCOP(totals.ventaActual)}</span></p>
+              <p className="text-xl font-bold text-foreground whitespace-normal break-words tabular-nums"><span className="sm:hidden">{fmtCOPCompact(totals.ventaActual)}</span><span className="hidden sm:inline">{fmtCOPCompact(totals.ventaActual)}</span></p>
               <p className="text-[10px] text-muted-foreground mt-1">
-                Presupuesto: <span className="sm:hidden">{fmtCOPCompact(totals.presupuesto)}</span><span className="hidden sm:inline">{fmtCOP(totals.presupuesto)}</span>
+                Presupuesto: <span className="sm:hidden">{fmtCOPCompact(totals.presupuesto)}</span><span className="hidden sm:inline">{fmtCOPCompact(totals.presupuesto)}</span>
               </p>
             </CardContent>
           </Card>
@@ -462,7 +458,7 @@ export function ProyeccionCierreDashboard() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-xl font-bold text-foreground whitespace-normal break-words tabular-nums"><span className="sm:hidden">{fmtCOPCompact(totals.conservador)}</span><span className="hidden sm:inline">{fmtCOP(totals.conservador)}</span></p>
+                  <p className="text-xl font-bold text-foreground whitespace-normal break-words tabular-nums"><span className="sm:hidden">{fmtCOPCompact(totals.conservador)}</span><span className="hidden sm:inline">{fmtCOPCompact(totals.conservador)}</span></p>
                   <p className={`text-[10px] mt-1 font-medium ${pctColor(pctPresupConservador)}`}>
                     {pctPresupConservador.toFixed(1)}% del presupuesto
                   </p>
@@ -484,7 +480,7 @@ export function ProyeccionCierreDashboard() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-xl font-bold text-foreground whitespace-normal break-words tabular-nums"><span className="sm:hidden">{fmtCOPCompact(totals.probable)}</span><span className="hidden sm:inline">{fmtCOP(totals.probable)}</span></p>
+                  <p className="text-xl font-bold text-foreground whitespace-normal break-words tabular-nums"><span className="sm:hidden">{fmtCOPCompact(totals.probable)}</span><span className="hidden sm:inline">{fmtCOPCompact(totals.probable)}</span></p>
                   <p className={`text-[10px] mt-1 font-medium ${pctColor(pctPresupProbable)}`}>
                     {pctPresupProbable.toFixed(1)}% del presupuesto
                   </p>
@@ -506,7 +502,7 @@ export function ProyeccionCierreDashboard() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-xl font-bold text-foreground whitespace-normal break-words tabular-nums"><span className="sm:hidden">{fmtCOPCompact(totals.optimista)}</span><span className="hidden sm:inline">{fmtCOP(totals.optimista)}</span></p>
+                  <p className="text-xl font-bold text-foreground whitespace-normal break-words tabular-nums"><span className="sm:hidden">{fmtCOPCompact(totals.optimista)}</span><span className="hidden sm:inline">{fmtCOPCompact(totals.optimista)}</span></p>
                   <p className={`text-[10px] mt-1 font-medium ${pctColor(pctPresupOptimista)}`}>
                     {pctPresupOptimista.toFixed(1)}% del presupuesto
                   </p>
@@ -594,28 +590,28 @@ export function ProyeccionCierreDashboard() {
           <Card className="border-primary/20">
             <CardHeader className="pb-2"><CardTitle className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Venta Actual MTD</CardTitle></CardHeader>
             <CardContent>
-              <p className="text-xl font-bold tabular-nums">{fmtCOP(totals.ventaActual)}</p>
-              <p className="text-[10px] text-muted-foreground mt-1">Presupuesto: {fmtCOP(totals.presupuesto)}</p>
+              <p className="text-xl font-bold tabular-nums">{fmtCOPCompact(totals.ventaActual)}</p>
+              <p className="text-[10px] text-muted-foreground mt-1">Presupuesto: {fmtCOPCompact(totals.presupuesto)}</p>
             </CardContent>
           </Card>
           <Card className="border-[hsl(var(--danger))]/20 bg-[hsl(var(--danger))]/5">
             <CardHeader className="pb-2"><CardTitle className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Conservador</CardTitle></CardHeader>
             <CardContent>
-              <p className="text-xl font-bold tabular-nums">{fmtCOP(totals.conservador)}</p>
+              <p className="text-xl font-bold tabular-nums">{fmtCOPCompact(totals.conservador)}</p>
               <p className={`text-[10px] mt-1 font-medium ${pctColor(pctPresupConservador)}`}>{pctPresupConservador.toFixed(1)}% del presupuesto</p>
             </CardContent>
           </Card>
           <Card className="border-[hsl(var(--warning))]/20 bg-[hsl(var(--warning))]/5">
             <CardHeader className="pb-2"><CardTitle className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Probable</CardTitle></CardHeader>
             <CardContent>
-              <p className="text-xl font-bold tabular-nums">{fmtCOP(totals.probable)}</p>
+              <p className="text-xl font-bold tabular-nums">{fmtCOPCompact(totals.probable)}</p>
               <p className={`text-[10px] mt-1 font-medium ${pctColor(pctPresupProbable)}`}>{pctPresupProbable.toFixed(1)}% del presupuesto</p>
             </CardContent>
           </Card>
           <Card className="border-[hsl(var(--success))]/20 bg-[hsl(var(--success))]/5">
             <CardHeader className="pb-2"><CardTitle className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Optimista</CardTitle></CardHeader>
             <CardContent>
-              <p className="text-xl font-bold tabular-nums">{fmtCOP(totals.optimista)}</p>
+              <p className="text-xl font-bold tabular-nums">{fmtCOPCompact(totals.optimista)}</p>
               <p className={`text-[10px] mt-1 font-medium ${pctColor(pctPresupOptimista)}`}>{pctPresupOptimista.toFixed(1)}% del presupuesto</p>
             </CardContent>
           </Card>

@@ -105,7 +105,7 @@ export function PreciosTabla({ rows, selected, onSelectedChange, selectable = tr
           {selected.size > 0 && <span className="font-medium text-foreground">{selected.size.toLocaleString("es-CO")} seleccionados</span>}
         </div>}
         <div className="rounded-md border">
-          <Table className="text-xs table-fixed w-full">
+          <Table className="text-xs table-fixed w-full min-w-[850px] sm:min-w-0">
             <TableHeader className="sticky top-0 z-10 bg-background">
               <TableRow>
                 {selectable && <TableHead className="w-10" />}
@@ -164,7 +164,7 @@ export function PreciosTabla({ rows, selected, onSelectedChange, selectable = tr
             </TableBody>
           </Table>
         </div>
-        <div className="flex items-center justify-between text-xs text-muted-foreground">
+        <div className="flex flex-wrap gap-2 items-center justify-between text-xs text-muted-foreground">
           <span>Página {p + 1} de {pages} · {sorted.length.toLocaleString("es-CO")} productos</span>
           <div className="flex gap-2">
             <Button variant="outline" size="sm" className="h-7" disabled={p === 0} onClick={() => setPage(p - 1)}>Anterior</Button>

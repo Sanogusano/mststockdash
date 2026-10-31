@@ -1,3 +1,4 @@
+import { formatKpiMoney } from "@/lib/kpi-money";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { isValidDays } from "@/lib/validation";
@@ -30,19 +31,14 @@ interface Props {
   customTo?: Date;
 }
 
-function formatCompactMoney(value: number) {
-  const abs = Math.abs(value);
-  if (abs >= 1_000_000_000) return `${(value / 1_000_000_000).toLocaleString("es-CO", { maximumFractionDigits: 2 })}MM`;
-  if (abs >= 1_000_000) return `${(value / 1_000_000).toLocaleString("es-CO", { maximumFractionDigits: 3 })}M`;
-  return value.toLocaleString("es-CO");
-}
+const formatCompactMoney = (value: number) => formatKpiMoney(value).slice(1);
 
 function KpiCard({ label, value, mobileValue, prefix = "", footer }: { label: string; value: string; mobileValue?: string; prefix?: string; footer?: React.ReactNode }) {
   return (
     <div className="glass-card rounded-xl p-5 flex flex-col gap-1">
       <p className="text-xs text-muted-foreground uppercase tracking-widest">{label}</p>
       <p className="text-2xl font-display font-bold text-foreground whitespace-normal break-words tabular-nums">
-        {mobileValue ? <><span className="sm:hidden">{prefix}{mobileValue}</span><span className="hidden sm:inline">{prefix}{value}</span></> : <>{prefix}{value}</>}
+        {mobileValue ? <><span className="sm:hidden">{prefix}{mobileValue}</span><span className="hidden sm:inline">{prefix}{mobileValue}</span></> : <>{prefix}{value}</>}
       </p>
       {footer && <div className="mt-1">{footer}</div>}
     </div>

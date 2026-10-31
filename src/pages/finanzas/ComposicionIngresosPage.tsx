@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { format } from "date-fns";
+import { formatKpiMoney } from "@/lib/kpi-money";
 import { CalendarIcon, Download, ChevronDown, ChevronRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { FinanzasLayout } from "./FinanzasLayout";
@@ -545,7 +546,7 @@ export default function ComposicionIngresosPage() {
               <Skeleton className="h-8 w-32" />
             ) : (
               <>
-                <div className="text-2xl font-bold">{fmtCOP(totals.brutas)}</div>
+                <div className="text-2xl font-bold">{formatKpiMoney(totals.brutas)}</div>
                 <p className="text-xs text-muted-foreground mt-1">IVA incluido</p>
               </>
             )}
@@ -563,7 +564,7 @@ export default function ComposicionIngresosPage() {
               <Skeleton className="h-8 w-32" />
             ) : (
               <>
-                <div className="text-2xl font-bold">{fmtCOP(totals.sinIva)}</div>
+                <div className="text-2xl font-bold">{formatKpiMoney(totals.sinIva)}</div>
                 <p className="text-xs text-muted-foreground mt-1">Base gravable</p>
               </>
             )}
@@ -593,9 +594,9 @@ export default function ComposicionIngresosPage() {
                   <Skeleton className="h-7 w-28" />
                 ) : (
                   <>
-                    <div className="text-xl font-bold">{fmtCOP(totals.pos.brutas)}</div>
+                    <div className="text-xl font-bold">{formatKpiMoney(totals.pos.brutas)}</div>
                     <p className="text-[11px] text-muted-foreground mt-1">
-                      Sin IVA: {fmtCOP(totals.pos.sinIva)}
+                      Sin IVA: {formatKpiMoney(totals.pos.sinIva)}
                     </p>
                   </>
                 )}
@@ -620,7 +621,7 @@ export default function ComposicionIngresosPage() {
                       <Skeleton className="h-6 w-24" />
                     ) : (
                       <>
-                        <div className="text-base font-semibold">{fmtCOP(v.brutas)}</div>
+                        <div className="text-base font-semibold">{formatKpiMoney(v.brutas)}</div>
                         <p className="text-[11px] text-muted-foreground mt-0.5">
                           {fmtInt(v.ordenes)} órdenes
                         </p>
@@ -659,9 +660,9 @@ export default function ComposicionIngresosPage() {
                   <Skeleton className="h-7 w-28" />
                 ) : (
                   <>
-                    <div className="text-xl font-bold">{fmtCOP(totals.dig.brutas)}</div>
+                    <div className="text-xl font-bold">{formatKpiMoney(totals.dig.brutas)}</div>
                     <p className="text-[11px] text-muted-foreground mt-1">
-                      Sin IVA: {fmtCOP(totals.dig.sinIva)}
+                      Sin IVA: {formatKpiMoney(totals.dig.sinIva)}
                     </p>
                   </>
                 )}
@@ -697,7 +698,7 @@ export default function ComposicionIngresosPage() {
                         <Skeleton className="h-6 w-24" />
                       ) : (
                         <>
-                          <div className="text-base font-semibold">{fmtCOP(v.brutas)}</div>
+                          <div className="text-base font-semibold">{formatKpiMoney(v.brutas)}</div>
                           <p className="text-[11px] text-muted-foreground mt-0.5">
                             {fmtInt(v.ordenes)} órdenes
                           </p>

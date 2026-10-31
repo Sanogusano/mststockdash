@@ -1,3 +1,4 @@
+import { formatKpiMoney } from "@/lib/kpi-money";
 import { useEffect, useMemo, useState } from "react";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
@@ -36,13 +37,7 @@ const fmtCOP = (v: number) =>
     maximumFractionDigits: 0,
   }).format(v ?? 0);
 
-const fmtCOPCompact = (v: number) => {
-  const value = v ?? 0;
-  const abs = Math.abs(value);
-  if (abs >= 1_000_000_000) return `$${(value / 1_000_000_000).toLocaleString("es-CO", { maximumFractionDigits: 2 })}MM`;
-  if (abs >= 1_000_000) return `$${(value / 1_000_000).toLocaleString("es-CO", { maximumFractionDigits: 3 })}M`;
-  return fmtCOP(value);
-};
+const fmtCOPCompact = formatKpiMoney;
 
 const fmtNum = (v: number) => new Intl.NumberFormat("es-CO").format(v ?? 0);
 
@@ -149,7 +144,7 @@ function KpiCard({
       </CardHeader>
       <CardContent>
         <div className="text-2xl font-semibold text-foreground whitespace-normal break-words tabular-nums">
-          {mobileValue ? <><span className="sm:hidden">{mobileValue}</span><span className="hidden sm:inline">{value}</span></> : value}
+          {mobileValue ? <><span className="sm:hidden">{mobileValue}</span><span className="hidden sm:inline">{mobileValue}</span></> : value}
         </div>
       </CardContent>
     </Card>

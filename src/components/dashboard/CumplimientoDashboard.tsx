@@ -1,3 +1,4 @@
+import { formatKpiMoney } from "@/lib/kpi-money";
 import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -30,12 +31,7 @@ function fmtCOP(n: number) {
   return "$" + Math.round(n).toLocaleString("es-CO");
 }
 
-function fmtCOPCompact(n: number) {
-  const abs = Math.abs(n);
-  if (abs >= 1_000_000_000) return `$${(n / 1_000_000_000).toLocaleString("es-CO", { maximumFractionDigits: 2 })}MM`;
-  if (abs >= 1_000_000) return `$${(n / 1_000_000).toLocaleString("es-CO", { maximumFractionDigits: 3 })}M`;
-  return fmtCOP(n);
-}
+const fmtCOPCompact = formatKpiMoney;
 
 type CumplimientoLevel = "sobrecumple" | "si-cumple-verde" | "si-cumple-amarillo" | "cumplimiento-regular" | "no-cumple" | "no-cumple-critico";
 
@@ -612,8 +608,8 @@ export function CumplimientoDashboard() {
               })()}
             </div>
             <div className="flex justify-between mt-2 text-xs text-muted-foreground">
-              <span>Venta Neta: <span className="sm:hidden">{fmtCOPCompact(totalVentaNeta)}</span><span className="hidden sm:inline">{fmtCOP(totalVentaNeta)}</span></span>
-              <span>Meta: <span className="sm:hidden">{fmtCOPCompact(totalBudget)}</span><span className="hidden sm:inline">{fmtCOP(totalBudget)}</span></span>
+              <span>Venta Neta: <span className="sm:hidden">{fmtCOPCompact(totalVentaNeta)}</span><span className="hidden sm:inline">{fmtCOPCompact(totalVentaNeta)}</span></span>
+              <span>Meta: <span className="sm:hidden">{fmtCOPCompact(totalBudget)}</span><span className="hidden sm:inline">{fmtCOPCompact(totalBudget)}</span></span>
             </div>
           </CardContent>
         </Card>
@@ -634,8 +630,8 @@ export function CumplimientoDashboard() {
               indicatorClassName={pctBg(pctToDate)}
             />
             <div className="flex justify-between mt-2 text-xs text-muted-foreground">
-              <span>Venta: <span className="sm:hidden">{fmtCOPCompact(totalVentaNeta)}</span><span className="hidden sm:inline">{fmtCOP(totalVentaNeta)}</span></span>
-              <span>Meta día {daysElapsed}: <span className="sm:hidden">{fmtCOPCompact(budgetToDate)}</span><span className="hidden sm:inline">{fmtCOP(budgetToDate)}</span></span>
+              <span>Venta: <span className="sm:hidden">{fmtCOPCompact(totalVentaNeta)}</span><span className="hidden sm:inline">{fmtCOPCompact(totalVentaNeta)}</span></span>
+              <span>Meta día {daysElapsed}: <span className="sm:hidden">{fmtCOPCompact(budgetToDate)}</span><span className="hidden sm:inline">{fmtCOPCompact(budgetToDate)}</span></span>
             </div>
           </CardContent>
         </Card>
@@ -654,7 +650,7 @@ export function CumplimientoDashboard() {
             <p className="text-xs text-muted-foreground mb-1">Ticket Promedio</p>
             <p className="text-xl font-bold text-foreground whitespace-normal break-words tabular-nums">
               <span className="sm:hidden">{fmtCOPCompact(ticketPromedio)}</span>
-              <span className="hidden sm:inline">{fmtCOP(ticketPromedio)}</span>
+              <span className="hidden sm:inline">{fmtCOPCompact(ticketPromedio)}</span>
             </p>
           </CardContent>
         </Card>

@@ -222,7 +222,7 @@ export default function LogisticaTrasladosPage() {
     <SidebarProvider>
       <div className="flex min-h-screen w-full bg-background">
         <AppSidebar />
-        <main className="flex-1 min-w-0 flex flex-col">
+        <main className="flex-1 min-w-0 flex flex-col overflow-x-hidden">
           {/* Header */}
           <header className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 px-4 sm:px-6 py-3 sm:py-4 border-b border-border sticky top-0 bg-background/90 backdrop-blur-sm z-10">
             <div className="flex items-center gap-3">
@@ -249,7 +249,7 @@ export default function LogisticaTrasladosPage() {
                 </p>
               </div>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex min-w-0 flex-wrap items-center gap-2">
               {approvedLines.size > 0 && (
                 <Button
                   variant="default"
