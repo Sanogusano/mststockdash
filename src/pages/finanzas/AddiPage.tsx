@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Construction, Download, Upload } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { fmtCOP, fmtInt } from "@/lib/finanzas-format";
+import { formatKpiMoney } from "@/lib/kpi-money";
 import { exportToXLS } from "@/lib/xls-export";
 import { toast } from "sonner";
 import { TabProyeccionPagos } from "./AddiProyeccionTab";
@@ -241,7 +242,7 @@ function TabConciliacion() {
         </CardContent></Card>
         <Card><CardContent className="p-4">
           <p className="text-xs text-muted-foreground">Monto discrepancia</p>
-          <p className="text-xl font-semibold text-amber-600">{fmtCOP(kpis.discMonto)}</p>
+          <p className="text-xl font-semibold text-amber-600">{formatKpiMoney(kpis.discMonto)}</p>
         </CardContent></Card>
       </div>
 

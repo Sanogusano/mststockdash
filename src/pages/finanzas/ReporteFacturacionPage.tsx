@@ -14,6 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { fmtCOP, fmtInt } from "@/lib/finanzas-format";
+import { formatKpiMoney } from "@/lib/kpi-money";
 import * as XLSX from "xlsx";
 import { useHasPermission } from "@/hooks/useHasPermission";
 import { useUserRole } from "@/hooks/useUserRole";
@@ -582,8 +583,8 @@ export default function ReporteFacturacionPage() {
   const renderCard = (key: CardKey) => {
     const c = cards.find((x) => x.key === key)!;
     const sub = c.key === "sin_ov"
-      ? (resumen.sin_ov.n > 0 ? <><p>{`Pedido pagado que no entró a NetSuite (más de 2 h) · ${fmtCOP(resumen.sin_ov.v)}`}</p>{desgloseCausas && <p className="mt-0.5">{desgloseCausas}</p>}</> : "Todos los pedidos entraron a NetSuite")
-      : c.key === "diferencia" ? `${fmtCOP(resumen[c.key].d)} en diferencias` : `${fmtCOP(resumen[c.key].v)} venta neta`;
+      ? (resumen.sin_ov.n > 0 ? <><p>{`Pedido pagado que no entró a NetSuite (más de 2 h) · ${formatKpiMoney(resumen.sin_ov.v)}`}</p>{desgloseCausas && <p className="mt-0.5">{desgloseCausas}</p>}</> : "Todos los pedidos entraron a NetSuite")
+      : c.key === "diferencia" ? `${formatKpiMoney(resumen[c.key].d)} en diferencias` : `${formatKpiMoney(resumen[c.key].v)} venta neta`;
     return flatCard({
       title: c.title, n: fmtInt(resumen[c.key].n), sub, tone: c.tone,
       selected: vista === "pedidos" && cardFiltro === c.key,
@@ -805,7 +806,7 @@ export default function ReporteFacturacionPage() {
                 </>)}
                 {tab === "por_facturar" && (<>
                   {renderCard("sin_ov")}{renderCard("pendiente")}{renderCard("esperando")}
-                  {flatCard({ title: "Órdenes sin facturar", n: fmtInt(sfStats.total), sub: fmtCOP(sfStats.montoTotal), tone: sfStats.mas7 > 0 ? "text-destructive" : "text-muted-foreground", selected: vista === "ordenes", onClick: () => { setVista(vista === "ordenes" ? "pedidos" : "ordenes"); setCardFiltro(null); } })}
+                  {flatCard({ title: "Órdenes sin facturar", n: fmtInt(sfStats.total), sub: formatKpiMoney(sfStats.montoTotal), tone: sfStats.mas7 > 0 ? "text-destructive" : "text-muted-foreground", selected: vista === "ordenes", onClick: () => { setVista(vista === "ordenes" ? "pedidos" : "ordenes"); setCardFiltro(null); } })}
                 </>)}
                 {tab === "dian" && (<>
                   {renderCard("en_proceso")}{renderCard("fallo_dian")}

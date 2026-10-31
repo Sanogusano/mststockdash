@@ -7,6 +7,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Download, Info } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { fmtCOP, fmtInt } from "@/lib/finanzas-format";
+import { formatKpiMoney } from "@/lib/kpi-money";
 import { exportToXLS } from "@/lib/xls-export";
 import { toast } from "sonner";
 import {
@@ -242,19 +243,19 @@ export function TabProyeccionPagos() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
         <Card><CardContent className="p-4">
           <p className="text-xs text-muted-foreground">Total a recibir</p>
-          <p className="text-2xl font-semibold text-emerald-600">{fmtCOP(kpis.neto)}</p>
+          <p className="text-2xl font-semibold text-emerald-600">{formatKpiMoney(kpis.neto)}</p>
         </CardContent></Card>
         <Card><CardContent className="p-4">
           <p className="text-xs text-muted-foreground">De Créditos (D+30)</p>
-          <p className="text-2xl font-semibold text-blue-600">{fmtCOP(kpis.credito)}</p>
+          <p className="text-2xl font-semibold text-blue-600">{formatKpiMoney(kpis.credito)}</p>
         </CardContent></Card>
         <Card><CardContent className="p-4">
           <p className="text-xs text-muted-foreground">De PSE (D+1)</p>
-          <p className="text-2xl font-semibold text-emerald-700">{fmtCOP(kpis.pse)}</p>
+          <p className="text-2xl font-semibold text-emerald-700">{formatKpiMoney(kpis.pse)}</p>
         </CardContent></Card>
         <Card><CardContent className="p-4">
           <p className="text-xs text-muted-foreground">Tarifas estimadas Addi (3.85%)</p>
-          <p className="text-2xl font-semibold text-rose-600">{fmtCOP(kpis.tarifas)}</p>
+          <p className="text-2xl font-semibold text-rose-600">{formatKpiMoney(kpis.tarifas)}</p>
         </CardContent></Card>
       </div>
 
