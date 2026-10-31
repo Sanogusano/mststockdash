@@ -60,7 +60,7 @@ export default function ConfiguracionEstadoSistema() {
     <SidebarProvider>
       <div className="flex min-h-screen w-full bg-background">
         <AppSidebar />
-        <main className="flex-1 min-w-0 overflow-auto">
+        <main className="flex-1 min-w-0 overflow-x-hidden">
           <header className="flex items-center gap-3 px-4 py-3 border-b border-border md:hidden">
             <SidebarTrigger />
             <h2 className="text-base font-semibold">Estado del Sistema</h2>
@@ -90,7 +90,7 @@ export default function ConfiguracionEstadoSistema() {
             <Card>
               <CardHeader><CardTitle className="text-base">Chequeos de integridad</CardTitle></CardHeader>
               <CardContent>
-                <Table>
+                <Table className="min-w-[640px]">
                   <TableHeader><TableRow><TableHead className="w-28">Severidad</TableHead><TableHead className="w-80">Chequeo</TableHead><TableHead>Detalle</TableHead></TableRow></TableHeader>
                   <TableBody>
                     {filas.map((r, i) => (
@@ -114,7 +114,7 @@ export default function ConfiguracionEstadoSistema() {
               <CardHeader><CardTitle className="text-base">Últimas ejecuciones</CardTitle></CardHeader>
               <CardContent>
                 {log.error && <p className="text-sm text-destructive mb-2">{(log.error as Error).message}</p>}
-                <Table>
+                <Table className="min-w-[640px]">
                   <TableHeader><TableRow><TableHead>Proceso</TableHead><TableHead>Última ejecución</TableHead><TableHead>Hace</TableHead><TableHead className="text-right">Duración</TableHead></TableRow></TableHeader>
                   <TableBody>
                     {(log.data ?? []).map((r) => {

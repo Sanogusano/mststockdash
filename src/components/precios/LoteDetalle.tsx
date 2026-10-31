@@ -127,7 +127,7 @@ export function LoteDetalle({ loteId, puedeGestionar, onBack, onOpen }: Props) {
   const erroresShopify = items.filter((i) => i.error?.startsWith("Shopify:"));
 
   const Barra = ({ label, x }: { label: string; x: number }) => (
-    <div className="space-y-1 min-w-[220px] flex-1">
+    <div className="space-y-1 min-w-0 w-full sm:min-w-[220px] flex-1">
       <div className="flex justify-between text-xs"><span className="font-medium">{label}</span><span className="tabular-nums text-muted-foreground">{x} / {total} variantes</span></div>
       <Progress value={total ? (x / total) * 100 : 0} className="h-2" />
     </div>
@@ -172,7 +172,7 @@ export function LoteDetalle({ loteId, puedeGestionar, onBack, onOpen }: Props) {
       <div className="rounded-lg border p-4 space-y-3">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <div className="flex items-center gap-2"><h2 className="text-lg font-semibold">{lote.nombre}</h2><Badge variant="outline" className={cn("text-[10px]", e?.cls)}>{e?.label ?? lote.estado}</Badge></div>
+            <div className="flex min-w-0 flex-wrap items-center gap-2"><h2 className="text-lg font-semibold break-words">{lote.nombre}</h2><Badge variant="outline" className={cn("text-[10px]", e?.cls)}>{e?.label ?? lote.estado}</Badge></div>
             <p className="text-xs text-muted-foreground">Lote #{lote.id} · creado {fechaHoraLote(lote.creado_en)}{lote.aprobado_en && ` · aprobado ${fechaHoraLote(lote.aprobado_en)}`}</p>
             {lote.lote_revertido_id != null && <p className="text-xs">Reversión del lote <button className="text-primary underline" onClick={() => onOpen?.(lote.lote_revertido_id!)}>#{lote.lote_revertido_id}</button></p>}
             {lote.estado === "revertido" && q.data?.reversion != null && <p className="text-xs">Revertido por el lote <button className="text-primary underline" onClick={() => onOpen?.(q.data!.reversion!)}>#{q.data.reversion}</button></p>}

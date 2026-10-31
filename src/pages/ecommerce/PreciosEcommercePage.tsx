@@ -164,10 +164,10 @@ export default function PreciosEcommercePage() {
   return (
     <TooltipProvider delayDuration={150}>
     <SidebarProvider>
-      <div className="flex min-h-screen w-full bg-background">
+      <div className="flex min-h-screen w-full min-w-0 overflow-x-hidden bg-background">
         <AppSidebar />
-        <main className="flex-1 min-w-0 flex flex-col">
-          <header className="flex items-center justify-between gap-3 px-4 sm:px-6 py-3 sm:py-4 border-b border-border sticky top-0 bg-background/90 backdrop-blur-sm z-10">
+        <main className="flex-1 min-w-0 flex flex-col overflow-x-hidden">
+          <header className="flex flex-wrap items-center justify-between gap-3 px-4 sm:px-6 py-3 sm:py-4 border-b border-border sticky top-0 bg-background/90 backdrop-blur-sm z-10">
             <div className="flex items-center gap-3 min-w-0">
               <SidebarTrigger />
               <Tags className="h-5 w-5 text-muted-foreground" />
@@ -184,7 +184,7 @@ export default function PreciosEcommercePage() {
           </header>
 
           <div className="px-4 sm:px-6 pt-4">
-            <div role="tablist" className="flex gap-1 border-b-2 border-border">
+            <div role="tablist" className="flex min-w-0 max-w-full overflow-x-auto gap-1 border-b-2 border-border">
               {([["monitor", "Monitor"], ["lotes", "Lotes"]] as const).map(([k, l]) => (
                 <button key={k} role="tab" aria-selected={tab === k} onClick={() => irTab(k)}
                   className={cn("px-4 py-2 text-sm font-medium rounded-t-md border-2 border-b-0 transition",
@@ -233,7 +233,7 @@ export default function PreciosEcommercePage() {
           )}
 
           {tab === "monitor" && puedeGestionar && selected.size > 0 && (
-            <div className="sticky bottom-0 mt-auto z-30 shadow-[0_-4px_12px_hsl(var(--foreground)/0.06)] border-t bg-background/95 backdrop-blur px-4 sm:px-6 py-3 flex items-center justify-between gap-3">
+            <div className="sticky bottom-0 mt-auto z-30 shadow-[0_-4px_12px_hsl(var(--foreground)/0.06)] border-t bg-background/95 backdrop-blur px-4 sm:px-6 py-3 flex flex-wrap items-center justify-between gap-3">
               <span className="text-sm font-medium">{selected.size.toLocaleString("es-CO")} productos seleccionados</span>
               <div className="flex flex-wrap gap-2">
                 <Button size="sm" variant="ghost" onClick={() => setSelected(new Set())}>Limpiar</Button>
