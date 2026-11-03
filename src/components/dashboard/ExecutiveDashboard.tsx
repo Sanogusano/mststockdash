@@ -2396,6 +2396,11 @@ export function ExecutiveDashboard({ days, comparisonPeriod = "previous", custom
           <span className="hidden sm:inline">Desempeño por Canal</span>
           <span className="sm:hidden">Por Canal</span>
         </TabsTrigger>
+        <TabsTrigger value="mayoristas" className="flex items-center justify-center gap-2 sm:gap-2.5 text-sm sm:text-base font-medium rounded-lg px-4 py-2.5 sm:py-3 transition-all duration-200 data-[state=active]:bg-emerald-600 data-[state=active]:text-white data-[state=active]:shadow-sm text-muted-foreground hover:text-foreground hover:bg-muted">
+          <Handshake className="h-4 w-4 sm:h-5 sm:w-5" />
+          <span className="hidden sm:inline">Desempeño Comercial Mayoristas</span>
+          <span className="sm:hidden">Mayoristas</span>
+        </TabsTrigger>
       </TabsList>
 
       <TabsContent value="venta-directa">
