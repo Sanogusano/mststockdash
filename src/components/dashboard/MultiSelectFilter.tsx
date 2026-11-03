@@ -10,9 +10,10 @@ interface Props {
   selected: string[];
   onChange: (selected: string[]) => void;
   className?: string;
+  allLabel?: string;
 }
 
-export function MultiSelectFilter({ label, options, selected, onChange, className }: Props) {
+export function MultiSelectFilter({ label, options, selected, onChange, className, allLabel = "Todos" }: Props) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -26,7 +27,7 @@ export function MultiSelectFilter({ label, options, selected, onChange, classNam
 
   const allSelected = selected.length === 0;
   const displayText = allSelected
-    ? `Todos`
+    ? allLabel
     : selected.length === 1
     ? selected[0].substring(0, 18)
     : `${selected.length} seleccionados`;

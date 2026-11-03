@@ -1,5 +1,7 @@
 # Roadmap
 
+- [x] Reutilizar la presentación ejecutiva en Mayoristas sin cambiar sus RPC; comprobar selector y error visible en escritorio y móvil con datos de prueba.
+
 - [x] Evitar desbordamiento móvil y revisar a 375px Resumen Ejecutivo, Precios monitor/lotes, Estado del Sistema (Integridad) y Logística/Traslados con datos de prueba.
 - [x] Corregir presupuesto por universo seleccionado usando la misma venta del KPI, sin cambiar RPCs.
 - [x] Unificar montos compactos de KPIs, pasar 21 pruebas y confirmar octubre mediante lectura de datos: Tiendas 90,6%, Outlets 85,3%.

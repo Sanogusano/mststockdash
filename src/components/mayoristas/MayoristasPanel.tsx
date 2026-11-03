@@ -1,13 +1,17 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowDownRight, ArrowUpRight } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { LoadingState } from "@/components/dashboard/LoadingState";
+import { DollarSign, Package, Receipt, Users, ShoppingBag, Banknote, Percent, Trophy } from "lucide-react";
+import { KpiCard, ComparisonIndicator, ChannelContributionChart, CommercialSectionHeader } from "@/components/dashboard/ExecutivePresentation";
+import { CumplimientoPresupuestoCard } from "@/components/dashboard/CumplimientoPresupuestoCard";
+import { ProductTable } from "@/components/dashboard/ExecutiveDashboard";
+import { StoreRow } from "@/components/dashboard/StoreLeaderboard";
+import { MultiSelectFilter } from "@/components/dashboard/MultiSelectFilter";
+import { LoadingState, EmptyState } from "@/components/dashboard/LoadingState";
 import { supabase } from "@/integrations/supabase/client";
-import { cn } from "@/lib/utils";
-import {
-  fmtMonto, fmtNum, fmtPct, fmtPp, semaforoCumplimiento, Semaforo, tituloNombre, varPct,
-} from "@/lib/mayoristas-format";
+import { fmtMonto, fmtNum, fmtPct, tituloNombre } from "@/lib/mayoristas-format";
+import type { Semaforo } from "@/lib/mayoristas-format";
+
+const TXT: Record<Semaforo, string> = { verde: "text-success", ambar: "text-warning", rojo: "text-danger", neutro: "text-muted-foreground" };
 
 interface CanalRow {
   venta: number; unidades: number; facturas: number; clientes: number; ticket: number;
@@ -39,81 +43,6 @@ interface ClienteRow {
   unidades: number; venta: number; participacion: number;
 }
 
-const TXT: Record<Semaforo, string> = {
-  verde: "text-success", ambar: "text-warning",
-  rojo: "text-danger", neutro: "text-muted-foreground",
-};
-const BAR: Record<Semaforo, string> = {
-  verde: "bg-success", ambar: "bg-warning",
-  rojo: "bg-danger", neutro: "bg-muted-foreground",
-};
-
-function Variacion({ label, value, invert }: { label: string; value: number | null; invert?: boolean }) {
-  if (value === null || value === undefined) return <div className="text-xs text-muted-foreground">— {label}</div>;
-  const up = value >= 0;
-  const bueno = invert ? !up : up;
-  const Icon = up ? ArrowUpRight : ArrowDownRight;
-  return (
-    <div className={cn("flex items-center gap-1 text-xs", bueno ? TXT.verde : TXT.rojo)}>
-      <Icon className="h-3.5 w-3.5 shrink-0" />
-      <span className="font-medium tabular-nums">{up ? "+" : ""}{fmtPct(value)}</span>
-      <span className="text-muted-foreground">{label}</span>
-    </div>
-  );
-}
-
-function VariacionPp({ label, actual, anterior, invert }: { label: string; actual: number | null; anterior: number | null; invert?: boolean }) {
-  if (actual === null || actual === undefined || anterior === null || anterior === undefined) {
-    return <div className="text-xs text-muted-foreground">— {label}</div>;
-  }
-  const diff = Number(actual) - Number(anterior);
-  const up = diff >= 0;
-  const bueno = invert ? !up : up;
-  const Icon = up ? ArrowUpRight : ArrowDownRight;
-  return (
-    <div className={cn("flex items-center gap-1 text-xs", bueno ? TXT.verde : TXT.rojo)}>
-      <Icon className="h-3.5 w-3.5 shrink-0" />
-      <span className="font-medium tabular-nums">{fmtPp(diff)}</span>
-      <span className="text-muted-foreground">{label}</span>
-    </div>
-  );
-}
-
-function Cumplimiento({ venta, meta, cumplimiento, aLaFecha, big }: {
-  venta: number; meta: number | null; cumplimiento: number | null; aLaFecha: number | null; big?: boolean;
-}) {
-  if (meta === null || meta === undefined) {
-    return <div className={cn("font-semibold text-muted-foreground", big ? "text-3xl" : "text-xl")}>Sin meta</div>;
-  }
-  const s = semaforoCumplimiento(aLaFecha);
-  const diff = Number(meta) - Number(venta);
-  return (
-    <div className="space-y-2 min-w-0">
-      <div className={cn("font-bold tabular-nums", TXT[s], big ? "text-4xl" : "text-2xl")}>{fmtPct(cumplimiento)}</div>
-      <div className="h-2 w-full rounded-full bg-muted overflow-hidden">
-        <div className={cn("h-full rounded-full", BAR[s])} style={{ width: `${Math.min(Math.max(Number(cumplimiento) || 0, 0), 100)}%` }} />
-      </div>
-      <div className="flex flex-wrap justify-between gap-x-3 gap-y-1 text-sm">
-        <span className="tabular-nums">{fmtMonto(venta)} de {fmtMonto(meta)}</span>
-        {diff > 0
-          ? <span className="text-muted-foreground tabular-nums">Faltan {fmtMonto(diff)}</span>
-          : <span className={cn("tabular-nums", TXT.verde)}>+{fmtMonto(-diff)} sobre meta</span>}
-      </div>
-      <div className="text-xs text-muted-foreground">A la fecha: <span className={cn("font-medium", TXT[s])}>{fmtPct(aLaFecha)}</span></div>
-    </div>
-  );
-}
-
-function Kpi({ label, value, children }: { label: string; value: string; children?: React.ReactNode }) {
-  return (
-    <Card className="min-w-0"><CardContent className="p-3 sm:p-4 space-y-1">
-      <div className="text-xs text-muted-foreground">{label}</div>
-      <div className="text-lg sm:text-2xl font-semibold tabular-nums truncate">{value}</div>
-      {children}
-    </CardContent></Card>
-  );
-}
-
 type Dimension = "coleccion" | "linea" | "genero";
 const DIMENSIONES: { id: Dimension; label: string }[] = [
   { id: "coleccion", label: "Por Colección" },
@@ -127,11 +56,6 @@ function stockSemaforo(stock: number): Semaforo {
   return "neutro";
 }
 
-function concentracionSemaforo(pct: number): Semaforo {
-  if (pct > 70) return "rojo";
-  if (pct > 50) return "ambar";
-  return "neutro";
-}
 
 /** Agrupa líneas: top 8 por venta + "Otras" con la suma del resto (presentación). */
 function agruparLineas(rows: ComposicionRow[]): ComposicionRow[] {
@@ -150,9 +74,8 @@ function agruparLineas(rows: ComposicionRow[]): ComposicionRow[] {
 }
 
 function ConsultaError({ error }: { error: unknown }) {
-  const message = typeof error === "object" && error !== null && "message" in error
-    ? String(error.message) : String(error);
-  return <div role="alert" className="rounded-md border border-destructive/40 bg-destructive/5 p-3 text-sm text-destructive break-words">{message}</div>;
+  const message = typeof error === "object" && error !== null && "message" in error ? String(error.message) : String(error);
+  return <p role="alert" className="text-destructive break-words">{message}</p>;
 }
 
 function ComposicionCard({ desde, hasta, dimension, label }: {
@@ -169,41 +92,20 @@ function ComposicionCard({ desde, hasta, dimension, label }: {
     },
   });
   const rows = dimension === "linea" ? agruparLineas(compQ.data ?? []) : (compQ.data ?? []);
-  return (
-    <Card className="min-w-0"><CardContent className="p-4 sm:p-5 space-y-4">
-      <h3 className="text-sm font-semibold">{label}</h3>
-      {compQ.error ? <ConsultaError error={compQ.error} /> : compQ.isLoading ? <LoadingState /> : rows.length === 0 ? (
-        <div className="text-sm text-muted-foreground">Sin datos para el periodo.</div>
-      ) : (
-        <div className="space-y-2.5">
-          {rows.map((r) => (
-            <div key={r.grupo} className="space-y-1 min-w-0">
-              <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5 text-sm">
-                <span className="font-medium break-words">{r.grupo}</span>
-                <span className="tabular-nums text-muted-foreground">
-                  <span className="font-medium text-foreground">{fmtPct(r.pct_venta)}</span> · {fmtMonto(r.venta)}
-                </span>
-              </div>
-              <div className="h-2 w-full rounded-full bg-muted overflow-hidden">
-                <div className="h-full rounded-full bg-primary" style={{ width: `${Math.min(Math.max(Number(r.pct_venta) || 0, 0), 100)}%` }} />
-              </div>
-              <div className="text-xs text-muted-foreground tabular-nums">
-                {fmtPct(r.pct_unidades)} de las unidades{r.margen_pct !== null && r.margen_pct !== undefined ? ` · margen ${fmtPct(r.margen_pct)}` : ""}
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-    </CardContent></Card>
-  );
+  if (compQ.error) return <ConsultaError error={compQ.error} />;
+  if (compQ.isLoading) return <LoadingState />;
+  if (!rows.length) return <EmptyState message={`${label} · Sin datos para el periodo.`} />;
+  return <ChannelContributionChart title={label} composition channelData={rows.map(r => ({
+    name: r.grupo, actual: Number(r.venta),
+    detail: <div className="text-xs text-muted-foreground tabular-nums">{fmtPct(r.pct_venta)} de la venta · {fmtNum(r.unidades)} uds · {fmtPct(r.pct_unidades)} de las unidades{r.margen_pct != null ? ` · margen ${fmtPct(r.margen_pct)}` : ""}</div>,
+  }))} />;
 }
 
-/** Panel del canal Mayoristas reutilizado en el Resumen Ejecutivo.
- *  Recibe el rango del selector de periodo del Resumen Ejecutivo (YYYY-MM-DD). */
 export function MayoristasPanel({ desde, hasta }: { desde: string | null; hasta: string | null }) {
   const valido = !!desde && !!hasta && desde <= hasta;
-
+  const [selectedSellers, setSelectedSellers] = useState<string[]>([]);
   const canalQ = useQuery({
+    retry: false,
     queryKey: ["mayoristas-canal", desde, hasta],
     enabled: valido,
     queryFn: async () => {
@@ -213,6 +115,7 @@ export function MayoristasPanel({ desde, hasta }: { desde: string | null; hasta:
     },
   });
   const vendQ = useQuery({
+    retry: false,
     queryKey: ["mayoristas-vendedora", desde, hasta],
     enabled: valido,
     queryFn: async () => {
@@ -253,245 +156,73 @@ export function MayoristasPanel({ desde, hasta }: { desde: string | null; hasta:
   });
   const c = canalQ.data;
   const ind = indQ.data;
-  const topClientes = (clientesQ.data ?? []).filter((r) => r.estado !== "Perdido").slice(0, 10);
-
+  const topClientes = (clientesQ.data ?? []).filter(r => r.estado !== "Perdido").slice(0, 10);
+  const sellers = (vendQ.data ?? []).filter(v => selectedSellers.length === 0 || selectedSellers.includes(v.vendedora));
   return (
-    <div className="space-y-5 min-w-0">
-      <p className="text-xs text-muted-foreground">Venta neta sin IVA · fuente: facturas NetSuite</p>
-
-      {(canalQ.error || vendQ.error) && (
-        <div className="rounded-md border border-destructive/40 bg-destructive/5 p-3 text-sm text-destructive">
-          {((canalQ.error || vendQ.error) as Error)?.message}
-        </div>
-      )}
-
-      {canalQ.isLoading ? <LoadingState /> : c && (
-        <section className="space-y-3">
-          <Card><CardContent className="p-4 sm:p-5 space-y-2">
-            <div className="text-sm font-medium">Cumplimiento Mayoristas</div>
-            <Cumplimiento big venta={c.venta} meta={c.meta} cumplimiento={c.cumplimiento} aLaFecha={c.cumplimiento_a_la_fecha} />
-            {Number(c.facturas_anuladas) > 0 && (
-              <div className="text-xs text-muted-foreground">{fmtNum(c.facturas_anuladas)} factura(s) anulada(s) excluidas</div>
-            )}
-          </CardContent></Card>
-          <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
-            <div className="col-span-2 lg:col-span-1 min-w-0">
-              <Kpi label="Venta neta (sin IVA)" value={fmtMonto(c.venta)}>
-                <Variacion label="vs periodo anterior" value={c.var_ant} />
-                <Variacion label="vs año anterior" value={c.var_aa} />
-              </Kpi>
-            </div>
-            <Kpi label="Unidades" value={fmtNum(c.unidades)} />
-            <Kpi label="Facturas" value={fmtNum(c.facturas)} />
-            <Kpi label="Clientes activos" value={fmtNum(c.clientes)} />
-            <Kpi label="Ticket promedio por factura" value={fmtMonto(c.ticket)} />
+    <div className="space-y-4 mb-6 min-w-0">
+      <div className="glass-card p-5">
+        <CommercialSectionHeader title="📊 DESEMPEÑO COMERCIAL MAYORISTAS">
+          <MultiSelectFilter label="Vendedora" allLabel="Todas" options={(vendQ.data ?? []).map(v => v.vendedora)} selected={selectedSellers} onChange={setSelectedSellers} />
+        </CommercialSectionHeader>
+        <p className="text-xs text-muted-foreground mb-4">Venta neta sin IVA · fuente: facturas NetSuite</p>
+        {canalQ.error ? <ConsultaError error={canalQ.error} /> : canalQ.isLoading ? <LoadingState /> : c ? <>
+          <div className="mb-4">
+            <CumplimientoPresupuestoCard desde={desde ?? ""} hasta={hasta ?? ""} channels={[]} venta={Number(c.venta)} universo="Mayoristas" supplied={{ meta: c.meta, porcentaje: c.cumplimiento }} />
+            <p className="text-xs text-muted-foreground mt-1">A la fecha: {fmtPct(c.cumplimiento_a_la_fecha)}</p>
+            {Number(c.facturas_anuladas) > 0 && <p className="text-xs text-muted-foreground">{fmtNum(c.facturas_anuladas)} factura(s) anulada(s) excluidas</p>}
           </div>
-        </section>
-      )}
-
-      <section className="space-y-3">
-        <h2 className="text-base font-semibold">Vendedoras</h2>
-        {vendQ.isLoading ? <LoadingState /> : (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-            {(vendQ.data ?? []).map((v) => {
-              const sin = v.vendedora?.startsWith("(");
-              return (
-                <Card key={v.vendedor_id ?? v.vendedora} className="min-w-0"><CardContent className="p-4 space-y-3">
-                  <div className="flex flex-wrap items-baseline justify-between gap-2">
-                    <div className={cn("font-semibold", sin && "text-muted-foreground")}>{tituloNombre(v.vendedora)}</div>
-                    <div className="text-xs text-muted-foreground">{fmtPct(v.participacion)} del canal</div>
-                  </div>
-                  {sin
-                    ? <div className="text-sm text-muted-foreground tabular-nums">{fmtMonto(v.venta)}</div>
-                    : <Cumplimiento venta={v.venta} meta={v.meta} cumplimiento={v.cumplimiento} aLaFecha={v.cumplimiento_a_la_fecha} />}
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-sm">
-                    <div><div className="text-xs text-muted-foreground">Unidades</div><div className="tabular-nums">{fmtNum(v.unidades)}</div></div>
-                    <div><div className="text-xs text-muted-foreground">Facturas</div><div className="tabular-nums">{fmtNum(v.facturas)}</div></div>
-                    <div>
-                      <div className="text-xs text-muted-foreground">Clientes</div>
-                      <div className="tabular-nums">{fmtNum(v.clientes)}</div>
-                      {Number(v.clientes_nuevos) > 0 && <div className={cn("text-xs", TXT.verde)}>+{fmtNum(v.clientes_nuevos)} nuevos</div>}
-                      {Number(v.clientes_perdidos) > 0 && <div className={cn("text-xs", TXT.rojo)}>−{fmtNum(v.clientes_perdidos)} perdidos</div>}
-                    </div>
-                    <div><div className="text-xs text-muted-foreground">Ticket</div><div className="tabular-nums">{fmtMonto(v.ticket)}</div></div>
-                  </div>
-                  <div className="flex flex-wrap gap-x-4 gap-y-1">
-                    <Variacion label="vs periodo anterior" value={v.var_ant} />
-                    <Variacion label="vs año anterior" value={v.var_aa} />
-                  </div>
-                </CardContent></Card>
-              );
-            })}
-            {(vendQ.data ?? []).length === 0 && <div className="text-sm text-muted-foreground">Sin datos para el periodo.</div>}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <KpiCard label="Ventas Netas" value={fmtMonto(c.venta)} icon={DollarSign}>
+              {c.var_ant != null && <ComparisonIndicator actual={0} anterior={0} percentage={Number(c.var_ant)} label="vs ant." />}
+              {c.var_aa != null && <ComparisonIndicator actual={0} anterior={0} percentage={Number(c.var_aa)} label="vs año anterior" />}
+            </KpiCard>
+            <KpiCard label="Unidades vendidas" value={fmtNum(c.unidades)} icon={Package} />
+            <KpiCard label="Facturas" value={fmtNum(c.facturas)} icon={Receipt} />
+            <KpiCard label="Clientes activos" value={fmtNum(c.clientes)} icon={Users} />
+            <KpiCard label="Ticket promedio" value={fmtMonto(c.ticket)} icon={Receipt} />
+            {ind && !indQ.error && <>
+              <KpiCard label="UPT" value={Number(ind.upt).toLocaleString("es-CO", { minimumFractionDigits: 1, maximumFractionDigits: 1 })} icon={ShoppingBag} actual={Number(ind.upt)} anterior={ind.upt_ant == null ? undefined : Number(ind.upt_ant)} />
+              <KpiCard label="Precio promedio" value={fmtMonto(ind.precio_promedio)} icon={Banknote} actual={Number(ind.precio_promedio)} anterior={ind.precio_promedio_ant == null ? undefined : Number(ind.precio_promedio_ant)} />
+              <KpiCard label="Margen bruto" value={fmtPct(ind.margen_pct)} icon={Percent}>
+                {ind.margen_pct_ant != null && <ComparisonIndicator actual={0} anterior={0} percentage={Number(ind.margen_pct) - Number(ind.margen_pct_ant)} points label="vs ant." />}
+              </KpiCard>
+              <KpiCard label="Descuento comercial" value={fmtPct(ind.descuento_comercial_pct)} icon={Percent}>
+                <p className="text-xs text-muted-foreground">bajo precio retail</p>
+                {ind.descuento_comercial_pct_ant != null && <ComparisonIndicator actual={0} anterior={0} percentage={Number(ind.descuento_comercial_pct) - Number(ind.descuento_comercial_pct_ant)} points invert label="vs ant." />}
+              </KpiCard>
+              <KpiCard label="Concentración top 3" value={fmtPct(ind.concentracion_top3_pct)} icon={Trophy}><p className="text-xs text-muted-foreground">del canal</p></KpiCard>
+            </>}
           </div>
-        )}
+        </> : <EmptyState message="Sin datos para el periodo." />}
+        {indQ.error ? <ConsultaError error={indQ.error} /> : indQ.isLoading ? <LoadingState /> : null}
+      </div>
+
+      {vendQ.error ? <ConsultaError error={vendQ.error} /> : vendQ.isLoading ? <LoadingState /> : <div className="glass-card overflow-hidden">
+        <div className="flex items-center gap-2 px-5 py-4 border-b border-border"><Trophy className="h-4 w-4 text-primary" /><h3 className="text-sm font-semibold text-foreground">Vendedoras</h3></div>
+        <div className="overflow-x-auto"><table className="w-full text-sm min-w-[1000px]">
+          <thead><tr className="border-b border-border bg-muted/30">{["#", "Vendedora", "Ventas Netas", "Uds", "Ticket Prom", "Facturas", "Clientes", "% canal", "Variación", "Cumplimiento"].map(col => <th key={col} className="px-3 py-2.5 text-left text-xs font-medium text-muted-foreground">{col}</th>)}</tr></thead>
+          <tbody>{sellers.map((v, i) => <StoreRow key={v.vendedor_id ?? v.vendedora} rank={i} presupuesto={v.meta == null ? undefined : Number(v.meta)} porcentaje={v.cumplimiento} row={{ tienda: tituloNombre(v.vendedora), ventas_totales: Number(v.venta), unidades_vendidas: Number(v.unidades), ticket_promedio: Number(v.ticket), upt: 0, pct_venta_full_price: 0, zona: "" }} extraCells={[
+            fmtNum(v.facturas),
+            <div>{fmtNum(v.clientes)}{Number(v.clientes_nuevos) > 0 && <p className="text-xs text-success">+{fmtNum(v.clientes_nuevos)} nuevos</p>}{Number(v.clientes_perdidos) > 0 && <p className="text-xs text-danger">−{fmtNum(v.clientes_perdidos)} perdidos</p>}</div>,
+            fmtPct(v.participacion),
+            <div>{v.var_ant != null && <ComparisonIndicator actual={0} anterior={0} percentage={Number(v.var_ant)} label="vs ant." />}{v.var_aa != null && <ComparisonIndicator actual={0} anterior={0} percentage={Number(v.var_aa)} label="vs año anterior" />}<p className="text-xs text-muted-foreground">A la fecha: {fmtPct(v.cumplimiento_a_la_fecha)}</p></div>,
+          ]} />)}</tbody>
+        </table></div>
+      </div>}
+
+      <section className="space-y-3">
+        <h2 className="text-sm font-semibold text-foreground">Composición de la venta</h2>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">{DIMENSIONES.map(d => <ComposicionCard key={d.id} desde={desde} hasta={hasta} dimension={d.id} label={d.label} />)}</div>
       </section>
 
-      {/* Indicadores comerciales del canal */}
-      <section className="space-y-3">
-        <h2 className="text-base font-semibold">Indicadores comerciales</h2>
-        {indQ.error ? <ConsultaError error={indQ.error} /> : indQ.isLoading ? <LoadingState /> : ind && (
-          <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
-            <Kpi label="UPT (unidades por factura)" value={Number(ind.upt).toLocaleString("es-CO", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}>
-              <Variacion label="vs periodo anterior" value={varPct(ind.upt, ind.upt_ant)} />
-            </Kpi>
-            <Kpi label="Precio promedio" value={fmtMonto(ind.precio_promedio)}>
-              <Variacion label="vs periodo anterior" value={varPct(ind.precio_promedio, ind.precio_promedio_ant)} />
-            </Kpi>
-            <Kpi label="Margen bruto" value={fmtPct(ind.margen_pct)}>
-              <VariacionPp label="vs periodo anterior" actual={ind.margen_pct} anterior={ind.margen_pct_ant} />
-            </Kpi>
-            <Kpi label="Descuento comercial" value={fmtPct(ind.descuento_comercial_pct)}>
-              <div className="text-xs text-muted-foreground">bajo precio retail</div>
-              <VariacionPp label="vs periodo anterior" actual={ind.descuento_comercial_pct} anterior={ind.descuento_comercial_pct_ant} invert />
-            </Kpi>
-            <Kpi label="Concentración top 3 clientes" value={fmtPct(ind.concentracion_top3_pct)}>
-              <div className={cn("text-xs", TXT[concentracionSemaforo(Number(ind.concentracion_top3_pct))])}>del canal</div>
-            </Kpi>
-          </div>
-        )}
-      </section>
-
-      {/* Composición por colección / línea / género */}
-      <section className="space-y-3">
-        <h2 className="text-base font-semibold">Composición de la venta</h2>
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
-          {DIMENSIONES.map((d) => (
-            <ComposicionCard key={d.id} desde={desde} hasta={hasta} dimension={d.id} label={d.label} />
-          ))}
-        </div>
-      </section>
-
-      {/* Top productos mayoristas */}
-      <section className="space-y-3">
-        <h2 className="text-base font-semibold">Top productos mayoristas</h2>
-        {topProdQ.error ? <ConsultaError error={topProdQ.error} /> : topProdQ.isLoading ? <LoadingState /> : (topProdQ.data ?? []).length === 0 ? (
-          <div className="text-sm text-muted-foreground">Sin datos para el periodo.</div>
-        ) : (
-          <>
-            <div className="hidden md:block">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-12"></TableHead>
-                    <TableHead>Producto</TableHead>
-                    <TableHead>Colección</TableHead>
-                    <TableHead className="text-right">Unidades</TableHead>
-                    <TableHead className="text-right">Venta</TableHead>
-                    <TableHead className="text-right">% canal</TableHead>
-                    <TableHead className="text-right">Clientes</TableHead>
-                    <TableHead className="text-right">Precio may. / retail</TableHead>
-                    <TableHead className="text-right">Desc. %</TableHead>
-                    <TableHead className="text-right">Margen %</TableHead>
-                    <TableHead className="text-right">Stock Reserva</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {(topProdQ.data ?? []).map((p) => {
-                    const s = stockSemaforo(Number(p.stock_reserva_distribuidores));
-                    return (
-                      <TableRow key={p.producto_id}>
-                        <TableCell>
-                          {p.image_url
-                            ? <img src={p.image_url} alt={p.producto} loading="lazy" className="h-10 w-10 rounded object-cover" />
-                            : <div className="h-10 w-10 rounded bg-muted" />}
-                        </TableCell>
-                        <TableCell className="font-medium">{p.producto}</TableCell>
-                        <TableCell className="text-muted-foreground">{p.coleccion ?? "—"}</TableCell>
-                        <TableCell className="text-right tabular-nums">{fmtNum(p.unidades)}</TableCell>
-                        <TableCell className="text-right tabular-nums">{fmtMonto(p.venta)}</TableCell>
-                        <TableCell className="text-right tabular-nums">{fmtPct(p.pct_venta)}</TableCell>
-                        <TableCell className="text-right tabular-nums">{fmtNum(p.clientes)}</TableCell>
-                        <TableCell className="text-right tabular-nums whitespace-nowrap">{fmtMonto(p.precio_mayorista)} / {fmtMonto(p.precio_retail_sin_iva)}</TableCell>
-                        <TableCell className="text-right tabular-nums">{fmtPct(p.descuento_comercial_pct)}</TableCell>
-                        <TableCell className="text-right tabular-nums">{fmtPct(p.margen_pct)}</TableCell>
-                        <TableCell className={cn("text-right tabular-nums font-medium", TXT[s])}>{fmtNum(p.stock_reserva_distribuidores)}</TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
-            </div>
-            <div className="md:hidden space-y-3">
-              {(topProdQ.data ?? []).map((p) => {
-                const s = stockSemaforo(Number(p.stock_reserva_distribuidores));
-                return (
-                  <Card key={p.producto_id} className="min-w-0"><CardContent className="p-3 space-y-2">
-                    <div className="flex items-center gap-3 min-w-0">
-                      {p.image_url
-                        ? <img src={p.image_url} alt={p.producto} loading="lazy" className="h-12 w-12 rounded object-cover shrink-0" />
-                        : <div className="h-12 w-12 rounded bg-muted shrink-0" />}
-                      <div className="min-w-0">
-                        <div className="font-medium text-sm truncate">{p.producto}</div>
-                        <div className="text-xs text-muted-foreground">{p.coleccion ?? "—"}</div>
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-3 gap-2 text-sm">
-                      <div><div className="text-xs text-muted-foreground">Unidades</div><div className="tabular-nums">{fmtNum(p.unidades)}</div></div>
-                      <div><div className="text-xs text-muted-foreground">Venta</div><div className="tabular-nums">{fmtMonto(p.venta)}</div></div>
-                      <div><div className="text-xs text-muted-foreground">% canal</div><div className="tabular-nums">{fmtPct(p.pct_venta)}</div></div>
-                      <div><div className="text-xs text-muted-foreground">Clientes</div><div className="tabular-nums">{fmtNum(p.clientes)}</div></div>
-                      <div><div className="text-xs text-muted-foreground">Desc. / Margen</div><div className="tabular-nums">{fmtPct(p.descuento_comercial_pct)} / {fmtPct(p.margen_pct)}</div></div>
-                      <div><div className="text-xs text-muted-foreground">Stock Reserva</div><div className={cn("tabular-nums font-medium", TXT[s])}>{fmtNum(p.stock_reserva_distribuidores)}</div></div>
-                    </div>
-                    <div className="text-xs text-muted-foreground tabular-nums">Precio {fmtMonto(p.precio_mayorista)} / {fmtMonto(p.precio_retail_sin_iva)}</div>
-                  </CardContent></Card>
-                );
-              })}
-            </div>
-          </>
-        )}
-      </section>
-
-      {/* Top clientes */}
-      <section className="space-y-3">
-        <h2 className="text-base font-semibold">Top clientes</h2>
-        {clientesQ.error ? <ConsultaError error={clientesQ.error} /> : clientesQ.isLoading ? <LoadingState /> : topClientes.length === 0 ? (
-          <div className="text-sm text-muted-foreground">Sin datos para el periodo.</div>
-        ) : (
-          <>
-            <div className="hidden md:block">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Cliente</TableHead>
-                    <TableHead>Vendedora</TableHead>
-                    <TableHead className="text-right">Unidades</TableHead>
-                    <TableHead className="text-right">Valor facturado</TableHead>
-                    <TableHead className="text-right">% canal</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {topClientes.map((r) => (
-                    <TableRow key={r.cliente_id}>
-                      <TableCell className="font-medium">{r.cliente}</TableCell>
-                      <TableCell className="text-muted-foreground">{tituloNombre(r.vendedora)}</TableCell>
-                      <TableCell className="text-right tabular-nums">{fmtNum(r.unidades)}</TableCell>
-                      <TableCell className="text-right tabular-nums">{fmtMonto(r.venta)}</TableCell>
-                      <TableCell className="text-right tabular-nums">{fmtPct(r.participacion)}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-            <div className="md:hidden space-y-3">
-              {topClientes.map((r) => (
-                <Card key={r.cliente_id} className="min-w-0"><CardContent className="p-3 space-y-2">
-                  <div className="flex flex-wrap items-baseline justify-between gap-2">
-                    <div className="font-medium text-sm min-w-0">{r.cliente}</div>
-                    <div className="text-xs text-muted-foreground tabular-nums">{fmtPct(r.participacion)} del canal</div>
-                  </div>
-                  <div className="text-xs text-muted-foreground">{tituloNombre(r.vendedora)}</div>
-                  <div className="grid grid-cols-2 gap-2 text-sm">
-                    <div><div className="text-xs text-muted-foreground">Unidades</div><div className="tabular-nums">{fmtNum(r.unidades)}</div></div>
-                    <div><div className="text-xs text-muted-foreground">Valor facturado</div><div className="tabular-nums">{fmtMonto(r.venta)}</div></div>
-                  </div>
-                </CardContent></Card>
-              ))}
-            </div>
-          </>
-        )}
-      </section>
+      {topProdQ.error ? <ConsultaError error={topProdQ.error} /> : topProdQ.isLoading ? <LoadingState /> : <ProductTable data={[]} title="Top productos mayoristas" days={0} exportFilename="" supplied={{
+        columns: ["Producto", "Colección", "Línea", "Unidades", "Venta", "% canal", "Clientes", "Precio may. / retail", "Desc. %", "Margen %", "Stock Reserva"],
+        rows: (topProdQ.data ?? []).map(p => ({ id: String(p.producto_id), name: p.producto, photo: p.image_url, cells: [p.coleccion ?? "—", p.linea ?? "—", fmtNum(p.unidades), fmtMonto(p.venta), fmtPct(p.pct_venta), fmtNum(p.clientes), `${fmtMonto(p.precio_mayorista)} / ${fmtMonto(p.precio_retail_sin_iva)}`, fmtPct(p.descuento_comercial_pct), fmtPct(p.margen_pct), <span className={TXT[stockSemaforo(Number(p.stock_reserva_distribuidores))]}>{fmtNum(p.stock_reserva_distribuidores)}</span>] })),
+      }} />}
+      {clientesQ.error ? <ConsultaError error={clientesQ.error} /> : clientesQ.isLoading ? <LoadingState /> : <ProductTable data={[]} title="Top clientes" days={0} exportFilename="" supplied={{
+        columns: ["Cliente", "Vendedora", "Unidades", "Valor facturado", "% canal"],
+        rows: topClientes.map(r => ({ id: String(r.cliente_id), name: r.cliente, cells: [tituloNombre(r.vendedora), fmtNum(r.unidades), fmtMonto(r.venta), fmtPct(r.participacion)] })),
+      }} />}
     </div>
   );
 }

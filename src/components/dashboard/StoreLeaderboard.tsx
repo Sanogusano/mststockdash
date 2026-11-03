@@ -62,8 +62,8 @@ function UptBadge({ upt }: { upt: number }) {
 }
 
 /* ── Store Row ── */
-function StoreRow({ row, rank, prev, presupuesto }: { row: RankingRow; rank: number; prev?: PrevRow; presupuesto?: number }) {
-  const pct = presupuesto && presupuesto > 0 ? (row.ventas_totales / presupuesto) * 100 : null;
+export function StoreRow({ row, rank, prev, presupuesto, extraCells, porcentaje }: { row: RankingRow; rank: number; prev?: PrevRow; presupuesto?: number; extraCells?: React.ReactNode[]; porcentaje?: number | null }) {
+  const pct = porcentaje !== undefined ? porcentaje : presupuesto && presupuesto > 0 ? (row.ventas_totales / presupuesto) * 100 : null;
   return (
     <tr className="border-b border-border/50 hover:bg-muted/20 transition-colors">
       <td className="px-3 py-2.5 text-center text-base">
@@ -82,6 +82,7 @@ function StoreRow({ row, rank, prev, presupuesto }: { row: RankingRow; rank: num
         <span className="text-muted-foreground text-sm">{fmt(row.ticket_promedio)}</span>
         {prev && <div className="mt-0.5"><CompArrow cur={row.ticket_promedio} prev={prev.ticket_promedio} /></div>}
       </td>
+      {extraCells ? extraCells.map((cell, i) => <td key={i} className="px-3 py-2.5 text-right text-sm text-muted-foreground">{cell}</td>) : <>
       <td className="px-3 py-2.5 text-center"><UptBadge upt={row.upt} /></td>
       <td className="px-3 py-2.5">
         <div className="flex items-center justify-end gap-2">
@@ -92,6 +93,7 @@ function StoreRow({ row, rank, prev, presupuesto }: { row: RankingRow; rank: num
           {prev && <CompArrow cur={row.pct_venta_full_price} prev={prev.pct_venta_full_price} />}
         </div>
       </td>
+      </>}
       <td className="px-3 py-2.5 text-right">
         <BarraCumplimiento pct={pct} venta={row.ventas_totales} presupuesto={presupuesto ?? null} />
       </td>

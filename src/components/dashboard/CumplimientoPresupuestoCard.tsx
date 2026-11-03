@@ -14,15 +14,17 @@ interface Props {
   venta: number;
   universo: string;
   preserveTotal?: boolean;
+  supplied?: { meta: number | null; porcentaje: number | null };
 }
 
-export function CumplimientoPresupuestoCard({ desde, hasta, zona, canal, locationId, channels, venta, universo, preserveTotal = false }: Props) {
+export function CumplimientoPresupuestoCard({ desde, hasta, zona, canal, locationId, channels, venta, universo, preserveTotal = false, supplied }: Props) {
   const [presupuesto, setPresupuesto] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const channelsKey = [...channels].sort().join(",");
 
   useEffect(() => {
+    if (supplied) return;
     let activo = true;
     (async () => {
       setLoading(true);
@@ -56,12 +58,15 @@ export function CumplimientoPresupuestoCard({ desde, hasta, zona, canal, locatio
       }
     })();
     return () => { activo = false; };
-  }, [desde, hasta, zona, canal, locationId, channelsKey, preserveTotal]);
+  }, [desde, hasta, zona, canal, locationId, channelsKey, preserveTotal, supplied]);
 
-  if (loading) return <div className="rounded-lg border px-4 py-3 flex min-w-0 flex-wrap gap-4"><div className="h-8 w-20 bg-muted rounded animate-pulse" /><div className="h-3 w-40 max-w-full bg-muted rounded animate-pulse" /></div>;
-  if (error) return <div className="rounded-lg border px-4 py-3 text-sm text-destructive break-words">Cumplimiento presupuesto · {error}</div>;
+  if (!supplied && loading) return <div className="rounded-lg border px-4 py-3 flex min-w-0 flex-wrap gap-4"><div className="h-8 w-20 bg-muted rounded animate-pulse" /><div className="h-3 w-40 max-w-full bg-muted rounded animate-pulse" /></div>;
+  if (!supplied && error) return <div className="rounded-lg border px-4 py-3 text-sm text-destructive break-words">Cumplimiento presupuesto · {error}</div>;
 
-  const { pct, diferencia } = budgetProgress(venta, presupuesto);
+  const meta = supplied ? supplied.meta ?? 0 : presupuesto;
+  const progress = budgetProgress(venta, meta);
+  const pct = supplied ? supplied.porcentaje : progress.pct;
+  const diferencia = progress.diferencia;
   const cumplio = pct != null && pct >= 100;
   const cerca = pct != null && pct >= 90 && pct < 100;
   const color = pct == null ? "text-muted-foreground" : cumplio ? "text-success" : cerca ? "text-warning" : "text-destructive";
@@ -80,7 +85,7 @@ export function CumplimientoPresupuestoCard({ desde, hasta, zona, canal, locatio
         <div className={`absolute inset-y-0 left-0 rounded-full ${barra}`} style={{ width: `${Math.max(0, Math.min(100, pct ?? 0))}%` }} />
       </div>
       <div className="col-span-2 min-w-0 grid grid-cols-[minmax(0,1fr)_auto] sm:flex sm:flex-wrap sm:justify-start gap-x-3 gap-y-1 text-sm sm:text-xs tabular-nums">
-        <span className="min-w-0 text-muted-foreground"><span className="block text-xs sm:inline">{universo}<span className="hidden sm:inline"> · </span></span><span className="font-medium text-foreground">{formatKpiMoney(venta)}</span>{pct != null && ` de ${formatKpiMoney(presupuesto)}`}</span>
+        <span className="min-w-0 text-muted-foreground"><span className="block text-xs sm:inline">{universo}<span className="hidden sm:inline"> · </span></span><span className="font-medium text-foreground">{formatKpiMoney(venta)}</span>{pct != null && ` de ${formatKpiMoney(meta)}`}</span>
         {pct != null && <span className={`self-end max-w-[110px] sm:max-w-none text-right ${cumplio ? "text-success" : "text-muted-foreground"}`}>{cumplio ? `+${formatKpiMoney(diferencia)} sobre meta` : `Faltan ${formatKpiMoney(-diferencia)}`}</span>}
       </div>
     </div>
