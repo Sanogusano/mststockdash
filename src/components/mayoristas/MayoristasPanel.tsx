@@ -166,7 +166,13 @@ export function MayoristasPanel({ desde, hasta }: { desde: string | null; hasta:
   const topClientes = (clientesQ.data ?? []).filter(r => r.estado !== "Perdido").slice(0, 10);
   const sellers = (vendQ.data ?? []).filter(v => selectedSellers.length === 0 || selectedSellers.includes(v.vendedora));
   return (
-    <div className="space-y-4 mb-6 min-w-0">
+    <Tabs defaultValue="venta" className="mb-6">
+      <TabsList className="w-full min-w-0 grid grid-cols-2 bg-muted/50 rounded-xl p-1 h-auto border border-border mb-4">
+        <TabsTrigger value="venta" className="text-xs sm:text-sm font-medium rounded-lg px-2 sm:px-4 py-2 whitespace-nowrap data-[state=active]:bg-emerald-600 data-[state=active]:text-white data-[state=active]:shadow-sm text-muted-foreground hover:text-foreground hover:bg-muted">Venta por Cliente</TabsTrigger>
+        <TabsTrigger value="ordenes" className="text-xs sm:text-sm font-medium rounded-lg px-2 sm:px-4 py-2 whitespace-nowrap data-[state=active]:bg-emerald-600 data-[state=active]:text-white data-[state=active]:shadow-sm text-muted-foreground hover:text-foreground hover:bg-muted">Órdenes</TabsTrigger>
+      </TabsList>
+      <TabsContent value="venta">
+    <div className="space-y-4 min-w-0">
       <div className="glass-card p-5">
         <CommercialSectionHeader title="📊 DESEMPEÑO COMERCIAL MAYORISTAS">
           <MultiSelectFilter label="Vendedora" allLabel="Todas" options={(vendQ.data ?? []).map(v => v.vendedora)} selected={selectedSellers} onChange={setSelectedSellers} />
