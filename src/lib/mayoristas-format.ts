@@ -74,3 +74,35 @@ export function fmtRango(desde: string, hasta: string): string {
 export function hoyBogota(): string {
   return new Intl.DateTimeFormat("en-CA", { timeZone: "America/Bogota" }).format(new Date());
 }
+
+/** "2026-01-15" -> "15 ene 2026" */
+export function fmtFecha(isoDate: string | null | undefined): string {
+  if (!isoDate) return "—";
+  const [y, m, d] = isoDate.slice(0, 10).split("-").map(Number);
+  if (!y || !m || !d) return isoDate;
+  return `${d} ${MESES[m - 1]} ${y}`;
+}
+
+/** "2026-01" -> "ene 26"; otro texto se devuelve igual */
+export function fmtMesGrupo(grupo: string): string {
+  const m = /^(\d{4})-(\d{2})$/.exec(grupo);
+  if (!m) return grupo;
+  return `${MESES[Number(m[2]) - 1]} ${m[1].slice(2)}`;
+}
+
+/** Pedido vs. Facturado: verde >= 97, ambar 90-97, rojo < 90 */
+export function semaforoFacturado(pct: number | null | undefined): Semaforo {
+  if (pct === null || pct === undefined || !Number.isFinite(Number(pct))) return "neutro";
+  const n = Number(pct);
+  if (n >= 97) return "verde";
+  if (n >= 90) return "ambar";
+  return "rojo";
+}
+
+/** Días de una orden pendiente: rojo > 30, ambar > 15 */
+export function semaforoDiasPendiente(dias: number | null | undefined): Semaforo {
+  const n = Number(dias) || 0;
+  if (n > 30) return "rojo";
+  if (n > 15) return "ambar";
+  return "neutro";
+}
