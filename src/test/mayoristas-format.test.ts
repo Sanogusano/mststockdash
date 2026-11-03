@@ -22,4 +22,14 @@ describe("mayoristas format", () => {
     expect(tituloNombre("LORENA MORENO BENITEZ")).toBe("Lorena Moreno Benitez");
     expect(tituloNombre("(Sin vendedora)")).toBe("(Sin vendedora)");
   });
+  it("puntos porcentuales", () => {
+    expect(fmtPp(3.5)).toBe("+3,5 pp");
+    expect(fmtPp(-0.4)).toBe("-0,4 pp");
+    expect(fmtPp(null)).toBe("—");
+  });
+  it("variación porcentual", () => {
+    expect(varPct(137.2, 85.2)).toBeCloseTo(61.03, 1);
+    expect(varPct(100, 0)).toBeNull();
+    expect(varPct(100, null)).toBeNull();
+  });
 });
