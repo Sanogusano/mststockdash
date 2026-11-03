@@ -62,12 +62,12 @@ function UptBadge({ upt }: { upt: number }) {
 }
 
 /* ── Store Row ── */
-export function StoreRow({ row, rank, prev, presupuesto, extraCells, porcentaje }: { row: RankingRow; rank: number; prev?: PrevRow; presupuesto?: number; extraCells?: React.ReactNode[]; porcentaje?: number | null }) {
+export function StoreRow({ row, rank, prev, presupuesto, extraCells, porcentaje, medals = true }: { row: RankingRow; rank: number; prev?: PrevRow; presupuesto?: number; extraCells?: React.ReactNode[]; porcentaje?: number | null; medals?: boolean }) {
   const pct = porcentaje !== undefined ? porcentaje : presupuesto && presupuesto > 0 ? (row.ventas_totales / presupuesto) * 100 : null;
   return (
     <tr className="border-b border-border/50 hover:bg-muted/20 transition-colors">
       <td className="px-3 py-2.5 text-center text-base">
-        {rank < 3 ? MEDALS[rank] : <span className="text-xs text-muted-foreground font-mono">{rank + 1}</span>}
+        {medals && rank < 3 ? MEDALS[rank] : <span className="text-xs text-muted-foreground font-mono">{rank + 1}</span>}
       </td>
       <td className="px-3 py-2.5 font-medium text-foreground text-sm">{row.tienda}</td>
       <td className="px-3 py-2.5 text-right">
