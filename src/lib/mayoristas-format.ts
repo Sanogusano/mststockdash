@@ -15,6 +15,20 @@ export function fmtPct(value: number | null | undefined): string {
   return `${Number(value).toLocaleString("es-CO", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`;
 }
 
+/** Diferencia de porcentajes en puntos: "+3,5 pp" / "-1,2 pp" */
+export function fmtPp(value: number | null | undefined): string {
+  if (value === null || value === undefined || !Number.isFinite(Number(value))) return "—";
+  const n = Number(value);
+  return `${n >= 0 ? "+" : ""}${n.toLocaleString("es-CO", { minimumFractionDigits: 1, maximumFractionDigits: 1 })} pp`;
+}
+
+/** Variación porcentual entre actual y anterior: ((act/ant)-1)*100; null si no hay base */
+export function varPct(act: number | null | undefined, ant: number | null | undefined): number | null {
+  const a = Number(act), b = Number(ant);
+  if (!Number.isFinite(a) || !Number.isFinite(b) || b === 0) return null;
+  return (a / b - 1) * 100;
+}
+
 export function fmtNum(value: number | null | undefined): string {
   return Math.round(Number(value) || 0).toLocaleString("es-CO");
 }
