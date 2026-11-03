@@ -1631,6 +1631,66 @@ export type Database = {
         }
         Relationships: []
       }
+      mayorista_ordenes: {
+        Row: {
+          cantidad: number
+          cantidad_facturada: number
+          cliente_id: string | null
+          cliente_nombre: string | null
+          estado: string
+          estado_nombre: string | null
+          fecha: string
+          item_id: string | null
+          linea: number
+          neto: number
+          padre_id: string | null
+          sincronizado_en: string | null
+          sku: string | null
+          so_id: string
+          tranid: string
+          vendedor_nombre: string | null
+          vendedor_ns: string | null
+        }
+        Insert: {
+          cantidad?: number
+          cantidad_facturada?: number
+          cliente_id?: string | null
+          cliente_nombre?: string | null
+          estado: string
+          estado_nombre?: string | null
+          fecha: string
+          item_id?: string | null
+          linea: number
+          neto?: number
+          padre_id?: string | null
+          sincronizado_en?: string | null
+          sku?: string | null
+          so_id: string
+          tranid: string
+          vendedor_nombre?: string | null
+          vendedor_ns?: string | null
+        }
+        Update: {
+          cantidad?: number
+          cantidad_facturada?: number
+          cliente_id?: string | null
+          cliente_nombre?: string | null
+          estado?: string
+          estado_nombre?: string | null
+          fecha?: string
+          item_id?: string | null
+          linea?: number
+          neto?: number
+          padre_id?: string | null
+          sincronizado_en?: string | null
+          sku?: string | null
+          so_id?: string
+          tranid?: string
+          vendedor_nombre?: string | null
+          vendedor_ns?: string | null
+        }
+        Relationships: []
+      }
       netsuite_facturas: {
         Row: {
           base_gravable: number | null
@@ -4271,6 +4331,19 @@ export type Database = {
         }
         Relationships: []
       }
+      mayorista_ordenes_duplicadas: {
+        Row: {
+          fecha: string | null
+          motivo: string | null
+          orden_relacionada: string | null
+          padre_id: string | null
+          pedido: number | null
+          so_id: string | null
+          tranid: string | null
+          valor: number | null
+        }
+        Relationships: []
+      }
       mv_distribucion_sku_tienda: {
         Row: {
           coleccion: string | null
@@ -5059,6 +5132,10 @@ export type Database = {
           meta_a_la_fecha: number
         }[]
       }
+      _mayorista_nombre_cliente: {
+        Args: { p_fallback: string; p_padre: string }
+        Returns: string
+      }
       accionables_serie: {
         Args: { p_anio?: number; p_mes?: number }
         Returns: {
@@ -5828,6 +5905,7 @@ export type Database = {
         Args: { p_nota?: string; p_pedido: string; p_tranid: string }
         Returns: undefined
       }
+      mayorista_ordenes_resolver_padres: { Args: never; Returns: undefined }
       mayorista_resolver_padres: { Args: never; Returns: number }
       mejor_dia_semana: {
         Args: { p_clave: string; p_dias?: number }
@@ -7289,6 +7367,70 @@ export type Database = {
           upt_ant: number
         }[]
       }
+      reporte_mayoristas_ordenes_duplicadas: {
+        Args: { p_desde: string; p_hasta: string }
+        Returns: {
+          cliente: string
+          fecha: string
+          motivo: string
+          orden: string
+          orden_relacionada: string
+          unidades: number
+          valor: number
+        }[]
+      }
+      reporte_mayoristas_ordenes_no_despachadas: {
+        Args: { p_desde: string; p_hasta: string; p_vendedor?: string }
+        Returns: {
+          cliente: string
+          fecha: string
+          orden: string
+          pct_facturado: number
+          productos_faltantes: string
+          unidades_no_facturadas: number
+          unidades_pedidas: number
+          valor_no_facturado: number
+          vendedora: string
+        }[]
+      }
+      reporte_mayoristas_ordenes_pendientes: {
+        Args: { p_vendedor?: string }
+        Returns: {
+          cliente: string
+          dias: number
+          estado: string
+          fecha: string
+          orden: string
+          unidades_pedidas: number
+          unidades_pendientes: number
+          valor_pedido: number
+          valor_pendiente: number
+          vendedora: string
+        }[]
+      }
+      reporte_mayoristas_pedido_vs_facturado: {
+        Args: {
+          p_agrupar?: string
+          p_desde: string
+          p_hasta: string
+          p_vendedor?: string
+        }
+        Returns: {
+          facturado_uds: number
+          facturado_valor: number
+          grupo: string
+          grupo_id: string
+          no_facturado_uds: number
+          no_facturado_valor: number
+          ordenes: number
+          pct_uds: number
+          pct_valor: number
+          pedido_uds: number
+          pedido_valor: number
+          pendiente_uds: number
+          pendiente_valor: number
+        }[]
+      }
       reporte_mayoristas_top_productos: {
         Args: {
           p_desde: string
@@ -8173,6 +8315,20 @@ export type Database = {
           transacciones: number
           unidades: number
           venta: number
+        }[]
+      }
+      whatsapp_mayoristas_dia: {
+        Args: { p_fecha?: string }
+        Returns: {
+          presupuesto_dia: number
+          presupuesto_fecha: number
+          presupuesto_mes: number
+          ultima_sync: string
+          unidades_dia: number
+          vendedor_id: string
+          vendedora: string
+          venta_dia: number
+          venta_mes: number
         }[]
       }
       whatsapp_mover_ya: {
