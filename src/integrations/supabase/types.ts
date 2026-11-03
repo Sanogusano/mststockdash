@@ -7353,6 +7353,41 @@ export type Database = {
           venta: number
         }[]
       }
+      reporte_mayoristas_factura_detalle: {
+        Args: { p_factura: string }
+        Returns: {
+          coleccion: string
+          image_url: string
+          linea: string
+          precio_unitario: number
+          producto: string
+          tallas: string
+          unidades: number
+          valor: number
+        }[]
+      }
+      reporte_mayoristas_facturas: {
+        Args: {
+          p_cliente?: string
+          p_desde: string
+          p_hasta: string
+          p_vendedor?: string
+        }
+        Returns: {
+          cliente: string
+          cliente_id: string
+          estado: string
+          factura: string
+          fecha: string
+          nota_credito: string
+          punto_entrega: string
+          referencias: number
+          unidades: number
+          valor: number
+          vendedor_id: string
+          vendedora: string
+        }[]
+      }
       reporte_mayoristas_indicadores: {
         Args: { p_desde: string; p_hasta: string; p_vendedor?: string }
         Returns: {
