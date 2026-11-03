@@ -2380,26 +2380,22 @@ export function ExecutiveDashboard({ days, comparisonPeriod = "previous", custom
   const mayoristasRango = getRangeStrings(days, customFrom, customTo);
   return (
     <Tabs defaultValue="venta-directa" className="w-full">
-      <TabsList className="w-full min-w-0 flex justify-start overflow-x-auto sm:grid sm:grid-cols-4 bg-muted/50 rounded-xl p-1 h-auto border border-border mb-6">
-        <TabsTrigger value="venta-directa" className="flex items-center justify-center gap-2 sm:gap-2.5 text-sm sm:text-base font-medium rounded-lg px-4 py-2.5 sm:py-3 transition-all duration-200 data-[state=active]:bg-emerald-600 data-[state=active]:text-white data-[state=active]:shadow-sm text-muted-foreground hover:text-foreground hover:bg-muted">
-          <Package className="h-4 w-4 sm:h-5 sm:w-5" />
-          <span className="hidden sm:inline">Desempeño Comercial Venta Directa</span>
-          <span className="sm:hidden">Venta Directa</span>
+      <TabsList className="w-full min-w-0 grid grid-cols-4 bg-muted/50 rounded-xl p-1 h-auto border border-border mb-6">
+        <TabsTrigger value="venta-directa" className="flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2.5 text-xs sm:text-base font-medium rounded-lg px-1 sm:px-4 py-2 sm:py-3 text-center whitespace-nowrap transition-all duration-200 data-[state=active]:bg-emerald-600 data-[state=active]:text-white data-[state=active]:shadow-sm text-muted-foreground hover:text-foreground hover:bg-muted">
+          <Package className="h-4 w-4 sm:h-5 sm:w-5 shrink-0" />
+          <span>Venta Directa</span>
         </TabsTrigger>
-        <TabsTrigger value="por-zona" className="flex items-center justify-center gap-2 sm:gap-2.5 text-sm sm:text-base font-medium rounded-lg px-4 py-2.5 sm:py-3 transition-all duration-200 data-[state=active]:bg-emerald-600 data-[state=active]:text-white data-[state=active]:shadow-sm text-muted-foreground hover:text-foreground hover:bg-muted">
-          <MapPin className="h-4 w-4 sm:h-5 sm:w-5" />
-          <span className="hidden sm:inline">Desempeño por Zona</span>
-          <span className="sm:hidden">Por Zona</span>
+        <TabsTrigger value="por-zona" className="flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2.5 text-xs sm:text-base font-medium rounded-lg px-1 sm:px-4 py-2 sm:py-3 text-center whitespace-nowrap transition-all duration-200 data-[state=active]:bg-emerald-600 data-[state=active]:text-white data-[state=active]:shadow-sm text-muted-foreground hover:text-foreground hover:bg-muted">
+          <MapPin className="h-4 w-4 sm:h-5 sm:w-5 shrink-0" />
+          <span>Zona</span>
         </TabsTrigger>
-        <TabsTrigger value="por-canal" className="flex items-center justify-center gap-2 sm:gap-2.5 text-sm sm:text-base font-medium rounded-lg px-4 py-2.5 sm:py-3 transition-all duration-200 data-[state=active]:bg-emerald-600 data-[state=active]:text-white data-[state=active]:shadow-sm text-muted-foreground hover:text-foreground hover:bg-muted">
-          <Store className="h-4 w-4 sm:h-5 sm:w-5" />
-          <span className="hidden sm:inline">Desempeño por Canal</span>
-          <span className="sm:hidden">Por Canal</span>
+        <TabsTrigger value="por-canal" className="flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2.5 text-xs sm:text-base font-medium rounded-lg px-1 sm:px-4 py-2 sm:py-3 text-center whitespace-nowrap transition-all duration-200 data-[state=active]:bg-emerald-600 data-[state=active]:text-white data-[state=active]:shadow-sm text-muted-foreground hover:text-foreground hover:bg-muted">
+          <Store className="h-4 w-4 sm:h-5 sm:w-5 shrink-0" />
+          <span>Canal</span>
         </TabsTrigger>
-        <TabsTrigger value="mayoristas" className="flex items-center justify-center gap-2 sm:gap-2.5 text-sm sm:text-base font-medium rounded-lg px-4 py-2.5 sm:py-3 transition-all duration-200 data-[state=active]:bg-emerald-600 data-[state=active]:text-white data-[state=active]:shadow-sm text-muted-foreground hover:text-foreground hover:bg-muted">
-          <Handshake className="h-4 w-4 sm:h-5 sm:w-5" />
-          <span className="hidden sm:inline">Desempeño Comercial Mayoristas</span>
-          <span className="sm:hidden">Mayoristas</span>
+        <TabsTrigger value="mayoristas" className="flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2.5 text-xs sm:text-base font-medium rounded-lg px-1 sm:px-4 py-2 sm:py-3 text-center whitespace-nowrap transition-all duration-200 data-[state=active]:bg-emerald-600 data-[state=active]:text-white data-[state=active]:shadow-sm text-muted-foreground hover:text-foreground hover:bg-muted">
+          <Handshake className="h-4 w-4 sm:h-5 sm:w-5 shrink-0" />
+          <span>Mayoristas</span>
         </TabsTrigger>
       </TabsList>
 
