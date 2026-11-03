@@ -1,10 +1,14 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { DollarSign, Package, Receipt, Users, ShoppingBag, Banknote, Percent, Trophy } from "lucide-react";
-import { KpiCard, ComparisonIndicator, ChannelContributionChart, CommercialSectionHeader } from "@/components/dashboard/ExecutivePresentation";
+import { DollarSign, Package, Receipt, Users, ShoppingBag, Banknote, Percent, Trophy, Clock } from "lucide-react";
+import { KpiCard, ComparisonIndicator, CommercialSectionHeader } from "@/components/dashboard/ExecutivePresentation";
 import { CumplimientoPresupuestoCard } from "@/components/dashboard/CumplimientoPresupuestoCard";
 import { ProductTable } from "@/components/dashboard/ExecutiveDashboard";
-import { StoreRow } from "@/components/dashboard/StoreLeaderboard";
+import { StoreRow, StoreLeaderboard } from "@/components/dashboard/StoreLeaderboard";
+import { CollectionCompositionCard } from "@/components/dashboard/CollectionCompositionCard";
+import { CollectionBadge } from "@/components/dashboard/CollectionBadge";
+import { ProductImageThumb } from "@/components/dashboard/ProductImageThumb";
+import { Badge } from "@/components/ui/badge";
 import { MultiSelectFilter } from "@/components/dashboard/MultiSelectFilter";
 import { LoadingState, EmptyState } from "@/components/dashboard/LoadingState";
 import { supabase } from "@/integrations/supabase/client";
@@ -37,6 +41,7 @@ interface TopProductoRow {
   unidades: number; venta: number; pct_venta: number; clientes: number;
   precio_mayorista: number; precio_retail_sin_iva: number;
   descuento_comercial_pct: number; margen_pct: number; stock_reserva_distribuidores: number;
+  semanas_vida: number | null;
 }
 interface ClienteRow {
   cliente_id: number; cliente: string; vendedora: string; estado: string;
@@ -95,10 +100,10 @@ function ComposicionCard({ desde, hasta, dimension, label }: {
   if (compQ.error) return <ConsultaError error={compQ.error} />;
   if (compQ.isLoading) return <LoadingState />;
   if (!rows.length) return <EmptyState message={`${label} · Sin datos para el periodo.`} />;
-  return <ChannelContributionChart title={label} composition channelData={rows.map(r => ({
-    name: r.grupo, actual: Number(r.venta),
-    detail: <div className="text-xs text-muted-foreground tabular-nums">{fmtPct(r.pct_venta)} de la venta · {fmtNum(r.unidades)} uds · {fmtPct(r.pct_unidades)} de las unidades{r.margen_pct != null ? ` · margen ${fmtPct(r.margen_pct)}` : ""}</div>,
-  }))} />;
+  return <CollectionCompositionCard days={0} supplied={{ title: label, items: rows.map(r => ({
+    name: r.grupo, value: Number(r.unidades), pct: Number(r.pct_unidades),
+    detail: `${fmtMonto(r.venta)} · ${fmtPct(r.pct_venta)} de la venta${r.margen_pct != null ? ` · margen ${fmtPct(r.margen_pct)}` : ""}`,
+  })) }} />;
 }
 
 export function MayoristasPanel({ desde, hasta }: { desde: string | null; hasta: string | null }) {
@@ -174,7 +179,6 @@ export function MayoristasPanel({ desde, hasta }: { desde: string | null; hasta:
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <KpiCard label="Ventas Netas" value={fmtMonto(c.venta)} icon={DollarSign}>
               {c.var_ant != null && <ComparisonIndicator actual={0} anterior={0} percentage={Number(c.var_ant)} label="vs ant." />}
-              {c.var_aa != null && <ComparisonIndicator actual={0} anterior={0} percentage={Number(c.var_aa)} label="vs año anterior" />}
             </KpiCard>
             <KpiCard label="Unidades vendidas" value={fmtNum(c.unidades)} icon={Package} />
             <KpiCard label="Facturas" value={fmtNum(c.facturas)} icon={Receipt} />
@@ -190,7 +194,6 @@ export function MayoristasPanel({ desde, hasta }: { desde: string | null; hasta:
                 <p className="text-xs text-muted-foreground">bajo precio retail</p>
                 {ind.descuento_comercial_pct_ant != null && <ComparisonIndicator actual={0} anterior={0} percentage={Number(ind.descuento_comercial_pct) - Number(ind.descuento_comercial_pct_ant)} points invert label="vs ant." />}
               </KpiCard>
-              <KpiCard label="Concentración top 3" value={fmtPct(ind.concentracion_top3_pct)} icon={Trophy}><p className="text-xs text-muted-foreground">del canal</p></KpiCard>
             </>}
           </div>
         </> : <EmptyState message="Sin datos para el periodo." />}
@@ -201,11 +204,11 @@ export function MayoristasPanel({ desde, hasta }: { desde: string | null; hasta:
         <div className="flex items-center gap-2 px-5 py-4 border-b border-border"><Trophy className="h-4 w-4 text-primary" /><h3 className="text-sm font-semibold text-foreground">Vendedoras</h3></div>
         <div className="overflow-x-auto"><table className="w-full text-sm min-w-[1000px]">
           <thead><tr className="border-b border-border bg-muted/30">{["#", "Vendedora", "Ventas Netas", "Uds", "Ticket Prom", "Facturas", "Clientes", "% canal", "Variación", "Cumplimiento"].map(col => <th key={col} className="px-3 py-2.5 text-left text-xs font-medium text-muted-foreground">{col}</th>)}</tr></thead>
-          <tbody>{sellers.map((v, i) => <StoreRow key={v.vendedor_id ?? v.vendedora} rank={i} presupuesto={v.meta == null ? undefined : Number(v.meta)} porcentaje={v.cumplimiento} row={{ tienda: tituloNombre(v.vendedora), ventas_totales: Number(v.venta), unidades_vendidas: Number(v.unidades), ticket_promedio: Number(v.ticket), upt: 0, pct_venta_full_price: 0, zona: "" }} extraCells={[
+          <tbody>{sellers.map((v, i) => <StoreRow key={v.vendedor_id ?? v.vendedora} rank={i} medals={false} presupuesto={v.meta == null ? undefined : Number(v.meta)} porcentaje={v.cumplimiento} row={{ tienda: tituloNombre(v.vendedora), ventas_totales: Number(v.venta), unidades_vendidas: Number(v.unidades), ticket_promedio: Number(v.ticket), upt: 0, pct_venta_full_price: 0, zona: "" }} extraCells={[
             fmtNum(v.facturas),
             <div>{fmtNum(v.clientes)}{Number(v.clientes_nuevos) > 0 && <p className="text-xs text-success">+{fmtNum(v.clientes_nuevos)} nuevos</p>}{Number(v.clientes_perdidos) > 0 && <p className="text-xs text-danger">−{fmtNum(v.clientes_perdidos)} perdidos</p>}</div>,
             fmtPct(v.participacion),
-            <div>{v.var_ant != null && <ComparisonIndicator actual={0} anterior={0} percentage={Number(v.var_ant)} label="vs ant." />}{v.var_aa != null && <ComparisonIndicator actual={0} anterior={0} percentage={Number(v.var_aa)} label="vs año anterior" />}<p className="text-xs text-muted-foreground">A la fecha: {fmtPct(v.cumplimiento_a_la_fecha)}</p></div>,
+            <div>{v.var_ant != null && <ComparisonIndicator actual={0} anterior={0} percentage={Number(v.var_ant)} label="vs ant." />}<p className="text-xs text-muted-foreground">A la fecha: {fmtPct(v.cumplimiento_a_la_fecha)}</p></div>,
           ]} />)}</tbody>
         </table></div>
       </div>}
@@ -216,12 +219,15 @@ export function MayoristasPanel({ desde, hasta }: { desde: string | null; hasta:
       </section>
 
       {topProdQ.error ? <ConsultaError error={topProdQ.error} /> : topProdQ.isLoading ? <LoadingState /> : <ProductTable data={[]} title="Top productos mayoristas" days={0} exportFilename="" supplied={{
-        columns: ["Producto", "Colección", "Línea", "Unidades", "Venta", "% canal", "Clientes", "Precio may. / retail", "Desc. %", "Margen %", "Stock Reserva"],
-        rows: (topProdQ.data ?? []).map(p => ({ id: String(p.producto_id), name: p.producto, photo: p.image_url, cells: [p.coleccion ?? "—", p.linea ?? "—", fmtNum(p.unidades), fmtMonto(p.venta), fmtPct(p.pct_venta), fmtNum(p.clientes), `${fmtMonto(p.precio_mayorista)} / ${fmtMonto(p.precio_retail_sin_iva)}`, fmtPct(p.descuento_comercial_pct), fmtPct(p.margen_pct), <span className={TXT[stockSemaforo(Number(p.stock_reserva_distribuidores))]}>{fmtNum(p.stock_reserva_distribuidores)}</span>] })),
+        columns: ["Producto", "Unidades", "Venta", "% canal", "Clientes", "Precio may. / retail", "Desc. %", "Margen %", "Stock Reserva"],
+        rows: (topProdQ.data ?? []).map(p => ({ id: String(p.producto_id), name: p.producto, productContent: <div className="flex items-start gap-3">
+          <div className="shrink-0">{p.image_url ? <ProductImageThumb src={p.image_url} alt={p.producto} productId={String(p.producto_id)} title={p.producto} className="w-12 h-12 rounded-lg object-cover bg-muted" /> : <div className="w-12 h-12 rounded-lg bg-muted/50 flex items-center justify-center text-lg">📦</div>}</div>
+          <div className="flex flex-col min-w-0"><span className="text-sm font-medium text-foreground line-clamp-2 max-w-[200px] pt-0.5" title={p.producto}>{p.producto}</span><span className="text-xs text-muted-foreground">{p.linea ?? "—"}</span><div className="flex flex-wrap items-center gap-2 mt-1"><CollectionBadge coleccion={p.coleccion} /><Badge variant="secondary" className="text-[10px] gap-1 whitespace-nowrap"><Clock className="h-3 w-3" />{p.semanas_vida == null ? "Pre-lanzamiento" : `${fmtNum(p.semanas_vida)} sem. en retail`}</Badge></div></div>
+        </div>, cells: [fmtNum(p.unidades), fmtMonto(p.venta), fmtPct(p.pct_venta), fmtNum(p.clientes), `${fmtMonto(p.precio_mayorista)} / ${fmtMonto(p.precio_retail_sin_iva)}`, fmtPct(p.descuento_comercial_pct), fmtPct(p.margen_pct), <span className={TXT[stockSemaforo(Number(p.stock_reserva_distribuidores))]}>{fmtNum(p.stock_reserva_distribuidores)}</span>] })),
       }} />}
-      {clientesQ.error ? <ConsultaError error={clientesQ.error} /> : clientesQ.isLoading ? <LoadingState /> : <ProductTable data={[]} title="Top clientes" days={0} exportFilename="" supplied={{
+      {clientesQ.error ? <ConsultaError error={clientesQ.error} /> : clientesQ.isLoading ? <LoadingState /> : <StoreLeaderboard days={0} supplied={{ title: "Top clientes",
         columns: ["Cliente", "Vendedora", "Unidades", "Valor facturado", "% canal"],
-        rows: topClientes.map(r => ({ id: String(r.cliente_id), name: r.cliente, cells: [tituloNombre(r.vendedora), fmtNum(r.unidades), fmtMonto(r.venta), fmtPct(r.participacion)] })),
+        rows: topClientes.map(r => ({ id: String(r.cliente_id), name: r.cliente, value: fmtMonto(r.venta), detail: <div className="text-xs text-muted-foreground space-y-1"><p>{tituloNombre(r.vendedora)}</p><p>{fmtNum(r.unidades)} unidades · {fmtPct(r.participacion)} del canal</p></div>, cells: [tituloNombre(r.vendedora), fmtNum(r.unidades), fmtMonto(r.venta), fmtPct(r.participacion)] })),
       }} />}
     </div>
   );

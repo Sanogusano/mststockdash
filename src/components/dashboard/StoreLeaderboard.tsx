@@ -8,6 +8,8 @@ import { exportToPDF } from "@/lib/pdf-export";
 import { LoadingState, EmptyState } from "./LoadingState";
 import { Download, FileText, Trophy, ChevronDown, ChevronUp, TrendingUp, TrendingDown, Globe, MapPin, ArrowUpDown } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { KpiCard } from "./ExecutivePresentation";
+import { Table, TableBody, TableCell, TableHead, TableHeader as SharedTableHeader, TableRow } from "@/components/ui/table";
 
 interface RankingRow {
   tienda: string;
@@ -126,7 +128,7 @@ function TableHeader({ sortDir, onToggleSort }: { sortDir: SortDir; onToggleSort
   );
 }
 
-export function StoreLeaderboard({ days, canal, customFrom, customTo }: { days: number; canal?: string; customFrom?: Date; customTo?: Date }) {
+export function StoreLeaderboard({ days, canal, customFrom, customTo, supplied }: { days: number; canal?: string; customFrom?: Date; customTo?: Date; supplied?: { title: string; columns: string[]; rows: { id: string; name: string; value: string; detail: React.ReactNode; cells: React.ReactNode[] }[] } }) {
   const [data, setData] = useState<RankingRow[]>([]);
   const [prevData, setPrevData] = useState<PrevRow[]>([]);
   const [budget, setBudget] = useState<Record<string, number>>({});
@@ -136,6 +138,7 @@ export function StoreLeaderboard({ days, canal, customFrom, customTo }: { days: 
 
   useEffect(() => {
     async function load() {
+      if (supplied) return;
       if (!isValidDays(days)) return;
       setLoading(true);
       const { dias_atras: effectiveDays, p_hasta: hastaParam } = buildRpcDateParams(days, customFrom, customTo);
@@ -158,7 +161,23 @@ export function StoreLeaderboard({ days, canal, customFrom, customTo }: { days: 
       setLoading(false);
     }
     load();
-  }, [days, canal, customFrom, customTo]);
+  }, [days, canal, customFrom, customTo, supplied]);
+
+  if (supplied) return !supplied.rows.length ? <EmptyState message="Sin datos de ranking para este período." /> : (
+    <div className="glass-card overflow-hidden">
+      <div className="flex items-center gap-2 px-5 py-4 border-b border-border"><Trophy className="h-4 w-4 text-primary" /><h3 className="text-sm font-semibold text-foreground">{supplied.title}</h3></div>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 p-5 items-end">
+        {[1, 0, 2].map(rank => {
+          const row = supplied.rows[rank];
+          return row ? <div key={row.id} className={rank === 0 ? "sm:pb-4" : ""}><KpiCard label={`${MEDALS[rank]} ${row.name}`} value={row.value} icon={Trophy}>{row.detail}</KpiCard></div> : null;
+        })}
+      </div>
+      <Table>
+        <SharedTableHeader><TableRow><TableHead>#</TableHead>{supplied.columns.map(col => <TableHead key={col} className="whitespace-nowrap">{col}</TableHead>)}</TableRow></SharedTableHeader>
+        <TableBody>{supplied.rows.map((row, rank) => <TableRow key={row.id}><TableCell>{rank < 3 ? MEDALS[rank] : rank + 1}</TableCell><TableCell className="font-medium">{row.name}</TableCell>{row.cells.map((cell, i) => <TableCell key={i} className="tabular-nums whitespace-nowrap">{cell}</TableCell>)}</TableRow>)}</TableBody>
+      </Table>
+    </div>
+  );
 
   if (loading) return <LoadingState rows={4} />;
   if (!data.length) return <EmptyState message="Sin datos de ranking para este período." />;
