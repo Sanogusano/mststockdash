@@ -14,9 +14,10 @@ import { exportToPDF } from "@/lib/pdf-export";
 import { LoadingState, EmptyState } from "./LoadingState";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Store, Globe, Download, FileText, DollarSign, ShoppingBag, Receipt, Star, Percent, Tag, Trophy, TrendingDown, TrendingUp, CalendarDays, Package, AlertTriangle, Ruler, Crown, ShieldAlert, MapPin, Banknote } from "lucide-react";
+import { Store, Globe, Download, FileText, DollarSign, ShoppingBag, Receipt, Star, Percent, Tag, Trophy, TrendingDown, TrendingUp, CalendarDays, Package, AlertTriangle, Ruler, Crown, ShieldAlert, MapPin, Banknote, Handshake } from "lucide-react";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid } from "recharts";
 import { StoreLeaderboard } from "./StoreLeaderboard";
+import { MayoristasPanel } from "@/components/mayoristas/MayoristasPanel";
 import { HeaderTooltip } from "@/components/HeaderTooltip";
 import { CollectionBadge } from "./CollectionBadge";
 import { CollectionCompositionCard } from "./CollectionCompositionCard";
@@ -2376,9 +2377,10 @@ function ZoneStoreRankCard({ days, canal, locationId, locationName, allRanking, 
 
 /* ── Main Component ── */
 export function ExecutiveDashboard({ days, comparisonPeriod = "previous", customFrom, customTo }: Props) {
+  const mayoristasRango = getRangeStrings(days, customFrom, customTo);
   return (
     <Tabs defaultValue="venta-directa" className="w-full">
-      <TabsList className="w-full min-w-0 flex justify-start overflow-x-auto sm:grid sm:grid-cols-3 bg-muted/50 rounded-xl p-1 h-auto border border-border mb-6">
+      <TabsList className="w-full min-w-0 flex justify-start overflow-x-auto sm:grid sm:grid-cols-4 bg-muted/50 rounded-xl p-1 h-auto border border-border mb-6">
         <TabsTrigger value="venta-directa" className="flex items-center justify-center gap-2 sm:gap-2.5 text-sm sm:text-base font-medium rounded-lg px-4 py-2.5 sm:py-3 transition-all duration-200 data-[state=active]:bg-emerald-600 data-[state=active]:text-white data-[state=active]:shadow-sm text-muted-foreground hover:text-foreground hover:bg-muted">
           <Package className="h-4 w-4 sm:h-5 sm:w-5" />
           <span className="hidden sm:inline">Desempeño Comercial Venta Directa</span>
@@ -2393,6 +2395,11 @@ export function ExecutiveDashboard({ days, comparisonPeriod = "previous", custom
           <Store className="h-4 w-4 sm:h-5 sm:w-5" />
           <span className="hidden sm:inline">Desempeño por Canal</span>
           <span className="sm:hidden">Por Canal</span>
+        </TabsTrigger>
+        <TabsTrigger value="mayoristas" className="flex items-center justify-center gap-2 sm:gap-2.5 text-sm sm:text-base font-medium rounded-lg px-4 py-2.5 sm:py-3 transition-all duration-200 data-[state=active]:bg-emerald-600 data-[state=active]:text-white data-[state=active]:shadow-sm text-muted-foreground hover:text-foreground hover:bg-muted">
+          <Handshake className="h-4 w-4 sm:h-5 sm:w-5" />
+          <span className="hidden sm:inline">Desempeño Comercial Mayoristas</span>
+          <span className="sm:hidden">Mayoristas</span>
         </TabsTrigger>
       </TabsList>
 
@@ -2453,6 +2460,10 @@ export function ExecutiveDashboard({ days, comparisonPeriod = "previous", custom
             <ChannelPanel days={days} canal="digital" showLocationFilter={false} comparisonPeriod={comparisonPeriod} customFrom={customFrom} customTo={customTo} />
           </TabsContent>
         </Tabs>
+      </TabsContent>
+
+      <TabsContent value="mayoristas">
+        <MayoristasPanel desde={mayoristasRango.desde} hasta={mayoristasRango.hasta} />
       </TabsContent>
     </Tabs>
   );
