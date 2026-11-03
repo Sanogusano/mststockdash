@@ -23,12 +23,12 @@ interface VendedoraRow extends Omit<CanalRow, "facturas_anuladas"> {
 }
 
 const TXT: Record<Semaforo, string> = {
-  verde: "text-[hsl(var(--status-optimal))]", ambar: "text-[hsl(var(--status-warning))]",
-  rojo: "text-[hsl(var(--status-danger))]", neutro: "text-muted-foreground",
+  verde: "text-success", ambar: "text-warning",
+  rojo: "text-danger", neutro: "text-muted-foreground",
 };
 const BAR: Record<Semaforo, string> = {
-  verde: "bg-[hsl(var(--status-optimal))]", ambar: "bg-[hsl(var(--status-warning))]",
-  rojo: "bg-[hsl(var(--status-danger))]", neutro: "bg-muted-foreground",
+  verde: "bg-success", ambar: "bg-warning",
+  rojo: "bg-danger", neutro: "bg-muted-foreground",
 };
 
 function Variacion({ label, value }: { label: string; value: number | null }) {
