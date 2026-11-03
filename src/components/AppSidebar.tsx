@@ -182,7 +182,6 @@ export function AppSidebar() {
   const isGestionActive = visibleGestion.some((i) => location.pathname === i.url);
   const isConfigActive = visibleConfig.some((i) => location.pathname === i.url);
   const isLogisticaActive = visibleLogistica.some((i) => location.pathname === i.url);
-  const visibleMayoristas = useMemo(() => mayoristasItems.filter((i) => can(i.module, i.action)), [permissions, isAdmin, role]);
   const visibleEcommerce = useMemo(() => ecommerceItems.filter((i) => can(i.module, i.action)), [permissions, isAdmin, role]);
   const isEcommerceActive = visibleEcommerce.some((i) => location.pathname === i.url);
   const isFinanzasActive = visibleFinanzas.some((i) => location.pathname === i.url);
@@ -393,19 +392,6 @@ export function AppSidebar() {
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                   {inventarioOpen && visibleInventario.map((item) => renderItem(item, 1))}
-                </>
-              )}
-
-              {/* Mayoristas */}
-              {visibleMayoristas.length > 0 && (
-                <>
-                  <SidebarMenuItem>
-                    <div className="flex items-center gap-3 px-3 pt-3 pb-1 text-sidebar-foreground/60">
-                      <Handshake className="h-[18px] w-[18px] shrink-0" />
-                      <span className="text-sm leading-tight">Mayoristas</span>
-                    </div>
-                  </SidebarMenuItem>
-                  {visibleMayoristas.map((item) => renderItem(item, true))}
                 </>
               )}
 
