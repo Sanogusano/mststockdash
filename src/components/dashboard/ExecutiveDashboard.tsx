@@ -332,7 +332,7 @@ function WosCell({ wos, compact }: { wos: number | null; compact?: boolean }) {
 }
 
 export function ProductTable({ data, title, exportFilename, days, canalFiltro, locationFiltro, customFrom, customTo, supplied }: {
-  supplied?: { columns: string[]; rows: { id: string; name: string; photo?: string | null; cells: React.ReactNode[] }[] };
+  supplied?: { columns: string[]; rows: { id: string; name: string; photo?: string | null; productContent?: React.ReactNode; cells: React.ReactNode[] }[] };
   data: ProductRow[]; title: string; exportFilename: string;
   days: number; canalFiltro?: string; locationFiltro?: string | null;
   customFrom?: Date; customTo?: Date;
@@ -352,7 +352,7 @@ export function ProductTable({ data, title, exportFilename, days, canalFiltro, l
         <thead><tr className="border-b border-border bg-muted/30"><th className="px-3 py-3 text-center text-xs font-medium text-muted-foreground w-10">#</th>{supplied.columns.map(col => <th key={col} className="px-3 py-3 text-left text-xs font-medium text-muted-foreground">{col}</th>)}</tr></thead>
         <tbody>{supplied.rows.map((row, i) => <tr key={row.id} className="border-b border-border/50 hover:bg-muted/20 transition-colors">
           <td className="px-3 py-3 text-center font-bold text-muted-foreground">{i + 1}</td>
-          <td className="px-3 py-3"><div className="flex items-center gap-3">{row.photo && <img src={row.photo} alt={row.name} loading="lazy" className="w-10 h-10 rounded-lg object-cover bg-muted shrink-0" />}<span className="font-medium text-foreground line-clamp-1 max-w-[180px]" title={row.name}>{row.name}</span></div></td>
+          <td className="px-3 py-3">{row.productContent ?? <div className="flex items-center gap-3">{row.photo && <img src={row.photo} alt={row.name} loading="lazy" className="w-10 h-10 rounded-lg object-cover bg-muted shrink-0" />}<span className="font-medium text-foreground line-clamp-1 max-w-[180px]" title={row.name}>{row.name}</span></div>}</td>
           {row.cells.map((cell, j) => <td key={j} className="px-3 py-3 text-xs tabular-nums text-muted-foreground">{cell}</td>)}
         </tr>)}</tbody>
       </table></div>
