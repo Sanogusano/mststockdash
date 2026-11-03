@@ -1515,6 +1515,7 @@ export type Database = {
           total: number | null
           tranid: string
           transaction_id: string
+          vendedor_nombre: string | null
           vendedor_ns: string | null
         }
         Insert: {
@@ -1530,6 +1531,7 @@ export type Database = {
           total?: number | null
           tranid: string
           transaction_id: string
+          vendedor_nombre?: string | null
           vendedor_ns?: string | null
         }
         Update: {
@@ -1545,6 +1547,7 @@ export type Database = {
           total?: number | null
           tranid?: string
           transaction_id?: string
+          vendedor_nombre?: string | null
           vendedor_ns?: string | null
         }
         Relationships: [
@@ -1600,6 +1603,33 @@ export type Database = {
             referencedColumns: ["tranid"]
           },
         ]
+      }
+      mayorista_metas: {
+        Row: {
+          actualizado_en: string | null
+          anio: number
+          mes: number
+          monto: number
+          vendedor_nombre: string | null
+          vendedor_ns: string
+        }
+        Insert: {
+          actualizado_en?: string | null
+          anio: number
+          mes: number
+          monto: number
+          vendedor_nombre?: string | null
+          vendedor_ns: string
+        }
+        Update: {
+          actualizado_en?: string | null
+          anio?: number
+          mes?: number
+          monto?: number
+          vendedor_nombre?: string | null
+          vendedor_ns?: string
+        }
+        Relationships: []
       }
       netsuite_facturas: {
         Row: {
@@ -4987,6 +5017,25 @@ export type Database = {
         Args: { min_variants?: number }
         Returns: string
       }
+      _mayorista_meta: {
+        Args: { p_desde: string; p_hasta: string; p_vendedor: string }
+        Returns: {
+          meta: number
+          meta_a_la_fecha: number
+        }[]
+      }
+      _mayorista_meta_obsoleta: {
+        Args: {
+          p_desde: string
+          p_hasta: string
+          p_ident: string
+          p_tipo: string
+        }
+        Returns: {
+          meta: number
+          meta_a_la_fecha: number
+        }[]
+      }
       accionables_serie: {
         Args: { p_anio?: number; p_mes?: number }
         Returns: {
@@ -7142,6 +7191,48 @@ export type Database = {
           tiempo_vida: number
           ubicacion_dominante: string
           venta_actual: number
+        }[]
+      }
+      reporte_mayoristas_canal: {
+        Args: { p_desde: string; p_hasta: string }
+        Returns: {
+          clientes: number
+          cumplimiento: number
+          cumplimiento_a_la_fecha: number
+          facturas: number
+          facturas_anuladas: number
+          meta: number
+          meta_a_la_fecha: number
+          ticket: number
+          unidades: number
+          var_aa: number
+          var_ant: number
+          venta: number
+          venta_aa: number
+          venta_ant: number
+        }[]
+      }
+      reporte_mayoristas_vendedora: {
+        Args: { p_desde: string; p_hasta: string }
+        Returns: {
+          clientes: number
+          clientes_nuevos: number
+          clientes_perdidos: number
+          cumplimiento: number
+          cumplimiento_a_la_fecha: number
+          facturas: number
+          meta: number
+          meta_a_la_fecha: number
+          participacion: number
+          ticket: number
+          unidades: number
+          var_aa: number
+          var_ant: number
+          vendedor_id: string
+          vendedora: string
+          venta: number
+          venta_aa: number
+          venta_ant: number
         }[]
       }
       reporte_metricas_tienda_individual: {
