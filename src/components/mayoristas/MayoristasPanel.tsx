@@ -11,6 +11,8 @@ import { ProductImageThumb } from "@/components/dashboard/ProductImageThumb";
 import { Badge } from "@/components/ui/badge";
 import { MultiSelectFilter } from "@/components/dashboard/MultiSelectFilter";
 import { LoadingState, EmptyState } from "@/components/dashboard/LoadingState";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { MayoristasOrdenes } from "@/components/mayoristas/MayoristasOrdenes";
 import { supabase } from "@/integrations/supabase/client";
 import { fmtMonto, fmtNum, fmtPct, tituloNombre } from "@/lib/mayoristas-format";
 import type { Semaforo } from "@/lib/mayoristas-format";
@@ -78,7 +80,7 @@ function agruparLineas(rows: ComposicionRow[]): ComposicionRow[] {
   return [...top, otras];
 }
 
-function ConsultaError({ error }: { error: unknown }) {
+export function ConsultaError({ error }: { error: unknown }) {
   const message = typeof error === "object" && error !== null && "message" in error ? String(error.message) : String(error);
   return <p role="alert" className="text-destructive break-words">{message}</p>;
 }
