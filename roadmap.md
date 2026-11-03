@@ -1,6 +1,6 @@
 # Roadmap
 
-- [ ] Ajustar solo Mayoristas: donas compartidas, medallero de clientes, tabla de vendedoras sin variación anual y productos con colección/vida agrupadas; retirar concentración top 3.
+- [x] Ajustar solo Mayoristas: donas compartidas, medallero de clientes, tabla de vendedoras sin variación anual y productos con colección/vida agrupadas; retirar concentración top 3. Verificado en 375px y 1280px con datos de prueba.
 
 - [x] Reutilizar la presentación ejecutiva en Mayoristas sin cambiar sus RPC; comprobar selector y error visible en escritorio y móvil con datos de prueba.
 

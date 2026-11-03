@@ -22,11 +22,17 @@ describe("Wholesale supplied compliance", () => {
     ["composition", <CollectionCompositionCard days={0} supplied={{ title: "Por Colección", items: [] }} />],
     ["client ranking", <StoreLeaderboard days={0} supplied={{ title: "Top clientes", columns: [], rows: [] }} />],
   ])("does not fetch retail data for supplied %s", (_name, component) => {
+    vi.stubGlobal("ResizeObserver", class {
+      observe() {}
+      unobserve() {}
+      disconnect() {}
+    });
     const host = document.createElement("div");
     const root = createRoot(host);
     act(() => root.render(component));
     expect(calls.rpc).not.toHaveBeenCalled();
     expect(calls.from).not.toHaveBeenCalled();
     act(() => root.unmount());
+    vi.unstubAllGlobals();
   });
 });
