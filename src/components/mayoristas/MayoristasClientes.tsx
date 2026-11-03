@@ -60,7 +60,7 @@ function UltimaCompra({ r }: { r: ClienteRow }) {
   </div>;
 }
 
-export function MayoristasClientes({ desde, hasta, vendedor, onVendedorChange }: { desde: string | null; hasta: string | null; vendedor: string | null; onVendedorChange: (v: string | null) => void }) {
+export function MayoristasClientes({ desde, hasta, vendedor, onVendedorChange, onClienteClick }: { desde: string | null; hasta: string | null; vendedor: string | null; onVendedorChange: (v: string | null) => void; onClienteClick?: (clienteId: string) => void }) {
   const valido = !!desde && !!hasta && desde <= hasta;
   const [filtro, setFiltro] = useState<string>("todos");
   const q = useQuery({
@@ -133,7 +133,7 @@ export function MayoristasClientes({ desde, hasta, vendedor, onVendedorChange }:
                   <TablaTh cols={["Cliente", "Vendedora", "Estado", "Venta", "% canal", "Unidades", "Facturas", "Ticket", "vs periodo ant.", "Última compra"]} />
                   <tbody>{visibles.map(r => (
                     <tr key={`${r.cliente_id}-${r.vendedor_id}`} className="border-b border-border last:border-0">
-                      <td className="px-3 py-2.5"><p className="font-medium text-foreground">{r.cliente}</p>{Number(r.puntos_entrega) > 1 && <p className="text-xs text-muted-foreground">{fmtNum(r.puntos_entrega)} puntos de entrega</p>}</td>
+                      <td className="px-3 py-2.5"><button type="button" onClick={() => onClienteClick?.(r.cliente_id)} className="font-medium text-primary hover:underline text-left">{r.cliente}</button>{Number(r.puntos_entrega) > 1 && <p className="text-xs text-muted-foreground">{fmtNum(r.puntos_entrega)} puntos de entrega</p>}</td>
                       <td className="px-3 py-2.5">{tituloNombre(r.vendedora)}</td>
                       <td className="px-3 py-2.5"><EstadoBadge estado={r.estado} /></td>
                       <td className={cn("px-3 py-2.5 tabular-nums font-medium", r.estado === "Perdido" && "text-muted-foreground")}>{fmtMonto(r.venta)}</td>
@@ -151,7 +151,7 @@ export function MayoristasClientes({ desde, hasta, vendedor, onVendedorChange }:
                 {visibles.map(r => (
                   <div key={`${r.cliente_id}-${r.vendedor_id}`} className="glass-card p-4 space-y-2">
                     <div className="flex items-start justify-between gap-2">
-                      <div className="min-w-0"><p className="font-medium text-foreground text-sm">{r.cliente}</p><p className="text-xs text-muted-foreground">{tituloNombre(r.vendedora)}{Number(r.puntos_entrega) > 1 ? ` · ${fmtNum(r.puntos_entrega)} puntos de entrega` : ""}</p></div>
+                      <div className="min-w-0"><button type="button" onClick={() => onClienteClick?.(r.cliente_id)} className="font-medium text-primary hover:underline text-sm text-left">{r.cliente}</button><p className="text-xs text-muted-foreground">{tituloNombre(r.vendedora)}{Number(r.puntos_entrega) > 1 ? ` · ${fmtNum(r.puntos_entrega)} puntos de entrega` : ""}</p></div>
                       <EstadoBadge estado={r.estado} />
                     </div>
                     <div className="flex items-baseline justify-between gap-2">
