@@ -1,18 +1,21 @@
 import { useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { differenceInCalendarDays } from "date-fns";
-import { Package, Users } from "lucide-react";
+import { Package, Users, Receipt } from "lucide-react";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { TimeFilter, THIS_MONTH_SENTINEL, type ComparisonPeriod } from "@/components/dashboard/TimeFilter";
 import { getRangeStrings } from "@/components/dashboard/ExecutiveDashboard";
 import { MayoristasOrdenes } from "@/components/mayoristas/MayoristasOrdenes";
+import { MayoristasFacturas } from "@/components/mayoristas/MayoristasFacturas";
 import { MayoristasClientes } from "@/components/mayoristas/MayoristasClientes";
 
 export default function MayoristasPage() {
   const [params, setParams] = useSearchParams();
-  const tab = params.get("tab") === "clientes" ? "clientes" : "ordenes";
+  const rawTab = params.get("tab");
+  const tab = rawTab === "clientes" || rawTab === "facturas" ? rawTab : "ordenes";
+  const cliente = params.get("cliente");
   const vendedor = params.get("vendedor");
   const initFrom = params.get("desde"); const initTo = params.get("hasta");
   const initRange = initFrom && initTo ? { from: new Date(`${initFrom}T00:00:00`), to: new Date(`${initTo}T00:00:00`) } : null;
@@ -47,7 +50,7 @@ export default function MayoristasPage() {
       </header>
       <div className="flex-1 min-w-0 px-4 sm:px-6 py-4 sm:py-6">
         <Tabs value={tab} onValueChange={(v) => setParam("tab", v === "ordenes" ? null : v)} className="w-full">
-          <TabsList className="w-full min-w-0 grid grid-cols-2 bg-muted/50 rounded-xl p-1 h-auto border border-border mb-6">
+          <TabsList className="w-full min-w-0 grid grid-cols-3 bg-muted/50 rounded-xl p-1 h-auto border border-border mb-6">
             <TabsTrigger value="ordenes" className="flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2.5 text-xs sm:text-base font-medium rounded-lg px-1 sm:px-4 py-2 sm:py-3 text-center whitespace-nowrap transition-all duration-200 data-[state=active]:bg-emerald-600 data-[state=active]:text-white data-[state=active]:shadow-sm text-muted-foreground hover:text-foreground hover:bg-muted">
               <Package className="h-4 w-4 sm:h-5 sm:w-5 shrink-0" />
               <span>Órdenes</span>
@@ -56,12 +59,20 @@ export default function MayoristasPage() {
               <Users className="h-4 w-4 sm:h-5 sm:w-5 shrink-0" />
               <span>Venta por cliente</span>
             </TabsTrigger>
+            <TabsTrigger value="facturas" className="flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2.5 text-xs sm:text-base font-medium rounded-lg px-1 sm:px-4 py-2 sm:py-3 text-center whitespace-nowrap transition-all duration-200 data-[state=active]:bg-emerald-600 data-[state=active]:text-white data-[state=active]:shadow-sm text-muted-foreground hover:text-foreground hover:bg-muted">
+              <Receipt className="h-4 w-4 sm:h-5 sm:w-5 shrink-0" />
+              <span>Pedidos facturados</span>
+            </TabsTrigger>
           </TabsList>
           <TabsContent value="ordenes">
             <MayoristasOrdenes desde={desde} hasta={hasta} vendedor={vendedor} onVendedorChange={(v) => setParam("vendedor", v)} />
           </TabsContent>
           <TabsContent value="clientes">
-            <MayoristasClientes desde={desde} hasta={hasta} vendedor={vendedor} onVendedorChange={(v) => setParam("vendedor", v)} />
+            <MayoristasClientes desde={desde} hasta={hasta} vendedor={vendedor} onVendedorChange={(v) => setParam("vendedor", v)}
+              onClienteClick={(id) => setParams(prev => { const n = new URLSearchParams(prev); n.set("tab", "facturas"); n.set("cliente", id); if (desde && hasta) { n.set("desde", desde); n.set("hasta", hasta); } return n; })} />
+          </TabsContent>
+          <TabsContent value="facturas">
+            <MayoristasFacturas desde={desde} hasta={hasta} vendedor={vendedor} onVendedorChange={(v) => setParam("vendedor", v)} cliente={cliente} onClienteChange={(v) => setParam("cliente", v)} />
           </TabsContent>
         </Tabs>
       </div>
