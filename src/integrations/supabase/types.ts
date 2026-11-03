@@ -5136,6 +5136,7 @@ export type Database = {
         Args: { p_fallback: string; p_padre: string }
         Returns: string
       }
+      _mayorista_tramo: { Args: { p_dias: number }; Returns: string }
       accionables_serie: {
         Args: { p_anio?: number; p_mes?: number }
         Returns: {
@@ -7429,6 +7430,16 @@ export type Database = {
           pedido_valor: number
           pendiente_uds: number
           pendiente_valor: number
+        }[]
+      }
+      reporte_mayoristas_recencia: {
+        Args: { p_hasta: string; p_vendedor?: string }
+        Returns: {
+          clientes: number
+          orden: number
+          pct_venta_12m: number
+          tramo: string
+          venta_12m: number
         }[]
       }
       reporte_mayoristas_top_productos: {
