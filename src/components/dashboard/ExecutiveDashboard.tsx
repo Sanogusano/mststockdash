@@ -216,7 +216,7 @@ function toDateStr(d: Date): string {
 }
 
 /** Resolve the active filter period as YYYY-MM-DD strings */
-function getRangeStrings(days: number, customFrom?: Date, customTo?: Date) {
+export function getRangeStrings(days: number, customFrom?: Date, customTo?: Date) {
   const hasCustom = !!(customFrom && customTo);
   const { from, to } = getDateRange(hasCustom ? CUSTOM_SENTINEL : days, customFrom, customTo);
   return { desde: toDateStr(from), hasta: toDateStr(to) };
