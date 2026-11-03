@@ -1,4 +1,4 @@
-import { KpiCard, ComparisonIndicator, ChannelContributionChart } from "./ExecutivePresentation";
+import { KpiCard, ComparisonIndicator, ChannelContributionChart, CommercialSectionHeader } from "./ExecutivePresentation";
 import { fetchProductSkuDetails } from "@/lib/product-sku-details";
 import { Button } from "@/components/ui/button";
 import { useEffect, useState, Fragment } from "react";
@@ -1689,20 +1689,14 @@ function BrandOverviewPanel({ days, comparisonPeriod = "previous", customFrom, c
   return (
     <div className="space-y-4 mb-6">
       <div className="glass-card p-5">
-        <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
-          <div className="flex items-center gap-3">
-            <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-              <Package className="h-4 w-4 text-primary" />
-            </div>
-            <h3 className="text-sm font-semibold text-foreground">📊 DESEMPEÑO COMERCIAL VENTA DIRECTA</h3>
-          </div>
+        <CommercialSectionHeader title="📊 DESEMPEÑO COMERCIAL VENTA DIRECTA">
           <MultiSelectFilter
             label="Canal"
             options={CHANNEL_KEYS.map(k => CHANNEL_LABELS[k])}
             selected={selectedChannels.map(k => CHANNEL_LABELS[k])}
             onChange={(labels) => setSelectedChannels(labels.map(l => Object.entries(CHANNEL_LABELS).find(([, v]) => v === l)?.[0] ?? "").filter(Boolean))}
           />
-        </div>
+        </CommercialSectionHeader>
         {(() => {
           const { desde, hasta } = getRangeStrings(days, customFrom, customTo);
           return (

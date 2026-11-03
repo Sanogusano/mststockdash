@@ -2,6 +2,21 @@ import type React from "react";
 import { cn } from "@/lib/utils";
 import { formatKpiMoney } from "@/lib/kpi-money";
 import { ResponsiveContainer, BarChart, CartesianGrid, XAxis, YAxis, Tooltip, Bar } from "recharts";
+import { Package } from "lucide-react";
+
+export function CommercialSectionHeader({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
+      <div className="flex items-center gap-3">
+        <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+          <Package className="h-4 w-4 text-primary" />
+        </div>
+        <h3 className="text-sm font-semibold text-foreground">{title}</h3>
+      </div>
+      {children}
+    </div>
+  );
+}
 
 export function ComparisonIndicator({ actual, anterior, label, percentage, points, invert }: { actual: number; anterior: number; label?: string; percentage?: number; points?: boolean; invert?: boolean }) {
   const pct = percentage ?? (anterior > 0 ? ((actual - anterior) / anterior) * 100 : 0);
