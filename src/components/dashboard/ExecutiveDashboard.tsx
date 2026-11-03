@@ -2461,6 +2461,10 @@ export function ExecutiveDashboard({ days, comparisonPeriod = "previous", custom
           </TabsContent>
         </Tabs>
       </TabsContent>
+
+      <TabsContent value="mayoristas">
+        <MayoristasPanel desde={mayoristasRango.desde} hasta={mayoristasRango.hasta} />
+      </TabsContent>
     </Tabs>
   );
 }
