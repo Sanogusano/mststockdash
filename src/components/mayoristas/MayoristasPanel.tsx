@@ -238,5 +238,10 @@ export function MayoristasPanel({ desde, hasta }: { desde: string | null; hasta:
         rows: topClientes.map(r => ({ id: String(r.cliente_id), name: r.cliente, value: fmtMonto(r.venta), detail: <div className="text-xs text-muted-foreground space-y-1"><p>{tituloNombre(r.vendedora)}</p><p>{fmtNum(r.unidades)} unidades · {fmtPct(r.participacion)} del canal</p></div>, cells: [tituloNombre(r.vendedora), fmtNum(r.unidades), fmtMonto(r.venta), fmtPct(r.participacion)] })),
       }} />}
     </div>
+      </TabsContent>
+      <TabsContent value="ordenes">
+        <MayoristasOrdenes desde={desde} hasta={hasta} />
+      </TabsContent>
+    </Tabs>
   );
 }
