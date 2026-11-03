@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { fmtMonto, fmtPct, fmtPp, semaforoCumplimiento, rangoPeriodo, tituloNombre, varPct } from "@/lib/mayoristas-format";
+import { fmtMonto, fmtPct, fmtPp, semaforoCumplimiento, rangoPeriodo, tituloNombre, varPct, fmtFecha, fmtMesGrupo, semaforoFacturado, semaforoDiasPendiente } from "@/lib/mayoristas-format";
 
 describe("mayoristas format", () => {
   it("montos", () => {
