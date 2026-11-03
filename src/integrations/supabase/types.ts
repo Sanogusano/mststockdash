@@ -7212,6 +7212,28 @@ export type Database = {
           venta_ant: number
         }[]
       }
+      reporte_mayoristas_clientes: {
+        Args: { p_desde: string; p_hasta: string; p_vendedor?: string }
+        Returns: {
+          cliente: string
+          cliente_id: string
+          dias_sin_compra: number
+          estado: string
+          facturas: number
+          participacion: number
+          puntos_entrega: number
+          ticket: number
+          ultima_compra: string
+          unidades: number
+          var_aa: number
+          var_ant: number
+          vendedor_id: string
+          vendedora: string
+          venta: number
+          venta_aa: number
+          venta_ant: number
+        }[]
+      }
       reporte_mayoristas_vendedora: {
         Args: { p_desde: string; p_hasta: string }
         Returns: {
