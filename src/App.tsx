@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { RequirePermission } from "@/components/RequirePermission";
 import Index from "./pages/Index";
+import MayoristasPage from "./pages/Mayoristas";
 import InventariosPage from "./pages/Inventarios";
 import BajaRotacionPage from "./pages/BajaRotacion";
 import BundleConstructionPage from "./pages/BundleConstruction";
@@ -96,6 +97,7 @@ const App = () => (
 
           {/* ===== Dashboards mapeados (13 originales + 9 nuevas) ===== */}
           <Route path="/" element={<Guard module="dashboards.resumen_ejecutivo" action="view"><Index /></Guard>} />
+          <Route path="/mayoristas" element={<Guard module="dashboards.resumen_ejecutivo" action="view"><MayoristasPage /></Guard>} />
           <Route path="/pedidos" element={<Guard module="pedidos" action="view"><PedidosDetallePage /></Guard>} />
           <Route path="/inventarios" element={<Guard module="dashboards.inventario_salud" action="view"><InventariosPage /></Guard>} />
           <Route path="/baja-rotacion" element={<Guard module="dashboards.inventario_salud" action="view"><BajaRotacionPage /></Guard>} />
