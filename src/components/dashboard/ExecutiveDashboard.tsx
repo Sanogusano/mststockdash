@@ -2430,19 +2430,21 @@ export function ExecutiveDashboard({ days, comparisonPeriod = "previous", custom
 
       <TabsContent value="por-canal">
         <Tabs defaultValue="tiendas" className="w-full">
-          <TabsList className="w-full min-w-0 flex justify-start overflow-x-auto sm:grid sm:grid-cols-3 bg-muted/50 rounded-xl p-1 h-auto border border-border">
-            <TabsTrigger value="tiendas" className="flex items-center justify-center gap-2 sm:gap-2.5 text-sm sm:text-base font-medium rounded-lg px-4 py-2.5 sm:py-3 transition-all duration-200 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm text-muted-foreground hover:text-foreground hover:bg-muted">
-              <Store className="h-4 w-4 sm:h-5 sm:w-5" />
+          <TabsList className="w-full min-w-0 grid grid-cols-3 bg-muted/50 rounded-xl p-1 h-auto border border-border">
+            <TabsTrigger value="tiendas" className="flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2.5 text-xs sm:text-base font-medium rounded-lg px-1 sm:px-4 py-2 sm:py-3 text-center whitespace-nowrap transition-all duration-200 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm text-muted-foreground hover:text-foreground hover:bg-muted">
+              <Store className="h-4 w-4 sm:h-5 sm:w-5 shrink-0" />
               <span className="hidden sm:inline">Tiendas de Línea</span>
               <span className="sm:hidden">Tiendas</span>
             </TabsTrigger>
-            <TabsTrigger value="outlets" className="flex items-center justify-center gap-2 sm:gap-2.5 text-sm sm:text-base font-medium rounded-lg px-4 py-2.5 sm:py-3 transition-all duration-200 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm text-muted-foreground hover:text-foreground hover:bg-muted">
-              <Tag className="h-4 w-4 sm:h-5 sm:w-5" />
-              Outlets
+            <TabsTrigger value="outlets" className="flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2.5 text-xs sm:text-base font-medium rounded-lg px-1 sm:px-4 py-2 sm:py-3 text-center whitespace-nowrap transition-all duration-200 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm text-muted-foreground hover:text-foreground hover:bg-muted">
+              <Tag className="h-4 w-4 sm:h-5 sm:w-5 shrink-0" />
+              <span className="hidden sm:inline">Outlets</span>
+              <span className="sm:hidden">Outlets</span>
             </TabsTrigger>
-            <TabsTrigger value="digital" className="flex items-center justify-center gap-2 sm:gap-2.5 text-sm sm:text-base font-medium rounded-lg px-4 py-2.5 sm:py-3 transition-all duration-200 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm text-muted-foreground hover:text-foreground hover:bg-muted">
-              <Globe className="h-4 w-4 sm:h-5 sm:w-5" />
-              Digital
+            <TabsTrigger value="digital" className="flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2.5 text-xs sm:text-base font-medium rounded-lg px-1 sm:px-4 py-2 sm:py-3 text-center whitespace-nowrap transition-all duration-200 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm text-muted-foreground hover:text-foreground hover:bg-muted">
+              <Globe className="h-4 w-4 sm:h-5 sm:w-5 shrink-0" />
+              <span className="hidden sm:inline">Digital</span>
+              <span className="sm:hidden">Digital</span>
             </TabsTrigger>
           </TabsList>
 
