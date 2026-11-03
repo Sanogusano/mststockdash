@@ -1,3 +1,4 @@
+import { KpiCard, ComparisonIndicator, ChannelContributionChart } from "./ExecutivePresentation";
 import { fetchProductSkuDetails } from "@/lib/product-sku-details";
 import { Button } from "@/components/ui/button";
 import { useEffect, useState, Fragment } from "react";
@@ -289,46 +290,6 @@ function getVentaM2Status(ventaM2: number, avgReference?: number): { label: stri
 }
 
 /* ── KPI Card with comparison ── */
-function KpiCard({ label, value, mobileValue, prefix = "", icon: Icon, className, onClick, actual, anterior, ventaM2Status }: {
-  label: string; value: string; mobileValue?: string; prefix?: string; icon: React.ElementType; className?: string; onClick?: () => void;
-  actual?: number; anterior?: number;
-  ventaM2Status?: { label: string; icon: React.ElementType; colorClass: string; bgClass: string; borderClass: string };
-}) {
-  return (
-    <div
-      className={cn("glass-card min-w-0 p-3 sm:p-5 flex items-start gap-2 sm:gap-4", ventaM2Status && `border ${ventaM2Status.borderClass}`, onClick && "cursor-pointer hover:ring-2 hover:ring-primary/30 transition-all")}
-      onClick={onClick}
-    >
-      <div className={cn("h-10 w-10 rounded-lg flex items-center justify-center shrink-0", ventaM2Status ? ventaM2Status.bgClass : "bg-primary/10")}>
-        {ventaM2Status ? <ventaM2Status.icon className={cn("h-5 w-5", ventaM2Status.colorClass)} /> : <Icon className={cn("h-5 w-5 text-primary", className)} />}
-      </div>
-      <div className="min-w-0 flex-1">
-        <div className="flex min-w-0 flex-wrap items-center gap-2">
-          <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">{label}</p>
-          {ventaM2Status && (
-            <span className={cn("inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-bold", ventaM2Status.bgClass, ventaM2Status.colorClass)}>
-              {ventaM2Status.label === "Excelente" && "👑"} {ventaM2Status.label}
-            </span>
-          )}
-        </div>
-        <p className={cn("text-xl sm:text-2xl font-semibold text-foreground mt-0.5 whitespace-normal break-words tabular-nums", className)}>
-          {mobileValue ? (
-            <>
-              <span className="sm:hidden">{prefix}{mobileValue}</span>
-              <span className="hidden sm:inline">{prefix}{mobileValue}</span>
-            </>
-          ) : (
-            <>{prefix}{value}</>
-          )}
-        </p>
-        {actual !== undefined && anterior !== undefined && (
-          <ComparisonIndicator actual={actual} anterior={anterior} label="vs ant." />
-        )}
-      </div>
-    </div>
-  );
-}
-
 /* ── Product Table ── */
 /* Helper: extract product name and color from title like "PERSEFONE T-SHIRT MEN WHITE" */
 function extractNameColor(title: string | null): { name: string; color: string } {
@@ -370,7 +331,8 @@ function WosCell({ wos, compact }: { wos: number | null; compact?: boolean }) {
   return <span className={cn("text-xs font-semibold", getWosStatusColor(wos))}>{wos.toFixed(1)}</span>;
 }
 
-function ProductTable({ data, title, exportFilename, days, canalFiltro, locationFiltro, customFrom, customTo }: {
+export function ProductTable({ data, title, exportFilename, days, canalFiltro, locationFiltro, customFrom, customTo, supplied }: {
+  supplied?: { columns: string[]; rows: { id: string; name: string; photo?: string | null; cells: React.ReactNode[] }[] };
   data: ProductRow[]; title: string; exportFilename: string;
   days: number; canalFiltro?: string; locationFiltro?: string | null;
   customFrom?: Date; customTo?: Date;
@@ -382,6 +344,19 @@ function ProductTable({ data, title, exportFilename, days, canalFiltro, location
   const navigate = useNavigate();
   useEffect(() => { setExpandedId(null); setSkuDetails([]); }, [data, days, canalFiltro, locationFiltro, customFrom, customTo]);
 
+  if (supplied) return (
+    <div className="glass-card overflow-hidden">
+      <div className="flex min-w-0 flex-wrap gap-2 items-center justify-between px-5 py-4 border-b border-border"><h3 className="text-sm font-semibold text-foreground">{title}</h3></div>
+      <div className="overflow-x-auto"><table className="w-full text-sm min-w-[800px]">
+        <thead><tr className="border-b border-border bg-muted/30"><th className="px-3 py-3 text-center text-xs font-medium text-muted-foreground w-10">#</th>{supplied.columns.map(col => <th key={col} className="px-3 py-3 text-left text-xs font-medium text-muted-foreground">{col}</th>)}</tr></thead>
+        <tbody>{supplied.rows.map((row, i) => <tr key={row.id} className="border-b border-border/50 hover:bg-muted/20 transition-colors">
+          <td className="px-3 py-3 text-center font-bold text-muted-foreground">{i + 1}</td>
+          <td className="px-3 py-3"><div className="flex items-center gap-3">{row.photo && <img src={row.photo} alt={row.name} loading="lazy" className="w-10 h-10 rounded-lg object-cover bg-muted shrink-0" />}<span className="font-medium text-foreground line-clamp-1 max-w-[180px]" title={row.name}>{row.name}</span></div></td>
+          {row.cells.map((cell, j) => <td key={j} className="px-3 py-3 text-xs tabular-nums text-muted-foreground">{cell}</td>)}
+        </tr>)}</tbody>
+      </table></div>
+    </div>
+  );
   if (!data.length) return <EmptyState message="Sin datos para mostrar." />;
 
   const exportData = data.map((r, i) => {
@@ -724,19 +699,6 @@ function ParetoChart({ days, canal, locationId, customFrom, customTo }: { days: 
 }
 
 /* ── Comparison indicator ── */
-function ComparisonIndicator({ actual, anterior, label }: { actual: number; anterior: number; label?: string }) {
-  const pct = anterior > 0 ? ((actual - anterior) / anterior) * 100 : 0;
-  const isUp = pct >= 0;
-  return (
-    <div className="flex items-center gap-1 mt-0.5">
-      <span className={cn("text-xs font-medium", isUp ? "text-emerald-600" : "text-destructive")}>
-        {isUp ? "▲" : "▼"} {Math.abs(pct).toFixed(1)}%
-      </span>
-      {label && <span className="text-xs text-muted-foreground">{label}</span>}
-    </div>
-  );
-}
-
 interface ExtraMetrics {
   mejor_dia_semana: string;
   venta_mejor_dia: number;
@@ -1585,67 +1547,6 @@ function BrandTopBottomProducts({ days, customFrom, customTo }: { days: number; 
 }
 
 /* ── Channel Contribution Chart ── */
-function ChannelContributionChart({ channelData }: {
-  channelData: { name: string; actual: number; anterior: number }[];
-}) {
-  if (!channelData.length) return null;
-
-  const fmtMillions = formatKpiMoney;
-
-  return (
-    <div className="glass-card p-5 mt-4">
-      <h3 className="text-sm font-semibold text-foreground mb-4">💰 Aporte por Canal</h3>
-      <div className="flex flex-col lg:flex-row gap-6">
-        {/* Bar Chart */}
-        <div className="flex-1 min-h-[200px]">
-          <ResponsiveContainer width="100%" height={220}>
-            <BarChart data={channelData} barGap={4} barCategoryGap="25%">
-              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
-              <XAxis dataKey="name" tick={{ fontSize: 12, fill: "hsl(var(--muted-foreground))" }} axisLine={false} tickLine={false} />
-              <YAxis tickFormatter={(v) => `$${(v / 1_000_000).toFixed(0)}M`} tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} axisLine={false} tickLine={false} width={55} />
-              <Tooltip
-                formatter={(v: number, name: string) => [fmtMillions(v), name === "actual" ? "Período actual" : "Período anterior"]}
-                contentStyle={{ background: "hsl(var(--background))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12 }}
-              />
-              <Bar dataKey="actual" name="actual" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
-              <Bar dataKey="anterior" name="anterior" fill="hsl(var(--muted-foreground) / 0.3)" radius={[4, 4, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-        {/* Summary Cards */}
-        <div className="flex flex-col gap-3 lg:w-[260px]">
-          {channelData.map((ch) => {
-            const diff = ch.anterior > 0 ? ((ch.actual - ch.anterior) / ch.anterior) * 100 : 0;
-            const isUp = diff >= 0;
-            return (
-              <div key={ch.name} className="p-3 rounded-lg bg-muted/30 border border-border">
-                <p className="text-xs text-muted-foreground font-medium mb-1">{ch.name}</p>
-                <p className="text-base font-semibold text-foreground">{fmtMillions(ch.actual)}</p>
-                <div className="flex items-center gap-2 mt-0.5">
-                  <span className={cn("text-xs font-medium", isUp ? "text-emerald-600" : "text-destructive")}>
-                    {isUp ? "▲" : "▼"} {Math.abs(diff).toFixed(1)}%
-                  </span>
-                  <span className="text-[10px] text-muted-foreground">vs {fmtMillions(ch.anterior)}</span>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-      <div className="flex items-center gap-4 mt-3">
-        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-          <span className="w-3 h-3 rounded-sm" style={{ background: "hsl(var(--primary))" }} />
-          Período actual
-        </div>
-        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-          <span className="w-3 h-3 rounded-sm" style={{ background: "hsl(var(--muted-foreground) / 0.3)" }} />
-          Período anterior
-        </div>
-      </div>
-    </div>
-  );
-}
-
 /* ── Channel Keys ── */
 const CHANNEL_KEYS = ["tiendas", "outlets", "digital"] as const;
 const CHANNEL_LABELS: Record<string, string> = { tiendas: "Tiendas", outlets: "Outlets", digital: "Digital" };
