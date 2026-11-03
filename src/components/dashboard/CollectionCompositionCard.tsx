@@ -24,6 +24,7 @@ interface DetailRow { coleccion: string; categoria: string; unidades: number; }
 
 interface Props {
   days: number;
+  supplied?: { title: string; items: { name: string; value: number; pct: number; detail?: string }[] };
   canal?: string | null;
   locationId?: string | null;
   zona?: string | null;
@@ -31,7 +32,7 @@ interface Props {
   customTo?: Date;
 }
 
-export function CollectionCompositionCard({ days, canal, locationId, zona, customFrom, customTo }: Props) {
+export function CollectionCompositionCard({ days, canal, locationId, zona, customFrom, customTo, supplied }: Props) {
   const [data, setData] = useState<Row[]>([]);
   const [detail, setDetail] = useState<DetailRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -39,6 +40,7 @@ export function CollectionCompositionCard({ days, canal, locationId, zona, custo
 
   useEffect(() => {
     async function fetch() {
+      if (supplied) return;
       if (!isValidDays(days)) return;
       setLoading(true);
       const { dias_atras: effectiveDays, p_hasta: hastaParam } = buildRpcDateParams(days, customFrom, customTo);
@@ -58,13 +60,13 @@ export function CollectionCompositionCard({ days, canal, locationId, zona, custo
       setLoading(false);
     }
     fetch();
-  }, [days, canal, locationId, zona, customFrom, customTo]);
+  }, [days, canal, locationId, zona, customFrom, customTo, supplied]);
 
-  if (loading) return <LoadingState rows={2} />;
-  if (!data.length) return null;
+  if (!supplied && loading) return <LoadingState rows={2} />;
+  if (!supplied && !data.length) return null;
 
-  const total = data.reduce((s, r) => s + (r.unidades ?? 0), 0);
-  const chartItems = data.map((r) => ({
+  const total = supplied ? supplied.items.reduce((s, r) => s + r.value, 0) : data.reduce((s, r) => s + (r.unidades ?? 0), 0);
+  const chartItems = supplied?.items ?? data.map((r) => ({
     name: r.coleccion ?? "Otros",
     value: r.unidades ?? 0,
     pct: total > 0 ? ((r.unidades ?? 0) / total) * 100 : 0,
@@ -85,10 +87,10 @@ export function CollectionCompositionCard({ days, canal, locationId, zona, custo
     <div className="glass-card p-5">
       <div className="flex items-center gap-2 mb-4">
         <Layers className="h-4 w-4 text-primary" />
-        <h3 className="text-sm font-semibold text-foreground">Composición por Colección</h3>
+        <h3 className="text-sm font-semibold text-foreground">{supplied?.title ?? "Composición por Colección"}</h3>
         <span className="text-xs text-muted-foreground ml-auto">{total.toLocaleString()} uds totales</span>
       </div>
-      <div className="flex flex-col sm:flex-row items-start gap-4 sm:gap-6">
+      <div className={`flex flex-col ${supplied ? "" : "sm:flex-row"} items-start gap-4 sm:gap-6`}>
         <ResponsiveContainer width={140} height={140} className="shrink-0">
           <PieChart>
             <Pie data={chartItems} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={40} outerRadius={70} paddingAngle={2} strokeWidth={0}>
@@ -96,7 +98,7 @@ export function CollectionCompositionCard({ days, canal, locationId, zona, custo
                 <Cell key={i} fill={COLORS[i % COLORS.length]} />
               ))}
             </Pie>
-            <Tooltip formatter={(v: number, name: string) => [`${v.toLocaleString()} uds (${((v / total) * 100).toFixed(1)}%)`, name]} />
+            <Tooltip formatter={(v: number, name: string, entry: { payload?: { pct?: number; detail?: string } }) => [supplied ? `${v.toLocaleString("es-CO")} uds (${(entry.payload?.pct ?? 0).toFixed(1)}%)${entry.payload?.detail ? ` · ${entry.payload.detail}` : ""}` : `${v.toLocaleString()} uds (${((v / total) * 100).toFixed(1)}%)`, name]} />
           </PieChart>
         </ResponsiveContainer>
         <div className="flex-1 space-y-0.5 max-h-[280px] overflow-y-auto w-full">
