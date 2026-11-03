@@ -5017,6 +5017,29 @@ export type Database = {
         Args: { min_variants?: number }
         Returns: string
       }
+      _mayorista_es_prenda: {
+        Args: { p_item_id: string; p_neto: number }
+        Returns: boolean
+      }
+      _mayorista_lineas_enriq: {
+        Args: { p_desde: string; p_hasta: string; p_vendedor?: string }
+        Returns: {
+          coleccion: string
+          coleccion_orden: number
+          costo: number
+          genero: string
+          linea: string
+          lista_sin_iva: number
+          neto: number
+          padre_id: string
+          producto: string
+          producto_id: string
+          sku: string
+          tranid: string
+          unidades: number
+          vid: string
+        }[]
+      }
       _mayorista_meta: {
         Args: { p_desde: string; p_hasta: string; p_vendedor: string }
         Returns: {
@@ -7232,6 +7255,62 @@ export type Database = {
           venta: number
           venta_aa: number
           venta_ant: number
+        }[]
+      }
+      reporte_mayoristas_composicion: {
+        Args: {
+          p_desde: string
+          p_dimension: string
+          p_hasta: string
+          p_vendedor?: string
+        }
+        Returns: {
+          grupo: string
+          margen_pct: number
+          orden: number
+          pct_unidades: number
+          pct_venta: number
+          unidades: number
+          venta: number
+        }[]
+      }
+      reporte_mayoristas_indicadores: {
+        Args: { p_desde: string; p_hasta: string; p_vendedor?: string }
+        Returns: {
+          cobertura_costo_pct: number
+          concentracion_top3_pct: number
+          descuento_comercial_pct: number
+          descuento_comercial_pct_ant: number
+          margen_pct: number
+          margen_pct_ant: number
+          precio_promedio: number
+          precio_promedio_ant: number
+          upt: number
+          upt_ant: number
+        }[]
+      }
+      reporte_mayoristas_top_productos: {
+        Args: {
+          p_desde: string
+          p_hasta: string
+          p_limite?: number
+          p_vendedor?: string
+        }
+        Returns: {
+          clientes: number
+          coleccion: string
+          descuento_comercial_pct: number
+          image_url: string
+          linea: string
+          margen_pct: number
+          pct_venta: number
+          precio_mayorista: number
+          precio_retail_sin_iva: number
+          producto: string
+          producto_id: string
+          stock_reserva_distribuidores: number
+          unidades: number
+          venta: number
         }[]
       }
       reporte_mayoristas_vendedora: {
