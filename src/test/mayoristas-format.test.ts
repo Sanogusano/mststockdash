@@ -33,3 +33,26 @@ describe("mayoristas format", () => {
     expect(varPct(100, null)).toBeNull();
   });
 });
+
+describe("fmtFecha / fmtMesGrupo", () => {
+  it("formatea fechas y grupos de mes", () => {
+    expect(fmtFecha("2026-01-15")).toBe("15 ene 2026");
+    expect(fmtFecha(null)).toBe("—");
+    expect(fmtMesGrupo("2026-01")).toBe("ene 26");
+    expect(fmtMesGrupo("LORENA")).toBe("LORENA");
+  });
+});
+
+describe("semaforoFacturado / semaforoDiasPendiente", () => {
+  it("umbrales de pedido vs. facturado: verde >= 97, ambar 90-97, rojo < 90", () => {
+    expect(semaforoFacturado(97.3)).toBe("verde");
+    expect(semaforoFacturado(93.2)).toBe("ambar");
+    expect(semaforoFacturado(88.5)).toBe("rojo");
+    expect(semaforoFacturado(null)).toBe("neutro");
+  });
+  it("días pendiente: rojo > 30, ambar > 15", () => {
+    expect(semaforoDiasPendiente(31)).toBe("rojo");
+    expect(semaforoDiasPendiente(16)).toBe("ambar");
+    expect(semaforoDiasPendiente(15)).toBe("neutro");
+  });
+});
