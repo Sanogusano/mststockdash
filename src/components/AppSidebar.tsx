@@ -134,9 +134,6 @@ const ecommerceItems: NavItem[] = [
   { title: "Salud de Publicación", url: "/salud-publicacion", icon: Globe, description: "Diagnóstico del canal online", module: "ecommerce.precios", action: "view" },
 ];
 
-const mayoristasItems: NavItem[] = [
-  { title: "Ventas por Vendedora", url: "/mayoristas/vendedoras", icon: Users, description: "Cumplimiento del canal mayorista", module: "dashboards.resumen_ejecutivo", action: "view" },
-];
 
 const configuracionItems: NavItem[] = [
   { title: "Ubicaciones", url: "/configuracion/ubicaciones", icon: MapPin, description: "Tiendas, CEDIs y outlets", module: "config.ubicaciones", action: "view" },
