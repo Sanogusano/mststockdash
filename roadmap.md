@@ -32,3 +32,4 @@
 - [x] Reutilizar el preloader del Resumen Ejecutivo en la carga inicial y señalar recargas del Reporte de Facturación sin ocultar datos previos.
 - [x] Enviar estado y búsqueda a la RPC antes de paginar, con debounce y totales coherentes por tarjeta.
 - [x] Compactar el Reporte de Facturación a ocho columnas agrupadas y comparar venta/facturación con IVA.
+- [x] Pestaña "Órdenes" en Mayoristas (junto a "Venta por Cliente"): KPIs Pedido vs. Facturado/No despachado/Pendientes/Duplicados, gráfico mensual barras+línea, tablas por agrupación, pendientes, no despachadas y duplicados plegables; filtros periodo del Resumen + vendedora. Controles 2026 verificados contra la base (97,3% · $633,0M · 105 duplicados · Lorena 99,5% · Tatiana 93,2%). Typecheck y 13 pruebas OK.
