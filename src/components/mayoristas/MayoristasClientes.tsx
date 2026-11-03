@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Users, UserPlus, UserMinus, Banknote } from "lucide-react";
+import { Users, Clock, UserMinus, Banknote } from "lucide-react";
 import { KpiCard, ComparisonIndicator, CommercialSectionHeader } from "@/components/dashboard/ExecutivePresentation";
 import { LoadingState, EmptyState } from "@/components/dashboard/LoadingState";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -9,8 +9,12 @@ import { fmtMonto, fmtNum, fmtPct, fmtFecha, tituloNombre } from "@/lib/mayorist
 import { ConsultaError } from "@/components/mayoristas/MayoristasPanel";
 import { TablaCard, TablaTh, VendedoraSelect } from "@/components/mayoristas/MayoristasOrdenes";
 import { cn } from "@/lib/utils";
+import { Badge } from "@/components/ui/badge";
 
-type Estado = "Activo" | "Nuevo" | "Perdido";
+type Estado = "Activo" | "Nuevo" | "Sin pedido 60 días" | "Sin pedido 90 días" | "Sin pedido 120 días" | "Perdido";
+interface RecenciaRow {
+  tramo: Exclude<Estado, "Nuevo">; orden: number; clientes: number; venta_12m: number; pct_venta_12m: number | null;
+}
 interface ClienteRow {
   cliente_id: string; cliente: string; vendedor_id: string | null; vendedora: string; estado: Estado;
   venta: number; unidades: number; facturas: number; puntos_entrega: number; ticket: number | null;
@@ -18,11 +22,29 @@ interface ClienteRow {
   venta_ant: number | null; var_ant: number | null; venta_aa: number | null; var_aa: number | null;
 }
 
-const ESTADO_CLASS: Record<Estado, string> = { Nuevo: "status-optimal", Activo: "bg-muted text-muted-foreground border-border", Perdido: "status-danger" };
-const FILTROS = [{ id: "todos", label: "Todos" }, { id: "Activo", label: "Activos" }, { id: "Nuevo", label: "Nuevos" }, { id: "Perdido", label: "Perdidos" }] as const;
+const ESTADO_COLOR: Record<Estado, string> = {
+  Nuevo: "text-[hsl(var(--chart-5))]",
+  Activo: "text-success",
+  "Sin pedido 60 días": "text-warning/70",
+  "Sin pedido 90 días": "text-warning",
+  "Sin pedido 120 días": "text-[color:color-mix(in_srgb,hsl(var(--warning)),hsl(var(--danger)))]",
+  Perdido: "text-danger",
+};
+const ESTADO_CLASS: Record<Estado, string> = {
+  Nuevo: "bg-[hsl(var(--chart-5)/0.1)] border-[hsl(var(--chart-5)/0.3)]",
+  Activo: "status-optimal",
+  "Sin pedido 60 días": "bg-warning/5 border-warning/20",
+  "Sin pedido 90 días": "status-warning",
+  "Sin pedido 120 días": "bg-warning/15 border-danger/30",
+  Perdido: "status-danger",
+};
+const FILTROS: { id: string; label: string }[] = [
+  { id: "todos", label: "Todos" },
+  ...(["Activo", "Nuevo", "Sin pedido 60 días", "Sin pedido 90 días", "Sin pedido 120 días", "Perdido"] as Estado[]).map(estado => ({ id: estado, label: estado })),
+];
 
 function EstadoBadge({ estado }: { estado: Estado }) {
-  return <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${ESTADO_CLASS[estado] ?? ESTADO_CLASS.Activo}`}>{estado}</span>;
+  return <Badge variant="outline" className={cn("font-medium", ESTADO_CLASS[estado], ESTADO_COLOR[estado])}>{estado}</Badge>;
 }
 
 function Vs({ r }: { r: ClienteRow }) {
@@ -32,10 +54,9 @@ function Vs({ r }: { r: ClienteRow }) {
 }
 
 function UltimaCompra({ r }: { r: ClienteRow }) {
-  const alerta = r.estado !== "Perdido" && Number(r.dias_sin_compra) > 60;
-  return <div className={cn("whitespace-nowrap", alerta && "text-warning")}>
+  return <div className="whitespace-nowrap">
     <p>{fmtFecha(r.ultima_compra)}</p>
-    {r.dias_sin_compra != null && <p className={cn("text-xs", alerta ? "text-warning" : "text-muted-foreground")}>hace {fmtNum(r.dias_sin_compra)} días</p>}
+    {r.dias_sin_compra != null && <p className="text-xs text-muted-foreground">hace {fmtNum(r.dias_sin_compra)} días</p>}
   </div>;
 }
 
@@ -52,10 +73,18 @@ export function MayoristasClientes({ desde, hasta, vendedor, onVendedorChange }:
       return (data as unknown as ClienteRow[]) ?? [];
     },
   });
+  const recencia = useQuery({
+    retry: false,
+    queryKey: ["mayoristas-recencia", hasta, vendedor],
+    enabled: valido,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("reporte_mayoristas_recencia" as never, { p_hasta: hasta, p_vendedor: vendedor } as never);
+      if (error) throw error;
+      return ((data as unknown as RecenciaRow[]) ?? []).slice().sort((a, b) => Number(a.orden) - Number(b.orden));
+    },
+  });
   const rows = q.data ?? [];
   const activos = rows.filter(r => r.estado === "Activo" || r.estado === "Nuevo").length;
-  const nuevos = rows.filter(r => r.estado === "Nuevo").length;
-  const perdidos = rows.filter(r => r.estado === "Perdido").length;
   const conVenta = rows.filter(r => Number(r.venta) > 0);
   const ventaTotal = conVenta.reduce((s, r) => s + Number(r.venta), 0);
   const promedio = conVenta.length > 0 ? ventaTotal / conVenta.length : null;
@@ -69,23 +98,31 @@ export function MayoristasClientes({ desde, hasta, vendedor, onVendedorChange }:
         </CommercialSectionHeader>
         <p className="text-xs text-muted-foreground mb-4">Venta neta sin IVA · fuente: facturas NetSuite</p>
         {q.error ? <ConsultaError error={q.error} /> : q.isLoading ? <LoadingState /> : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <KpiCard label="Clientes activos" value={fmtNum(activos)} icon={Users} />
-            <KpiCard label="Nuevos" value={fmtNum(nuevos)} className="text-success" icon={UserPlus} />
-            <KpiCard label="Perdidos" value={fmtNum(perdidos)} className="text-danger" icon={UserMinus}>
-              <p className="text-xs text-muted-foreground">compraron el periodo anterior y no en este</p>
-            </KpiCard>
             <KpiCard label="Venta promedio por cliente" value={fmtMonto(promedio)} icon={Banknote} />
           </div>
         )}
       </div>
+
+      {recencia.error ? <ConsultaError error={recencia.error} /> : recencia.isLoading ? <LoadingState /> : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-4">
+          {(recencia.data ?? []).map(r => (
+            <KpiCard key={r.tramo} label={r.tramo} value={fmtNum(r.clientes)} className={ESTADO_COLOR[r.tramo]}
+              icon={r.tramo === "Activo" ? Users : r.tramo === "Perdido" ? UserMinus : Clock}
+              onClick={() => setFiltro(r.tramo)}>
+              <p className="text-xs text-muted-foreground mt-1">compraban {fmtMonto(r.venta_12m)} al año ({fmtPct(r.pct_venta_12m)})</p>
+            </KpiCard>
+          ))}
+        </div>
+      )}
 
       {q.error || q.isLoading ? null : (
         <>
           <div className="flex items-center justify-between gap-3 flex-wrap">
             <h2 className="text-sm font-semibold text-foreground">Clientes</h2>
             <Select value={filtro} onValueChange={setFiltro}>
-              <SelectTrigger className="w-full sm:w-[200px] h-9 text-sm bg-card border border-border"><SelectValue /></SelectTrigger>
+              <SelectTrigger className="w-full sm:w-[220px] h-9 text-sm bg-card border border-border"><SelectValue /></SelectTrigger>
               <SelectContent>{FILTROS.map(f => <SelectItem key={f.id} value={f.id}>{f.label}</SelectItem>)}</SelectContent>
             </Select>
           </div>
