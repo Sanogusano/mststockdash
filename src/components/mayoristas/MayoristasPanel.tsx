@@ -11,6 +11,8 @@ import { ProductImageThumb } from "@/components/dashboard/ProductImageThumb";
 import { Badge } from "@/components/ui/badge";
 import { MultiSelectFilter } from "@/components/dashboard/MultiSelectFilter";
 import { LoadingState, EmptyState } from "@/components/dashboard/LoadingState";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { MayoristasOrdenes } from "@/components/mayoristas/MayoristasOrdenes";
 import { supabase } from "@/integrations/supabase/client";
 import { fmtMonto, fmtNum, fmtPct, tituloNombre } from "@/lib/mayoristas-format";
 import type { Semaforo } from "@/lib/mayoristas-format";
@@ -78,7 +80,7 @@ function agruparLineas(rows: ComposicionRow[]): ComposicionRow[] {
   return [...top, otras];
 }
 
-function ConsultaError({ error }: { error: unknown }) {
+export function ConsultaError({ error }: { error: unknown }) {
   const message = typeof error === "object" && error !== null && "message" in error ? String(error.message) : String(error);
   return <p role="alert" className="text-destructive break-words">{message}</p>;
 }
@@ -164,7 +166,13 @@ export function MayoristasPanel({ desde, hasta }: { desde: string | null; hasta:
   const topClientes = (clientesQ.data ?? []).filter(r => r.estado !== "Perdido").slice(0, 10);
   const sellers = (vendQ.data ?? []).filter(v => selectedSellers.length === 0 || selectedSellers.includes(v.vendedora));
   return (
-    <div className="space-y-4 mb-6 min-w-0">
+    <Tabs defaultValue="venta" className="mb-6">
+      <TabsList className="w-full min-w-0 grid grid-cols-2 bg-muted/50 rounded-xl p-1 h-auto border border-border mb-4">
+        <TabsTrigger value="venta" className="text-xs sm:text-sm font-medium rounded-lg px-2 sm:px-4 py-2 whitespace-nowrap data-[state=active]:bg-emerald-600 data-[state=active]:text-white data-[state=active]:shadow-sm text-muted-foreground hover:text-foreground hover:bg-muted">Venta por Cliente</TabsTrigger>
+        <TabsTrigger value="ordenes" className="text-xs sm:text-sm font-medium rounded-lg px-2 sm:px-4 py-2 whitespace-nowrap data-[state=active]:bg-emerald-600 data-[state=active]:text-white data-[state=active]:shadow-sm text-muted-foreground hover:text-foreground hover:bg-muted">Órdenes</TabsTrigger>
+      </TabsList>
+      <TabsContent value="venta">
+    <div className="space-y-4 min-w-0">
       <div className="glass-card p-5">
         <CommercialSectionHeader title="📊 DESEMPEÑO COMERCIAL MAYORISTAS">
           <MultiSelectFilter label="Vendedora" allLabel="Todas" options={(vendQ.data ?? []).map(v => v.vendedora)} selected={selectedSellers} onChange={setSelectedSellers} />
@@ -230,5 +238,10 @@ export function MayoristasPanel({ desde, hasta }: { desde: string | null; hasta:
         rows: topClientes.map(r => ({ id: String(r.cliente_id), name: r.cliente, value: fmtMonto(r.venta), detail: <div className="text-xs text-muted-foreground space-y-1"><p>{tituloNombre(r.vendedora)}</p><p>{fmtNum(r.unidades)} unidades · {fmtPct(r.participacion)} del canal</p></div>, cells: [tituloNombre(r.vendedora), fmtNum(r.unidades), fmtMonto(r.venta), fmtPct(r.participacion)] })),
       }} />}
     </div>
+      </TabsContent>
+      <TabsContent value="ordenes">
+        <MayoristasOrdenes desde={desde} hasta={hasta} />
+      </TabsContent>
+    </Tabs>
   );
 }
