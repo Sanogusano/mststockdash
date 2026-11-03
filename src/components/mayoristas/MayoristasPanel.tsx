@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { DollarSign, Package, Receipt, Users, ShoppingBag, Banknote, Percent, Trophy, Clock } from "lucide-react";
 import { KpiCard, ComparisonIndicator, CommercialSectionHeader } from "@/components/dashboard/ExecutivePresentation";
@@ -109,6 +110,7 @@ function ComposicionCard({ desde, hasta, dimension, label }: {
 export function MayoristasPanel({ desde, hasta }: { desde: string | null; hasta: string | null }) {
   const valido = !!desde && !!hasta && desde <= hasta;
   const [selectedSellers, setSelectedSellers] = useState<string[]>([]);
+  const navigate = useNavigate();
   const canalQ = useQuery({
     retry: false,
     queryKey: ["mayoristas-canal", desde, hasta],
@@ -204,7 +206,7 @@ export function MayoristasPanel({ desde, hasta }: { desde: string | null; hasta:
         <div className="flex items-center gap-2 px-5 py-4 border-b border-border"><Trophy className="h-4 w-4 text-primary" /><h3 className="text-sm font-semibold text-foreground">Vendedoras</h3></div>
         <div className="overflow-x-auto"><table className="w-full text-sm min-w-[1000px]">
           <thead><tr className="border-b border-border bg-muted/30">{["#", "Vendedora", "Ventas Netas", "Uds", "Ticket Prom", "Facturas", "Clientes", "% canal", "Variación", "Cumplimiento"].map(col => <th key={col} className="px-3 py-2.5 text-left text-xs font-medium text-muted-foreground">{col}</th>)}</tr></thead>
-          <tbody>{sellers.map((v, i) => <StoreRow key={v.vendedor_id ?? v.vendedora} rank={i} medals={false} presupuesto={v.meta == null ? undefined : Number(v.meta)} porcentaje={v.cumplimiento} row={{ tienda: tituloNombre(v.vendedora), ventas_totales: Number(v.venta), unidades_vendidas: Number(v.unidades), ticket_promedio: Number(v.ticket), upt: 0, pct_venta_full_price: 0, zona: "" }} extraCells={[
+          <tbody>{sellers.map((v, i) => <StoreRow key={v.vendedor_id ?? v.vendedora} rank={i} medals={false} onClick={v.vendedor_id && v.vendedor_id !== "(sin)" && v.vendedora !== "(Sin vendedora)" ? () => navigate(`/mayoristas?tab=clientes&vendedor=${encodeURIComponent(String(v.vendedor_id))}${desde && hasta ? `&desde=${desde}&hasta=${hasta}` : ""}`) : undefined} presupuesto={v.meta == null ? undefined : Number(v.meta)} porcentaje={v.cumplimiento} row={{ tienda: tituloNombre(v.vendedora), ventas_totales: Number(v.venta), unidades_vendidas: Number(v.unidades), ticket_promedio: Number(v.ticket), upt: 0, pct_venta_full_price: 0, zona: "" }} extraCells={[
             fmtNum(v.facturas),
             <div>{fmtNum(v.clientes)}{Number(v.clientes_nuevos) > 0 && <p className="text-xs text-success">+{fmtNum(v.clientes_nuevos)} nuevos</p>}{Number(v.clientes_perdidos) > 0 && <p className="text-xs text-danger">−{fmtNum(v.clientes_perdidos)} perdidos</p>}</div>,
             fmtPct(v.participacion),

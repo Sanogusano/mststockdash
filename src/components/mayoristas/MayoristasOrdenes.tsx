@@ -42,7 +42,7 @@ const AGRUPACIONES: { id: Agrupacion; label: string }[] = [
   { id: "producto", label: "Por producto" },
 ];
 
-function TablaCard({ title, children, minW = 900 }: { title: React.ReactNode; children: React.ReactNode; minW?: number }) {
+function TablaCardBase({ title, children, minW = 900 }: { title: React.ReactNode; children: React.ReactNode; minW?: number }) {
   return (
     <div className="glass-card overflow-hidden">
       <div className="flex items-center gap-2 px-5 py-4 border-b border-border"><h3 className="text-sm font-semibold text-foreground">{title}</h3></div>
@@ -55,12 +55,14 @@ function Th({ cols }: { cols: string[] }) {
   return <thead><tr className="border-b border-border bg-muted/30">{cols.map(col => <th key={col} className="px-3 py-2.5 text-left text-xs font-medium text-muted-foreground whitespace-nowrap">{col}</th>)}</tr></thead>;
 }
 
-export function MayoristasOrdenes({ desde, hasta }: { desde: string | null; hasta: string | null }) {
-  const valido = !!desde && !!hasta && desde <= hasta;
-  const [vendedora, setVendedora] = useState<string>("__todas__");
-  const [agrupar, setAgrupar] = useState<Agrupacion>("vendedora");
-  const pVendedor = vendedora === "__todas__" ? null : vendedora;
+export function TablaCard({ title, children, minW = 900 }: { title: React.ReactNode; children: React.ReactNode; minW?: number }) {
+  return <TablaCardBase title={title} minW={minW}>{children}</TablaCardBase>;
+}
+export { Th as TablaTh };
 
+/** Selector de vendedora compartido por las pestañas del módulo Mayoristas (valor = vendedor_id). */
+export function VendedoraSelect({ desde, hasta, value, onChange }: { desde: string | null; hasta: string | null; value: string | null; onChange: (v: string | null) => void }) {
+  const valido = !!desde && !!hasta && desde <= hasta;
   const vendQ = useQuery({
     retry: false,
     queryKey: ["mayoristas-vendedora", desde, hasta],
@@ -68,9 +70,26 @@ export function MayoristasOrdenes({ desde, hasta }: { desde: string | null; hast
     queryFn: async () => {
       const { data, error } = await supabase.rpc("reporte_mayoristas_vendedora" as never, { p_desde: desde, p_hasta: hasta } as never);
       if (error) throw error;
-      return (data as unknown as { vendedora: string }[]) ?? [];
+      return (data as unknown as { vendedor_id: string | null; vendedora: string }[]) ?? [];
     },
   });
+  return (
+    <Select value={value ?? "__todas__"} onValueChange={(v) => onChange(v === "__todas__" ? null : v)}>
+      <SelectTrigger className="w-full sm:w-[220px] h-9 text-sm bg-card border border-border"><SelectValue placeholder="Vendedora" /></SelectTrigger>
+      <SelectContent>
+        <SelectItem value="__todas__">Todas</SelectItem>
+        {(vendQ.data ?? []).filter(v => v.vendedor_id).map(v => <SelectItem key={v.vendedor_id!} value={String(v.vendedor_id)}>{tituloNombre(v.vendedora)}</SelectItem>)}
+      </SelectContent>
+    </Select>
+  );
+}
+
+export function MayoristasOrdenes({ desde, hasta, vendedor, onVendedorChange }: { desde: string | null; hasta: string | null; vendedor: string | null; onVendedorChange: (v: string | null) => void }) {
+  const valido = !!desde && !!hasta && desde <= hasta;
+  const [agrupar, setAgrupar] = useState<Agrupacion>("vendedora");
+  const pVendedor = vendedor;
+
+
 
   const mesQ = useQuery({
     retry: false,
@@ -143,13 +162,7 @@ export function MayoristasOrdenes({ desde, hasta }: { desde: string | null; hast
     <div className="space-y-4 min-w-0">
       <div className="glass-card p-5">
         <CommercialSectionHeader title="📦 ÓRDENES MAYORISTAS">
-          <Select value={vendedora} onValueChange={setVendedora}>
-            <SelectTrigger className="w-full sm:w-[220px] h-9 text-sm bg-card border border-border"><SelectValue placeholder="Vendedora" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="__todas__">Todas</SelectItem>
-              {(vendQ.data ?? []).map(v => <SelectItem key={v.vendedora} value={v.vendedora}>{tituloNombre(v.vendedora)}</SelectItem>)}
-            </SelectContent>
-          </Select>
+          <VendedoraSelect desde={desde} hasta={hasta} value={vendedor} onChange={onVendedorChange} />
         </CommercialSectionHeader>
         <p className="text-xs text-muted-foreground mb-4">Pedidos vs. facturación · fuente: NetSuite</p>
         {mesQ.error ? <ConsultaError error={mesQ.error} /> : mesQ.isLoading || pendQ.isLoading || dupQ.isLoading ? <LoadingState /> : (
