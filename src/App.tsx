@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { RequirePermission } from "@/components/RequirePermission";
 import Index from "./pages/Index";
+import MayoristasVendedoras from "./pages/mayoristas/MayoristasVendedoras";
 import InventariosPage from "./pages/Inventarios";
 import BajaRotacionPage from "./pages/BajaRotacion";
 import BundleConstructionPage from "./pages/BundleConstruction";
@@ -95,6 +96,7 @@ const App = () => (
           <Route path="/reset-password" element={<ResetPasswordPage />} />
 
           {/* ===== Dashboards mapeados (13 originales + 9 nuevas) ===== */}
+          <Route path="/mayoristas/vendedoras" element={<Guard module="dashboards.resumen_ejecutivo" action="view"><MayoristasVendedoras /></Guard>} />
           <Route path="/" element={<Guard module="dashboards.resumen_ejecutivo" action="view"><Index /></Guard>} />
           <Route path="/pedidos" element={<Guard module="pedidos" action="view"><PedidosDetallePage /></Guard>} />
           <Route path="/inventarios" element={<Guard module="dashboards.inventario_salud" action="view"><InventariosPage /></Guard>} />

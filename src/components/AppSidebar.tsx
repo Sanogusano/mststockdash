@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { LineChart, BarChart3, TrendingUp, ArrowLeftRight, Package, Tag, Layers, Target, Zap, Trophy, Archive, Users, Calculator, UserCog, Briefcase, ChevronDown, Settings, MapPin, Upload, LogOut, Truck, Shield, Store, Banknote, LayoutDashboard, CreditCard, MessageCircle, AlertTriangle, RefreshCw, Sparkles, Search, LayoutGrid, TrendingDown, Globe, Gauge, ScatterChart, Siren, Database, Split, Activity, Scale, HeartPulse, FileText, Tags } from "lucide-react";
+import { LineChart, BarChart3, TrendingUp, ArrowLeftRight, Package, Tag, Layers, Target, Zap, Trophy, Archive, Users, Calculator, UserCog, Briefcase, ChevronDown, Settings, MapPin, Upload, LogOut, Truck, Shield, Store, Banknote, LayoutDashboard, CreditCard, MessageCircle, AlertTriangle, RefreshCw, Sparkles, Search, LayoutGrid, TrendingDown, Globe, Gauge, ScatterChart, Siren, Database, Split, Activity, Scale, HeartPulse, FileText, Tags, Handshake } from "lucide-react";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useAuth } from "@/hooks/useAuth";
 import { useUserPermissions } from "@/hooks/useUserPermissions";
@@ -134,6 +134,10 @@ const ecommerceItems: NavItem[] = [
   { title: "Salud de Publicación", url: "/salud-publicacion", icon: Globe, description: "Diagnóstico del canal online", module: "ecommerce.precios", action: "view" },
 ];
 
+const mayoristasItems: NavItem[] = [
+  { title: "Ventas por Vendedora", url: "/mayoristas/vendedoras", icon: Users, description: "Cumplimiento del canal mayorista", module: "dashboards.resumen_ejecutivo", action: "view" },
+];
+
 const configuracionItems: NavItem[] = [
   { title: "Ubicaciones", url: "/configuracion/ubicaciones", icon: MapPin, description: "Tiendas, CEDIs y outlets", module: "config.ubicaciones", action: "view" },
   { title: "Inventario NetSuite", url: "/configuracion/netsuite-upload", icon: Upload, description: "Subir snapshot de inventario", module: "inventario_netsuite", action: "view" },
@@ -181,6 +185,7 @@ export function AppSidebar() {
   const isGestionActive = visibleGestion.some((i) => location.pathname === i.url);
   const isConfigActive = visibleConfig.some((i) => location.pathname === i.url);
   const isLogisticaActive = visibleLogistica.some((i) => location.pathname === i.url);
+  const visibleMayoristas = useMemo(() => mayoristasItems.filter((i) => can(i.module, i.action)), [permissions, isAdmin, role]);
   const visibleEcommerce = useMemo(() => ecommerceItems.filter((i) => can(i.module, i.action)), [permissions, isAdmin, role]);
   const isEcommerceActive = visibleEcommerce.some((i) => location.pathname === i.url);
   const isFinanzasActive = visibleFinanzas.some((i) => location.pathname === i.url);
@@ -391,6 +396,19 @@ export function AppSidebar() {
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                   {inventarioOpen && visibleInventario.map((item) => renderItem(item, 1))}
+                </>
+              )}
+
+              {/* Mayoristas */}
+              {visibleMayoristas.length > 0 && (
+                <>
+                  <SidebarMenuItem>
+                    <div className="flex items-center gap-3 px-3 pt-3 pb-1 text-sidebar-foreground/60">
+                      <Handshake className="h-[18px] w-[18px] shrink-0" />
+                      <span className="text-sm leading-tight">Mayoristas</span>
+                    </div>
+                  </SidebarMenuItem>
+                  {visibleMayoristas.map((item) => renderItem(item, true))}
                 </>
               )}
 
