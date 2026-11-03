@@ -7308,6 +7308,31 @@ export type Database = {
           precio_retail_sin_iva: number
           producto: string
           producto_id: string
+          semanas_vida: number
+          stock_reserva_distribuidores: number
+          unidades: number
+          venta: number
+        }[]
+      }
+      reporte_mayoristas_top_productos_obsoleta: {
+        Args: {
+          p_desde: string
+          p_hasta: string
+          p_limite?: number
+          p_vendedor?: string
+        }
+        Returns: {
+          clientes: number
+          coleccion: string
+          descuento_comercial_pct: number
+          image_url: string
+          linea: string
+          margen_pct: number
+          pct_venta: number
+          precio_mayorista: number
+          precio_retail_sin_iva: number
+          producto: string
+          producto_id: string
           stock_reserva_distribuidores: number
           unidades: number
           venta: number
