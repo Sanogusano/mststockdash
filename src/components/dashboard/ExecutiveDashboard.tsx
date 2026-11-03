@@ -344,6 +344,7 @@ export function ProductTable({ data, title, exportFilename, days, canalFiltro, l
   const navigate = useNavigate();
   useEffect(() => { setExpandedId(null); setSkuDetails([]); }, [data, days, canalFiltro, locationFiltro, customFrom, customTo]);
 
+  if (supplied && !supplied.rows.length) return <EmptyState message="Sin datos para mostrar." />;
   if (supplied) return (
     <div className="glass-card overflow-hidden">
       <div className="flex min-w-0 flex-wrap gap-2 items-center justify-between px-5 py-4 border-b border-border"><h3 className="text-sm font-semibold text-foreground">{title}</h3></div>
