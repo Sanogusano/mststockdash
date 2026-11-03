@@ -71,8 +71,8 @@ export function MayoristasClientes({ desde, hasta, vendedor, onVendedorChange }:
         {q.error ? <ConsultaError error={q.error} /> : q.isLoading ? <LoadingState /> : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <KpiCard label="Clientes activos" value={fmtNum(activos)} icon={Users} />
-            <KpiCard label="Nuevos" value={<span className="text-success">{fmtNum(nuevos)}</span>} icon={UserPlus} />
-            <KpiCard label="Perdidos" value={<span className="text-danger">{fmtNum(perdidos)}</span>} icon={UserMinus}>
+            <KpiCard label="Nuevos" value={fmtNum(nuevos)} className="text-success" icon={UserPlus} />
+            <KpiCard label="Perdidos" value={fmtNum(perdidos)} className="text-danger" icon={UserMinus}>
               <p className="text-xs text-muted-foreground">compraron el periodo anterior y no en este</p>
             </KpiCard>
             <KpiCard label="Venta promedio por cliente" value={fmtMonto(promedio)} icon={Banknote} />
