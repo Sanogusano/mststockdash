@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowDownRight, ArrowUpRight } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
@@ -117,9 +116,9 @@ function Kpi({ label, value, children }: { label: string; value: string; childre
 
 type Dimension = "coleccion" | "linea" | "genero";
 const DIMENSIONES: { id: Dimension; label: string }[] = [
-  { id: "coleccion", label: "Colección" },
-  { id: "linea", label: "Línea" },
-  { id: "genero", label: "Género" },
+  { id: "coleccion", label: "Por Colección" },
+  { id: "linea", label: "Por Línea" },
+  { id: "genero", label: "Por Género" },
 ];
 
 function stockSemaforo(stock: number): Semaforo {
@@ -150,11 +149,59 @@ function agruparLineas(rows: ComposicionRow[]): ComposicionRow[] {
   return [...top, otras];
 }
 
+function ConsultaError({ error }: { error: unknown }) {
+  const message = typeof error === "object" && error !== null && "message" in error
+    ? String(error.message) : String(error);
+  return <div role="alert" className="rounded-md border border-destructive/40 bg-destructive/5 p-3 text-sm text-destructive break-words">{message}</div>;
+}
+
+function ComposicionCard({ desde, hasta, dimension, label }: {
+  desde: string | null; hasta: string | null; dimension: Dimension; label: string;
+}) {
+  const compQ = useQuery({
+    queryKey: ["mayoristas-composicion", desde, hasta, dimension],
+    enabled: !!desde && !!hasta && desde <= hasta,
+    retry: false,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("reporte_mayoristas_composicion" as never, { p_desde: desde, p_hasta: hasta, p_dimension: dimension } as never);
+      if (error) throw error;
+      return (data as unknown as ComposicionRow[]) ?? [];
+    },
+  });
+  const rows = dimension === "linea" ? agruparLineas(compQ.data ?? []) : (compQ.data ?? []);
+  return (
+    <Card className="min-w-0"><CardContent className="p-4 sm:p-5 space-y-4">
+      <h3 className="text-sm font-semibold">{label}</h3>
+      {compQ.error ? <ConsultaError error={compQ.error} /> : compQ.isLoading ? <LoadingState /> : rows.length === 0 ? (
+        <div className="text-sm text-muted-foreground">Sin datos para el periodo.</div>
+      ) : (
+        <div className="space-y-2.5">
+          {rows.map((r) => (
+            <div key={r.grupo} className="space-y-1 min-w-0">
+              <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5 text-sm">
+                <span className="font-medium break-words">{r.grupo}</span>
+                <span className="tabular-nums text-muted-foreground">
+                  <span className="font-medium text-foreground">{fmtPct(r.pct_venta)}</span> · {fmtMonto(r.venta)}
+                </span>
+              </div>
+              <div className="h-2 w-full rounded-full bg-muted overflow-hidden">
+                <div className="h-full rounded-full bg-primary" style={{ width: `${Math.min(Math.max(Number(r.pct_venta) || 0, 0), 100)}%` }} />
+              </div>
+              <div className="text-xs text-muted-foreground tabular-nums">
+                {fmtPct(r.pct_unidades)} de las unidades{r.margen_pct !== null && r.margen_pct !== undefined ? ` · margen ${fmtPct(r.margen_pct)}` : ""}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </CardContent></Card>
+  );
+}
+
 /** Panel del canal Mayoristas reutilizado en el Resumen Ejecutivo.
  *  Recibe el rango del selector de periodo del Resumen Ejecutivo (YYYY-MM-DD). */
 export function MayoristasPanel({ desde, hasta }: { desde: string | null; hasta: string | null }) {
   const valido = !!desde && !!hasta && desde <= hasta;
-  const [dimension, setDimension] = useState<Dimension>("coleccion");
 
   const canalQ = useQuery({
     queryKey: ["mayoristas-canal", desde, hasta],
@@ -175,6 +222,7 @@ export function MayoristasPanel({ desde, hasta }: { desde: string | null; hasta:
     },
   });
   const indQ = useQuery({
+    retry: false,
     queryKey: ["mayoristas-indicadores", desde, hasta],
     enabled: valido,
     queryFn: async () => {
@@ -183,16 +231,8 @@ export function MayoristasPanel({ desde, hasta }: { desde: string | null; hasta:
       return ((data as unknown as IndicadoresRow[]) ?? [])[0] ?? null;
     },
   });
-  const compQ = useQuery({
-    queryKey: ["mayoristas-composicion", desde, hasta, dimension],
-    enabled: valido,
-    queryFn: async () => {
-      const { data, error } = await supabase.rpc("reporte_mayoristas_composicion" as never, { p_desde: desde, p_hasta: hasta, p_dimension: dimension } as never);
-      if (error) throw error;
-      return (data as unknown as ComposicionRow[]) ?? [];
-    },
-  });
   const topProdQ = useQuery({
+    retry: false,
     queryKey: ["mayoristas-top-productos", desde, hasta],
     enabled: valido,
     queryFn: async () => {
@@ -202,6 +242,7 @@ export function MayoristasPanel({ desde, hasta }: { desde: string | null; hasta:
     },
   });
   const clientesQ = useQuery({
+    retry: false,
     queryKey: ["mayoristas-clientes", desde, hasta],
     enabled: valido,
     queryFn: async () => {
@@ -212,16 +253,15 @@ export function MayoristasPanel({ desde, hasta }: { desde: string | null; hasta:
   });
   const c = canalQ.data;
   const ind = indQ.data;
-  const compRows = dimension === "linea" ? agruparLineas(compQ.data ?? []) : (compQ.data ?? []);
   const topClientes = (clientesQ.data ?? []).filter((r) => r.estado !== "Perdido").slice(0, 10);
 
   return (
     <div className="space-y-5 min-w-0">
       <p className="text-xs text-muted-foreground">Venta neta sin IVA · fuente: facturas NetSuite</p>
 
-      {(canalQ.error || vendQ.error || indQ.error || compQ.error || topProdQ.error || clientesQ.error) && (
+      {(canalQ.error || vendQ.error) && (
         <div className="rounded-md border border-destructive/40 bg-destructive/5 p-3 text-sm text-destructive">
-          {((canalQ.error || vendQ.error || indQ.error || compQ.error || topProdQ.error || clientesQ.error) as Error)?.message}
+          {((canalQ.error || vendQ.error) as Error)?.message}
         </div>
       )}
 
@@ -290,7 +330,7 @@ export function MayoristasPanel({ desde, hasta }: { desde: string | null; hasta:
       {/* Indicadores comerciales del canal */}
       <section className="space-y-3">
         <h2 className="text-base font-semibold">Indicadores comerciales</h2>
-        {indQ.isLoading ? <LoadingState /> : ind && (
+        {indQ.error ? <ConsultaError error={indQ.error} /> : indQ.isLoading ? <LoadingState /> : ind && (
           <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
             <Kpi label="UPT (unidades por factura)" value={Number(ind.upt).toLocaleString("es-CO", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}>
               <Variacion label="vs periodo anterior" value={varPct(ind.upt, ind.upt_ant)} />
@@ -315,51 +355,17 @@ export function MayoristasPanel({ desde, hasta }: { desde: string | null; hasta:
       {/* Composición por colección / línea / género */}
       <section className="space-y-3">
         <h2 className="text-base font-semibold">Composición de la venta</h2>
-        <Card><CardContent className="p-4 sm:p-5 space-y-4">
-          <div className="flex flex-wrap gap-1">
-            {DIMENSIONES.map((d) => (
-              <button
-                key={d.id}
-                type="button"
-                onClick={() => setDimension(d.id)}
-                className={cn(
-                  "rounded-md px-3 py-1.5 text-xs font-medium transition-colors",
-                  dimension === d.id ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:text-foreground",
-                )}
-              >
-                {d.label}
-              </button>
-            ))}
-          </div>
-          {compQ.isLoading ? <LoadingState /> : compRows.length === 0 ? (
-            <div className="text-sm text-muted-foreground">Sin datos para el periodo.</div>
-          ) : (
-            <div className="space-y-2.5">
-              {compRows.map((r) => (
-                <div key={r.grupo} className="space-y-1 min-w-0">
-                  <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5 text-sm">
-                    <span className="font-medium truncate">{r.grupo}</span>
-                    <span className="tabular-nums text-muted-foreground">
-                      <span className="font-medium text-foreground">{fmtPct(r.pct_venta)}</span> · {fmtMonto(r.venta)}
-                    </span>
-                  </div>
-                  <div className="h-2 w-full rounded-full bg-muted overflow-hidden">
-                    <div className="h-full rounded-full bg-primary" style={{ width: `${Math.min(Math.max(Number(r.pct_venta) || 0, 0), 100)}%` }} />
-                  </div>
-                  <div className="text-xs text-muted-foreground tabular-nums">
-                    {fmtPct(r.pct_unidades)} de las unidades{r.margen_pct !== null && r.margen_pct !== undefined ? ` · margen ${fmtPct(r.margen_pct)}` : ""}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </CardContent></Card>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
+          {DIMENSIONES.map((d) => (
+            <ComposicionCard key={d.id} desde={desde} hasta={hasta} dimension={d.id} label={d.label} />
+          ))}
+        </div>
       </section>
 
       {/* Top productos mayoristas */}
       <section className="space-y-3">
         <h2 className="text-base font-semibold">Top productos mayoristas</h2>
-        {topProdQ.isLoading ? <LoadingState /> : (topProdQ.data ?? []).length === 0 ? (
+        {topProdQ.error ? <ConsultaError error={topProdQ.error} /> : topProdQ.isLoading ? <LoadingState /> : (topProdQ.data ?? []).length === 0 ? (
           <div className="text-sm text-muted-foreground">Sin datos para el periodo.</div>
         ) : (
           <>
@@ -440,7 +446,7 @@ export function MayoristasPanel({ desde, hasta }: { desde: string | null; hasta:
       {/* Top clientes */}
       <section className="space-y-3">
         <h2 className="text-base font-semibold">Top clientes</h2>
-        {clientesQ.isLoading ? <LoadingState /> : topClientes.length === 0 ? (
+        {clientesQ.error ? <ConsultaError error={clientesQ.error} /> : clientesQ.isLoading ? <LoadingState /> : topClientes.length === 0 ? (
           <div className="text-sm text-muted-foreground">Sin datos para el periodo.</div>
         ) : (
           <>
