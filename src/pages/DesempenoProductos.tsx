@@ -176,6 +176,7 @@ export default function DesempenoProductosPage() {
   const setCanal = (value: string) => updateParams({ canal: value });
   const [expandedProduct, setExpandedProduct] = useState<string | null>(null);
   const [catFilter, setCatFilter] = useState("all");
+  const [categories, setCategories] = useState<string[]>([]);
   const initialSemana = searchParams.get("semana") || "all";
   const initialMezcla = searchParams.get("mezcla") || "all";
   const [semanaFilter, setSemanaFilter] = useState(initialSemana);
@@ -235,9 +236,30 @@ export default function DesempenoProductosPage() {
     navigate({ search: params.toString() }, { replace: true });
   }, [semanaFilter, mezclaFilter]);
 
-  const categories = useMemo(() => {
+  // Lista de líneas del catálogo completo, cargada una sola vez al abrir la página,
+  // para que el filtro no dependa de los productos que ya entraron en el Top N.
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      const { data: rows, error } = await supabase.rpc("categorias_disponibles", { p_dias: 90 });
+      if (!active) return;
+      if (!error) {
+        setCategories(
+          ((rows ?? []) as { categoria: string }[])
+            .map(r => r.categoria)
+            .filter(Boolean)
+            .sort()
+        );
+      }
+    })();
+    return () => { active = false; };
+  }, []);
+
+  // Respaldo si la lista del catálogo no llega: usar las categorías ya cargadas.
+  const categoriesFromData = useMemo(() => {
     return [...new Set(data.map(r => r.categoria).filter(Boolean))].sort();
   }, [data]);
+  const catOptions = categories.length ? categories : categoriesFromData;
 
   // Universo filtrado (colección/línea/búsqueda/filtros rápidos), antes del corte de Top N
   const universe = useMemo(() => {
@@ -392,7 +414,7 @@ export default function DesempenoProductosPage() {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">Todas las categorías</SelectItem>
-                      {categories.map(c => (
+                      {catOptions.map(c => (
                         <SelectItem key={c} value={c}>{c}</SelectItem>
                       ))}
                     </SelectContent>
