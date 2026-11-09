@@ -125,6 +125,17 @@ describe("Desempeño de Productos — category filter list", () => {
     expect(options).toContain("CAP");
   });
 
+  it("hides catalog lines without sales in the period", async () => {
+    calls.rpc.mockImplementation(async (name: string) =>
+      name === "categorias_disponibles" ? { data: catalog, error: null } : { data: loaded, error: null }
+    );
+    const container = await mount();
+
+    const options = categoryOptions(container);
+    expect(options).not.toContain("SIN VENTA");
+    expect(options).toEqual(["Todas las categorías", "CAP", "POLO MEN", "T-SHIRT WOMEN"]);
+  });
+
   it("loads the catalog once on open, not on every filter change", async () => {
     calls.rpc.mockImplementation(async (name: string) =>
       name === "categorias_disponibles" ? { data: catalog, error: null } : { data: loaded, error: null }
