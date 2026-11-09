@@ -69,7 +69,12 @@ const loadedRow = (categoria: string) => ({
 
 // Only CAP made it into the loaded ranking; T-SHIRT WOMEN exists in the catalog but not in the Top N.
 const loaded = [loadedRow("CAP")];
-const catalog = [{ categoria: "CAP" }, { categoria: "POLO MEN" }, { categoria: "T-SHIRT WOMEN" }];
+const catalog = [
+  { categoria: "CAP", tiene_venta: true },
+  { categoria: "POLO MEN", tiene_venta: true },
+  { categoria: "T-SHIRT WOMEN", tiene_venta: true },
+  { categoria: "SIN VENTA", tiene_venta: false },
+];
 
 const roots: Root[] = [];
 async function mount() {
@@ -118,6 +123,17 @@ describe("Desempeño de Productos — category filter list", () => {
     expect(options).toContain("T-SHIRT WOMEN");
     expect(options).toContain("POLO MEN");
     expect(options).toContain("CAP");
+  });
+
+  it("hides catalog lines without sales in the period", async () => {
+    calls.rpc.mockImplementation(async (name: string) =>
+      name === "categorias_disponibles" ? { data: catalog, error: null } : { data: loaded, error: null }
+    );
+    const container = await mount();
+
+    const options = categoryOptions(container);
+    expect(options).not.toContain("SIN VENTA");
+    expect(options).toEqual(["Todas las categorías", "CAP", "POLO MEN", "T-SHIRT WOMEN"]);
   });
 
   it("loads the catalog once on open, not on every filter change", async () => {

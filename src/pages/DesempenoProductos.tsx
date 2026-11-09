@@ -245,7 +245,8 @@ export default function DesempenoProductosPage() {
       if (!active) return;
       if (!error) {
         setCategories(
-          ((rows ?? []) as { categoria: string }[])
+          ((rows ?? []) as { categoria: string; tiene_venta: boolean }[])
+            .filter(r => r.tiene_venta === true)
             .map(r => r.categoria)
             .filter(Boolean)
             .sort()
