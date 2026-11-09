@@ -69,7 +69,12 @@ const loadedRow = (categoria: string) => ({
 
 // Only CAP made it into the loaded ranking; T-SHIRT WOMEN exists in the catalog but not in the Top N.
 const loaded = [loadedRow("CAP")];
-const catalog = [{ categoria: "CAP" }, { categoria: "POLO MEN" }, { categoria: "T-SHIRT WOMEN" }];
+const catalog = [
+  { categoria: "CAP", tiene_venta: true },
+  { categoria: "POLO MEN", tiene_venta: true },
+  { categoria: "T-SHIRT WOMEN", tiene_venta: true },
+  { categoria: "SIN VENTA", tiene_venta: false },
+];
 
 const roots: Root[] = [];
 async function mount() {
