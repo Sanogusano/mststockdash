@@ -7,3 +7,4 @@
 - Wholesale composition dimensions each own their query and error state within the shared panel, so a failed dimension cannot block the other cards.
 - Executive and wholesale views reuse extracted executive presentation and supplied-data variants of compliance/ranking rows; wholesale never fetches retail budgets or SKU metrics through these variants.
 - Wholesale reuses supplied-data collection donuts and the store leaderboard podium/list; optional supplied content and medal controls leave retail rendering unchanged and avoid retail queries.
+- Wholesale receivables isolate current balances and rolling monthly collections from period filters; each existing RPC has its own query/error state, with pure frontend totals, sorting and export mapping.
