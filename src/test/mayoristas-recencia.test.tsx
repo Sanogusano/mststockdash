@@ -48,7 +48,7 @@ describe("Mayoristas customer recency", () => {
     expect(card).toBeDefined();
     if (!card) throw new Error("Missing recency card");
     await act(async () => { card.dispatchEvent(new MouseEvent("click", { bubbles: true })); });
-    const visibleClientNames = [...container.querySelectorAll("p")].filter(el => el.textContent?.startsWith("Cliente ")).map(el => el.textContent);
+    const visibleClientNames = [...container.querySelectorAll("p, button")].filter(el => el.textContent?.startsWith("Cliente ")).map(el => el.textContent);
     expect(visibleClientNames).toEqual([`Cliente ${tramos.indexOf(tramo)}`, `Cliente ${tramos.indexOf(tramo)}`]);
     expect(calls.rpc).toHaveBeenCalledTimes(2);
   });
