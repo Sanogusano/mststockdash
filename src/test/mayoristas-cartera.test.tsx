@@ -63,7 +63,7 @@ describe("Cartera rules", () => {
     await waitFor(() => expect(calls.rpc).toHaveBeenCalledWith("reporte_mayoristas_cartera_detalle", { p_cliente: "42" }));
   });
   it("a balance failure does not prevent collections loading", async () => {
-    calls.rpc.mockImplementation(async (name: string) => name === "reporte_mayoristas_cartera" ? { data: null, error: new Error("permission denied for function reporte_mayoristas_cartera") } : { data: [pago], error: null });
+    calls.rpc.mockImplementation(async (name: string) => name === "reporte_mayoristas_cartera" ? { data: null, error: new Error("permission denied for function reporte_mayoristas_cartera") } : { data: name === "reporte_mayoristas_recaudo" ? [pago] : [], error: null });
     const view = mount();
     await waitFor(() => expect(view.getByRole("alert").textContent).toContain("permission denied"));
     expect(calls.rpc).toHaveBeenCalledWith("reporte_mayoristas_recaudo", { p_desde: "2026-11-01", p_hasta: "2026-11-09", p_vendedor: "7" });
