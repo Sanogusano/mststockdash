@@ -461,6 +461,144 @@ export type Database = {
           },
         ]
       }
+      bk_incentivo_liquidaciones_20261104: {
+        Row: {
+          cumple_meta: boolean | null
+          id: string | null
+          incentivo_id: string | null
+          location_id: string | null
+          monto_ganado: number | null
+          progreso_actual: Json | null
+          ultima_actualizacion: string | null
+          vendedor_id: string | null
+        }
+        Insert: {
+          cumple_meta?: boolean | null
+          id?: string | null
+          incentivo_id?: string | null
+          location_id?: string | null
+          monto_ganado?: number | null
+          progreso_actual?: Json | null
+          ultima_actualizacion?: string | null
+          vendedor_id?: string | null
+        }
+        Update: {
+          cumple_meta?: boolean | null
+          id?: string | null
+          incentivo_id?: string | null
+          location_id?: string | null
+          monto_ganado?: number | null
+          progreso_actual?: Json | null
+          ultima_actualizacion?: string | null
+          vendedor_id?: string | null
+        }
+        Relationships: []
+      }
+      bk_reportes_vendedor_20261104: {
+        Row: {
+          f: string | null
+          filas: number | null
+          uds: number | null
+          venta: number | null
+        }
+        Insert: {
+          f?: string | null
+          filas?: number | null
+          uds?: number | null
+          venta?: number | null
+        }
+        Update: {
+          f?: string | null
+          filas?: number | null
+          uds?: number | null
+          venta?: number | null
+        }
+        Relationships: []
+      }
+      bk_staff_members_20261104: {
+        Row: {
+          canal: string | null
+          created_at: string | null
+          email: string | null
+          id: string | null
+          is_active: boolean | null
+          location_id: string | null
+          netsuite_employee_id: string | null
+          nombre: string | null
+          rol: string | null
+          shopify_user_id: string | null
+          tipo_contrato: string | null
+          updated_at: string | null
+          zona: string | null
+        }
+        Insert: {
+          canal?: string | null
+          created_at?: string | null
+          email?: string | null
+          id?: string | null
+          is_active?: boolean | null
+          location_id?: string | null
+          netsuite_employee_id?: string | null
+          nombre?: string | null
+          rol?: string | null
+          shopify_user_id?: string | null
+          tipo_contrato?: string | null
+          updated_at?: string | null
+          zona?: string | null
+        }
+        Update: {
+          canal?: string | null
+          created_at?: string | null
+          email?: string | null
+          id?: string | null
+          is_active?: boolean | null
+          location_id?: string | null
+          netsuite_employee_id?: string | null
+          nombre?: string | null
+          rol?: string | null
+          shopify_user_id?: string | null
+          tipo_contrato?: string | null
+          updated_at?: string | null
+          zona?: string | null
+        }
+        Relationships: []
+      }
+      bk_vendedores_netsuite_20261104: {
+        Row: {
+          activo: boolean | null
+          actualizado_en: string | null
+          codigo_cajero: string | null
+          creado_en: string | null
+          es_vendedor: boolean | null
+          id: number | null
+          netsuite_employee_id: string | null
+          nombre: string | null
+          staff_member_id: string | null
+        }
+        Insert: {
+          activo?: boolean | null
+          actualizado_en?: string | null
+          codigo_cajero?: string | null
+          creado_en?: string | null
+          es_vendedor?: boolean | null
+          id?: number | null
+          netsuite_employee_id?: string | null
+          nombre?: string | null
+          staff_member_id?: string | null
+        }
+        Update: {
+          activo?: boolean | null
+          actualizado_en?: string | null
+          codigo_cajero?: string | null
+          creado_en?: string | null
+          es_vendedor?: boolean | null
+          id?: number | null
+          netsuite_employee_id?: string | null
+          nombre?: string | null
+          staff_member_id?: string | null
+        }
+        Relationships: []
+      }
       bkp_the_ten_20260730: {
         Row: {
           collection_season: string | null
@@ -576,6 +714,24 @@ export type Database = {
             referencedColumns: ["location_id"]
           },
         ]
+      }
+      campana_ps26_entrada: {
+        Row: {
+          coleccion: string | null
+          inventario: number | null
+          sku: string
+        }
+        Insert: {
+          coleccion?: string | null
+          inventario?: number | null
+          sku: string
+        }
+        Update: {
+          coleccion?: string | null
+          inventario?: number | null
+          sku?: string
+        }
+        Relationships: []
       }
       canales_venta: {
         Row: {
@@ -2268,6 +2424,27 @@ export type Database = {
             referencedColumns: ["transaction_id"]
           },
         ]
+      }
+      ns_empleados_nombres: {
+        Row: {
+          actualizado_en: string | null
+          inactivo: boolean | null
+          netsuite_employee_id: string
+          nombre: string
+        }
+        Insert: {
+          actualizado_en?: string | null
+          inactivo?: boolean | null
+          netsuite_employee_id: string
+          nombre: string
+        }
+        Update: {
+          actualizado_en?: string | null
+          inactivo?: boolean | null
+          netsuite_employee_id?: string
+          nombre?: string
+        }
+        Relationships: []
       }
       order_items: {
         Row: {
@@ -5137,6 +5314,10 @@ export type Database = {
         Returns: string
       }
       _mayorista_tramo: { Args: { p_dias: number }; Returns: string }
+      _vendedor_clave: {
+        Args: { p_ns: string; p_user: string }
+        Returns: string
+      }
       accionables_serie: {
         Args: { p_anio?: number; p_mes?: number }
         Returns: {
@@ -5952,6 +6133,7 @@ export type Database = {
           p_etiqueta_poner?: string
           p_etiqueta_quitar?: string
           p_nombre: string
+          p_permitir_subir?: boolean
           p_piso_margen?: number
           p_product_ids: string[]
           p_valor?: number
@@ -5961,6 +6143,18 @@ export type Database = {
       precio_lote_crear_obsoleta: {
         Args: {
           p_accion: string
+          p_nombre: string
+          p_piso_margen?: number
+          p_product_ids: string[]
+          p_valor?: number
+        }
+        Returns: number
+      }
+      precio_lote_crear_v1_obsoleta: {
+        Args: {
+          p_accion: string
+          p_etiqueta_poner?: string
+          p_etiqueta_quitar?: string
           p_nombre: string
           p_piso_margen?: number
           p_product_ids: string[]
