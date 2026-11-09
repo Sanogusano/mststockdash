@@ -70,6 +70,12 @@
     --danger: 0 72% 51%;
     --danger-foreground: 0 72% 95%;
 
+    --cartera-current: var(--success);
+    --cartera-early: 45 85% 70%;
+    --cartera-medium: var(--warning);
+    --cartera-late: 24 90% 54%;
+    --cartera-critical: var(--danger);
+
     /* ── Charts ── */
     --chart-1: 230 65% 55%;
     --chart-2: 152 60% 40%;

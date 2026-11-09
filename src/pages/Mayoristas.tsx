@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { differenceInCalendarDays } from "date-fns";
-import { Package, Users, Receipt } from "lucide-react";
+import { Package, Users, Receipt, Wallet } from "lucide-react";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -10,11 +10,12 @@ import { getRangeStrings } from "@/components/dashboard/ExecutiveDashboard";
 import { MayoristasOrdenes } from "@/components/mayoristas/MayoristasOrdenes";
 import { MayoristasFacturas } from "@/components/mayoristas/MayoristasFacturas";
 import { MayoristasClientes } from "@/components/mayoristas/MayoristasClientes";
+import { MayoristasCartera } from "@/components/mayoristas/MayoristasCartera";
 
 export default function MayoristasPage() {
   const [params, setParams] = useSearchParams();
   const rawTab = params.get("tab");
-  const tab = rawTab === "clientes" || rawTab === "facturas" ? rawTab : "ordenes";
+  const tab = rawTab === "clientes" || rawTab === "facturas" || rawTab === "cartera" ? rawTab : "ordenes";
   const cliente = params.get("cliente");
   const vendedor = params.get("vendedor");
   const initFrom = params.get("desde"); const initTo = params.get("hasta");
@@ -50,7 +51,8 @@ export default function MayoristasPage() {
       </header>
       <div className="flex-1 min-w-0 px-4 sm:px-6 py-4 sm:py-6">
         <Tabs value={tab} onValueChange={(v) => setParam("tab", v === "ordenes" ? null : v)} className="w-full">
-          <TabsList className="w-full min-w-0 grid grid-cols-3 bg-muted/50 rounded-xl p-1 h-auto border border-border mb-6">
+          <div className="min-w-0 overflow-x-auto mb-6">
+          <TabsList className="w-full min-w-[560px] grid grid-cols-4 bg-muted/50 rounded-xl p-1 h-auto border border-border">
             <TabsTrigger value="ordenes" className="flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2.5 text-xs sm:text-base font-medium rounded-lg px-1 sm:px-4 py-2 sm:py-3 text-center whitespace-nowrap transition-all duration-200 data-[state=active]:bg-emerald-600 data-[state=active]:text-white data-[state=active]:shadow-sm text-muted-foreground hover:text-foreground hover:bg-muted">
               <Package className="h-4 w-4 sm:h-5 sm:w-5 shrink-0" />
               <span>Órdenes</span>
@@ -63,7 +65,12 @@ export default function MayoristasPage() {
               <Receipt className="h-4 w-4 sm:h-5 sm:w-5 shrink-0" />
               <span>Pedidos facturados</span>
             </TabsTrigger>
+            <TabsTrigger value="cartera" className="flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2.5 text-xs sm:text-base font-medium rounded-lg px-1 sm:px-4 py-2 sm:py-3 text-center whitespace-nowrap transition-all duration-200 data-[state=active]:bg-success data-[state=active]:text-success-foreground data-[state=active]:shadow-sm text-muted-foreground hover:text-foreground hover:bg-muted">
+              <Wallet className="h-4 w-4 sm:h-5 sm:w-5 shrink-0" />
+              <span>Cartera</span>
+            </TabsTrigger>
           </TabsList>
+          </div>
           <TabsContent value="ordenes">
             <MayoristasOrdenes desde={desde} hasta={hasta} vendedor={vendedor} onVendedorChange={(v) => setParam("vendedor", v)} />
           </TabsContent>
@@ -73,6 +80,9 @@ export default function MayoristasPage() {
           </TabsContent>
           <TabsContent value="facturas">
             <MayoristasFacturas desde={desde} hasta={hasta} vendedor={vendedor} onVendedorChange={(v) => setParam("vendedor", v)} cliente={cliente} onClienteChange={(v) => setParam("cliente", v)} />
+          </TabsContent>
+          <TabsContent value="cartera">
+            <MayoristasCartera desde={desde} hasta={hasta} vendedor={vendedor} onVendedorChange={(v) => setParam("vendedor", v)} />
           </TabsContent>
         </Tabs>
       </div>
