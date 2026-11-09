@@ -1627,6 +1627,51 @@ export type Database = {
         }
         Relationships: []
       }
+      mayorista_cartera: {
+        Row: {
+          cliente_id: string
+          fecha: string
+          padre_id: string | null
+          saldo: number
+          sincronizado_en: string
+          terminos: string | null
+          total: number
+          tranid: string
+          transaction_id: string
+          vencimiento: string | null
+          vendedor_nombre: string | null
+          vendedor_ns: string | null
+        }
+        Insert: {
+          cliente_id: string
+          fecha: string
+          padre_id?: string | null
+          saldo?: number
+          sincronizado_en?: string
+          terminos?: string | null
+          total?: number
+          tranid: string
+          transaction_id: string
+          vencimiento?: string | null
+          vendedor_nombre?: string | null
+          vendedor_ns?: string | null
+        }
+        Update: {
+          cliente_id?: string
+          fecha?: string
+          padre_id?: string | null
+          saldo?: number
+          sincronizado_en?: string
+          terminos?: string | null
+          total?: number
+          tranid?: string
+          transaction_id?: string
+          vencimiento?: string | null
+          vendedor_nombre?: string | null
+          vendedor_ns?: string | null
+        }
+        Relationships: []
+      }
       mayorista_clientes: {
         Row: {
           activo: boolean
@@ -1844,6 +1889,42 @@ export type Database = {
           tranid?: string
           vendedor_nombre?: string | null
           vendedor_ns?: string | null
+        }
+        Relationships: []
+      }
+      mayorista_recaudo: {
+        Row: {
+          cliente_id: string | null
+          factura_id: string
+          fecha: string
+          monto: number
+          padre_id: string | null
+          pago_id: string
+          pago_tranid: string | null
+          sincronizado_en: string
+          tipo: string | null
+        }
+        Insert: {
+          cliente_id?: string | null
+          factura_id: string
+          fecha: string
+          monto?: number
+          padre_id?: string | null
+          pago_id: string
+          pago_tranid?: string | null
+          sincronizado_en?: string
+          tipo?: string | null
+        }
+        Update: {
+          cliente_id?: string | null
+          factura_id?: string
+          fecha?: string
+          monto?: number
+          padre_id?: string | null
+          pago_id?: string
+          pago_tranid?: string | null
+          sincronizado_en?: string
+          tipo?: string | null
         }
         Relationships: []
       }
@@ -7508,6 +7589,41 @@ export type Database = {
           venta_ant: number
         }[]
       }
+      reporte_mayoristas_cartera: {
+        Args: { p_vendedor?: string }
+        Returns: {
+          actualizado_en: string
+          cliente: string
+          cliente_id: string
+          dias_max_vencido: number
+          factura_mas_antigua: string
+          facturas: number
+          pct_vencido: number
+          por_vencer: number
+          saldo: number
+          vencido_1_30: number
+          vencido_31_60: number
+          vencido_61_90: number
+          vencido_90: number
+          vencido_total: number
+          vendedor_id: string
+          vendedora: string
+        }[]
+      }
+      reporte_mayoristas_cartera_detalle: {
+        Args: { p_cliente: string }
+        Returns: {
+          dias_vencido: number
+          fecha: string
+          punto_entrega: string
+          saldo: number
+          terminos: string
+          total: number
+          tramo: string
+          tranid: string
+          vencimiento: string
+        }[]
+      }
       reporte_mayoristas_clientes: {
         Args: { p_desde: string; p_hasta: string; p_vendedor?: string }
         Returns: {
@@ -7659,6 +7775,29 @@ export type Database = {
           pedido_valor: number
           pendiente_uds: number
           pendiente_valor: number
+        }[]
+      }
+      reporte_mayoristas_recaudo: {
+        Args: { p_desde: string; p_hasta: string; p_vendedor?: string }
+        Returns: {
+          cliente: string
+          cliente_id: string
+          facturas_pagadas: number
+          notas_credito: number
+          por_asiento: number
+          por_pago: number
+          recaudo: number
+          ultimo_pago: string
+          vendedor_id: string
+          vendedora: string
+        }[]
+      }
+      reporte_mayoristas_recaudo_mensual: {
+        Args: { p_meses?: number; p_vendedor?: string }
+        Returns: {
+          mes: string
+          notas_credito: number
+          recaudo: number
         }[]
       }
       reporte_mayoristas_recencia: {
