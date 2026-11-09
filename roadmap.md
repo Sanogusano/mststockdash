@@ -1,6 +1,7 @@
 # Roadmap
 
-- [ ] Agregar pestaña Cartera en Mayoristas: saldos actuales, detalle por cliente, recaudo del período, gráfico mensual y Excel; mantener RPC y demás pestañas.
+- [x] Agregar pestaña Cartera en Mayoristas: saldos actuales, detalle por cliente, recaudo del período, gráfico mensual y Excel; mantener RPC y demás pestañas. 24 pruebas aprobadas; vista móvil/escritorio, detalle y archivos Excel verificados con datos de prueba.
+- [ ] Verificar Cartera con sesión y datos reales: Supabase externo sin sesión disponible; la ruta real redirige a login. Las cuatro RPC existentes permiten ejecución authenticated.
 
 - [x] Ajustar solo Mayoristas: donas compartidas, medallero de clientes, tabla de vendedoras sin variación anual y productos con colección/vida agrupadas; retirar concentración top 3. Verificado en 375px y 1280px con datos de prueba.
 
