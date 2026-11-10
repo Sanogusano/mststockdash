@@ -30,7 +30,7 @@ type NavItem = {
 };
 
 // Items principales en orden solicitado
-const mayoristasItem: NavItem = { title: "Mayoristas", url: "/mayoristas", icon: Handshake, description: "Órdenes mayoristas", module: "dashboards.resumen_ejecutivo", action: "view" };
+const mayoristasItem: NavItem = { title: "Mayoristas", url: "/mayoristas", icon: Handshake, description: "Órdenes, clientes y cartera", module: "dashboards.resumen_ejecutivo", action: "view" };
 const resumenItem: NavItem = { title: "Resumen Ejecutivo", url: "/", icon: TrendingUp, description: "Desempeño comercial", module: "dashboards.resumen_ejecutivo", action: "view" };
 const presupuestoItem: NavItem = { title: "Presupuesto", url: "/presupuestos", icon: Target, description: "Metas de venta", module: "dashboards.presupuestos", action: "view" };
 const rendimientoTiendasItem: NavItem = { title: "Rendimiento Tiendas", url: "/rendimiento-red", icon: Store, description: "Same-store, maduración y eficiencia", module: "dashboards.rendimiento_red", action: "view" };
@@ -100,7 +100,6 @@ const alertasDistribucionItem: NavItem = {
 
 
 const gestionComercialItems: NavItem[] = [
-  mayoristasItem,
   { title: "Accionables", url: "/accionables", icon: Siren, description: "Diagnóstico y acción por tienda", module: "dashboards.centro_accion", action: "view" },
   { title: "Gestión de Incentivos", url: "/incentivos", icon: Trophy, description: "Campañas & liquidaciones", module: "incentivos", action: "view" },
   { title: "Rendimiento Equipo", url: "/rendimiento-vendedores", icon: Users, description: "Desempeño por vendedor", module: "dashboards.rendimiento_vendedores", action: "view" },
@@ -261,6 +260,9 @@ export function AppSidebar() {
             <SidebarMenu className="gap-0.5">
               {/* 1 - Resumen Ejecutivo */}
               {can(resumenItem.module, resumenItem.action) && renderItem(resumenItem)}
+
+              {/* Mayoristas (ítem de primer nivel) */}
+              {can(mayoristasItem.module, mayoristasItem.action) && renderItem(mayoristasItem)}
 
               {/* 2 - Presupuesto (con sub-item Centro de Acciones) */}
               {canPresupuesto && (
