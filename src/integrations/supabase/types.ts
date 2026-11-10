@@ -7829,6 +7829,43 @@ export type Database = {
           venta_12m: number
         }[]
       }
+      reporte_mayoristas_rfm: {
+        Args: { p_vendedor?: string }
+        Returns: {
+          cartera_vencida: boolean
+          cliente: string
+          cliente_id: string
+          compras_12m: number
+          dias_sin_compra: number
+          facturas_12m: number
+          primera_compra: string
+          saldo: number
+          segmento: string
+          segmento_orden: number
+          ticket_12m: number
+          ultima_compra: string
+          vencido_60: number
+          vendedor_id: string
+          vendedora: string
+        }[]
+      }
+      reporte_mayoristas_sin_venta: {
+        Args: { p_dias?: number; p_limite?: number }
+        Returns: {
+          coleccion: string
+          dias_sin_venta: number
+          fecha_inventario: string
+          image_url: string
+          linea: string
+          precio_retail: number
+          producto: string
+          producto_id: string
+          sku_padre: string
+          stock_reserva: number
+          tallas_con_stock: number
+          ultima_venta_mayorista: string
+        }[]
+      }
       reporte_mayoristas_top_productos: {
         Args: {
           p_desde: string
