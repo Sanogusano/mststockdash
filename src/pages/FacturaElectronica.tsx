@@ -10,6 +10,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
@@ -17,10 +18,11 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { LoadingState } from "@/components/dashboard/LoadingState";
 import { useUserRole } from "@/hooks/useUserRole";
 import { cn } from "@/lib/utils";
-import { ALERTA_LABEL, Alerta, calcularAlerta, ordenarPorAlerta } from "@/lib/factura-electronica";
+import { ALERTA_LABEL, Alerta, calcularAlerta, filtrarFacturas, ordenarPorAlerta, ORIGEN_LABEL, origenTexto } from "@/lib/factura-electronica";
 import { avisosClienteNetSuite, camposClienteNetSuite, ClienteNetSuiteRespuesta, erroresClienteNetSuite, puedeCrearClienteNetSuite } from "@/lib/netsuite-cliente";
 
-type Estado = "pendiente" | "cliente_creado" | "facturado";
+type Estado = "pendiente" | "cliente_creado" | "facturado" | "facturado_mostrador";
+type OrigenFiltro = "etiqueta" | "auto_registrado";
 type Row = {
   shopify_order_id: string;
   pedido: string | null;
@@ -35,6 +37,9 @@ type Row = {
   estado: Estado;
   registrado: boolean | null;
   capturado_en: string | null;
+  origen: string | null;
+  factura_tranid: string | null;
+  factura_cliente: string | null;
 };
 type RowA = Row & { alerta: Alerta };
 
@@ -42,8 +47,9 @@ const ESTADOS: { key: Estado; label: string }[] = [
   { key: "pendiente", label: "Pendientes" },
   { key: "cliente_creado", label: "Cliente creado" },
   { key: "facturado", label: "Facturados" },
+  { key: "facturado_mostrador", label: "Facturado a Cliente Mostrador" },
 ];
-const ESTADO_LABEL: Record<Estado, string> = { pendiente: "Pendiente", cliente_creado: "Cliente creado", facturado: "Facturado" };
+const ESTADO_LABEL: Record<Estado, string> = { pendiente: "Pendiente", cliente_creado: "Cliente creado", facturado: "Facturado", facturado_mostrador: "Facturado mostrador" };
 const ROLES_VER = ["admin", "finanzas", "gerencia", "logistica"];
 const ROLES_EDITAR = ["admin", "finanzas"];
 
@@ -57,6 +63,8 @@ export default function FacturaElectronicaPage() {
   const puedeCrearCliente = puedeCrearClienteNetSuite(role);
   const qc = useQueryClient();
   const [estado, setEstado] = useState<Estado>("pendiente");
+  const [origenFiltro, setOrigenFiltro] = useState<OrigenFiltro>("etiqueta");
+  const esMostrador = estado === "facturado_mostrador";
   const [q, setQ] = useState("");
   const [guardando, setGuardando] = useState<string | null>(null);
   const [etiquetar, setEtiquetar] = useState(false);
@@ -76,7 +84,7 @@ export default function FacturaElectronicaPage() {
       for (let from = 0; ; from += 1000) {
         const { data, error } = await (supabase as any)
           .from("pedido_factura_electronica")
-          .select("shopify_order_id,pedido,razon_social,documento,documento_direccion,email,telefono,direccion,departamento,ciudad,estado,registrado,capturado_en")
+          .select("shopify_order_id,pedido,razon_social,documento,documento_direccion,email,telefono,direccion,departamento,ciudad,estado,registrado,capturado_en,origen,factura_tranid,factura_cliente")
           .range(from, from + 999);
         if (error) throw error;
         out.push(...(data ?? []));
@@ -87,25 +95,21 @@ export default function FacturaElectronicaPage() {
   });
 
   const conteos = useMemo(() => {
-    const c: Record<Estado, number> = { pendiente: 0, cliente_creado: 0, facturado: 0 };
+    const c: Record<Estado, number> = { pendiente: 0, cliente_creado: 0, facturado: 0, facturado_mostrador: 0 };
     (data ?? []).forEach((r) => { if (c[r.estado] !== undefined) c[r.estado]++; });
     return c;
   }, [data]);
 
+  const mostradorEtiqueta = useMemo(
+    () => (data ?? []).filter((r) => r.estado === "facturado_mostrador" && r.origen === "etiqueta").length,
+    [data],
+  );
+
   const filas = useMemo(() => {
-    const t = q.trim().toLowerCase();
-    const td = t.replace(/\D/g, "");
-    const f = (data ?? []).filter((r) => {
-      if (r.estado !== estado) return false;
-      if (!t) return true;
-      return (
-        (r.pedido ?? "").toLowerCase().includes(t) ||
-        (r.razon_social ?? "").toLowerCase().includes(t) ||
-        (td && ((r.documento ?? "").replace(/\D/g, "").includes(td) || (r.documento_direccion ?? "").replace(/\D/g, "").includes(td)))
-      );
-    });
+    const f = filtrarFacturas(data ?? [], estado, esMostrador ? origenFiltro : null, q);
+    if (esMostrador) return [...f].sort((a, b) => (b.capturado_en ?? "").localeCompare(a.capturado_en ?? ""));
     return ordenarPorAlerta(f);
-  }, [data, estado, q]);
+  }, [data, estado, q, esMostrador, origenFiltro]);
 
   const invocarCliente = async (pedido: string, modo: "prueba" | "real"): Promise<ClienteNetSuiteRespuesta> => {
     const { data: respuesta, error } = await supabase.functions.invoke("netsuite-crear", {
@@ -217,8 +221,12 @@ export default function FacturaElectronicaPage() {
 
   const exportar = () => {
     if (!filas.length) { toast.info("No hay datos para exportar"); return; }
-    const header = ["Pedido", "Razón social", "Documento Qikify", "Documento dirección", "Alerta", "Email", "Teléfono", "Dirección", "Ciudad", "Departamento", "Estado"];
-    const rows = filas.map((r) => [r.pedido ?? "", r.razon_social ?? "", r.documento ?? "", r.documento_direccion ?? "", ALERTA_LABEL[r.alerta].slice(3), r.email ?? "", r.telefono ?? "", r.direccion ?? "", r.ciudad ?? "", r.departamento ?? "", ESTADO_LABEL[r.estado]]);
+    const header = esMostrador
+      ? ["Pedido", "Fecha", "Razón social", "Documento Qikify", "Documento Empresa", "Origen", "Factura", "Factura cliente"]
+      : ["Pedido", "Razón social", "Documento Qikify", "Documento dirección", "Alerta", "Email", "Teléfono", "Dirección", "Ciudad", "Departamento", "Estado"];
+    const rows = esMostrador
+      ? filas.map((r) => [r.pedido ?? "", fmtFecha(r.capturado_en), r.razon_social ?? "", r.documento ?? "", r.documento_direccion ?? "", origenTexto(r.origen), r.factura_tranid ?? "", r.factura_cliente ?? ""])
+      : filas.map((r) => [r.pedido ?? "", r.razon_social ?? "", r.documento ?? "", r.documento_direccion ?? "", ALERTA_LABEL[r.alerta].slice(3), r.email ?? "", r.telefono ?? "", r.direccion ?? "", r.ciudad ?? "", r.departamento ?? "", ESTADO_LABEL[r.estado]]);
     const ws = XLSX.utils.aoa_to_sheet([header, ...rows]);
     // Forzar texto en todas las celdas de datos (documentos y teléfonos no pierden ceros)
     for (let i = 1; i <= rows.length; i++) {
@@ -255,13 +263,16 @@ export default function FacturaElectronicaPage() {
               </CardContent></Card>
             ) : isLoading ? <LoadingState /> : (
               <>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                   {ESTADOS.map((e) => (
                     <button key={e.key} onClick={() => { setEstado(e.key); setSel(new Set()); }} className="text-left">
                       <Card className={cn("transition-colors", estado === e.key ? "border-primary ring-1 ring-primary" : "hover:border-foreground/30")}>
                         <CardContent className="p-4">
                           <p className="text-xs uppercase tracking-wide text-muted-foreground">{e.label}</p>
                           <p className="text-2xl font-semibold tabular-nums text-foreground">{conteos[e.key].toLocaleString("es-CO")}</p>
+                          {e.key === "facturado_mostrador" && (
+                            <p className="text-[10px] tabular-nums text-muted-foreground">{mostradorEtiqueta} pidió factura</p>
+                          )}
                         </CardContent>
                       </Card>
                     </button>
@@ -269,9 +280,20 @@ export default function FacturaElectronicaPage() {
                 </div>
 
                 <div className="flex flex-wrap items-center gap-3 justify-between">
-                  <div className="relative w-full sm:w-80">
-                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                    <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Buscar pedido, documento o razón social" className="pl-8" />
+                  <div className="flex flex-wrap items-center gap-3">
+                    <div className="relative w-full sm:w-80">
+                      <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                      <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Buscar pedido, documento o razón social" className="pl-8" />
+                    </div>
+                    {esMostrador && (
+                      <Select value={origenFiltro} onValueChange={(v) => setOrigenFiltro(v as OrigenFiltro)}>
+                        <SelectTrigger className="w-full sm:w-48"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="etiqueta">{ORIGEN_LABEL.etiqueta}</SelectItem>
+                          <SelectItem value="auto_registrado">{ORIGEN_LABEL.auto_registrado}</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    )}
                   </div>
                   <div className="flex items-center gap-4">
                     {puedeEditar && estado === "pendiente" && sel.size > 0 && (
@@ -292,8 +314,37 @@ export default function FacturaElectronicaPage() {
                   Datos personales protegidos por Ley 1581. Uso exclusivo para facturación.
                 </p>
 
-                <div className="overflow-x-auto border border-border rounded-md">
-                  <Table className="min-w-[1300px]">
+                {esMostrador ? (
+                  <div className="overflow-x-auto border border-border rounded-md">
+                    <Table className="min-w-[1100px]">
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Pedido</TableHead><TableHead>Fecha</TableHead><TableHead>Razón social</TableHead>
+                          <TableHead>Documento (Qikify)</TableHead><TableHead>Documento (Empresa)</TableHead>
+                          <TableHead>Origen</TableHead><TableHead>Factura</TableHead><TableHead>Factura cliente</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {filas.length === 0 ? (
+                          <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-8">Sin registros</TableCell></TableRow>
+                        ) : filas.map((r) => (
+                          <TableRow key={r.shopify_order_id}>
+                            <TableCell className="font-medium">{r.pedido ?? "—"}</TableCell>
+                            <TableCell className="text-xs whitespace-nowrap">{fmtFecha(r.capturado_en)}</TableCell>
+                            <TableCell>{r.razon_social ?? "—"}</TableCell>
+                            <TableCell className="tabular-nums">{r.documento || <span className="text-muted-foreground">—</span>}</TableCell>
+                            <TableCell className="tabular-nums">{r.documento_direccion || <span className="text-muted-foreground">—</span>}</TableCell>
+                            <TableCell className="text-xs">{origenTexto(r.origen)}</TableCell>
+                            <TableCell className="text-xs tabular-nums">{r.factura_tranid || <span className="text-muted-foreground">—</span>}</TableCell>
+                            <TableCell className="text-xs tabular-nums">{r.factura_cliente || <span className="text-muted-foreground">—</span>}</TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto border border-border rounded-md">
+                    <Table className="min-w-[1300px]">
                     <TableHeader>
                       <TableRow>
                         {puedeEditar && estado === "pendiente" && <TableHead className="w-8"><Checkbox checked={filas.length > 0 && filas.every((r) => sel.has(r.shopify_order_id))} onCheckedChange={(v) => setSel(v ? new Set(filas.slice(0, 100).map((r) => r.shopify_order_id)) : new Set())} /></TableHead>}
@@ -341,6 +392,7 @@ export default function FacturaElectronicaPage() {
                     </TableBody>
                   </Table>
                 </div>
+                )}
               </>
             )}
           </div>
