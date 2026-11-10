@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { DollarSign, Package, Receipt, Users, ShoppingBag, Banknote, Percent, Trophy, Clock, Layers, Download } from "lucide-react";
+import { DollarSign, Package, Receipt, Users, ShoppingBag, Banknote, Percent, Trophy, Clock, Layers, Download, Wallet, AlertTriangle } from "lucide-react";
 import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip } from "recharts";
 import { KpiCard, ComparisonIndicator, CommercialSectionHeader } from "@/components/dashboard/ExecutivePresentation";
 import { CumplimientoPresupuestoCard } from "@/components/dashboard/CumplimientoPresupuestoCard";
@@ -12,12 +12,15 @@ import { ProductImageThumb } from "@/components/dashboard/ProductImageThumb";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
+import { Tooltip as UiTooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { LoadingState, EmptyState } from "@/components/dashboard/LoadingState";
 import { supabase } from "@/integrations/supabase/client";
 import { fmtMonto, fmtNum, fmtPct, fmtFecha, tituloNombre } from "@/lib/mayoristas-format";
 import type { Semaforo } from "@/lib/mayoristas-format";
 import { exportToXLS } from "@/lib/xls-export";
 import { TablaCard, TablaTh, VendedoraSelect } from "@/components/mayoristas/MayoristasOrdenes";
+import type { CarteraRow } from "@/lib/mayoristas-cartera";
+import { cn } from "@/lib/utils";
 
 const TXT: Record<Semaforo, string> = { verde: "text-success", ambar: "text-warning", rojo: "text-danger", neutro: "text-muted-foreground" };
 
@@ -57,7 +60,11 @@ interface TopProductoRow {
 interface ClienteRow {
   cliente_id: string; cliente: string; vendedora: string; estado: string;
   unidades: number; venta: number; participacion: number;
-  facturas: number; ultima_compra: string | null;
+  facturas: number; ultima_compra: string | null; dias_sin_compra: number | null;
+}
+interface PendienteRow {
+  orden: string; fecha: string; dias: number; estado: string; cliente: string; vendedora: string;
+  unidades_pendientes: number; valor_pendiente: number; unidades_pedidas: number; valor_pedido: number;
 }
 interface FacturaRow {
   factura: string; fecha: string; cliente: string; punto_entrega: string | null;
@@ -83,6 +90,7 @@ type Drill =
   | { tipo: "clientes" }
   | { tipo: "ventas" }
   | { tipo: "unidades" }
+  | { tipo: "pendientes" }
   | { tipo: "composicion"; dimension: Dimension; grupo: string; label: string }
   | { tipo: "cliente"; clienteId: string; nombre: string };
 
@@ -359,6 +367,48 @@ function ClienteSheet({ desde, hasta, vendedor, clienteId, nombre, onClose }: {
   );
 }
 
+function usePendientes(vendedor: string | null) {
+  return useQuery({
+    retry: false,
+    queryKey: ["mayoristas-ordenes-pendientes", vendedor],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("reporte_mayoristas_ordenes_pendientes" as never, { p_vendedor: vendedor } as never);
+      if (error) throw error;
+      return (data as unknown as PendienteRow[]) ?? [];
+    },
+  });
+}
+
+function PendientesSheet({ vendedor, onClose }: { vendedor: string | null; onClose: () => void }) {
+  const q = usePendientes(vendedor);
+  const rows = q.data ?? [];
+  return (
+    <DrillShell title="Pedidos por facturar" subtitle="Órdenes abiertas con unidades pendientes" onClose={onClose}
+      onExport={rows.length ? () => exportToXLS(rows.map(r => ({
+        Orden: r.orden, Fecha: fmtFecha(r.fecha), Días: Number(r.dias), Estado: r.estado, Cliente: r.cliente,
+        Asesora: tituloNombre(r.vendedora), "Unidades pendientes": Number(r.unidades_pendientes), "Valor pendiente": Number(r.valor_pendiente),
+      })), "mayoristas-pedidos-por-facturar") : undefined}>
+      {q.error ? <ConsultaError error={q.error} /> : q.isLoading ? <LoadingState /> : !rows.length ? <EmptyState message="Sin pedidos por facturar." /> : (
+        <TablaCard title={`Órdenes (${fmtNum(rows.length)})`} minW={900}>
+          <TablaTh cols={["Orden", "Fecha", "Días", "Estado", "Cliente", "Asesora", "Uds pendientes", "Valor pendiente"]} />
+          <tbody>{rows.map(r => (
+            <tr key={r.orden} className={cn("border-b border-border last:border-0", Number(r.dias) > 15 && "bg-warning/10")}>
+              <td className="px-3 py-2.5 font-medium text-foreground whitespace-nowrap">{r.orden}</td>
+              <td className="px-3 py-2.5 whitespace-nowrap">{fmtFecha(r.fecha)}</td>
+              <td className={cn("px-3 py-2.5 tabular-nums", Number(r.dias) > 15 && "font-medium text-warning")}>{fmtNum(r.dias)}</td>
+              <td className="px-3 py-2.5">{r.estado}</td>
+              <td className="px-3 py-2.5">{r.cliente}</td>
+              <td className="px-3 py-2.5">{tituloNombre(r.vendedora)}</td>
+              <td className="px-3 py-2.5 tabular-nums">{fmtNum(r.unidades_pendientes)}</td>
+              <td className="px-3 py-2.5 tabular-nums font-medium">{fmtMonto(r.valor_pendiente)}</td>
+            </tr>
+          ))}</tbody>
+        </TablaCard>
+      )}
+    </DrillShell>
+  );
+}
+
 function ComposicionCard({ desde, hasta, vendedor, dimension, label, onSelect }: {
   desde: string | null; hasta: string | null; vendedor: string | null;
   dimension: Dimension; label: string; onSelect: (grupo: string) => void;
@@ -477,6 +527,26 @@ export function MayoristasPanel({ desde, hasta }: { desde: string | null; hasta:
     },
   });
   const clientesQ = useClientes(desde, hasta, vendedor);
+  const pendQ = usePendientes(vendedor);
+  const carteraQ = useQuery({
+    retry: false,
+    queryKey: ["mayoristas-cartera", vendedor],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("reporte_mayoristas_cartera" as never, { p_vendedor: vendedor } as never);
+      if (error) throw error;
+      return (data as unknown as CarteraRow[]) ?? [];
+    },
+  });
+  const recaudoQ = useQuery({
+    retry: false,
+    queryKey: ["mayoristas-recaudo", desde, hasta, vendedor],
+    enabled: valido,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("reporte_mayoristas_recaudo" as never, { p_desde: desde, p_hasta: hasta, p_vendedor: vendedor } as never);
+      if (error) throw error;
+      return (data as unknown as { recaudo: number }[]) ?? [];
+    },
+  });
 
   const selRow = vendedor ? (vendQ.data ?? []).find(v => String(v.vendedor_id) === vendedor) ?? null : null;
   const c: CanalRow | null = vendedor ? (selRow ? { ...selRow, facturas_anuladas: 0 } : null) : canalQ.data;
@@ -485,6 +555,25 @@ export function MayoristasPanel({ desde, hasta }: { desde: string | null; hasta:
   const ind = indQ.data;
   const topClientes = (clientesQ.data ?? []).filter(r => r.estado !== "Perdido").slice(0, 10);
   const sellers = vendQ.data ?? [];
+  const pendientes = pendQ.data ?? [];
+  const pendValor = pendientes.reduce((s, r) => s + Number(r.valor_pendiente), 0);
+  const carteraRows = carteraQ.data ?? [];
+  const saldoCartera = carteraRows.reduce((s, r) => s + Number(r.saldo), 0);
+  const vencidoCartera = carteraRows.reduce((s, r) => s + Number(r.vencido_total), 0);
+  const pctVencido = saldoCartera > 0 ? (vencidoCartera / saldoCartera) * 100 : null;
+  const recaudo = (recaudoQ.data ?? []).reduce((s, r) => s + Number(r.recaudo), 0);
+  const ventaConIva = c ? Number(c.venta) * 1.19 : 0;
+  const pctRecaudoFacturado = ventaConIva > 0 ? (recaudo / ventaConIva) * 100 : null;
+  const carteraPorCliente = new Map(carteraRows.map(r => [String(r.cliente_id), r]));
+  const riesgo = (clientesQ.data ?? []).map(r => {
+    const car = carteraPorCliente.get(String(r.cliente_id));
+    const vencido60 = car ? Number(car.vencido_61_90) + Number(car.vencido_90) : 0;
+    const sinPedido = r.dias_sin_compra != null && Number(r.dias_sin_compra) > 60;
+    const carteraVencida = vencido60 > 0;
+    return { ...r, saldo: car ? Number(car.saldo) : 0, vencido60, motivo: sinPedido && carteraVencida ? "Ambos" : sinPedido ? "Sin pedido" : carteraVencida ? "Cartera vencida" : null };
+  }).filter(r => r.motivo != null)
+    .sort((a, b) => (a.motivo === "Ambos" ? 0 : 1) - (b.motivo === "Ambos" ? 0 : 1) || Number(b.vencido60) - Number(a.vencido60));
+  const irACartera = () => navigate(`/mayoristas?tab=cartera${vendedor ? `&vendedor=${encodeURIComponent(vendedor)}` : ""}`);
   return (
     <div className="space-y-4 min-w-0">
       <div className="glass-card p-5">
@@ -493,10 +582,21 @@ export function MayoristasPanel({ desde, hasta }: { desde: string | null; hasta:
         </CommercialSectionHeader>
         <p className="text-xs text-muted-foreground mb-4">Venta neta sin IVA · fuente: facturas NetSuite</p>
         {cError ? <ConsultaError error={cError} /> : cLoading ? <LoadingState /> : c ? <>
-          <div className="mb-4">
-            <CumplimientoPresupuestoCard desde={desde ?? ""} hasta={hasta ?? ""} channels={[]} venta={Number(c.venta)} universo="Mayoristas" supplied={{ meta: c.meta, porcentaje: c.cumplimiento }} />
-            <p className="text-xs text-muted-foreground mt-1">A la fecha: {fmtPct(c.cumplimiento_a_la_fecha)}</p>
-            {!vendedor && Number(c.facturas_anuladas) > 0 && <p className="text-xs text-muted-foreground">{fmtNum(c.facturas_anuladas)} factura(s) anulada(s) excluidas</p>}
+          <div className="mb-4 grid grid-cols-1 sm:grid-cols-2 gap-4 items-start">
+            <div>
+              <CumplimientoPresupuestoCard desde={desde ?? ""} hasta={hasta ?? ""} channels={[]} venta={Number(c.venta)} universo="Mayoristas" supplied={{ meta: c.meta, porcentaje: c.cumplimiento }} />
+              <p className="text-xs text-muted-foreground mt-1">A la fecha: {fmtPct(c.cumplimiento_a_la_fecha)}</p>
+              {!vendedor && Number(c.facturas_anuladas) > 0 && <p className="text-xs text-muted-foreground">{fmtNum(c.facturas_anuladas)} factura(s) anulada(s) excluidas</p>}
+              {c.meta != null && Number(c.meta) > 0 && !pendQ.error && (
+                <p className="text-xs text-muted-foreground mt-1">Facturado + pedidos pendientes = {fmtMonto(Number(c.venta) + pendValor)} ({fmtPct(((Number(c.venta) + pendValor) / Number(c.meta)) * 100)} de la meta)</p>
+              )}
+            </div>
+            {pendQ.error ? <ConsultaError error={pendQ.error} /> : pendQ.isLoading ? <LoadingState /> : (
+              <KpiCard label="Pedidos por facturar" value={fmtMonto(pendValor)} icon={Clock} onClick={() => setDrill({ tipo: "pendientes" })}>
+                <p className="text-xs text-muted-foreground">{fmtNum(pendientes.length)} órdenes abiertas</p>
+                <p className="text-xs text-primary mt-1">Ver detalle</p>
+              </KpiCard>
+            )}
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <KpiCard label="Ventas Netas" value={fmtMonto(c.venta)} icon={DollarSign} onClick={() => setDrill({ tipo: "ventas" })}>
@@ -528,6 +628,45 @@ export function MayoristasPanel({ desde, hasta }: { desde: string | null; hasta:
         </> : <EmptyState message="Sin datos para el periodo." />}
         {indQ.error ? <ConsultaError error={indQ.error} /> : indQ.isLoading ? <LoadingState /> : null}
       </div>
+
+      <TooltipProvider>
+        {carteraQ.error ? <ConsultaError error={carteraQ.error} /> : recaudoQ.error ? <ConsultaError error={recaudoQ.error} /> : carteraQ.isLoading || recaudoQ.isLoading ? <LoadingState /> : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+            <KpiCard label="Saldo de cartera" value={fmtMonto(saldoCartera)} icon={Wallet} onClick={irACartera}>
+              <p className="text-xs text-primary mt-1">Ver cartera</p>
+            </KpiCard>
+            <KpiCard label="% vencido" value={fmtPct(pctVencido)} icon={AlertTriangle} className={pctVencido != null && pctVencido > 30 ? "text-danger" : undefined} onClick={irACartera}>
+              <p className="text-xs text-muted-foreground">{fmtMonto(vencidoCartera)} vencidos</p>
+            </KpiCard>
+            <KpiCard label="Recaudo del período" value={fmtMonto(recaudo)} icon={Banknote} />
+            <KpiCard label="Recaudo / Facturado" value={fmtPct(pctRecaudoFacturado)} icon={Percent}>
+              <UiTooltip>
+                <TooltipTrigger asChild>
+                  <p className="text-xs text-muted-foreground underline decoration-dotted cursor-help">¿cómo se calcula?</p>
+                </TooltipTrigger>
+                <TooltipContent className="max-w-[260px]">Recaudo del período (con IVA) ÷ ventas netas del período × 1,19, porque la venta va sin IVA y el recaudo con IVA.</TooltipContent>
+              </UiTooltip>
+            </KpiCard>
+          </div>
+        )}
+      </TooltipProvider>
+
+      {!clientesQ.error && !clientesQ.isLoading && !carteraQ.error && !carteraQ.isLoading && riesgo.length > 0 && (
+        <TablaCard title={`⚠️ Clientes en riesgo (${fmtNum(riesgo.length)})`} minW={900}>
+          <TablaTh cols={["Cliente", "Asesora", "Días sin compra", "Venta del período", "Saldo", "Vencido +60", "Motivo"]} />
+          <tbody>{riesgo.map(r => (
+            <tr key={r.cliente_id} onClick={() => setDrill({ tipo: "cliente", clienteId: String(r.cliente_id), nombre: r.cliente })} className="border-b border-border last:border-0 cursor-pointer hover:bg-muted/40">
+              <td className="px-3 py-2.5 font-medium text-primary">{r.cliente}</td>
+              <td className="px-3 py-2.5">{tituloNombre(r.vendedora)}</td>
+              <td className="px-3 py-2.5 tabular-nums">{r.dias_sin_compra == null ? "—" : fmtNum(r.dias_sin_compra)}</td>
+              <td className="px-3 py-2.5 tabular-nums">{fmtMonto(r.venta)}</td>
+              <td className="px-3 py-2.5 tabular-nums">{fmtMonto(r.saldo)}</td>
+              <td className={cn("px-3 py-2.5 tabular-nums", r.vencido60 > 0 && "font-medium text-danger")}>{fmtMonto(r.vencido60)}</td>
+              <td className="px-3 py-2.5"><Badge variant="outline" className={cn("font-medium", r.motivo === "Ambos" ? "status-danger text-danger" : "text-muted-foreground")}>{r.motivo}</Badge></td>
+            </tr>
+          ))}</tbody>
+        </TablaCard>
+      )}
 
       {vendQ.error ? <ConsultaError error={vendQ.error} /> : vendQ.isLoading ? <LoadingState /> : <div className="glass-card overflow-hidden">
         <div className="flex items-center gap-2 px-5 py-4 border-b border-border"><Trophy className="h-4 w-4 text-primary" /><h3 className="text-sm font-semibold text-foreground">Asesoras comerciales</h3></div>
@@ -562,6 +701,7 @@ export function MayoristasPanel({ desde, hasta }: { desde: string | null; hasta:
       {drill?.tipo === "facturas" && <FacturasSheet desde={desde} hasta={hasta} vendedor={vendedor} onClose={() => setDrill(null)} />}
       {(drill?.tipo === "clientes" || drill?.tipo === "ventas") && <ClientesSheet desde={desde} hasta={hasta} vendedor={vendedor} orden={drill.tipo === "ventas" ? "venta" : "estado"} onClose={() => setDrill(null)} />}
       {drill?.tipo === "unidades" && <UnidadesSheet desde={desde} hasta={hasta} vendedor={vendedor} onClose={() => setDrill(null)} />}
+      {drill?.tipo === "pendientes" && <PendientesSheet vendedor={vendedor} onClose={() => setDrill(null)} />}
       {drill?.tipo === "composicion" && <ComposicionSheet desde={desde} hasta={hasta} vendedor={vendedor} dimension={drill.dimension} grupo={drill.grupo} label={drill.label} onCliente={(clienteId, nombre) => setDrill({ tipo: "cliente", clienteId, nombre })} onClose={() => setDrill(null)} />}
       {drill?.tipo === "cliente" && <ClienteSheet desde={desde} hasta={hasta} vendedor={vendedor} clienteId={drill.clienteId} nombre={drill.nombre} onClose={() => setDrill(null)} />}
     </div>
