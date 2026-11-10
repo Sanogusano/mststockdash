@@ -2,6 +2,7 @@ import React, { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { MemoryRouter } from "react-router-dom";
 import { MayoristasClientes } from "@/components/mayoristas/MayoristasClientes";
 
 const calls = vi.hoisted(() => ({ rpc: vi.fn() }));
@@ -18,14 +19,14 @@ const recencia = tramos.map((tramo, i) => ({ tramo, orden: i + 1, clientes: [37,
 const clientes = [...tramos, "Nuevo"].map((estado, i) => ({ cliente_id: String(i), cliente: `Cliente ${i}`, estado, venta: 100, unidades: 1, facturas: 1, puntos_entrega: 1, vendedora: "Lorena", ultima_compra: "2026-08-01", dias_sin_compra: 94 }));
 
 const roots: Root[] = [];
-async function mount() {
+async function mount(entry = "/") {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } });
   const container = document.createElement("div");
   document.body.appendChild(container);
   const root = createRoot(container);
   roots.push(root);
   await act(async () => {
-    root.render(<QueryClientProvider client={client}><MayoristasClientes desde="2026-11-01" hasta="2026-11-03" vendedor="123" onVendedorChange={() => {}} /></QueryClientProvider>);
+    root.render(<QueryClientProvider client={client}><MemoryRouter initialEntries={[entry]}><MayoristasClientes desde="2026-11-01" hasta="2026-11-03" vendedor="123" onVendedorChange={() => {}} /></MemoryRouter></QueryClientProvider>);
   });
   await act(async () => { await new Promise(resolve => setTimeout(resolve, 20)); });
   return container;
@@ -34,6 +35,21 @@ async function mount() {
 afterEach(() => { roots.splice(0).forEach(root => act(() => root.unmount())); document.body.replaceChildren(); vi.clearAllMocks(); });
 
 describe("Mayoristas customer recency", () => {
+  it("loads seller-only RFM and applies URL segment and overdue chips by client ID", async () => {
+    calls.rpc.mockImplementation(async (name: string) => ({ data: name === "reporte_mayoristas_recencia" ? recencia : name === "reporte_mayoristas_rfm" ? [
+      { cliente_id: "1", segmento: "Leales", cartera_vencida: true },
+      { cliente_id: "0", segmento: "Leales", cartera_vencida: false },
+    ] : clientes, error: null }));
+    const container = await mount("/mayoristas?tab=clientes&segmento=Leales");
+    expect(calls.rpc).toHaveBeenCalledWith("reporte_mayoristas_rfm", { p_vendedor: "123" });
+    expect(container.querySelectorAll("tbody tr")).toHaveLength(2);
+    const chip = [...container.querySelectorAll("button")].find(el => el.textContent === "Con cartera vencida");
+    if (!chip) throw new Error("Missing overdue filter");
+    await act(async () => chip.click());
+    expect(container.querySelectorAll("tbody tr")).toHaveLength(1);
+    expect(container.querySelector("tbody tr")?.textContent).toContain("Cliente 1");
+    expect(calls.rpc).toHaveBeenCalledTimes(3);
+  });
   it("queries recency using only period end and seller independently of client data", async () => {
     calls.rpc.mockImplementation(async (name: string) => ({ data: name === "reporte_mayoristas_recencia" ? recencia.slice().reverse() : clientes, error: null }));
     await mount();
@@ -50,7 +66,7 @@ describe("Mayoristas customer recency", () => {
     await act(async () => { card.dispatchEvent(new MouseEvent("click", { bubbles: true })); });
     const visibleClientNames = [...container.querySelectorAll("p, button")].filter(el => el.textContent?.startsWith("Cliente ")).map(el => el.textContent);
     expect(visibleClientNames).toEqual([`Cliente ${tramos.indexOf(tramo)}`, `Cliente ${tramos.indexOf(tramo)}`]);
-    expect(calls.rpc).toHaveBeenCalledTimes(2);
+    expect(calls.rpc).toHaveBeenCalledTimes(3);
   });
 
   it("shows recency errors while keeping customers available", async () => {

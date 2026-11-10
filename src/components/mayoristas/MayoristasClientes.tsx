@@ -1,4 +1,7 @@
 import { useState } from "react";
+import { useSearchParams } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { SEGMENTOS, filtrarRfm, useMayoristasRfm } from "@/lib/mayoristas-rfm";
 import { useQuery } from "@tanstack/react-query";
 import { Users, Clock, UserMinus, Banknote } from "lucide-react";
 import { KpiCard, ComparisonIndicator, CommercialSectionHeader } from "@/components/dashboard/ExecutivePresentation";
@@ -61,6 +64,12 @@ function UltimaCompra({ r }: { r: ClienteRow }) {
 }
 
 export function MayoristasClientes({ desde, hasta, vendedor, onVendedorChange, onClienteClick }: { desde: string | null; hasta: string | null; vendedor: string | null; onVendedorChange: (v: string | null) => void; onClienteClick?: (clienteId: string) => void }) {
+  const [params, setParams] = useSearchParams();
+  const segmento = SEGMENTOS.some(s => s.nombre === params.get("segmento")) ? params.get("segmento") : null;
+  const vencida = params.get("cartera_vencida") === "true";
+  const setRfmParam = (key: string, value: string | null) => setParams(prev => { const next = new URLSearchParams(prev); if (value) next.set(key, value); else next.delete(key); return next; }, { replace: true });
+  const rfmQ = useMayoristasRfm(vendedor);
+  const rfmPorCliente = new Map((rfmQ.data ?? []).map(r => [String(r.cliente_id), r]));
   const valido = !!desde && !!hasta && desde <= hasta;
   const [filtro, setFiltro] = useState<string>("todos");
   const q = useQuery({
@@ -88,10 +97,16 @@ export function MayoristasClientes({ desde, hasta, vendedor, onVendedorChange, o
   const conVenta = rows.filter(r => Number(r.venta) > 0);
   const ventaTotal = conVenta.reduce((s, r) => s + Number(r.venta), 0);
   const promedio = conVenta.length > 0 ? ventaTotal / conVenta.length : null;
-  const visibles = filtro === "todos" ? rows : rows.filter(r => r.estado === filtro);
+  const visibles = filtrarRfm(filtro === "todos" ? rows : rows.filter(r => r.estado === filtro), rfmQ.data ?? [], segmento, vencida);
 
   return (
     <div className="space-y-4 min-w-0">
+      <div className="flex flex-wrap gap-2">
+        {[{ nombre: "Todos" }, ...SEGMENTOS].map(s => <Button key={s.nombre} size="sm" variant={(segmento ?? "Todos") === s.nombre ? "default" : "outline"} onClick={() => setRfmParam("segmento", s.nombre === "Todos" ? null : s.nombre)}>{s.nombre}</Button>)}
+        <Button size="sm" variant={vencida ? "default" : "outline"} aria-pressed={vencida} onClick={() => setRfmParam("cartera_vencida", vencida ? null : "true")}>Con cartera vencida</Button>
+      </div>
+      {rfmQ.error && <ConsultaError error={rfmQ.error} />}
+      {rfmQ.isLoading && (segmento || vencida) && <LoadingState />}
       <div className="glass-card p-5">
         <CommercialSectionHeader title="👥 VENTA POR CLIENTE">
           <VendedoraSelect desde={desde} hasta={hasta} value={vendedor} onChange={onVendedorChange} />
@@ -129,8 +144,8 @@ export function MayoristasClientes({ desde, hasta, vendedor, onVendedorChange, o
           {visibles.length === 0 ? <EmptyState message="Sin clientes para el periodo." /> : (
             <>
               <div className="hidden md:block">
-                <TablaCard title={`Clientes (${fmtNum(visibles.length)})`} minW={1150}>
-                  <TablaTh cols={["Cliente", "Asesora", "Estado", "Venta", "% canal", "Unidades", "Facturas", "Ticket", "vs periodo ant.", "Última compra"]} />
+                <TablaCard title={`Clientes (${fmtNum(visibles.length)})`} minW={1750}>
+                  <TablaTh cols={["Cliente", "Asesora", "Estado", "Venta", "% canal", "Unidades", "Facturas", "Ticket", "vs periodo ant.", "Última compra", "Segmento", "Compras 12 m", "Facturas 12 m", "Saldo", "Vencido +60"]} />
                   <tbody>{visibles.map(r => (
                     <tr key={`${r.cliente_id}-${r.vendedor_id}`} className="border-b border-border last:border-0">
                       <td className="px-3 py-2.5"><button type="button" onClick={() => onClienteClick?.(r.cliente_id)} className="font-medium text-primary hover:underline text-left">{r.cliente}</button>{Number(r.puntos_entrega) > 1 && <p className="text-xs text-muted-foreground">{fmtNum(r.puntos_entrega)} puntos de entrega</p>}</td>
@@ -143,6 +158,11 @@ export function MayoristasClientes({ desde, hasta, vendedor, onVendedorChange, o
                       <td className="px-3 py-2.5 tabular-nums">{fmtMonto(r.ticket)}</td>
                       <td className="px-3 py-2.5"><Vs r={r} /></td>
                       <td className="px-3 py-2.5"><UltimaCompra r={r} /></td>
+                      <td className="px-3 py-2.5"><Badge variant="outline" className={SEGMENTOS.find(s => s.nombre === rfmPorCliente.get(String(r.cliente_id))?.segmento)?.badge}>{rfmPorCliente.get(String(r.cliente_id))?.segmento ?? "—"}</Badge></td>
+                      <td className="px-3 py-2.5 tabular-nums">{rfmPorCliente.has(String(r.cliente_id)) ? fmtMonto(rfmPorCliente.get(String(r.cliente_id))?.compras_12m) : "—"}</td>
+                      <td className="px-3 py-2.5 tabular-nums">{rfmPorCliente.has(String(r.cliente_id)) ? fmtNum(rfmPorCliente.get(String(r.cliente_id))?.facturas_12m) : "—"}</td>
+                      <td className="px-3 py-2.5 tabular-nums">{rfmPorCliente.has(String(r.cliente_id)) ? fmtMonto(rfmPorCliente.get(String(r.cliente_id))?.saldo) : "—"}</td>
+                      <td className="px-3 py-2.5 tabular-nums text-danger">{rfmPorCliente.has(String(r.cliente_id)) ? fmtMonto(rfmPorCliente.get(String(r.cliente_id))?.vencido_60) : "—"}</td>
                     </tr>
                   ))}</tbody>
                 </TablaCard>
@@ -163,6 +183,13 @@ export function MayoristasClientes({ desde, hasta, vendedor, onVendedorChange, o
                       <span>Facturas: {fmtNum(r.facturas)}</span><span>Ticket: {fmtMonto(r.ticket)}</span>
                     </div>
                     <div className="text-xs"><UltimaCompra r={r} /></div>
+                    {rfmPorCliente.has(String(r.cliente_id)) && <div className="space-y-2">
+                      <Badge variant="outline" className={SEGMENTOS.find(s => s.nombre === rfmPorCliente.get(String(r.cliente_id))?.segmento)?.badge}>{rfmPorCliente.get(String(r.cliente_id))?.segmento}</Badge>
+                      <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground">
+                        <span>Compras 12 m: {fmtMonto(rfmPorCliente.get(String(r.cliente_id))?.compras_12m)}</span><span>Facturas 12 m: {fmtNum(rfmPorCliente.get(String(r.cliente_id))?.facturas_12m)}</span>
+                        <span>Saldo: {fmtMonto(rfmPorCliente.get(String(r.cliente_id))?.saldo)}</span><span className="text-danger">Vencido +60: {fmtMonto(rfmPorCliente.get(String(r.cliente_id))?.vencido_60)}</span>
+                      </div>
+                    </div>}
                   </div>
                 ))}
               </div>

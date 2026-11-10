@@ -9,6 +9,11 @@ import { StoreRow, StoreLeaderboard } from "@/components/dashboard/StoreLeaderbo
 import { CollectionBadge } from "@/components/dashboard/CollectionBadge";
 import { ProductImageThumb } from "@/components/dashboard/ProductImageThumb";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/components/ui/tooltip";
+import { agruparRfm, clientesRfmUrl, useMayoristasRfm } from "@/lib/mayoristas-rfm";
+import type { Database } from "@/integrations/supabase/types";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { LoadingState, EmptyState } from "@/components/dashboard/LoadingState";
 import { supabase } from "@/integrations/supabase/client";
@@ -71,16 +76,8 @@ type Dimension = "coleccion" | "linea" | "genero";
 const DIMENSIONES: { id: Dimension; label: string }[] = [
   { id: "coleccion", label: "Por Colección" },
   { id: "linea", label: "Por Línea" },
+  { id: "genero", label: "Por Género" },
 ];
-
-interface RecenciaRow { tramo: string; orden: number; clientes: number; venta_12m: number; pct_venta_12m: number | null }
-const TRAMO_BG: Record<string, string> = {
-  Activo: "bg-success",
-  "Sin pedido 60 días": "bg-warning/50",
-  "Sin pedido 90 días": "bg-warning",
-  "Sin pedido 120 días": "bg-[color:color-mix(in_srgb,hsl(var(--warning)),hsl(var(--danger)))]",
-  Perdido: "bg-danger",
-};
 
 type Drill =
   | { tipo: "facturas" }
@@ -88,6 +85,7 @@ type Drill =
   | { tipo: "ventas" }
   | { tipo: "unidades" }
   | { tipo: "pendientes" }
+  | { tipo: "sin-venta" }
   | { tipo: "composicion"; dimension: Dimension; grupo: string; label: string }
   | { tipo: "cliente"; clienteId: string; nombre: string };
 
@@ -431,6 +429,51 @@ function ComposicionDimension({ desde, hasta, vendedor, dimension, label, onSele
   }} />;
 }
 
+type SinVentaRow = Database["public"]["Functions"]["reporte_mayoristas_sin_venta"]["Returns"][number];
+
+function useSinVenta(limite: number) {
+  return useQuery({ queryKey: ["mayoristas-sin-venta", 90, limite], retry: false, queryFn: async () => {
+    const { data, error } = await supabase.rpc("reporte_mayoristas_sin_venta", { p_dias: 90, p_limite: limite });
+    if (error) throw error;
+    return data ?? [];
+  } });
+}
+
+function sinVentaExcel(rows: SinVentaRow[]) {
+  return rows.map(r => ({ Producto: r.producto, Colección: r.coleccion, Línea: r.linea,
+    "Stock en reserva": Number(r.stock_reserva), "Tallas con stock": Number(r.tallas_con_stock),
+    "Última venta mayorista": r.ultima_venta_mayorista ? fmtFecha(r.ultima_venta_mayorista) : "Nunca",
+    "Precio retail": Number(r.precio_retail), "Fecha inventario": r.fecha_inventario }));
+}
+
+function SinVentaProductos({ limite, onVerTodos }: { limite: number; onVerTodos?: () => void }) {
+  const q = useSinVenta(limite);
+  const rows = (q.data ?? []).slice(0, limite);
+  return <div className="min-w-0">
+    <div className="flex flex-wrap items-center justify-between gap-2 px-4 pb-3">
+      <p className="text-xs text-muted-foreground">Productos en Reserva Distribuidores sin venta mayorista en 90 días · inventario al {fmtFecha(rows[0]?.fecha_inventario)}</p>
+      {onVerTodos && <Button variant="link" size="sm" onClick={onVerTodos}>Ver todos</Button>}
+    </div>
+    {q.error ? <div className="p-4"><ConsultaError error={q.error} /></div> : q.isLoading ? <LoadingState /> : !rows.length ? <EmptyState message="Sin productos sin venta con stock." /> : <div className="overflow-x-auto min-w-0">
+      <table className="w-full text-sm"><TablaTh cols={["Producto", "Colección", "Línea", "Stock en reserva", "Tallas con stock", "Última venta mayorista", "Precio retail"]} />
+        <tbody>{rows.map(r => <tr key={r.producto_id} className="border-b border-border last:border-0">
+          <td className="px-3 py-2"><div className="flex items-center gap-2">{r.image_url ? <ProductImageThumb src={r.image_url} alt={r.producto} productId={r.producto_id} title={r.producto} className="w-9 h-9 rounded-md object-cover bg-muted shrink-0" /> : <div className="w-9 h-9 rounded-md bg-muted shrink-0" />}<span className="font-medium break-words">{r.producto}</span></div></td>
+          <td className="px-3 py-2"><CollectionBadge coleccion={r.coleccion} /></td><td className="px-3 py-2">{r.linea ?? "—"}</td>
+          <td className="px-3 py-2 tabular-nums text-right">{fmtNum(r.stock_reserva)}</td><td className="px-3 py-2 tabular-nums text-right">{fmtNum(r.tallas_con_stock)}</td>
+          <td className="px-3 py-2">{r.ultima_venta_mayorista ? fmtFecha(r.ultima_venta_mayorista) : "Nunca"}</td><td className="px-3 py-2 tabular-nums whitespace-nowrap">{fmtMonto(r.precio_retail)}</td>
+        </tr>)}</tbody>
+      </table>
+    </div>}
+  </div>;
+}
+
+function SinVentaSheet({ onClose }: { onClose: () => void }) {
+  const q = useSinVenta(500);
+  return <DrillShell title="Sin venta con stock" onClose={onClose} onExport={q.data?.length ? () => exportToXLS(sinVentaExcel(q.data ?? []), "mayoristas-sin-venta-90-dias") : undefined}>
+    <SinVentaProductos limite={500} />
+  </DrillShell>;
+}
+
 export function MayoristasPanel({ desde, hasta }: { desde: string | null; hasta: string | null }) {
   const valido = !!desde && !!hasta && desde <= hasta;
   const [vendedor, setVendedor] = useState<string | null>(null);
@@ -478,16 +521,7 @@ export function MayoristasPanel({ desde, hasta }: { desde: string | null; hasta:
   });
   const clientesQ = useClientes(desde, hasta, vendedor);
   const pendQ = usePendientes(vendedor);
-  const recenciaQ = useQuery({
-    retry: false,
-    queryKey: ["mayoristas-recencia", hasta, vendedor],
-    enabled: !!hasta,
-    queryFn: async () => {
-      const { data, error } = await supabase.rpc("reporte_mayoristas_recencia" as never, { p_hasta: hasta, p_vendedor: vendedor } as never);
-      if (error) throw error;
-      return ((data as unknown as RecenciaRow[]) ?? []).slice().sort((a, b) => Number(a.orden) - Number(b.orden));
-    },
-  });
+  const rfmQ = useMayoristasRfm(vendedor);
 
   const selRow = vendedor ? (vendQ.data ?? []).find(v => String(v.vendedor_id) === vendedor) ?? null : null;
   const c: CanalRow | null = vendedor ? (selRow ? { ...selRow, facturas_anuladas: 0 } : null) : canalQ.data;
@@ -499,9 +533,7 @@ export function MayoristasPanel({ desde, hasta }: { desde: string | null; hasta:
   const sellers = vendQ.data ?? [];
   const pendientes = pendQ.data ?? [];
   const pendValor = pendientes.reduce((s, r) => s + Number(r.valor_pendiente), 0);
-  const recencia = recenciaQ.data ?? [];
-  const totalRecencia = recencia.reduce((s, r) => s + Math.max(Number(r.venta_12m), 0), 0);
-  const verClientes = `/mayoristas?tab=clientes${vendedor ? `&vendedor=${encodeURIComponent(vendedor)}` : ""}`;
+  const segmentos = agruparRfm(rfmQ.data ?? []);
   return (
     <div className="space-y-4 min-w-0">
       <div className="glass-card p-5 min-w-0">
@@ -559,10 +591,10 @@ export function MayoristasPanel({ desde, hasta }: { desde: string | null; hasta:
 
       <section className="space-y-3">
         <h2 className="text-sm font-semibold text-foreground">Composición de la venta</h2>
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">{DIMENSIONES.map(d => <ComposicionDimension key={d.id} desde={desde} hasta={hasta} vendedor={vendedor} dimension={d.id} label={d.label} onSelect={(grupo) => setDrill({ tipo: "composicion", dimension: d.id, grupo, label: d.label })} />)}</div>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">{DIMENSIONES.map(d => <ComposicionDimension key={d.id} desde={desde} hasta={hasta} vendedor={vendedor} dimension={d.id} label={d.label} onSelect={(grupo) => setDrill({ tipo: "composicion", dimension: d.id, grupo, label: d.label })} />)}</div>
       </section>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 min-w-0">
+      <div className="space-y-4 min-w-0">
         <div className="min-w-0 space-y-2">
           {clientesQ.error ? <div className="glass-card p-4"><ConsultaError error={clientesQ.error} /></div> : clientesQ.isLoading ? <LoadingState /> : <>
             <StoreLeaderboard days={0} supplied={{
@@ -578,28 +610,28 @@ export function MayoristasPanel({ desde, hasta }: { desde: string | null; hasta:
             {topClientes.length > 0 && topClientes.length < 3 && <p className="text-xs text-muted-foreground px-1">Solo {topClientes.length} cliente{topClientes.length === 1 ? "" : "s"} han comprado en el período</p>}
           </>}
         </div>
-        <div className="glass-card p-5 min-w-0">
-          <div className="flex items-center gap-2 mb-4"><Users className="h-4 w-4 text-primary" /><h3 className="text-sm font-semibold text-foreground">Estado de la base de clientes</h3></div>
-          {recenciaQ.error ? <ConsultaError error={recenciaQ.error} /> : recenciaQ.isLoading ? <LoadingState /> : !recencia.length ? <EmptyState message="Sin datos de clientes." /> : <>
-            <div className="flex h-3 w-full overflow-hidden rounded-full bg-muted mb-4">
-              {recencia.map(r => totalRecencia > 0 && Number(r.venta_12m) > 0 && <div key={r.tramo} className={TRAMO_BG[r.tramo] ?? "bg-muted-foreground"} style={{ width: `${(Number(r.venta_12m) / totalRecencia) * 100}%` }} title={`${r.tramo}: ${fmtMonto(r.venta_12m)}`} />)}
-            </div>
-            <ul className="space-y-2">{recencia.map(r => (
-              <li key={r.tramo} className="flex items-center gap-2 text-xs">
-                <span className={cn("w-2.5 h-2.5 rounded-full shrink-0", TRAMO_BG[r.tramo] ?? "bg-muted-foreground")} />
-                <span className="text-foreground font-medium flex-1 min-w-0 truncate">{r.tramo}</span>
-                <span className="font-semibold tabular-nums w-10 text-right">{fmtNum(r.clientes)}</span>
-                <span className="text-muted-foreground tabular-nums whitespace-nowrap">{fmtMonto(r.venta_12m)} · {fmtPct(r.pct_venta_12m)}</span>
-              </li>
-            ))}</ul>
-            <p className="text-[11px] text-muted-foreground mt-3">Venta de los últimos 12 meses de cada tramo y su % del total.</p>
-          </>}
-          <button type="button" onClick={() => navigate(verClientes)} className="text-xs text-primary font-medium mt-3 hover:underline">Ver clientes →</button>
-        </div>
+        <section className="space-y-3 min-w-0">
+          <h3 className="text-sm font-semibold text-foreground">Segmentos de clientes (RFM)</h3>
+          {rfmQ.error ? <ConsultaError error={rfmQ.error} /> : rfmQ.isLoading ? <LoadingState /> : (
+            <TooltipProvider><div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-7 gap-3 [&_.glass-card]:p-3 [&_.glass-card]:h-full [&_.glass-card]:flex-col [&_.glass-card]:gap-2 [&_.glass-card_.uppercase]:tracking-normal">
+              {segmentos.map(r => <Tooltip key={r.nombre}>
+                <TooltipTrigger asChild><div role="link" tabIndex={0} className={cn("min-w-0 rounded-lg border", r.borde)} onKeyDown={e => { if (e.key === "Enter") navigate(clientesRfmUrl(r.nombre, vendedor, desde, hasta)); }}>
+                  <KpiCard label={r.nombre} value={fmtNum(r.clientes)} icon={Users} onClick={() => navigate(clientesRfmUrl(r.nombre, vendedor, desde, hasta))}>
+                    <p className="text-xs text-muted-foreground mt-1">{fmtMonto(r.compras)} en 12 m</p>
+                    {r.vencidos > 0 && <Badge variant="outline" className="status-danger mt-2 whitespace-normal">{fmtNum(r.vencidos)} con cartera vencida</Badge>}
+                  </KpiCard>
+                </div></TooltipTrigger>
+                <TooltipContent className="max-w-xs">{r.regla}</TooltipContent>
+              </Tooltip>)}
+            </div></TooltipProvider>
+          )}
+        </section>
       </div>
 
-      <div className="glass-card overflow-hidden min-w-0">
+      <Tabs defaultValue="vendidos" className="glass-card overflow-hidden min-w-0">
         <div className="flex items-center gap-2 px-5 py-4 border-b border-border"><Package className="h-4 w-4 text-primary" /><h3 className="text-sm font-semibold text-foreground">Top 10 productos</h3></div>
+        <TabsList className="m-3"><TabsTrigger value="vendidos">Más vendidos</TabsTrigger><TabsTrigger value="sin-venta">Sin venta con stock</TabsTrigger></TabsList>
+        <TabsContent value="vendidos">
         {topProdQ.error ? <div className="p-4"><ConsultaError error={topProdQ.error} /></div> : topProdQ.isLoading ? <LoadingState /> : !topProductos.length ? <EmptyState message="Sin productos en el periodo." /> : (
           <table className="w-full table-fixed text-sm">
             <thead><tr className="border-b border-border bg-muted/30 text-xs text-muted-foreground"><th className="px-3 py-2 text-left font-medium w-[38%]">Producto</th><th className="px-3 py-2 text-left font-medium hidden sm:table-cell">Colección</th><th className="px-3 py-2 text-right font-medium">Uds</th><th className="px-3 py-2 text-right font-medium">Venta</th><th className="px-3 py-2 text-right font-medium hidden sm:table-cell">Clientes</th><th className="px-3 py-2 text-right font-medium">Stock Reserva</th></tr></thead>
@@ -618,8 +650,11 @@ export function MayoristasPanel({ desde, hasta }: { desde: string | null; hasta:
             ))}</tbody>
           </table>
         )}
-      </div>
+        </TabsContent>
+        <TabsContent value="sin-venta"><SinVentaProductos limite={10} onVerTodos={() => setDrill({ tipo: "sin-venta" })} /></TabsContent>
+      </Tabs>
 
+      {drill?.tipo === "sin-venta" && <SinVentaSheet onClose={() => setDrill(null)} />}
       {drill?.tipo === "facturas" && <FacturasSheet desde={desde} hasta={hasta} vendedor={vendedor} onClose={() => setDrill(null)} />}
       {(drill?.tipo === "clientes" || drill?.tipo === "ventas") && <ClientesSheet desde={desde} hasta={hasta} vendedor={vendedor} orden={drill.tipo === "ventas" ? "venta" : "estado"} onClose={() => setDrill(null)} />}
       {drill?.tipo === "unidades" && <UnidadesSheet desde={desde} hasta={hasta} vendedor={vendedor} onClose={() => setDrill(null)} />}

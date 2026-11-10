@@ -1,5 +1,7 @@
 # Roadmap
 
+- [x] Ajustar Mayoristas: tres donas, ranking a ancho completo, segmentos RFM y filtros de clientes, productos sin venta con detalle y Excel; conservar los bloques protegidos. Verificación visual con datos de prueba en escritorio/celular; acceso real redirige a login.
+
 - [x] Agregar pestaña Cartera en Mayoristas: saldos actuales, detalle por cliente, recaudo del período, gráfico mensual y Excel; mantener RPC y demás pestañas. 24 pruebas aprobadas; vista móvil/escritorio, detalle y archivos Excel verificados con datos de prueba.
 - [ ] Verificar Cartera con sesión y datos reales: Supabase externo sin sesión disponible; la ruta real redirige a login. Las cuatro RPC existentes permiten ejecución authenticated.
 
