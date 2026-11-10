@@ -7663,6 +7663,25 @@ export type Database = {
           venta: number
         }[]
       }
+      reporte_mayoristas_composicion_detalle: {
+        Args: {
+          p_desde: string
+          p_dimension: string
+          p_grupo: string
+          p_hasta: string
+          p_vendedor?: string
+        }
+        Returns: {
+          cliente: string
+          cliente_id: string
+          facturas: number
+          pct_grupo: number
+          unidades: number
+          vendedor_id: string
+          vendedora: string
+          venta: number
+        }[]
+      }
       reporte_mayoristas_factura_detalle: {
         Args: { p_factura: string }
         Returns: {
