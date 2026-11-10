@@ -2581,6 +2581,13 @@ export type Database = {
             referencedRelation: "orders"
             referencedColumns: ["shopify_order_id"]
           },
+          {
+            foreignKeyName: "order_items_shopify_order_id_fkey"
+            columns: ["shopify_order_id"]
+            isOneToOne: false
+            referencedRelation: "v_pedidos_sin_so"
+            referencedColumns: ["shopify_order_id"]
+          },
         ]
       }
       orders: {
@@ -5278,6 +5285,19 @@ export type Database = {
           puede_ser_origen: boolean | null
           tier: string | null
           wos_objetivo_semanas: number | null
+        }
+        Relationships: []
+      }
+      v_pedidos_sin_so: {
+        Row: {
+          causa: string | null
+          created_at: string | null
+          fulfillment_status: string | null
+          order_number: string | null
+          payment_gateway: string | null
+          shopify_order_id: string | null
+          source_name: string | null
+          total_price: number | null
         }
         Relationships: []
       }
