@@ -870,6 +870,24 @@ export type Database = {
         }
         Relationships: []
       }
+      codigos_postales: {
+        Row: {
+          codigo_dane: string
+          codigo_postal: string
+          tipo: string
+        }
+        Insert: {
+          codigo_dane: string
+          codigo_postal: string
+          tipo: string
+        }
+        Update: {
+          codigo_dane?: string
+          codigo_postal?: string
+          tipo?: string
+        }
+        Relationships: []
+      }
       coleccion_no_remapear: {
         Row: {
           collection_season: string
@@ -1925,6 +1943,30 @@ export type Database = {
           pago_tranid?: string | null
           sincronizado_en?: string
           tipo?: string | null
+        }
+        Relationships: []
+      }
+      municipios: {
+        Row: {
+          codigo_dane: string
+          departamento: string
+          departamento_norm: string | null
+          municipio: string
+          municipio_norm: string | null
+        }
+        Insert: {
+          codigo_dane: string
+          departamento: string
+          departamento_norm?: string | null
+          municipio: string
+          municipio_norm?: string | null
+        }
+        Update: {
+          codigo_dane?: string
+          departamento?: string
+          departamento_norm?: string | null
+          municipio?: string
+          municipio_norm?: string | null
         }
         Relationships: []
       }
@@ -6206,6 +6248,7 @@ export type Database = {
         Returns: string[]
       }
       normalizar_nombre: { Args: { p_nombre: string }; Returns: string }
+      normalizar_texto_geo: { Args: { p: string }; Returns: string }
       obtener_siguiente_consecutivo: {
         Args: { p_origen_netsuite_id: number }
         Returns: number
@@ -8553,6 +8596,10 @@ export type Database = {
           semanas_inventario: number
           venta_promedio_semanal: number
         }[]
+      }
+      resolver_direccion_co: {
+        Args: { p_ciudad: string; p_departamento: string; p_zip?: string }
+        Returns: Json
       }
       resolver_sku_traslados: { Args: never; Returns: number }
       resumen_pendientes_facturacion: {
