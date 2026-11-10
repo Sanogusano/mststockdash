@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Download, Search, ShieldAlert } from "lucide-react";
+import { Download, Loader2, Search, ShieldAlert } from "lucide-react";
 import * as XLSX from "xlsx";
 import { toast } from "sonner";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
@@ -8,6 +8,7 @@ import { AppSidebar } from "@/components/AppSidebar";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -17,6 +18,7 @@ import { LoadingState } from "@/components/dashboard/LoadingState";
 import { useUserRole } from "@/hooks/useUserRole";
 import { cn } from "@/lib/utils";
 import { ALERTA_LABEL, Alerta, calcularAlerta, ordenarPorAlerta } from "@/lib/factura-electronica";
+import { camposClienteNetSuite, ClienteNetSuiteRespuesta, erroresClienteNetSuite, puedeCrearClienteNetSuite } from "@/lib/netsuite-cliente";
 
 type Estado = "pendiente" | "cliente_creado" | "facturado";
 type Row = {
@@ -42,7 +44,7 @@ const ESTADOS: { key: Estado; label: string }[] = [
   { key: "facturado", label: "Facturados" },
 ];
 const ESTADO_LABEL: Record<Estado, string> = { pendiente: "Pendiente", cliente_creado: "Cliente creado", facturado: "Facturado" };
-const ROLES_VER = ["admin", "finanzas", "gerencia"];
+const ROLES_VER = ["admin", "finanzas", "gerencia", "logistica"];
 const ROLES_EDITAR = ["admin", "finanzas"];
 
 const fmtFecha = (s: string | null) =>
@@ -52,12 +54,17 @@ export default function FacturaElectronicaPage() {
   const { role, isAdmin } = useUserRole();
   const puedeVer = isAdmin || (!!role && ROLES_VER.includes(role));
   const puedeEditar = isAdmin || (!!role && ROLES_EDITAR.includes(role));
+  const puedeCrearCliente = puedeCrearClienteNetSuite(role);
   const qc = useQueryClient();
   const [estado, setEstado] = useState<Estado>("pendiente");
   const [q, setQ] = useState("");
   const [guardando, setGuardando] = useState<string | null>(null);
   const [etiquetar, setEtiquetar] = useState(false);
   const [sel, setSel] = useState<Set<string>>(new Set());
+  const [clientePedido, setClientePedido] = useState<RowA | null>(null);
+  const [clienteRespuesta, setClienteRespuesta] = useState<ClienteNetSuiteRespuesta | null>(null);
+  const [clienteError, setClienteError] = useState("");
+  const [clienteCargando, setClienteCargando] = useState<"prueba" | "real" | null>(null);
   const toggleSel = (id: string) => setSel((s) => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n; });
 
   const { data, isLoading, error } = useQuery({
@@ -98,6 +105,59 @@ export default function FacturaElectronicaPage() {
     });
     return ordenarPorAlerta(f);
   }, [data, estado, q]);
+
+  const invocarCliente = async (pedido: string, modo: "prueba" | "real"): Promise<ClienteNetSuiteRespuesta> => {
+    const { data: respuesta, error } = await supabase.functions.invoke("netsuite-crear", {
+      body: { accion: "cliente", pedido, modo },
+    });
+    if (error) {
+      // Las funciones pueden devolver el detalle de negocio también con un HTTP de error.
+      if (error.context instanceof Response) {
+        const detalle = await error.context.clone().json().catch(() => null);
+        if (detalle?.error || detalle?.cliente?.errores) return detalle;
+      }
+      throw error;
+    }
+    return respuesta;
+  };
+
+  const revisarCliente = async (fila: RowA) => {
+    if (!puedeCrearCliente || fila.estado !== "pendiente" || clienteCargando) return;
+    if (!fila.pedido) { toast.error("El pedido no tiene número"); return; }
+    setClientePedido(fila);
+    setClienteRespuesta(null);
+    setClienteError("");
+    setClienteCargando("prueba");
+    try {
+      const respuesta = await invocarCliente(fila.pedido, "prueba");
+      setClienteRespuesta(respuesta);
+      setClienteError(erroresClienteNetSuite(respuesta));
+    } catch (error) {
+      setClienteError(error instanceof Error ? error.message : String(error));
+    } finally {
+      setClienteCargando(null);
+    }
+  };
+
+  const confirmarCliente = async () => {
+    if (!puedeCrearCliente || !clientePedido?.pedido || clienteCargando || clienteError || erroresClienteNetSuite(clienteRespuesta)) return;
+    setClienteCargando("real");
+    try {
+      const respuesta = await invocarCliente(clientePedido.pedido, "real");
+      if (!respuesta?.ok) {
+        toast.error(String(respuesta?.error ?? "No se pudo crear el cliente en NetSuite"));
+        return;
+      }
+      toast.success("Cliente creado y pedido etiquetado REGISTRADO");
+      setClientePedido(null);
+      setSel((seleccion) => { const nueva = new Set(seleccion); nueva.delete(clientePedido.shopify_order_id); return nueva; });
+      await qc.invalidateQueries({ queryKey: ["pedido-factura-electronica"] });
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : String(error));
+    } finally {
+      setClienteCargando(null);
+    }
+  };
 
   const marcar = async (id: string, nuevo: Estado) => {
     if (nuevo === "cliente_creado" && etiquetar) {
@@ -240,7 +300,7 @@ export default function FacturaElectronicaPage() {
                         <TableHead>Documento (Qikify)</TableHead><TableHead>Documento (dirección)</TableHead>
                         <TableHead>Ciudad / Departamento</TableHead><TableHead>Email</TableHead><TableHead>Teléfono</TableHead>
                         <TableHead>Fecha</TableHead><TableHead>Estado</TableHead>
-                        {puedeEditar && <TableHead className="text-right">Acciones</TableHead>}
+                        {(puedeEditar || puedeCrearCliente) && <TableHead className="text-right">Acciones</TableHead>}
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -259,12 +319,18 @@ export default function FacturaElectronicaPage() {
                           <TableCell className="text-xs tabular-nums">{r.telefono ?? "—"}</TableCell>
                           <TableCell className="text-xs whitespace-nowrap">{fmtFecha(r.capturado_en)}</TableCell>
                           <TableCell className="text-xs">{ESTADO_LABEL[r.estado] ?? r.estado}</TableCell>
-                          {puedeEditar && (
+                          {(puedeEditar || puedeCrearCliente) && (
                             <TableCell className="text-right whitespace-nowrap space-x-2">
-                              {r.estado === "pendiente" && (
+                              {puedeCrearCliente && r.estado === "pendiente" && (
+                                <Button size="sm" variant="outline" disabled={clienteCargando !== null || guardando !== null || !r.pedido} onClick={() => revisarCliente(r)}>
+                                  {clienteCargando && clientePedido?.shopify_order_id === r.shopify_order_id && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}
+                                  Crear cliente en NetSuite
+                                </Button>
+                              )}
+                              {puedeEditar && r.estado === "pendiente" && (
                                 <Button size="sm" variant="outline" disabled={guardando === r.shopify_order_id || guardando === "__lote__"} onClick={() => marcar(r.shopify_order_id, "cliente_creado")}>Marcar cliente creado</Button>
                               )}
-                              {r.estado !== "facturado" && (
+                              {puedeEditar && r.estado !== "facturado" && (
                                 <Button size="sm" disabled={guardando === r.shopify_order_id} onClick={() => marcar(r.shopify_order_id, "facturado")}>Marcar facturado</Button>
                               )}
                             </TableCell>
@@ -277,6 +343,36 @@ export default function FacturaElectronicaPage() {
               </>
             )}
           </div>
+          <Dialog open={clientePedido !== null} onOpenChange={(open) => { if (!open && !clienteCargando) setClientePedido(null); }}>
+            <DialogContent onEscapeKeyDown={(event) => { if (clienteCargando) event.preventDefault(); }} onPointerDownOutside={(event) => { if (clienteCargando) event.preventDefault(); }}>
+              <DialogHeader>
+                <DialogTitle>Crear cliente en NetSuite</DialogTitle>
+                <DialogDescription>Pedido {clientePedido?.pedido}</DialogDescription>
+              </DialogHeader>
+              {clienteCargando === "prueba" ? (
+                <div className="flex items-center gap-2 text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" />Consultando cliente…</div>
+              ) : (
+                <div className="space-y-4">
+                  {clienteRespuesta?.cliente && (
+                    <dl className="space-y-2 text-sm">
+                      {camposClienteNetSuite(clienteRespuesta).map(([label, value]) => (
+                        <div key={label} className="grid grid-cols-3 gap-3"><dt className="text-muted-foreground">{label}</dt><dd className="col-span-2 break-words">{value}</dd></div>
+                      ))}
+                    </dl>
+                  )}
+                  {clienteRespuesta?.cliente?.existe && <p className="text-sm">El cliente ya existe en NetSuite (ID {clienteRespuesta.cliente.cliente_ns_id ?? "—"})</p>}
+                  {clienteError && <p role="alert" className="text-sm text-destructive break-words">{clienteError}</p>}
+                </div>
+              )}
+              <DialogFooter>
+                <Button variant="outline" disabled={clienteCargando !== null} onClick={() => setClientePedido(null)}>Cancelar</Button>
+                <Button disabled={clienteCargando !== null || !!clienteError || !!erroresClienteNetSuite(clienteRespuesta) || !puedeCrearCliente} onClick={confirmarCliente}>
+                  {clienteCargando === "real" && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}
+                  {clienteCargando === "real" ? "Guardando…" : clienteRespuesta?.cliente?.existe ? "Marcar como registrado" : "Confirmar"}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </main>
       </div>
     </SidebarProvider>

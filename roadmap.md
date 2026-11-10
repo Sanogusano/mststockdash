@@ -1,5 +1,8 @@
 # Roadmap
 
+- [x] Agregar creación de cliente NetSuite en Pendientes de Facturación: vista previa, confirmación, errores y recarga usando la función existente y controles compartidos.
+- [ ] Verificar creación NetSuite con sesión y datos reales: Supabase externo sin sesión disponible; no se ejecutan creaciones reales sin revisión del cliente.
+
 - [x] Ajustar Mayoristas: tres donas, ranking a ancho completo, segmentos RFM y filtros de clientes, productos sin venta con detalle y Excel; conservar los bloques protegidos. Verificación visual con datos de prueba en escritorio/celular; acceso real redirige a login.
 
 - [x] Agregar pestaña Cartera en Mayoristas: saldos actuales, detalle por cliente, recaudo del período, gráfico mensual y Excel; mantener RPC y demás pestañas. 24 pruebas aprobadas; vista móvil/escritorio, detalle y archivos Excel verificados con datos de prueba.
