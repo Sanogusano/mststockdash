@@ -15,6 +15,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { fmtCOP, fmtInt } from "@/lib/finanzas-format";
 import { formatKpiMoney } from "@/lib/kpi-money";
+import { CARD_ESTADO, CardKey, estadoBadgeTexto, ESTADOS_FILTRO, ESTADOS_TAB, ESTADO_POR_TARJETA, esEstadoGiftCard, sumarPedidosVisibles, TabKey } from "@/lib/reporte-facturacion-estados";
 import * as XLSX from "xlsx";
 import { useHasPermission } from "@/hooks/useHasPermission";
 import { useUserRole } from "@/hooks/useUserRole";
@@ -64,8 +65,6 @@ const ORIGEN_AJUSTE: Record<string, { label: string; cls: string }> = {
   no_cuadra: { label: "No cuadra", cls: "bg-destructive/10 text-destructive border-destructive/30" },
 };
 
-type CardKey = "sin_ov" | "pendiente" | "diferencia" | "fallo_dian" | "en_proceso" | "sin_cufe" | "esperando" | "facturado" | "ajustado" | "ajuste_no_cuadra" | "no_pagados";
-type TabKey = "facturado" | "por_facturar" | "dian" | "diferencias" | "notas";
 const TABS: { key: TabKey; label: string }[] = [
   { key: "facturado", label: "Facturado" },
   { key: "por_facturar", label: "Por facturar" },
@@ -79,12 +78,6 @@ const TAB_STYLE: Record<TabKey, { icon: typeof FileClock; text: string; bar: str
   dian: { icon: Landmark, text: "text-blue-600", bar: "bg-blue-500", badge: "bg-blue-100 text-blue-800", ring: "ring-blue-500" },
   diferencias: { icon: Scale, text: "text-violet-600", bar: "bg-violet-500", badge: "bg-violet-100 text-violet-800", ring: "ring-violet-500" },
   notas: { icon: ReceiptText, text: "text-slate-600", bar: "bg-slate-500", badge: "bg-slate-200 text-slate-800", ring: "ring-slate-500" },
-};
-const ESTADOS_TAB: Partial<Record<TabKey, string[]>> = {
-  facturado: ["Facturado"],
-  por_facturar: ["SIN ORDEN DE VENTA EN NETSUITE", "PENDIENTE POR FACTURAR", "Esperando despacho"],
-  dian: ["Emision en proceso", "Fallo la emision a DIAN"],
-  diferencias: ["Descuadre de valor", "Ajuste no cuadra", "Ajustado"],
 };
 type CausaSO = { pedido: string; causa: string | null; detalle: string | null };
 const CAUSA_STYLE: Record<string, { cls: string; icon: typeof Clock; corto: string }> = {
@@ -123,46 +116,13 @@ const comparar = (a: Row, b: Row, campo: SortKey, dir: SortDir) => {
   return dir === "asc" ? resultado : -resultado;
 };
 
-const CARD_ESTADO: Record<CardKey, (e: string) => boolean> = {
-  sin_ov: (e) => e === "SIN ORDEN DE VENTA EN NETSUITE",
-  pendiente: (e) => e === "PENDIENTE POR FACTURAR",
-  diferencia: (e) => e === "Descuadre de valor",
-  fallo_dian: (e) => e === "Fallo la emision a DIAN",
-  en_proceso: (e) => e === "Emision en proceso",
-  sin_cufe: (e) => e === "Emision en proceso" || e === "Fallo la emision a DIAN",
-  esperando: (e) => e === "Esperando despacho",
-  facturado: (e) => e === "Facturado",
-  ajustado: (e) => e === "Ajustado",
-  ajuste_no_cuadra: (e) => e === "Ajuste no cuadra",
-  no_pagados: (e) => e === "No pagados",
-};
-
-const ESTADO_POR_TARJETA: Record<CardKey, string> = {
-  sin_ov: "SIN ORDEN DE VENTA EN NETSUITE",
-  pendiente: "PENDIENTE POR FACTURAR",
-  diferencia: "Descuadre de valor",
-  fallo_dian: "Fallo la emision a DIAN",
-  en_proceso: "Emision en proceso",
-  sin_cufe: "Sin CUFE",
-  esperando: "Esperando despacho",
-  facturado: "Facturado",
-  ajustado: "Ajustado",
-  ajuste_no_cuadra: "Ajuste no cuadra",
-  no_pagados: "No pagados",
-};
-
-const ESTADOS_FILTRO = [
-  "SIN ORDEN DE VENTA EN NETSUITE", "PENDIENTE POR FACTURAR", "Esperando despacho", "Sin CUFE", "Emision en proceso", "Fallo la emision a DIAN", "Descuadre de valor",
-  "Anulado por nota credito", "Facturado", "Ajustado", "Ajuste no cuadra", "No pagados",
-];
-
 const hoyBogota = () => new Date().toLocaleDateString("en-CA", { timeZone: "America/Bogota" });
 const PAGE = 100;
 
 function badgeClass(e: string) {
   if (e === "PENDIENTE POR FACTURAR" || e === "Descuadre de valor") return "bg-destructive/10 text-destructive border-destructive/30";
   if (e === "Fallo la emision a DIAN" || e === "Emision en proceso") return "bg-amber-100 text-amber-800 border-amber-300";
-  if (e === "Esperando despacho" || e.startsWith("No facturable")) return "bg-muted text-muted-foreground border-border";
+  if (e === "Esperando despacho" || e.startsWith("No facturable") || esEstadoGiftCard(e)) return "bg-muted text-muted-foreground border-border";
   if (e === "Anulado por nota credito") return "bg-muted text-muted-foreground border-border";
   if (e === "Ajustado") return "bg-emerald-100 text-emerald-800 border-emerald-300";
   if (e === "Ajuste no cuadra") return "bg-destructive/10 text-destructive border-destructive/30";
@@ -460,7 +420,7 @@ export default function ReporteFacturacionPage() {
     if (estado) return (resumenQ.data ?? []).filter((r) => r.estado_facturacion === estado).reduce((a, r) => a + Number(r.pedidos ?? 0), 0);
     if (estadosTab) return (resumenQ.data ?? []).filter((r) => estadosTab.includes(r.estado_facturacion) && (!soloPend || r.estado_facturacion === "PENDIENTE POR FACTURAR")).reduce((a, r) => a + Number(r.pedidos ?? 0), 0);
     if (soloPend) return resumen.pendiente.n;
-    return (resumenQ.data ?? []).filter((r) => r.estado_facturacion !== "No pagados").reduce((a, r) => a + Number(r.pedidos ?? 0), 0);
+    return sumarPedidosVisibles(resumenQ.data ?? []);
   }, [resumen, resumenQ.data, cardFiltro, estado, soloPend, estadosTab]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const filasCargadas = q.data ?? [];
@@ -1066,7 +1026,7 @@ export default function ReporteFacturacionPage() {
                        <TableCell>
                          {(() => {
                            const c = e === "SIN ORDEN DE VENTA EN NETSUITE" && r.pedido ? causasMap.get(String(r.pedido)) : undefined;
-                           if (!c?.causa) return <span className={cn("inline-block max-w-full text-xs px-2 py-0.5 rounded border", badgeClass(e))}>{e}</span>;
+                           if (!c?.causa) return <span title={e} className={cn("inline-block max-w-full text-xs px-2 py-0.5 rounded border", badgeClass(e))}>{estadoBadgeTexto(e)}</span>;
                            const st = CAUSA_STYLE[c.causa] ?? { cls: "bg-muted text-muted-foreground border-border", icon: AlertTriangle };
                            const Ic = st.icon;
                            return (<>
