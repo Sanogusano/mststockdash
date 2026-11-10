@@ -1,5 +1,7 @@
 # Roadmap
 
+- [x] Actualizar Factura a y Comprador en las cuatro pestañas y elegir documento ambiguo en la vista previa NetSuite, conservando estados y controles existentes; probado con respuestas de prueba, pendiente creación real por la limitación de sesión ya registrada.
+
 - [x] Agregar creación de cliente NetSuite en Pendientes de Facturación: vista previa, confirmación, errores y recarga usando la función existente y controles compartidos.
 - [ ] Verificar creación NetSuite con sesión y datos reales: Supabase externo sin sesión disponible; no se ejecutan creaciones reales sin revisión del cliente.
 

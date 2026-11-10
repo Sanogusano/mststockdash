@@ -10,3 +10,4 @@
 - Wholesale receivables isolate current balances and rolling monthly collections from period filters; each existing RPC has its own query/error state, with pure frontend totals, sorting and export mapping.
 - Wholesale RFM shares a seller-keyed query and pure aggregation/filter helpers across the executive panel and customer tab; segment classifications come from the existing RPC, not duplicated frontend thresholds.
 - NetSuite customer creation uses a preview/confirmation flow invoking the existing edge function; its response owns customer data and order-state updates, avoiding frontend writes for this action.
+- Document conflicts in NetSuite creation require a fresh preview with the chosen document, and confirmation reuses that choice; table document sources come from the supplied billing fields.

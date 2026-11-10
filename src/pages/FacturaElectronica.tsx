@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
@@ -19,7 +20,7 @@ import { LoadingState } from "@/components/dashboard/LoadingState";
 import { useUserRole } from "@/hooks/useUserRole";
 import { cn } from "@/lib/utils";
 import { ALERTA_LABEL, Alerta, calcularAlerta, filtrarFacturas, ordenarPorAlerta, ORIGEN_LABEL, origenTexto } from "@/lib/factura-electronica";
-import { avisosClienteNetSuite, camposClienteNetSuite, ClienteNetSuiteRespuesta, erroresClienteNetSuite, puedeCrearClienteNetSuite } from "@/lib/netsuite-cliente";
+import { avisosClienteNetSuite, camposClienteNetSuite, ClienteNetSuiteRespuesta, erroresClienteNetSuite, fuenteDocumentoNetSuite, opcionesDocumentoNetSuite, puedeCrearClienteNetSuite } from "@/lib/netsuite-cliente";
 
 type Estado = "pendiente" | "cliente_creado" | "facturado" | "facturado_mostrador";
 type OrigenFiltro = "etiqueta" | "auto_registrado";
@@ -28,6 +29,9 @@ type Row = {
   pedido: string | null;
   razon_social: string | null;
   documento: string | null;
+  doc_factura: string | null;
+  doc_fuente: string | null;
+  doc_casi_igual: boolean | null;
   documento_direccion: string | null;
   email: string | null;
   telefono: string | null;
@@ -71,6 +75,7 @@ export default function FacturaElectronicaPage() {
   const [sel, setSel] = useState<Set<string>>(new Set());
   const [clientePedido, setClientePedido] = useState<RowA | null>(null);
   const [clienteRespuesta, setClienteRespuesta] = useState<ClienteNetSuiteRespuesta | null>(null);
+  const [documentoElegido, setDocumentoElegido] = useState<string | null>(null);
   const [clienteError, setClienteError] = useState("");
   const [clienteCargando, setClienteCargando] = useState<"prueba" | "real" | null>(null);
   const avisosCliente = avisosClienteNetSuite(clienteRespuesta);
@@ -84,7 +89,7 @@ export default function FacturaElectronicaPage() {
       for (let from = 0; ; from += 1000) {
         const { data, error } = await (supabase as any)
           .from("pedido_factura_electronica")
-          .select("shopify_order_id,pedido,razon_social,documento,documento_direccion,email,telefono,direccion,departamento,ciudad,estado,registrado,capturado_en,origen,factura_tranid,factura_cliente")
+          .select("shopify_order_id,pedido,razon_social,documento,doc_factura,doc_fuente,doc_casi_igual,documento_direccion,email,telefono,direccion,departamento,ciudad,estado,registrado,capturado_en,origen,factura_tranid,factura_cliente")
           .range(from, from + 999);
         if (error) throw error;
         out.push(...(data ?? []));
@@ -111,9 +116,9 @@ export default function FacturaElectronicaPage() {
     return ordenarPorAlerta(f);
   }, [data, estado, q, esMostrador, origenFiltro]);
 
-  const invocarCliente = async (pedido: string, modo: "prueba" | "real"): Promise<ClienteNetSuiteRespuesta> => {
+  const invocarCliente = async (pedido: string, modo: "prueba" | "real", documento?: string | null): Promise<ClienteNetSuiteRespuesta> => {
     const { data: respuesta, error } = await supabase.functions.invoke("netsuite-crear", {
-      body: { accion: "cliente", pedido, modo },
+      body: { accion: "cliente", pedido, modo, ...(documento ? { documento_elegido: documento } : {}) },
     });
     if (error) {
       // Las funciones pueden devolver el detalle de negocio también con un HTTP de error.
@@ -131,6 +136,7 @@ export default function FacturaElectronicaPage() {
     if (!fila.pedido) { toast.error("El pedido no tiene número"); return; }
     setClientePedido(fila);
     setClienteRespuesta(null);
+    setDocumentoElegido(null);
     setClienteError("");
     setClienteCargando("prueba");
     try {
@@ -144,11 +150,28 @@ export default function FacturaElectronicaPage() {
     }
   };
 
+  const elegirDocumento = async (documento: string) => {
+    if (!puedeCrearCliente || !clientePedido?.pedido || clienteCargando) return;
+    setDocumentoElegido(documento);
+    setClienteRespuesta(null);
+    setClienteError("");
+    setClienteCargando("prueba");
+    try {
+      const respuesta = await invocarCliente(clientePedido.pedido, "prueba", documento);
+      setClienteRespuesta(respuesta);
+      setClienteError(erroresClienteNetSuite(respuesta));
+    } catch (error) {
+      setClienteError(error instanceof Error ? error.message : String(error));
+    } finally {
+      setClienteCargando(null);
+    }
+  };
+
   const confirmarCliente = async () => {
-    if (!puedeCrearCliente || !clientePedido?.pedido || clienteCargando || clienteError || erroresClienteNetSuite(clienteRespuesta)) return;
+    if (!puedeCrearCliente || !clientePedido?.pedido || clienteCargando || clienteError || clienteRespuesta?.cliente?.requiere_elegir || erroresClienteNetSuite(clienteRespuesta)) return;
     setClienteCargando("real");
     try {
-      const respuesta = await invocarCliente(clientePedido.pedido, "real");
+      const respuesta = await invocarCliente(clientePedido.pedido, "real", documentoElegido);
       if (!respuesta?.ok) {
         toast.error(String(respuesta?.error ?? "No se pudo crear el cliente en NetSuite"));
         return;
@@ -222,11 +245,11 @@ export default function FacturaElectronicaPage() {
   const exportar = () => {
     if (!filas.length) { toast.info("No hay datos para exportar"); return; }
     const header = esMostrador
-      ? ["Pedido", "Fecha", "Razón social", "Documento Qikify", "Documento Empresa", "Origen", "Factura", "Factura cliente"]
-      : ["Pedido", "Razón social", "Documento Qikify", "Documento dirección", "Alerta", "Email", "Teléfono", "Dirección", "Ciudad", "Departamento", "Estado"];
+      ? ["Pedido", "Fecha", "Razón social", "Factura a", "Comprador", "Origen", "Factura", "Factura cliente"]
+      : ["Pedido", "Razón social", "Factura a", "Comprador", "Alerta", "Email", "Teléfono", "Dirección", "Ciudad", "Departamento", "Estado"];
     const rows = esMostrador
-      ? filas.map((r) => [r.pedido ?? "", fmtFecha(r.capturado_en), r.razon_social ?? "", r.documento ?? "", r.documento_direccion ?? "", origenTexto(r.origen), r.factura_tranid ?? "", r.factura_cliente ?? ""])
-      : filas.map((r) => [r.pedido ?? "", r.razon_social ?? "", r.documento ?? "", r.documento_direccion ?? "", ALERTA_LABEL[r.alerta].slice(3), r.email ?? "", r.telefono ?? "", r.direccion ?? "", r.ciudad ?? "", r.departamento ?? "", ESTADO_LABEL[r.estado]]);
+      ? filas.map((r) => [r.pedido ?? "", fmtFecha(r.capturado_en), r.razon_social ?? "", r.doc_factura ?? "Sin documento", r.documento_direccion ?? "", origenTexto(r.origen), r.factura_tranid ?? "", r.factura_cliente ?? ""])
+      : filas.map((r) => [r.pedido ?? "", r.razon_social ?? "", r.doc_factura ?? "Sin documento", r.documento_direccion ?? "", ALERTA_LABEL[r.alerta].slice(3), r.email ?? "", r.telefono ?? "", r.direccion ?? "", r.ciudad ?? "", r.departamento ?? "", ESTADO_LABEL[r.estado]]);
     const ws = XLSX.utils.aoa_to_sheet([header, ...rows]);
     // Forzar texto en todas las celdas de datos (documentos y teléfonos no pierden ceros)
     for (let i = 1; i <= rows.length; i++) {
@@ -320,7 +343,7 @@ export default function FacturaElectronicaPage() {
                       <TableHeader>
                         <TableRow>
                           <TableHead>Pedido</TableHead><TableHead>Fecha</TableHead><TableHead>Razón social</TableHead>
-                          <TableHead>Documento (Qikify)</TableHead><TableHead>Documento (Empresa)</TableHead>
+                          <TableHead>Factura a</TableHead><TableHead>Comprador</TableHead>
                           <TableHead>Origen</TableHead><TableHead>Factura</TableHead><TableHead>Factura cliente</TableHead>
                         </TableRow>
                       </TableHeader>
@@ -332,7 +355,13 @@ export default function FacturaElectronicaPage() {
                             <TableCell className="font-medium">{r.pedido ?? "—"}</TableCell>
                             <TableCell className="text-xs whitespace-nowrap">{fmtFecha(r.capturado_en)}</TableCell>
                             <TableCell>{r.razon_social ?? "—"}</TableCell>
-                            <TableCell className="tabular-nums">{r.documento || <span className="text-muted-foreground">—</span>}</TableCell>
+                            <TableCell className="tabular-nums">
+                              <div className="flex flex-wrap items-center gap-1.5">
+                                {r.doc_factura ?? <span className="text-destructive">Sin documento</span>}
+                                {r.doc_fuente && <span className="text-[10px] text-muted-foreground">{fuenteDocumentoNetSuite(r.doc_fuente)}</span>}
+                                {r.doc_casi_igual && <span className="status-warning text-[10px] border rounded px-1.5 py-0.5">Revisar documento</span>}
+                              </div>
+                            </TableCell>
                             <TableCell className="tabular-nums">{r.documento_direccion || <span className="text-muted-foreground">—</span>}</TableCell>
                             <TableCell className="text-xs">{origenTexto(r.origen)}</TableCell>
                             <TableCell className="text-xs tabular-nums">{r.factura_tranid || <span className="text-muted-foreground">—</span>}</TableCell>
@@ -349,7 +378,7 @@ export default function FacturaElectronicaPage() {
                       <TableRow>
                         {puedeEditar && estado === "pendiente" && <TableHead className="w-8"><Checkbox checked={filas.length > 0 && filas.every((r) => sel.has(r.shopify_order_id))} onCheckedChange={(v) => setSel(v ? new Set(filas.slice(0, 100).map((r) => r.shopify_order_id)) : new Set())} /></TableHead>}
                         <TableHead>Alerta</TableHead><TableHead>Pedido</TableHead><TableHead>Razón social</TableHead>
-                        <TableHead>Documento (Qikify)</TableHead><TableHead>Documento (dirección)</TableHead>
+                        <TableHead>Factura a</TableHead><TableHead>Comprador</TableHead>
                         <TableHead>Ciudad / Departamento</TableHead><TableHead>Email</TableHead><TableHead>Teléfono</TableHead>
                         <TableHead>Fecha</TableHead><TableHead>Estado</TableHead>
                         {(puedeEditar || puedeCrearCliente) && <TableHead className="text-right">Acciones</TableHead>}
@@ -364,7 +393,13 @@ export default function FacturaElectronicaPage() {
                           <TableCell className="whitespace-nowrap text-xs">{ALERTA_LABEL[r.alerta]}</TableCell>
                           <TableCell className="font-medium">{r.pedido ?? "—"}</TableCell>
                           <TableCell>{r.razon_social ?? "—"}</TableCell>
-                          <TableCell className="tabular-nums">{r.documento || <span className="text-muted-foreground">—</span>}</TableCell>
+                          <TableCell className="tabular-nums">
+                              <div className="flex flex-wrap items-center gap-1.5">
+                                {r.doc_factura ?? <span className="text-destructive">Sin documento</span>}
+                                {r.doc_fuente && <span className="text-[10px] text-muted-foreground">{fuenteDocumentoNetSuite(r.doc_fuente)}</span>}
+                                {r.doc_casi_igual && <span className="status-warning text-[10px] border rounded px-1.5 py-0.5">Revisar documento</span>}
+                              </div>
+                            </TableCell>
                           <TableCell className={cn("tabular-nums", r.alerta === "sin_documento" && "font-medium text-foreground")}>{r.documento_direccion || <span className="text-muted-foreground">—</span>}</TableCell>
                           <TableCell className="text-xs">{[r.ciudad, r.departamento].filter(Boolean).join(" / ") || "—"}</TableCell>
                           <TableCell className="text-xs">{r.email ?? "—"}</TableCell>
@@ -406,7 +441,20 @@ export default function FacturaElectronicaPage() {
                 <div className="flex items-center gap-2 text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" />Consultando cliente…</div>
               ) : (
                 <div className="space-y-4">
-                  {clienteRespuesta?.cliente && (
+                  {clienteRespuesta?.cliente?.requiere_elegir && (
+                    <div className="space-y-3">
+                      <p className="text-sm">Qikify y Empresa casi iguales: elige el documento correcto</p>
+                      <RadioGroup aria-label="Documento correcto" value={documentoElegido ?? ""} onValueChange={elegirDocumento} disabled={clienteCargando !== null}>
+                        {opcionesDocumentoNetSuite(clienteRespuesta).map((opcion, index) => (
+                          <div key={`${opcion.documento}-${index}`} className="flex items-center gap-2">
+                            <RadioGroupItem id={`documento-${index}`} value={opcion.documento} />
+                            <Label htmlFor={`documento-${index}`} className="text-sm break-words">{opcion.label}</Label>
+                          </div>
+                        ))}
+                      </RadioGroup>
+                    </div>
+                  )}
+                  {clienteRespuesta?.cliente && !clienteRespuesta?.cliente?.requiere_elegir && (
                     <dl className="space-y-2 text-sm">
                       {camposClienteNetSuite(clienteRespuesta).map(([label, value, advertencia]) => (
                         <div key={label} className="grid grid-cols-3 gap-3"><dt className="text-muted-foreground">{label}</dt><dd className="col-span-2 break-words">{value}{advertencia && <span className="ml-1 text-amber-700">{advertencia}</span>}</dd></div>
@@ -420,7 +468,7 @@ export default function FacturaElectronicaPage() {
               )}
               <DialogFooter>
                 <Button variant="outline" disabled={clienteCargando !== null} onClick={() => setClientePedido(null)}>Cancelar</Button>
-                <Button disabled={clienteCargando !== null || !!clienteError || !!erroresClienteNetSuite(clienteRespuesta) || !puedeCrearCliente} onClick={confirmarCliente}>
+                <Button disabled={clienteCargando !== null || !!clienteError || !!erroresClienteNetSuite(clienteRespuesta) || !!clienteRespuesta?.cliente?.requiere_elegir || !puedeCrearCliente} onClick={confirmarCliente}>
                   {clienteCargando === "real" && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}
                   {clienteCargando === "real" ? "Guardando…" : clienteRespuesta?.cliente?.existe ? "Marcar como registrado" : "Confirmar"}
                 </Button>

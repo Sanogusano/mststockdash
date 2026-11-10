@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen, waitFor, cleanup } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import FacturaElectronicaPage from "@/pages/FacturaElectronica";
-import { avisosClienteNetSuite, camposClienteNetSuite, ClienteNetSuiteRespuesta, erroresClienteNetSuite, puedeCrearClienteNetSuite } from "@/lib/netsuite-cliente";
+import { avisosClienteNetSuite, camposClienteNetSuite, ClienteNetSuiteRespuesta, erroresClienteNetSuite, fuenteDocumentoNetSuite, opcionesDocumentoNetSuite, puedeCrearClienteNetSuite } from "@/lib/netsuite-cliente";
 
 const mocks = vi.hoisted(() => ({ role: "admin", invoke: vi.fn(), read: vi.fn(), success: vi.fn(), error: vi.fn() }));
 vi.mock("@/hooks/useUserRole", () => ({ useUserRole: () => ({ role: mocks.role, isAdmin: mocks.role === "admin" }) }));
@@ -104,6 +104,30 @@ describe("avisos de la dirección", () => {
 });
 
 describe("flujo de creación", () => {
+  it("requiere elegir antes de crear y conserva el documento en prueba y real", async () => {
+    mocks.invoke.mockResolvedValueOnce({ data: { cliente: { requiere_elegir: true, opciones: [{ fuente: "qikify", documento: "123456789" }, { fuente: "empresa", documento: "123456788" }] } }, error: null });
+    mount();
+    fireEvent.click(await screen.findByRole("button", { name: "Crear cliente en NetSuite" }));
+    const opcion = await screen.findByRole("radio", { name: "Shopify: 123456788" });
+    expect(screen.getByRole("button", { name: "Confirmar" })).toBeDisabled();
+    expect(mocks.invoke).toHaveBeenCalledTimes(1);
+    fireEvent.click(opcion);
+    await screen.findByText("Ana Prueba");
+    expect(mocks.invoke).toHaveBeenLastCalledWith("netsuite-crear", { body: { accion: "cliente", pedido: "#1234", modo: "prueba", documento_elegido: "123456788" } });
+    mocks.invoke.mockResolvedValueOnce({ data: { ok: true }, error: null });
+    fireEvent.click(screen.getByRole("button", { name: "Confirmar" }));
+    await waitFor(() => expect(mocks.invoke).toHaveBeenLastCalledWith("netsuite-crear", { body: { accion: "cliente", pedido: "#1234", modo: "real", documento_elegido: "123456788" } }));
+  });
+  it("no crea si la nueva vista previa del documento elegido falla", async () => {
+    mocks.invoke.mockResolvedValueOnce({ data: { cliente: { requiere_elegir: true, opciones: ["123456789"] } }, error: null });
+    mount();
+    fireEvent.click(await screen.findByRole("button", { name: "Crear cliente en NetSuite" }));
+    mocks.invoke.mockResolvedValueOnce({ data: { error: "Documento inválido" }, error: null });
+    fireEvent.click(await screen.findByRole("radio", { name: "123456789" }));
+    await screen.findByRole("alert");
+    expect(screen.getByRole("button", { name: "Confirmar" })).toBeDisabled();
+    expect(mocks.invoke).toHaveBeenCalledTimes(2);
+  });
   it("consulta en prueba y solo crea en real al confirmar; recarga la lista", async () => {
     mount();
     fireEvent.click(await screen.findByRole("button", { name: "Crear cliente en NetSuite" }));
@@ -157,5 +181,21 @@ describe("flujo de creación", () => {
     expect(await screen.findByText("110111")).toBeInTheDocument();
     expect(await screen.findByText("(corregido, original: 110001)")).toHaveClass("text-amber-700");
     expect(await screen.findByText(/Dirección incompleta/)).toBeInTheDocument();
+  });
+});
+
+describe("documento y tipo de la vista previa", () => {
+  it.each([["qikify", "Qikify"], ["empresa", "Shopify"], [undefined, "—"]])("mapea origen %s", (fuente, label) => {
+    expect(fuenteDocumentoNetSuite(fuente)).toBe(label);
+  });
+  it.each([["persona", "Persona"], ["empresa", "Empresa"]])("mapea tipo %s", (tipo, label) => {
+    expect(camposClienteNetSuite({ cliente: { tipo, doc_fuente: "qikify", payload: {} } })).toContainEqual(["Tipo", label]);
+    expect(camposClienteNetSuite({ cliente: { tipo, doc_fuente: "qikify", payload: {} } })).toContainEqual(["Origen del documento", "Qikify"]);
+  });
+  it("acepta respuesta de elección sin payload y conserva sus documentos", () => {
+    const respuesta = { cliente: { requiere_elegir: true, opciones: [{ documento: "123", doc_fuente: "qikify" }, "456"] } };
+    expect(erroresClienteNetSuite(respuesta)).toBe("");
+    expect(opcionesDocumentoNetSuite(respuesta)).toEqual([{ documento: "123", label: "Qikify: 123" }, { documento: "456", label: "456" }]);
+    expect(opcionesDocumentoNetSuite(null)).toEqual([]);
   });
 });

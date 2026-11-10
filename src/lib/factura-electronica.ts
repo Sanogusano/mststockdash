@@ -45,6 +45,7 @@ export type FilaFactura = {
   pedido: string | null;
   razon_social: string | null;
   documento: string | null;
+  doc_factura?: string | null;
   documento_direccion: string | null;
 };
 
@@ -67,7 +68,7 @@ export function filtrarFacturas<T extends FilaFactura>(
     return (
       (r.pedido ?? "").toLowerCase().includes(t) ||
       (r.razon_social ?? "").toLowerCase().includes(t) ||
-      (!!td && (soloDigitos(r.documento).includes(td) || soloDigitos(r.documento_direccion).includes(td)))
+      (!!td && (soloDigitos(r.documento).includes(td) || soloDigitos(r.doc_factura).includes(td) || soloDigitos(r.documento_direccion).includes(td)))
     );
   });
 }

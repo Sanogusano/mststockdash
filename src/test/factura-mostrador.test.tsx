@@ -1,5 +1,5 @@
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
-import { fireEvent, render, screen, waitFor, cleanup } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, cleanup, within } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import FacturaElectronicaPage from "@/pages/FacturaElectronica";
 import { filtrarFacturas, ORIGEN_LABEL, origenTexto } from "@/lib/factura-electronica";
@@ -73,6 +73,10 @@ describe("etiqueta de origen", () => {
 });
 
 describe("filtrarFacturas", () => {
+  it("encuentra el documento de facturación sin depender del documento original", () => {
+    const rows = [fila("D1", "pendiente", "etiqueta", { doc_factura: "987654321", documento: "111", documento_direccion: "222" })];
+    expect(filtrarFacturas(rows, "pendiente", null, "987654321").map((r) => r.pedido)).toEqual(["#D1"]);
+  });
   const base = [
     { estado: "pendiente", origen: "etiqueta", pedido: "#P1", razon_social: "Uno", documento: "123", documento_direccion: "123" },
     { estado: "facturado_mostrador", origen: "etiqueta", pedido: "#M1", razon_social: "Dos", documento: "123", documento_direccion: "123" },
@@ -95,6 +99,24 @@ describe("filtrarFacturas", () => {
   it("la búsqueda casa pedido, razón social y documento", () => {
     expect(filtrarFacturas(base, "facturado_mostrador", null, "dos").map((r) => r.pedido)).toEqual(["#M1"]);
     expect(filtrarFacturas(base, "facturado_mostrador", null, "999").map((r) => r.pedido)).toEqual(["#M2"]);
+  });
+});
+
+describe("documentos de las cuatro pestañas", () => {
+  it.each([
+    ["pendiente", "Pendientes"],
+    ["cliente_creado", "Cliente creado"],
+    ["facturado", "Facturados"],
+    ["facturado_mostrador", "Facturado a Cliente Mostrador"],
+  ])("usa doc_factura y documento_direccion en %s", async (estado, tarjeta) => {
+    mocks.read.mockResolvedValue({ data: [fila("DOC", estado, "etiqueta", { documento: "111000", doc_factura: "900123456", doc_fuente: "qikify", documento_direccion: "800654321", doc_casi_igual: true })], error: null });
+    mount();
+    fireEvent.click(await screen.findByRole("button", { name: new RegExp(`^${tarjeta}`) }));
+    const row = (await screen.findByText("#DOC")).closest("tr");
+    if (!row) throw new Error("No se encontró el pedido");
+    expect(within(row).getByText("900123456")).toBeInTheDocument();
+    expect(within(row).getByText("800654321")).toBeInTheDocument();
+    expect(within(row).queryByText("111000")).not.toBeInTheDocument();
   });
 });
 
