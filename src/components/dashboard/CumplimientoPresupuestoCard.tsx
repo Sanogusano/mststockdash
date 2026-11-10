@@ -14,7 +14,7 @@ interface Props {
   venta: number;
   universo: string;
   preserveTotal?: boolean;
-  supplied?: { meta: number | null; porcentaje: number | null };
+  supplied?: { meta: number | null; porcentaje: number | null; porcentajeALaFecha?: number | null };
 }
 
 export function CumplimientoPresupuestoCard({ desde, hasta, zona, canal, locationId, channels, venta, universo, preserveTotal = false, supplied }: Props) {
@@ -87,6 +87,7 @@ export function CumplimientoPresupuestoCard({ desde, hasta, zona, canal, locatio
       <div className="col-span-2 min-w-0 grid grid-cols-[minmax(0,1fr)_auto] sm:flex sm:flex-wrap sm:justify-start gap-x-3 gap-y-1 text-sm sm:text-xs tabular-nums">
         <span className="min-w-0 text-muted-foreground"><span className="block text-xs sm:inline">{universo}<span className="hidden sm:inline"> · </span></span><span className="font-medium text-foreground">{formatKpiMoney(venta)}</span>{pct != null && ` de ${formatKpiMoney(meta)}`}</span>
         {pct != null && <span className={`self-end max-w-[110px] sm:max-w-none text-right ${cumplio ? "text-success" : "text-muted-foreground"}`}>{cumplio ? `+${formatKpiMoney(diferencia)} sobre meta` : `Faltan ${formatKpiMoney(-diferencia)}`}</span>}
+        {supplied?.porcentajeALaFecha != null && <span className="text-muted-foreground">A la fecha: {supplied.porcentajeALaFecha.toLocaleString("es-CO", { maximumFractionDigits: 1 })}%</span>}
       </div>
     </div>
   );

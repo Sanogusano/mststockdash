@@ -24,7 +24,7 @@ interface DetailRow { coleccion: string; categoria: string; unidades: number; }
 
 interface Props {
   days: number;
-  supplied?: { title: string; items: { name: string; value: number; pct: number; detail?: string }[] };
+  supplied?: { title: string; items: { name: string; value: number; pct: number; detail?: string; onClick?: () => void }[] };
   canal?: string | null;
   locationId?: string | null;
   zona?: string | null;
@@ -106,13 +106,14 @@ export function CollectionCompositionCard({ days, canal, locationId, zona, custo
             const isOpen = expanded === r.name;
             const subs = detailByCollection[r.name];
             const hasSubs = subs && subs.length > 0;
+            const onItem = (r as { onClick?: () => void }).onClick;
 
             return (
               <div key={i}>
                 <button
-                  onClick={() => hasSubs && toggleExpand(r.name)}
+                  onClick={() => onItem ? onItem() : hasSubs && toggleExpand(r.name)}
                   className={`flex items-center justify-between text-xs gap-2 w-full py-1.5 px-1 rounded transition-colors ${
-                    hasSubs ? "hover:bg-muted/40 cursor-pointer" : "cursor-default"
+                    hasSubs || onItem ? "hover:bg-muted/40 cursor-pointer" : "cursor-default"
                   } ${isOpen ? "bg-muted/30" : ""}`}
                 >
                   <div className="flex items-center gap-2 min-w-0">

@@ -1,8 +1,9 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { DollarSign, Package, Receipt, Users, Trophy, Layers, Download, Target } from "lucide-react";
-import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip } from "recharts";
+import { DollarSign, Package, Receipt, Users, Trophy, Download, Banknote, TrendingUp, Percent, ClipboardList } from "lucide-react";
+import { CumplimientoPresupuestoCard } from "@/components/dashboard/CumplimientoPresupuestoCard";
+import { CollectionCompositionCard } from "@/components/dashboard/CollectionCompositionCard";
 import { KpiCard, ComparisonIndicator, CommercialSectionHeader } from "@/components/dashboard/ExecutivePresentation";
 import { StoreRow, StoreLeaderboard } from "@/components/dashboard/StoreLeaderboard";
 import { CollectionBadge } from "@/components/dashboard/CollectionBadge";
@@ -18,13 +19,6 @@ import { TablaCard, TablaTh, VendedoraSelect } from "@/components/mayoristas/May
 import { cn } from "@/lib/utils";
 
 const TXT: Record<Semaforo, string> = { verde: "text-success", ambar: "text-warning", rojo: "text-danger", neutro: "text-muted-foreground" };
-
-const COMP_COLORS = [
-  "hsl(220,70%,55%)", "hsl(160,55%,45%)", "hsl(330,65%,55%)",
-  "hsl(38,85%,55%)", "hsl(260,60%,55%)", "hsl(0,65%,55%)",
-  "hsl(190,60%,45%)", "hsl(280,50%,55%)", "hsl(45,80%,50%)", "hsl(300,40%,60%)",
-  "hsl(220,10%,65%)",
-];
 
 interface CanalRow {
   venta: number; unidades: number; facturas: number; clientes: number; ticket: number;
@@ -87,54 +81,6 @@ const TRAMO_BG: Record<string, string> = {
   "Sin pedido 120 días": "bg-[color:color-mix(in_srgb,hsl(var(--warning)),hsl(var(--danger)))]",
   Perdido: "bg-danger",
 };
-
-function MetaCard({ c, pendValor, pendCount, pendError, pendLoading, mostrarAnuladas, onVerOrdenes }: {
-  c: CanalRow; pendValor: number; pendCount: number; pendError: unknown; pendLoading: boolean; mostrarAnuladas: boolean; onVerOrdenes: () => void;
-}) {
-  const venta = Number(c.venta);
-  const meta = c.meta == null ? 0 : Number(c.meta);
-  const pend = pendError ? 0 : pendValor;
-  const proy = venta + pend;
-  const base = Math.max(meta, proy, 1);
-  const wFact = (venta / base) * 100;
-  const wPend = (pend / base) * 100;
-  const pctMeta = (v: number) => (meta > 0 ? fmtPct((v / meta) * 100) : "sin meta");
-  const esperado = meta > 0 && c.meta_a_la_fecha != null ? Math.min((Number(c.meta_a_la_fecha) / base) * 100, 100) : null;
-  const cifra = (label: string, valor: React.ReactNode, detalle: React.ReactNode) => (
-    <div className="min-w-0">
-      <p className="text-xs text-muted-foreground">{label}</p>
-      <p className="text-2xl font-bold tabular-nums text-foreground whitespace-nowrap">{valor}</p>
-      <p className="text-xs text-muted-foreground whitespace-nowrap">{detalle}</p>
-    </div>
-  );
-  return (
-    <div className="rounded-xl border border-border bg-card p-4 min-w-0">
-      <div className="flex items-start gap-2 mb-4">
-        <Target className="h-4 w-4 text-primary mt-0.5" />
-        <div className="min-w-0">
-          <h3 className="text-sm font-semibold text-foreground">Meta del mes</h3>
-          <p className="text-xs text-muted-foreground">{meta > 0 ? `Meta ${fmtMonto(meta)}` : "Sin meta"}</p>
-        </div>
-        <button type="button" onClick={onVerOrdenes} className="ml-auto text-xs text-primary font-medium hover:underline whitespace-nowrap">Ver órdenes →</button>
-      </div>
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
-        {cifra("Facturado", fmtMonto(venta), `(${pctMeta(venta)})`)}
-        {cifra("Por facturar", pendError ? <span className="text-destructive text-base">No disponible</span> : pendLoading ? "…" : fmtMonto(pend), pendError || pendLoading ? "" : `(${fmtNum(pendCount)} órdenes)`)}
-        {cifra("Proyección", pendLoading ? "…" : fmtMonto(proy), `(${pctMeta(proy)})`)}
-      </div>
-      <div className="relative pt-5">
-        {esperado != null && <div className="absolute top-0 text-[10px] text-muted-foreground whitespace-nowrap -translate-x-1/2" style={{ left: `clamp(2.5rem, ${esperado}%, calc(100% - 2.5rem))` }}>Esperado a hoy</div>}
-        <div className="relative h-4 w-full overflow-hidden rounded-full bg-muted">
-          <div className="absolute inset-y-0 left-0 bg-primary" style={{ width: `${wFact}%` }} />
-          <div className="absolute inset-y-0 bg-primary/30" style={{ left: `${wFact}%`, width: `${wPend}%` }} />
-          {esperado != null && <div className="absolute inset-y-0 w-0.5 bg-foreground/70" style={{ left: `calc(${esperado}% - 1px)` }} />}
-        </div>
-      </div>
-      {mostrarAnuladas && Number(c.facturas_anuladas) > 0 && <p className="mt-2 text-xs text-muted-foreground">{fmtNum(c.facturas_anuladas)} factura(s) anulada(s) excluidas</p>}
-      {pendError ? <div className="mt-2"><ConsultaError error={pendError} /></div> : null}
-    </div>
-  );
-}
 
 type Drill =
   | { tipo: "facturas" }
@@ -460,11 +406,11 @@ function PendientesSheet({ vendedor, onClose }: { vendedor: string | null; onClo
   );
 }
 
-function ComposicionCard({ desde, hasta, vendedor, dimension, label, onSelect }: {
+/** Mapeo de datos: alimenta CollectionCompositionCard con la composición mayorista. */
+function ComposicionDimension({ desde, hasta, vendedor, dimension, label, onSelect }: {
   desde: string | null; hasta: string | null; vendedor: string | null;
   dimension: Dimension; label: string; onSelect: (grupo: string) => void;
 }) {
-  const [modo, setModo] = useState<"unidades" | "valor">("unidades");
   const compQ = useQuery({
     queryKey: ["mayoristas-composicion", desde, hasta, vendedor, dimension],
     enabled: !!desde && !!hasta && desde <= hasta,
@@ -479,57 +425,10 @@ function ComposicionCard({ desde, hasta, vendedor, dimension, label, onSelect }:
   if (compQ.error) return <ConsultaError error={compQ.error} />;
   if (compQ.isLoading) return <LoadingState />;
   if (!rows.length) return <EmptyState message={`${label} · Sin datos para el periodo.`} />;
-  const items = rows.map(r => ({
-    name: r.grupo,
-    value: modo === "unidades" ? Number(r.unidades) : Number(r.venta),
-    pct: modo === "unidades" ? Number(r.pct_unidades) : Number(r.pct_venta),
-    uds: Number(r.unidades),
-    venta: Number(r.venta),
-  }));
-  const total = items.reduce((s, r) => s + r.value, 0);
-  return (
-    <div className="glass-card p-5">
-      <div className="flex items-center gap-2 mb-4 flex-wrap">
-        <Layers className="h-4 w-4 text-primary" />
-        <h3 className="text-sm font-semibold text-foreground">{label}</h3>
-        <div className="ml-auto flex items-center rounded-lg border border-border overflow-hidden">
-          {(["unidades", "valor"] as const).map(m => (
-            <button key={m} type="button" onClick={() => setModo(m)}
-              className={`px-2.5 py-1 text-xs font-medium transition-colors ${modo === m ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}>
-              {m === "unidades" ? "Unidades" : "Valor"}
-            </button>
-          ))}
-        </div>
-      </div>
-      <div className="flex flex-col items-start gap-4">
-        <ResponsiveContainer width={140} height={140} className="shrink-0">
-          <PieChart>
-            <Pie data={items} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={40} outerRadius={70} paddingAngle={2} strokeWidth={0}>
-              {items.map((r, i) => (
-                <Cell key={r.name} fill={COMP_COLORS[i % COMP_COLORS.length]} className="cursor-pointer" onClick={() => onSelect(r.name)} />
-              ))}
-            </Pie>
-            <Tooltip formatter={(v: number, name: string) => [modo === "unidades" ? `${v.toLocaleString("es-CO")} uds` : fmtMonto(v), name]} />
-          </PieChart>
-        </ResponsiveContainer>
-        <div className="flex-1 space-y-0.5 max-h-[280px] overflow-y-auto w-full">
-          {items.map((r, i) => (
-            <button key={r.name} type="button" onClick={() => onSelect(r.name)}
-              className="flex items-center justify-between text-xs gap-2 w-full py-1.5 px-1 rounded transition-colors hover:bg-muted/40 cursor-pointer">
-              <div className="flex items-center gap-2 min-w-0">
-                <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: COMP_COLORS[i % COMP_COLORS.length] }} />
-                <span className="text-foreground font-medium truncate max-w-[140px]">{r.name}</span>
-              </div>
-              <span className="text-muted-foreground shrink-0 whitespace-nowrap">
-                {fmtNum(r.uds)} uds · {fmtMonto(r.venta)} · <span className="text-foreground font-mono font-semibold">{r.pct.toFixed(1)}%</span>
-              </span>
-            </button>
-          ))}
-        </div>
-        <p className="text-xs text-muted-foreground">{modo === "unidades" ? `${total.toLocaleString("es-CO")} uds totales` : `${fmtMonto(total)} en venta`}</p>
-      </div>
-    </div>
-  );
+  return <CollectionCompositionCard days={0} supplied={{
+    title: label,
+    items: rows.map(r => ({ name: r.grupo, value: Number(r.unidades), pct: Number(r.pct_unidades), detail: fmtMonto(r.venta), onClick: () => onSelect(r.grupo) })),
+  }} />;
 }
 
 export function MayoristasPanel({ desde, hasta }: { desde: string | null; hasta: string | null }) {
@@ -611,39 +510,38 @@ export function MayoristasPanel({ desde, hasta }: { desde: string | null; hasta:
         </CommercialSectionHeader>
         <p className="text-xs text-muted-foreground mb-4">Venta neta sin IVA · fuente: facturas NetSuite</p>
         {cError ? <ConsultaError error={cError} /> : cLoading ? <LoadingState /> : c ? <>
-          <MetaCard c={c} pendValor={pendValor} pendCount={pendientes.length} pendError={pendQ.error} pendLoading={pendQ.isLoading} mostrarAnuladas={!vendedor} onVerOrdenes={() => setDrill({ tipo: "pendientes" })} />
-          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mt-4">
+          <CumplimientoPresupuestoCard desde={desde ?? ""} hasta={hasta ?? ""} channels={[]} venta={Number(c.venta)} universo={vendedor ? tituloNombre(selRow?.vendedora ?? "Asesora") : "Mayoristas"}
+            supplied={{ meta: c.meta == null ? null : Number(c.meta), porcentaje: c.cumplimiento == null ? null : Number(c.cumplimiento), porcentajeALaFecha: c.cumplimiento_a_la_fecha == null ? null : Number(c.cumplimiento_a_la_fecha) }} />
+          {!vendedor && Number(c.facturas_anuladas) > 0 && <p className="mt-2 text-xs text-muted-foreground">{fmtNum(c.facturas_anuladas)} factura(s) anulada(s) excluidas</p>}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-4">
             <KpiCard label="Ventas Netas" value={fmtMonto(c.venta)} icon={DollarSign} onClick={() => setDrill({ tipo: "facturas" })}>
               {c.var_ant != null && <ComparisonIndicator actual={0} anterior={0} percentage={Number(c.var_ant)} label="vs ant." />}
-              <p className="text-xs text-primary mt-1">Ver facturas</p>
+              <p className="text-xs text-primary mt-1">Ver detalle</p>
             </KpiCard>
             <KpiCard label="Unidades vendidas" value={fmtNum(c.unidades)} icon={Package} onClick={() => setDrill({ tipo: "unidades" })}>
-              <p className="text-xs text-primary mt-1">Ver productos</p>
+              <p className="text-xs text-primary mt-1">Ver detalle</p>
             </KpiCard>
             <KpiCard label="Clientes activos" value={fmtNum(c.clientes)} icon={Users} onClick={() => setDrill({ tipo: "clientes" })}>
-              <p className="text-xs text-primary mt-1">Ver clientes</p>
+              <p className="text-xs text-primary mt-1">Ver detalle</p>
             </KpiCard>
             <KpiCard label="Ticket promedio" value={fmtMonto(c.ticket)} icon={Receipt} />
+            <KpiCard label="Precio promedio" value={ind ? fmtMonto(ind.precio_promedio) : "—"} icon={Banknote}>
+              {ind && ind.precio_promedio_ant != null && Number(ind.precio_promedio_ant) > 0 && <ComparisonIndicator actual={0} anterior={0} percentage={((Number(ind.precio_promedio) - Number(ind.precio_promedio_ant)) / Number(ind.precio_promedio_ant)) * 100} label="vs ant." />}
+            </KpiCard>
+            <KpiCard label="Margen bruto" value={ind ? fmtPct(ind.margen_pct) : "—"} icon={TrendingUp}>
+              {ind && ind.margen_pct_ant != null && <ComparisonIndicator actual={0} anterior={0} percentage={Number(ind.margen_pct) - Number(ind.margen_pct_ant)} points label="vs ant." />}
+            </KpiCard>
+            <KpiCard label="Descuento comercial" value={ind ? fmtPct(ind.descuento_comercial_pct) : "—"} icon={Percent}>
+              {ind && ind.descuento_comercial_pct_ant != null && <ComparisonIndicator actual={0} anterior={0} percentage={Number(ind.descuento_comercial_pct) - Number(ind.descuento_comercial_pct_ant)} points invert label="vs ant." />}
+            </KpiCard>
+            <KpiCard label="Pedidos por facturar" value={pendQ.error ? "—" : pendQ.isLoading ? "…" : fmtMonto(pendValor)} icon={ClipboardList} onClick={() => setDrill({ tipo: "pendientes" })}>
+              <p className="text-xs text-muted-foreground">{fmtNum(pendientes.length)} órdenes abiertas</p>
+              <p className="text-xs text-primary mt-1">Ver detalle</p>
+            </KpiCard>
           </div>
+          {pendQ.error ? <div className="mt-3"><ConsultaError error={pendQ.error} /></div> : null}
+          {indQ.error ? <div className="mt-3"><ConsultaError error={indQ.error} /></div> : null}
         </> : <EmptyState message="Sin datos para el periodo." />}
-        {indQ.error ? <div className="mt-3"><ConsultaError error={indQ.error} /></div> : indQ.isLoading ? null : ind && (
-          <div className="mt-4 border-t border-border pt-3">
-            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Calidad de la venta</p>
-            <div className="grid grid-cols-3 gap-3">
-              {[
-                { label: "Precio promedio", value: fmtMonto(ind.precio_promedio), cmp: ind.precio_promedio_ant != null && Number(ind.precio_promedio_ant) > 0 && <ComparisonIndicator actual={0} anterior={0} percentage={((Number(ind.precio_promedio) - Number(ind.precio_promedio_ant)) / Number(ind.precio_promedio_ant)) * 100} label="vs ant." /> },
-                { label: "Margen bruto", value: fmtPct(ind.margen_pct), cmp: ind.margen_pct_ant != null && <ComparisonIndicator actual={0} anterior={0} percentage={Number(ind.margen_pct) - Number(ind.margen_pct_ant)} points label="vs ant." /> },
-                { label: "Descuento comercial", value: fmtPct(ind.descuento_comercial_pct), cmp: ind.descuento_comercial_pct_ant != null && <ComparisonIndicator actual={0} anterior={0} percentage={Number(ind.descuento_comercial_pct) - Number(ind.descuento_comercial_pct_ant)} points invert label="vs ant." /> },
-              ].map(k => (
-                <div key={k.label} className="min-w-0">
-                  <p className="text-xs text-muted-foreground whitespace-nowrap truncate">{k.label}</p>
-                  <p className="text-base font-semibold text-foreground tabular-nums whitespace-nowrap">{k.value}</p>
-                  <div className="whitespace-nowrap">{k.cmp}</div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
       </div>
 
       {vendQ.error ? <ConsultaError error={vendQ.error} /> : vendQ.isLoading ? <LoadingState /> : <div className="glass-card overflow-hidden">
@@ -661,7 +559,7 @@ export function MayoristasPanel({ desde, hasta }: { desde: string | null; hasta:
 
       <section className="space-y-3">
         <h2 className="text-sm font-semibold text-foreground">Composición de la venta</h2>
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">{DIMENSIONES.map(d => <ComposicionCard key={d.id} desde={desde} hasta={hasta} vendedor={vendedor} dimension={d.id} label={d.label} onSelect={(grupo) => setDrill({ tipo: "composicion", dimension: d.id, grupo, label: d.label })} />)}</div>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">{DIMENSIONES.map(d => <ComposicionDimension key={d.id} desde={desde} hasta={hasta} vendedor={vendedor} dimension={d.id} label={d.label} onSelect={(grupo) => setDrill({ tipo: "composicion", dimension: d.id, grupo, label: d.label })} />)}</div>
       </section>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 min-w-0">
