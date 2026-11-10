@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen, waitFor, cleanup } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import FacturaElectronicaPage from "@/pages/FacturaElectronica";
-import { camposClienteNetSuite, ClienteNetSuiteRespuesta, erroresClienteNetSuite, puedeCrearClienteNetSuite } from "@/lib/netsuite-cliente";
+import { avisosClienteNetSuite, camposClienteNetSuite, ClienteNetSuiteRespuesta, erroresClienteNetSuite, puedeCrearClienteNetSuite } from "@/lib/netsuite-cliente";
 
 const mocks = vi.hoisted(() => ({ role: "admin", invoke: vi.fn(), read: vi.fn(), success: vi.fn(), error: vi.fn() }));
 vi.mock("@/hooks/useUserRole", () => ({ useUserRole: () => ({ role: mocks.role, isAdmin: mocks.role === "admin" }) }));
@@ -72,6 +72,34 @@ describe("mapeo de los datos del cliente NetSuite", () => {
     expect(campos).toContainEqual(["Nombre", "—"]);
     expect(campos).toContainEqual(["Dirección", "—"]);
     expect(campos).toContainEqual(["Ciudad", "—"]);
+    expect(campos).toContainEqual(["Código postal", "—"]);
+  });
+  it("agrega el código postal de cliente.direccion.zip", () => {
+    const respuesta: ClienteNetSuiteRespuesta = { cliente: { tipo: "persona", payload: {}, direccion: { zip: "110111" } } };
+    expect(camposClienteNetSuite(respuesta)).toContainEqual(["Código postal", "110111"]);
+  });
+  it("anota el código corregido con su original", () => {
+    const respuesta: ClienteNetSuiteRespuesta = { cliente: { tipo: "persona", payload: {}, direccion: { zip: "110111", zip_corregido: true, zip_original: "110001" } } };
+    expect(camposClienteNetSuite(respuesta)).toContainEqual(["Código postal", "110111", "(corregido, original: 110001)"]);
+  });
+  it("dice vacío cuando el código original no viene", () => {
+    const respuesta: ClienteNetSuiteRespuesta = { cliente: { tipo: "persona", payload: {}, direccion: { zip: "110111", zip_corregido: true, zip_original: "" } } };
+    expect(camposClienteNetSuite(respuesta)).toContainEqual(["Código postal", "110111", "(corregido, original: vacío)"]);
+  });
+});
+
+describe("avisos de la dirección", () => {
+  it("devuelve los avisos de cliente.direccion.avisos", () => {
+    const respuesta: ClienteNetSuiteRespuesta = { cliente: { payload: {}, direccion: { avisos: ["Dirección incompleta", "ZIP ajustado"] } } };
+    expect(avisosClienteNetSuite(respuesta)).toEqual(["Dirección incompleta", "ZIP ajustado"]);
+  });
+  it("no devuelve avisos cuando no hay dirección o no es lista", () => {
+    expect(avisosClienteNetSuite(preview)).toEqual([]);
+    expect(avisosClienteNetSuite({ cliente: { payload: {}, direccion: { avisos: "solo texto" } } })).toEqual([]);
+    expect(avisosClienteNetSuite(null)).toEqual([]);
+  });
+  it("convierte avisos de objeto en texto", () => {
+    expect(avisosClienteNetSuite({ cliente: { payload: {}, direccion: { avisos: [{ zip: "ajustado" }] } } })).toEqual(["zip: ajustado"]);
   });
 });
 
@@ -120,5 +148,14 @@ describe("flujo de creación", () => {
   it("oculta la acción a gerencia", async () => {
     mocks.role = "gerencia"; mount(); await screen.findByText("Cliente original");
     expect(screen.queryByRole("button", { name: "Crear cliente en NetSuite" })).not.toBeInTheDocument();
+  });
+  it("muestra el código postal corregido y los avisos de la dirección", async () => {
+    mocks.invoke.mockResolvedValue({ data: { cliente: { ...preview.cliente, direccion: { zip: "110111", zip_corregido: true, zip_original: "110001", avisos: ["Dirección incompleta"] } } }, error: null });
+    mount();
+    fireEvent.click(await screen.findByRole("button", { name: "Crear cliente en NetSuite" }));
+    await screen.findByText("Código postal");
+    expect(await screen.findByText("110111")).toBeInTheDocument();
+    expect(await screen.findByText("(corregido, original: 110001)")).toHaveClass("text-amber-700");
+    expect(await screen.findByText(/Dirección incompleta/)).toBeInTheDocument();
   });
 });

@@ -18,7 +18,7 @@ import { LoadingState } from "@/components/dashboard/LoadingState";
 import { useUserRole } from "@/hooks/useUserRole";
 import { cn } from "@/lib/utils";
 import { ALERTA_LABEL, Alerta, calcularAlerta, ordenarPorAlerta } from "@/lib/factura-electronica";
-import { camposClienteNetSuite, ClienteNetSuiteRespuesta, erroresClienteNetSuite, puedeCrearClienteNetSuite } from "@/lib/netsuite-cliente";
+import { avisosClienteNetSuite, camposClienteNetSuite, ClienteNetSuiteRespuesta, erroresClienteNetSuite, puedeCrearClienteNetSuite } from "@/lib/netsuite-cliente";
 
 type Estado = "pendiente" | "cliente_creado" | "facturado";
 type Row = {
@@ -65,6 +65,7 @@ export default function FacturaElectronicaPage() {
   const [clienteRespuesta, setClienteRespuesta] = useState<ClienteNetSuiteRespuesta | null>(null);
   const [clienteError, setClienteError] = useState("");
   const [clienteCargando, setClienteCargando] = useState<"prueba" | "real" | null>(null);
+  const avisosCliente = avisosClienteNetSuite(clienteRespuesta);
   const toggleSel = (id: string) => setSel((s) => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n; });
 
   const { data, isLoading, error } = useQuery({
@@ -355,12 +356,13 @@ export default function FacturaElectronicaPage() {
                 <div className="space-y-4">
                   {clienteRespuesta?.cliente && (
                     <dl className="space-y-2 text-sm">
-                      {camposClienteNetSuite(clienteRespuesta).map(([label, value]) => (
-                        <div key={label} className="grid grid-cols-3 gap-3"><dt className="text-muted-foreground">{label}</dt><dd className="col-span-2 break-words">{value}</dd></div>
+                      {camposClienteNetSuite(clienteRespuesta).map(([label, value, advertencia]) => (
+                        <div key={label} className="grid grid-cols-3 gap-3"><dt className="text-muted-foreground">{label}</dt><dd className="col-span-2 break-words">{value}{advertencia && <span className="ml-1 text-amber-700">{advertencia}</span>}</dd></div>
                       ))}
                     </dl>
                   )}
                   {clienteRespuesta?.cliente?.existe && <p className="text-sm">Ya existe en NetSuite: {clienteRespuesta.cliente.nombre_ns ?? "—"} (ID {clienteRespuesta.cliente.cliente_ns_id ?? "—"})</p>}
+                  {avisosCliente.length > 0 && <ul className="space-y-1 text-sm text-amber-700 break-words">{avisosCliente.map((aviso) => <li key={aviso}>• {aviso}</li>)}</ul>}
                   {clienteError && <p role="alert" className="text-sm text-destructive break-words">{clienteError}</p>}
                 </div>
               )}

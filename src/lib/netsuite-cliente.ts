@@ -8,6 +8,12 @@ export type ClienteNetSuiteRespuesta = {
     tipo?: string;
     payload?: Record<string, unknown>;
     errores?: unknown;
+    direccion?: {
+      zip?: string | number | null;
+      zip_corregido?: boolean;
+      zip_original?: string | number | null;
+      avisos?: unknown;
+    };
   };
 };
 
@@ -37,7 +43,9 @@ export function erroresClienteNetSuite(respuesta: ClienteNetSuiteRespuesta | nul
   return "";
 }
 
-export function camposClienteNetSuite(respuesta: ClienteNetSuiteRespuesta) {
+export type CampoClienteNetSuite = [string, string, string?];
+
+export function camposClienteNetSuite(respuesta: ClienteNetSuiteRespuesta): CampoClienteNetSuite[] {
   const cliente = respuesta.cliente;
   const payload = cliente?.payload ?? {};
   const text = (...values: unknown[]) => {
@@ -52,6 +60,13 @@ export function camposClienteNetSuite(respuesta: ClienteNetSuiteRespuesta) {
   const libro = (payload.addressBook ?? payload.addressbook) as LibroNetSuite | undefined;
   const address = libro?.items?.[0]?.addressBookAddress ?? libro?.items?.[0]?.addressbookaddress;
   const ciudad = address?.city ? [address.city, address.state].filter(Boolean).join(" / ") : "";
+  const zipOriginal = text(cliente?.direccion?.zip_original);
+  const avisoZip = cliente?.direccion?.zip_corregido
+    ? `(corregido, original: ${zipOriginal === "—" ? "vacío" : zipOriginal})`
+    : undefined;
+  const campoZip: CampoClienteNetSuite = avisoZip
+    ? ["Código postal", text(cliente?.direccion?.zip), avisoZip]
+    : ["Código postal", text(cliente?.direccion?.zip)];
   return [
     ["Nombre", text(nombre, payload.nombre, payload.razon_social, payload.entityid)],
     ["Documento", text(payload.documento, payload.vatregnumber, payload.custentity_co_identification_num)],
@@ -60,5 +75,12 @@ export function camposClienteNetSuite(respuesta: ClienteNetSuiteRespuesta) {
     ["Teléfono", text(payload.telefono, payload.phone)],
     ["Dirección", text(address?.addr1, payload.direccion, payload.defaultaddress)],
     ["Ciudad", text(ciudad, payload.ciudad)],
+    campoZip,
   ];
+}
+
+export function avisosClienteNetSuite(respuesta: ClienteNetSuiteRespuesta | null): string[] {
+  const avisos = respuesta?.cliente?.direccion?.avisos;
+  if (!Array.isArray(avisos)) return [];
+  return avisos.map(textoError).filter(Boolean);
 }
