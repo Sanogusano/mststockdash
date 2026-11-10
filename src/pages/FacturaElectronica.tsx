@@ -20,7 +20,7 @@ import { LoadingState } from "@/components/dashboard/LoadingState";
 import { useUserRole } from "@/hooks/useUserRole";
 import { cn } from "@/lib/utils";
 import { ALERTA_LABEL, Alerta, calcularAlerta, filtrarFacturas, ordenarPorAlerta, ORIGEN_LABEL, origenTexto } from "@/lib/factura-electronica";
-import { avisosClienteNetSuite, camposClienteNetSuite, ClienteNetSuiteRespuesta, erroresClienteNetSuite, fuenteDocumentoNetSuite, opcionesDocumentoNetSuite, puedeCrearClienteNetSuite } from "@/lib/netsuite-cliente";
+import { avisosClienteNetSuite, camposClienteNetSuite, ClienteNetSuiteRespuesta, erroresClienteNetSuite, faltaNombreClienteNetSuite, fuenteDocumentoNetSuite, opcionesDocumentoNetSuite, puedeCrearClienteNetSuite } from "@/lib/netsuite-cliente";
 
 type Estado = "pendiente" | "cliente_creado" | "facturado" | "facturado_mostrador";
 type OrigenFiltro = "etiqueta" | "auto_registrado";
@@ -168,7 +168,7 @@ export default function FacturaElectronicaPage() {
   };
 
   const confirmarCliente = async () => {
-    if (!puedeCrearCliente || !clientePedido?.pedido || clienteCargando || clienteError || clienteRespuesta?.cliente?.requiere_elegir || erroresClienteNetSuite(clienteRespuesta)) return;
+    if (!puedeCrearCliente || !clientePedido?.pedido || clienteCargando || clienteError || clienteRespuesta?.cliente?.requiere_elegir || faltaNombreClienteNetSuite(clienteRespuesta) || erroresClienteNetSuite(clienteRespuesta)) return;
     setClienteCargando("real");
     try {
       const respuesta = await invocarCliente(clientePedido.pedido, "real", documentoElegido);
@@ -456,8 +456,8 @@ export default function FacturaElectronicaPage() {
                   )}
                   {clienteRespuesta?.cliente && !clienteRespuesta?.cliente?.requiere_elegir && (
                     <dl className="space-y-2 text-sm">
-                      {camposClienteNetSuite(clienteRespuesta).map(([label, value, advertencia]) => (
-                        <div key={label} className="grid grid-cols-3 gap-3"><dt className="text-muted-foreground">{label}</dt><dd className="col-span-2 break-words">{value}{advertencia && <span className="ml-1 text-amber-700">{advertencia}</span>}</dd></div>
+                      {camposClienteNetSuite(clienteRespuesta).map(([label, value, advertencia, alerta]) => (
+                        <div key={label} className="grid grid-cols-3 gap-3"><dt className="text-muted-foreground">{label}</dt><dd className={cn("col-span-2 break-words", alerta && "text-destructive font-medium")}>{value}{advertencia && <span className="ml-1 text-amber-700">{advertencia}</span>}</dd></div>
                       ))}
                     </dl>
                   )}
@@ -468,7 +468,7 @@ export default function FacturaElectronicaPage() {
               )}
               <DialogFooter>
                 <Button variant="outline" disabled={clienteCargando !== null} onClick={() => setClientePedido(null)}>Cancelar</Button>
-                <Button disabled={clienteCargando !== null || !!clienteError || !!erroresClienteNetSuite(clienteRespuesta) || !!clienteRespuesta?.cliente?.requiere_elegir || !puedeCrearCliente} onClick={confirmarCliente}>
+                <Button disabled={clienteCargando !== null || !!clienteError || !!erroresClienteNetSuite(clienteRespuesta) || !!clienteRespuesta?.cliente?.requiere_elegir || faltaNombreClienteNetSuite(clienteRespuesta) || !puedeCrearCliente} onClick={confirmarCliente}>
                   {clienteCargando === "real" && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}
                   {clienteCargando === "real" ? "Guardando…" : clienteRespuesta?.cliente?.existe ? "Marcar como registrado" : "Confirmar"}
                 </Button>

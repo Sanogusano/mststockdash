@@ -3,6 +3,7 @@
 - [x] Actualizar Factura a y Comprador en las cuatro pestañas y elegir documento ambiguo en la vista previa NetSuite, conservando estados y controles existentes; probado con respuestas de prueba, pendiente creación real por la limitación de sesión ya registrada.
 
 - [x] Agregar creación de cliente NetSuite en Pendientes de Facturación: vista previa, confirmación, errores y recarga usando la función existente y controles compartidos.
+- [x] Leer el Nombre del diálogo de "cliente.nombre" de la función; si viene vacío muestra "Sin nombre" en rojo y bloquea Confirmar. 133 pruebas aprobadas; creación real sigue sin poder verificarse.
 - [ ] Verificar creación NetSuite con sesión y datos reales: Supabase externo sin sesión disponible; no se ejecutan creaciones reales sin revisión del cliente.
 
 - [x] Ajustar Mayoristas: tres donas, ranking a ancho completo, segmentos RFM y filtros de clientes, productos sin venta con detalle y Excel; conservar los bloques protegidos. Verificación visual con datos de prueba en escritorio/celular; acceso real redirige a login.

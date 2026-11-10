@@ -4,6 +4,7 @@ export type ClienteNetSuiteRespuesta = {
   cliente?: {
     existe?: boolean;
     cliente_ns_id?: string | number;
+    nombre?: string | null;
     nombre_ns?: string;
     tipo?: string;
     doc_fuente?: string;
@@ -47,7 +48,16 @@ export function erroresClienteNetSuite(respuesta: ClienteNetSuiteRespuesta | nul
   return "";
 }
 
-export type CampoClienteNetSuite = [string, string, string?];
+/** [etiqueta, valor, advertencia ámbar, valor en rojo] */
+export type CampoClienteNetSuite = [string, string, string?, boolean?];
+
+/** Nombre del cliente tal como lo entrega la función: `respuesta.cliente.nombre`. */
+export const nombreClienteNetSuite = (respuesta: ClienteNetSuiteRespuesta | null | undefined) =>
+  (respuesta?.cliente?.nombre ?? "").trim();
+
+/** true cuando la función no devolvió nombre: el diálogo no se puede confirmar. */
+export const faltaNombreClienteNetSuite = (respuesta: ClienteNetSuiteRespuesta | null | undefined) =>
+  !nombreClienteNetSuite(respuesta);
 
 export function fuenteDocumentoNetSuite(fuente: string | null | undefined): string {
   return fuente === "qikify" ? "Qikify" : fuente === "empresa" ? "Shopify" : fuente || "—";
@@ -70,11 +80,10 @@ export function camposClienteNetSuite(respuesta: ClienteNetSuiteRespuesta): Camp
     const value = values.find((v) => (typeof v === "string" && v.trim()) || typeof v === "number");
     return value === undefined ? "—" : String(value);
   };
-  const nombrePersona = [payload.firstName, payload.lastName].filter(Boolean).join(" ");
-  const nombre =
-    cliente?.tipo === "empresa" ? payload.companyName
-    : cliente?.tipo === "persona" ? nombrePersona
-    : (payload.companyName ?? nombrePersona);
+  const nombre = nombreClienteNetSuite(respuesta);
+  const campoNombre: CampoClienteNetSuite = nombre
+    ? ["Nombre", nombre]
+    : ["Nombre", "Sin nombre", undefined, true];
   const libro = (payload.addressBook ?? payload.addressbook) as LibroNetSuite | undefined;
   const address = libro?.items?.[0]?.addressBookAddress ?? libro?.items?.[0]?.addressbookaddress;
   const ciudad = address?.city ? [address.city, address.state].filter(Boolean).join(" / ") : "";
@@ -86,7 +95,7 @@ export function camposClienteNetSuite(respuesta: ClienteNetSuiteRespuesta): Camp
     ? ["Código postal", text(cliente?.direccion?.zip), avisoZip]
     : ["Código postal", text(cliente?.direccion?.zip)];
   return [
-    ["Nombre", text(nombre, payload.nombre, payload.razon_social, payload.entityid)],
+    campoNombre,
     ["Documento", text(payload.documento, payload.vatregnumber, payload.custentity_co_identification_num)],
     ["Tipo", cliente?.tipo === "persona" ? "Persona" : cliente?.tipo === "empresa" ? "Empresa" : text(cliente?.tipo)],
     ["Origen del documento", fuenteDocumentoNetSuite(cliente?.doc_fuente)],

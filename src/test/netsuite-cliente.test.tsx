@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen, waitFor, cleanup } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import FacturaElectronicaPage from "@/pages/FacturaElectronica";
-import { avisosClienteNetSuite, camposClienteNetSuite, ClienteNetSuiteRespuesta, erroresClienteNetSuite, fuenteDocumentoNetSuite, opcionesDocumentoNetSuite, puedeCrearClienteNetSuite } from "@/lib/netsuite-cliente";
+import { avisosClienteNetSuite, camposClienteNetSuite, ClienteNetSuiteRespuesta, erroresClienteNetSuite, faltaNombreClienteNetSuite, fuenteDocumentoNetSuite, opcionesDocumentoNetSuite, puedeCrearClienteNetSuite } from "@/lib/netsuite-cliente";
 
 const mocks = vi.hoisted(() => ({ role: "admin", invoke: vi.fn(), read: vi.fn(), success: vi.fn(), error: vi.fn() }));
 vi.mock("@/hooks/useUserRole", () => ({ useUserRole: () => ({ role: mocks.role, isAdmin: mocks.role === "admin" }) }));
@@ -17,6 +17,7 @@ vi.mock("@/integrations/supabase/client", () => ({ supabase: {
 const fila = { shopify_order_id: "1", pedido: "#1234", estado: "pendiente", razon_social: "Cliente original", documento: "123", documento_direccion: "123" };
 const preview: ClienteNetSuiteRespuesta = {
   cliente: {
+    nombre: "Ana Prueba",
     tipo: "persona",
     existe: false,
     payload: {
@@ -50,12 +51,24 @@ describe("validación de la respuesta", () => {
 });
 
 describe("mapeo de los datos del cliente NetSuite", () => {
-  it("usa companyName cuando el tipo es empresa", () => {
-    const respuesta: ClienteNetSuiteRespuesta = { cliente: { tipo: "empresa", payload: { companyName: "Acme S.A.S.", firstName: "Ignorado", lastName: "Nombre" } } };
-    expect(camposClienteNetSuite(respuesta)).toContainEqual(["Nombre", "Acme S.A.S."]);
+  it("lee el nombre de cliente.nombre e ignora el payload", () => {
+    const respuesta: ClienteNetSuiteRespuesta = { cliente: { nombre: "Ana Prueba", tipo: "empresa", payload: { companyName: "Ignorada", firstName: "Ignorado", lastName: "Nombre" } } };
+    expect(camposClienteNetSuite(respuesta)).toContainEqual(["Nombre", "Ana Prueba"]);
+    expect(faltaNombreClienteNetSuite(respuesta)).toBe(false);
   });
-  it("une firstName y lastName cuando el tipo es persona", () => {
+  it("ignora el nombre del payload cuando cliente.nombre no viene", () => {
     expect(camposClienteNetSuite(preview)).toContainEqual(["Nombre", "Ana Prueba"]);
+    const sinNombre: ClienteNetSuiteRespuesta = { cliente: { tipo: "persona", payload: { companyName: "Acme S.A.S.", firstName: "Ana", lastName: "Prueba" } } };
+    expect(camposClienteNetSuite(sinNombre)).toContainEqual(["Nombre", "Sin nombre", undefined, true]);
+    expect(faltaNombreClienteNetSuite(sinNombre)).toBe(true);
+  });
+  it("trata como vacío un nombre con solo espacios", () => {
+    expect(faltaNombreClienteNetSuite({ cliente: { nombre: "   ", payload: {} } })).toBe(true);
+    expect(camposClienteNetSuite({ cliente: { nombre: "   ", payload: {} } })).toContainEqual(["Nombre", "Sin nombre", undefined, true]);
+  });
+  it("no exige nombre en la respuesta de elección", () => {
+    expect(faltaNombreClienteNetSuite({ cliente: { requiere_elegir: true, opciones: ["123"] } })).toBe(true);
+    expect(faltaNombreClienteNetSuite(null)).toBe(true);
   });
   it("toma la dirección del primer ítem del addressBook", () => {
     expect(camposClienteNetSuite(preview)).toContainEqual(["Dirección", "Calle 1 #2-3"]);
@@ -69,7 +82,7 @@ describe("mapeo de los datos del cliente NetSuite", () => {
   });
   it("no falla si el payload viene vacío", () => {
     const campos = camposClienteNetSuite({ cliente: { tipo: "empresa", existe: false, payload: {} } });
-    expect(campos).toContainEqual(["Nombre", "—"]);
+    expect(campos).toContainEqual(["Nombre", "Sin nombre", undefined, true]);
     expect(campos).toContainEqual(["Dirección", "—"]);
     expect(campos).toContainEqual(["Ciudad", "—"]);
     expect(campos).toContainEqual(["Código postal", "—"]);
@@ -149,6 +162,17 @@ describe("flujo de creación", () => {
     await screen.findByRole("alert");
     expect(screen.getByRole("button", { name: "Confirmar" })).toBeDisabled();
     expect(mocks.invoke).toHaveBeenCalledTimes(1);
+  });
+  it("no permite confirmar sin nombre y lo marca en rojo", async () => {
+    const { nombre: _omitida, ...clienteSinNombre } = preview.cliente!;
+    mocks.invoke.mockResolvedValue({ data: { cliente: clienteSinNombre }, error: null });
+    mount(); fireEvent.click(await screen.findByRole("button", { name: "Crear cliente en NetSuite" }));
+    const valor = await screen.findByText("Sin nombre");
+    expect(valor).toHaveClass("text-destructive");
+    expect(screen.getByRole("button", { name: "Confirmar" })).toBeDisabled();
+    fireEvent.click(screen.getByRole("button", { name: "Confirmar" }));
+    expect(mocks.invoke).toHaveBeenCalledTimes(1);
+    expect(mocks.invoke).toHaveBeenLastCalledWith("netsuite-crear", { body: { accion: "cliente", pedido: "#1234", modo: "prueba" } });
   });
   it("permite marcar el cliente existente como registrado", async () => {
     mocks.invoke.mockResolvedValue({ data: { cliente: { ...preview.cliente, existe: true, cliente_ns_id: 42, nombre_ns: "Ana Prueba" } }, error: null });
