@@ -5685,6 +5685,24 @@ export type Database = {
           variant_id: string
         }[]
       }
+      conciliar_shopify_v2: {
+        Args: { p_location?: string; p_margen_min?: number }
+        Returns: {
+          ajuste: number
+          detalle: string
+          estado: string
+          ns_disponible: number
+          on_hand_objetivo: number
+          product_id: string
+          producto: string
+          shopify_comprometido: number
+          shopify_on_hand: number
+          sku: string
+          uds_descontadas_ns: number
+          uds_sin_descontar_ns: number
+          variant_id: string
+        }[]
+      }
       corte_datos_facturacion: {
         Args: never
         Returns: {
