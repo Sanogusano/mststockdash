@@ -360,7 +360,7 @@ export default function FacturaElectronicaPage() {
                       ))}
                     </dl>
                   )}
-                  {clienteRespuesta?.cliente?.existe && <p className="text-sm">El cliente ya existe en NetSuite (ID {clienteRespuesta.cliente.cliente_ns_id ?? "—"})</p>}
+                  {clienteRespuesta?.cliente?.existe && <p className="text-sm">Ya existe en NetSuite: {clienteRespuesta.cliente.nombre_ns ?? "—"} (ID {clienteRespuesta.cliente.cliente_ns_id ?? "—"})</p>}
                   {clienteError && <p role="alert" className="text-sm text-destructive break-words">{clienteError}</p>}
                 </div>
               )}
