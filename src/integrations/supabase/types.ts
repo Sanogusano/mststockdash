@@ -2869,6 +2869,9 @@ export type Database = {
           conciliado_en: string | null
           departamento: string | null
           direccion: string | null
+          doc_casi_igual: boolean | null
+          doc_factura: string | null
+          doc_fuente: string | null
           documento: string | null
           documento_direccion: string | null
           email: string | null
@@ -2892,6 +2895,9 @@ export type Database = {
           conciliado_en?: string | null
           departamento?: string | null
           direccion?: string | null
+          doc_casi_igual?: boolean | null
+          doc_factura?: string | null
+          doc_fuente?: string | null
           documento?: string | null
           documento_direccion?: string | null
           email?: string | null
@@ -2915,6 +2921,9 @@ export type Database = {
           conciliado_en?: string | null
           departamento?: string | null
           direccion?: string | null
+          doc_casi_igual?: boolean | null
+          doc_factura?: string | null
+          doc_fuente?: string | null
           documento?: string | null
           documento_direccion?: string | null
           email?: string | null
@@ -5898,6 +5907,7 @@ export type Database = {
           numero_factura: string
         }[]
       }
+      fe_doc_valido: { Args: { p: string }; Returns: string }
       fecha_bogota: { Args: { p_offset_dias?: number }; Returns: string }
       generar_archivo_shopify_inventario: {
         Args: never
