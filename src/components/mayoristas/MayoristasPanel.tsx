@@ -1,17 +1,17 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { DollarSign, Package, Receipt, Users, Trophy, Layers, Download, Target } from "lucide-react";
 import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip } from "recharts";
 import { KpiCard, ComparisonIndicator, CommercialSectionHeader } from "@/components/dashboard/ExecutivePresentation";
-import { StoreRow } from "@/components/dashboard/StoreLeaderboard";
+import { StoreRow, StoreLeaderboard } from "@/components/dashboard/StoreLeaderboard";
 import { CollectionBadge } from "@/components/dashboard/CollectionBadge";
 import { ProductImageThumb } from "@/components/dashboard/ProductImageThumb";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { LoadingState, EmptyState } from "@/components/dashboard/LoadingState";
 import { supabase } from "@/integrations/supabase/client";
-import { fmtMonto, fmtNum, fmtPct, fmtFecha, tituloNombre } from "@/lib/mayoristas-format";
+import { fmtMillones as fmtMonto, fmtNum, fmtPct, fmtFecha, tituloNombre } from "@/lib/mayoristas-format";
 import type { Semaforo } from "@/lib/mayoristas-format";
 import { exportToXLS } from "@/lib/xls-export";
 import { TablaCard, TablaTh, VendedoraSelect } from "@/components/mayoristas/MayoristasOrdenes";
@@ -98,28 +98,39 @@ function MetaCard({ c, pendValor, pendCount, pendError, pendLoading, mostrarAnul
   const base = Math.max(meta, proy, 1);
   const wFact = (venta / base) * 100;
   const wPend = (pend / base) * 100;
+  const pctMeta = (v: number) => (meta > 0 ? fmtPct((v / meta) * 100) : "sin meta");
+  const esperado = meta > 0 && c.meta_a_la_fecha != null ? Math.min((Number(c.meta_a_la_fecha) / base) * 100, 100) : null;
+  const cifra = (label: string, valor: React.ReactNode, detalle: React.ReactNode) => (
+    <div className="min-w-0">
+      <p className="text-xs text-muted-foreground">{label}</p>
+      <p className="text-2xl font-bold tabular-nums text-foreground whitespace-nowrap">{valor}</p>
+      <p className="text-xs text-muted-foreground whitespace-nowrap">{detalle}</p>
+    </div>
+  );
   return (
     <div className="rounded-xl border border-border bg-card p-4 min-w-0">
-      <div className="flex items-center gap-2 mb-3 flex-wrap">
-        <Target className="h-4 w-4 text-primary" />
-        <h3 className="text-sm font-semibold text-foreground">Meta del mes</h3>
-        <span className="ml-auto text-lg font-bold tabular-nums text-foreground">{meta > 0 ? fmtPct((venta / meta) * 100) : "Sin meta"}</span>
+      <div className="flex items-start gap-2 mb-4">
+        <Target className="h-4 w-4 text-primary mt-0.5" />
+        <div className="min-w-0">
+          <h3 className="text-sm font-semibold text-foreground">Meta del mes</h3>
+          <p className="text-xs text-muted-foreground">{meta > 0 ? `Meta ${fmtMonto(meta)}` : "Sin meta"}</p>
+        </div>
+        <button type="button" onClick={onVerOrdenes} className="ml-auto text-xs text-primary font-medium hover:underline whitespace-nowrap">Ver órdenes →</button>
       </div>
-      <div className="relative h-4 w-full overflow-hidden rounded-full bg-muted">
-        <div className="absolute inset-y-0 left-0 bg-primary" style={{ width: `${wFact}%` }} />
-        <div className="absolute inset-y-0 bg-primary/30" style={{ left: `${wFact}%`, width: `${wPend}%`, backgroundImage: "repeating-linear-gradient(45deg, transparent 0 4px, hsl(var(--primary) / 0.35) 4px 8px)" }} />
-        {meta > 0 && <div className="absolute inset-y-0 w-0.5 bg-foreground/70" style={{ left: `calc(${Math.min((meta / base) * 100, 100)}% - 1px)` }} />}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
+        {cifra("Facturado", fmtMonto(venta), `(${pctMeta(venta)})`)}
+        {cifra("Por facturar", pendError ? <span className="text-destructive text-base">No disponible</span> : pendLoading ? "…" : fmtMonto(pend), pendError || pendLoading ? "" : `(${fmtNum(pendCount)} órdenes)`)}
+        {cifra("Proyección", pendLoading ? "…" : fmtMonto(proy), `(${pctMeta(proy)})`)}
       </div>
-      <p className="text-xs text-muted-foreground mt-3 leading-relaxed">
-        Facturado <span className="font-semibold text-foreground">{fmtMonto(venta)}</span>
-        {" · "}Por facturar {pendError ? <span className="text-destructive">no disponible</span> : pendLoading ? "…" : <><span className="font-semibold text-foreground">{fmtMonto(pend)}</span> ({fmtNum(pendCount)} órdenes)</>}
-        {" · "}Proyección {fmtMonto(venta)} + {fmtMonto(pend)} = <span className="font-semibold text-foreground">{meta > 0 ? `${fmtPct((proy / meta) * 100)} de la meta ${fmtMonto(meta)}` : fmtMonto(proy)}</span>
-      </p>
-      <div className="flex items-center gap-3 flex-wrap mt-1 text-xs text-muted-foreground">
-        <span>A la fecha: {fmtPct(c.cumplimiento_a_la_fecha)}</span>
-        {mostrarAnuladas && Number(c.facturas_anuladas) > 0 && <span>{fmtNum(c.facturas_anuladas)} factura(s) anulada(s) excluidas</span>}
-        <button type="button" onClick={onVerOrdenes} className="ml-auto text-primary font-medium hover:underline">Ver órdenes →</button>
+      <div className="relative pt-5">
+        {esperado != null && <div className="absolute top-0 text-[10px] text-muted-foreground whitespace-nowrap -translate-x-1/2" style={{ left: `clamp(2.5rem, ${esperado}%, calc(100% - 2.5rem))` }}>Esperado a hoy</div>}
+        <div className="relative h-4 w-full overflow-hidden rounded-full bg-muted">
+          <div className="absolute inset-y-0 left-0 bg-primary" style={{ width: `${wFact}%` }} />
+          <div className="absolute inset-y-0 bg-primary/30" style={{ left: `${wFact}%`, width: `${wPend}%` }} />
+          {esperado != null && <div className="absolute inset-y-0 w-0.5 bg-foreground/70" style={{ left: `calc(${esperado}% - 1px)` }} />}
+        </div>
       </div>
+      {mostrarAnuladas && Number(c.facturas_anuladas) > 0 && <p className="mt-2 text-xs text-muted-foreground">{fmtNum(c.facturas_anuladas)} factura(s) anulada(s) excluidas</p>}
       {pendError ? <div className="mt-2"><ConsultaError error={pendError} /></div> : null}
     </div>
   );
@@ -584,13 +595,13 @@ export function MayoristasPanel({ desde, hasta }: { desde: string | null; hasta:
   const cError = vendedor ? vendQ.error : canalQ.error;
   const cLoading = vendedor ? vendQ.isLoading : canalQ.isLoading;
   const ind = indQ.data;
-  const topClientes = [...(clientesQ.data ?? [])].sort((a, b) => Number(b.venta) - Number(a.venta)).slice(0, 10);
+  const topClientes = [...(clientesQ.data ?? [])].filter(r => Number(r.venta) > 0).sort((a, b) => Number(b.venta) - Number(a.venta)).slice(0, 10);
   const topProductos = (topProdQ.data ?? []).slice(0, 10);
   const sellers = vendQ.data ?? [];
   const pendientes = pendQ.data ?? [];
   const pendValor = pendientes.reduce((s, r) => s + Number(r.valor_pendiente), 0);
   const recencia = recenciaQ.data ?? [];
-  const totalRecencia = recencia.reduce((s, r) => s + Number(r.clientes), 0);
+  const totalRecencia = recencia.reduce((s, r) => s + Math.max(Number(r.venta_12m), 0), 0);
   const verClientes = `/mayoristas?tab=clientes${vendedor ? `&vendedor=${encodeURIComponent(vendedor)}` : ""}`;
   return (
     <div className="space-y-4 min-w-0">
@@ -616,13 +627,21 @@ export function MayoristasPanel({ desde, hasta }: { desde: string | null; hasta:
           </div>
         </> : <EmptyState message="Sin datos para el periodo." />}
         {indQ.error ? <div className="mt-3"><ConsultaError error={indQ.error} /></div> : indQ.isLoading ? null : ind && (
-          <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-1 border-t border-border pt-3 text-xs">
-            <span className="font-semibold text-muted-foreground uppercase tracking-wide">Calidad de la venta</span>
-            <span className="flex items-center gap-1.5 whitespace-nowrap"><span className="text-muted-foreground">Precio promedio</span><span className="font-semibold text-foreground tabular-nums">{fmtMonto(ind.precio_promedio)}</span>{ind.precio_promedio_ant != null && Number(ind.precio_promedio_ant) > 0 && <ComparisonIndicator actual={0} anterior={0} percentage={((Number(ind.precio_promedio) - Number(ind.precio_promedio_ant)) / Number(ind.precio_promedio_ant)) * 100} label="vs ant." />}</span>
-            <span className="text-muted-foreground">·</span>
-            <span className="flex items-center gap-1.5 whitespace-nowrap"><span className="text-muted-foreground">Margen bruto</span><span className="font-semibold text-foreground tabular-nums">{fmtPct(ind.margen_pct)}</span>{ind.margen_pct_ant != null && <ComparisonIndicator actual={0} anterior={0} percentage={Number(ind.margen_pct) - Number(ind.margen_pct_ant)} points label="vs ant." />}</span>
-            <span className="text-muted-foreground">·</span>
-            <span className="flex items-center gap-1.5 whitespace-nowrap"><span className="text-muted-foreground">Descuento comercial</span><span className="font-semibold text-foreground tabular-nums">{fmtPct(ind.descuento_comercial_pct)}</span>{ind.descuento_comercial_pct_ant != null && <ComparisonIndicator actual={0} anterior={0} percentage={Number(ind.descuento_comercial_pct) - Number(ind.descuento_comercial_pct_ant)} points invert label="vs ant." />}</span>
+          <div className="mt-4 border-t border-border pt-3">
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Calidad de la venta</p>
+            <div className="grid grid-cols-3 gap-3">
+              {[
+                { label: "Precio promedio", value: fmtMonto(ind.precio_promedio), cmp: ind.precio_promedio_ant != null && Number(ind.precio_promedio_ant) > 0 && <ComparisonIndicator actual={0} anterior={0} percentage={((Number(ind.precio_promedio) - Number(ind.precio_promedio_ant)) / Number(ind.precio_promedio_ant)) * 100} label="vs ant." /> },
+                { label: "Margen bruto", value: fmtPct(ind.margen_pct), cmp: ind.margen_pct_ant != null && <ComparisonIndicator actual={0} anterior={0} percentage={Number(ind.margen_pct) - Number(ind.margen_pct_ant)} points label="vs ant." /> },
+                { label: "Descuento comercial", value: fmtPct(ind.descuento_comercial_pct), cmp: ind.descuento_comercial_pct_ant != null && <ComparisonIndicator actual={0} anterior={0} percentage={Number(ind.descuento_comercial_pct) - Number(ind.descuento_comercial_pct_ant)} points invert label="vs ant." /> },
+              ].map(k => (
+                <div key={k.label} className="min-w-0">
+                  <p className="text-xs text-muted-foreground whitespace-nowrap truncate">{k.label}</p>
+                  <p className="text-base font-semibold text-foreground tabular-nums whitespace-nowrap">{k.value}</p>
+                  <div className="whitespace-nowrap">{k.cmp}</div>
+                </div>
+              ))}
+            </div>
           </div>
         )}
       </div>
@@ -646,27 +665,26 @@ export function MayoristasPanel({ desde, hasta }: { desde: string | null; hasta:
       </section>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 min-w-0">
-        <div className="glass-card overflow-hidden min-w-0">
-          <div className="flex items-center gap-2 px-5 py-4 border-b border-border"><Users className="h-4 w-4 text-primary" /><h3 className="text-sm font-semibold text-foreground">Top 10 clientes del período</h3></div>
-          {clientesQ.error ? <div className="p-4"><ConsultaError error={clientesQ.error} /></div> : clientesQ.isLoading ? <LoadingState /> : !topClientes.length ? <EmptyState message="Sin clientes en el periodo." /> : (
-            <table className="w-full table-fixed text-sm">
-              <thead><tr className="border-b border-border bg-muted/30 text-xs text-muted-foreground"><th className="px-3 py-2 text-left font-medium w-[40%]">Cliente</th><th className="px-3 py-2 text-left font-medium">Asesora</th><th className="px-3 py-2 text-right font-medium">Venta</th><th className="px-3 py-2 text-right font-medium w-[68px]">% canal</th></tr></thead>
-              <tbody>{topClientes.map(r => (
-                <tr key={r.cliente_id} onClick={() => setDrill({ tipo: "cliente", clienteId: String(r.cliente_id), nombre: r.cliente })} className="border-b border-border last:border-0 cursor-pointer hover:bg-muted/40">
-                  <td className="px-3 py-2 font-medium text-primary truncate" title={r.cliente}>{r.cliente}</td>
-                  <td className="px-3 py-2 truncate text-muted-foreground">{tituloNombre(r.vendedora)}</td>
-                  <td className="px-3 py-2 text-right tabular-nums whitespace-nowrap">{fmtMonto(r.venta)}</td>
-                  <td className="px-3 py-2 text-right tabular-nums">{fmtPct(r.participacion)}</td>
-                </tr>
-              ))}</tbody>
-            </table>
-          )}
+        <div className="min-w-0 space-y-2">
+          {clientesQ.error ? <div className="glass-card p-4"><ConsultaError error={clientesQ.error} /></div> : clientesQ.isLoading ? <LoadingState /> : <>
+            <StoreLeaderboard days={0} supplied={{
+              title: "Top clientes del período",
+              columns: ["Cliente", "Venta", "% canal"],
+              rows: topClientes.map(r => ({
+                id: String(r.cliente_id), name: r.cliente, value: fmtMonto(r.venta),
+                detail: <p className="text-xs text-muted-foreground truncate">{tituloNombre(r.vendedora)} · {fmtPct(r.participacion)}</p>,
+                cells: [fmtMonto(r.venta), fmtPct(r.participacion)],
+                onClick: () => setDrill({ tipo: "cliente", clienteId: String(r.cliente_id), nombre: r.cliente }),
+              })),
+            }} />
+            {topClientes.length > 0 && topClientes.length < 3 && <p className="text-xs text-muted-foreground px-1">Solo {topClientes.length} cliente{topClientes.length === 1 ? "" : "s"} han comprado en el período</p>}
+          </>}
         </div>
         <div className="glass-card p-5 min-w-0">
           <div className="flex items-center gap-2 mb-4"><Users className="h-4 w-4 text-primary" /><h3 className="text-sm font-semibold text-foreground">Estado de la base de clientes</h3></div>
           {recenciaQ.error ? <ConsultaError error={recenciaQ.error} /> : recenciaQ.isLoading ? <LoadingState /> : !recencia.length ? <EmptyState message="Sin datos de clientes." /> : <>
             <div className="flex h-3 w-full overflow-hidden rounded-full bg-muted mb-4">
-              {recencia.map(r => totalRecencia > 0 && Number(r.clientes) > 0 && <div key={r.tramo} className={TRAMO_BG[r.tramo] ?? "bg-muted-foreground"} style={{ width: `${(Number(r.clientes) / totalRecencia) * 100}%` }} title={`${r.tramo}: ${fmtNum(r.clientes)}`} />)}
+              {recencia.map(r => totalRecencia > 0 && Number(r.venta_12m) > 0 && <div key={r.tramo} className={TRAMO_BG[r.tramo] ?? "bg-muted-foreground"} style={{ width: `${(Number(r.venta_12m) / totalRecencia) * 100}%` }} title={`${r.tramo}: ${fmtMonto(r.venta_12m)}`} />)}
             </div>
             <ul className="space-y-2">{recencia.map(r => (
               <li key={r.tramo} className="flex items-center gap-2 text-xs">

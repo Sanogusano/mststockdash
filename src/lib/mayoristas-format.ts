@@ -106,3 +106,13 @@ export function semaforoDiasPendiente(dias: number | null | undefined): Semaforo
   if (n > 15) return "ambar";
   return "neutro";
 }
+
+/** Panel ejecutivo: millones con una decimal; miles de millones en M con punto de miles. Nunca "MM". */
+export function fmtMillones(value: number | null | undefined): string {
+  const n = Number(value) || 0;
+  const abs = Math.abs(n);
+  const sign = n < 0 ? "-" : "";
+  if (abs >= 1e9) return `${sign}$${Math.round(abs / 1e6).toLocaleString("es-CO")}M`;
+  if (abs >= 1e6) return `${sign}$${(abs / 1e6).toLocaleString("es-CO", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}M`;
+  return `${sign}$${Math.round(abs).toLocaleString("es-CO")}`;
+}

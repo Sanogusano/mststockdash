@@ -56,3 +56,13 @@ describe("semaforoFacturado / semaforoDiasPendiente", () => {
     expect(semaforoDiasPendiente(15)).toBe("neutro");
   });
 });
+
+import { fmtMillones } from "@/lib/mayoristas-format";
+describe("fmtMillones", () => {
+  it("usa M con una decimal y punto de miles, nunca MM", () => {
+    expect(fmtMillones(17_100_000)).toBe("$17,1M");
+    expect(fmtMillones(573_900_000)).toBe("$573,9M");
+    expect(fmtMillones(4_100_000_000)).toBe("$4.100M");
+    expect(fmtMillones(20_810_000_000)).toBe("$20.810M");
+  });
+});
