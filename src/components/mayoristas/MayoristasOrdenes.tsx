@@ -37,7 +37,7 @@ interface DuplicadaRow {
 
 type Agrupacion = "vendedora" | "cliente" | "producto";
 const AGRUPACIONES: { id: Agrupacion; label: string }[] = [
-  { id: "vendedora", label: "Por vendedora" },
+  { id: "vendedora", label: "Por asesora" },
   { id: "cliente", label: "Por cliente" },
   { id: "producto", label: "Por producto" },
 ];
@@ -75,7 +75,7 @@ export function VendedoraSelect({ desde, hasta, value, onChange }: { desde: stri
   });
   return (
     <Select value={value ?? "__todas__"} onValueChange={(v) => onChange(v === "__todas__" ? null : v)}>
-      <SelectTrigger className="w-full sm:w-[220px] h-9 text-sm bg-card border border-border"><SelectValue placeholder="Vendedora" /></SelectTrigger>
+      <SelectTrigger className="w-full sm:w-[220px] h-9 text-sm bg-card border border-border"><SelectValue placeholder="Asesora comercial" /></SelectTrigger>
       <SelectContent>
         <SelectItem value="__todas__">Todas</SelectItem>
         {(vendQ.data ?? []).filter(v => v.vendedor_id).map(v => <SelectItem key={v.vendedor_id!} value={String(v.vendedor_id)}>{tituloNombre(v.vendedora)}</SelectItem>)}
@@ -210,7 +210,7 @@ export function MayoristasOrdenes({ desde, hasta, vendedor, onVendedorChange }: 
       )}
 
       <div className="flex items-center justify-between gap-3 flex-wrap">
-        <h2 className="text-sm font-semibold text-foreground">Pedido vs. Facturado por vendedora / cliente / producto</h2>
+        <h2 className="text-sm font-semibold text-foreground">Pedido vs. Facturado por asesora / cliente / producto</h2>
         <Select value={agrupar} onValueChange={(v) => setAgrupar(v as Agrupacion)}>
           <SelectTrigger className="w-full sm:w-[200px] h-9 text-sm bg-card border border-border"><SelectValue /></SelectTrigger>
           <SelectContent>{AGRUPACIONES.map(a => <SelectItem key={a.id} value={a.id}>{a.label}</SelectItem>)}</SelectContent>
@@ -235,7 +235,7 @@ export function MayoristasOrdenes({ desde, hasta, vendedor, onVendedorChange }: 
 
       {pendQ.error ? null : pendQ.isLoading ? null : pendientes.length === 0 ? <EmptyState message="Órdenes pendientes · Sin órdenes pendientes." /> : (
         <TablaCard title="Órdenes pendientes" minW={1000}>
-          <Th cols={["Orden", "Fecha", "Días", "Estado", "Cliente", "Vendedora", "Uds pendientes", "Valor pendiente"]} />
+          <Th cols={["Orden", "Fecha", "Días", "Estado", "Cliente", "Asesora", "Uds pendientes", "Valor pendiente"]} />
           <tbody>{pendientes.map(r => (
             <tr key={r.orden} className="border-b border-border last:border-0">
               <td className="px-3 py-2.5 font-medium text-foreground whitespace-nowrap">{r.orden}</td>
@@ -253,7 +253,7 @@ export function MayoristasOrdenes({ desde, hasta, vendedor, onVendedorChange }: 
 
       {noDespQ.error ? <ConsultaError error={noDespQ.error} /> : noDespQ.isLoading ? <LoadingState /> : (noDespQ.data ?? []).length === 0 ? <EmptyState message="No despachadas · Sin datos para el periodo." /> : (
         <TablaCard title="No despachadas" minW={1100}>
-          <Th cols={["Orden", "Fecha", "Cliente", "Vendedora", "Uds pedidas", "Uds no facturadas", "Valor no facturado", "% facturado", "Productos faltantes"]} />
+          <Th cols={["Orden", "Fecha", "Cliente", "Asesora", "Uds pedidas", "Uds no facturadas", "Valor no facturado", "% facturado", "Productos faltantes"]} />
           <tbody>{(noDespQ.data ?? []).map(r => (
             <tr key={r.orden} className="border-b border-border last:border-0">
               <td className="px-3 py-2.5 font-medium text-foreground whitespace-nowrap">{r.orden}</td>

@@ -75,7 +75,7 @@ export function MayoristasCartera({ desde, hasta, vendedor, onVendedorChange }: 
           <KpiCard label="Vencido" value={fmtMonto(total.vencido)} icon={AlertTriangle} className="text-danger"><p className="text-xs text-muted-foreground mt-1">{fmtPct(total.pctVencido)} del saldo</p></KpiCard>
           <KpiCard label="Vencido +90 días" value={fmtMonto(total.vencido90)} icon={AlertTriangle} className="text-danger" />
         </div>
-        {!rows.length ? <EmptyState message="Sin cartera para esta vendedora." /> : <>
+        {!rows.length ? <EmptyState message="Sin cartera para esta asesora." /> : <>
           <div className="space-y-3 py-2">
             <div className="flex h-5 w-full overflow-hidden rounded" role="img" aria-label="Distribución del saldo por vencimiento">
               {tramosCartera.map(t => <div key={t.key} title={`${t.label}: ${fmtMonto(total.tramos[t.key])}`} style={{ backgroundColor: t.color, width: `${total.saldo > 0 ? Math.max(0, total.tramos[t.key]) / total.saldo * 100 : 0}%` }} />)}
@@ -122,7 +122,7 @@ export function MayoristasCartera({ desde, hasta, vendedor, onVendedorChange }: 
         </ResponsiveContainer>
       </div>}
       {valido && !recaudo.error && !recaudo.isLoading && (!pagos.length ? <EmptyState message="Sin recaudo para el período." /> : <TablaCard title={`Recaudo por cliente (${fmtNum(pagos.length)})`} minW={850}>
-        <TablaTh cols={["Cliente", "Vendedora", "Recaudo", "Facturas pagadas", "Último pago", "Notas crédito"]} />
+        <TablaTh cols={["Cliente", "Asesora", "Recaudo", "Facturas pagadas", "Último pago", "Notas crédito"]} />
         <tbody>{pagos.map((r, i) => <tr key={`${r.cliente_id}-${r.vendedor_id}-${i}`} className="border-b border-border last:border-0">
           <td className="px-3 py-2.5 font-medium">{r.cliente}</td><td className="px-3 py-2.5">{tituloNombre(r.vendedora)}</td>
           <td className="px-3 py-2.5 tabular-nums font-medium">{fmtMonto(r.recaudo)}</td><td className="px-3 py-2.5 tabular-nums">{fmtNum(r.facturas_pagadas)}</td>

@@ -64,10 +64,10 @@ function UptBadge({ upt }: { upt: number }) {
 }
 
 /* ── Store Row ── */
-export function StoreRow({ row, rank, prev, presupuesto, extraCells, porcentaje, medals = true, onClick }: { row: RankingRow; rank: number; prev?: PrevRow; presupuesto?: number; extraCells?: React.ReactNode[]; porcentaje?: number | null; medals?: boolean; onClick?: () => void }) {
+export function StoreRow({ row, rank, prev, presupuesto, extraCells, porcentaje, medals = true, onClick, selected }: { row: RankingRow; rank: number; prev?: PrevRow; presupuesto?: number; extraCells?: React.ReactNode[]; porcentaje?: number | null; medals?: boolean; onClick?: () => void; selected?: boolean }) {
   const pct = porcentaje !== undefined ? porcentaje : presupuesto && presupuesto > 0 ? (row.ventas_totales / presupuesto) * 100 : null;
   return (
-    <tr className={`border-b border-border/50 hover:bg-muted/20 transition-colors${onClick ? " cursor-pointer" : ""}`} onClick={onClick}>
+    <tr className={`border-b border-border/50 hover:bg-muted/20 transition-colors${onClick ? " cursor-pointer" : ""}${selected ? " bg-primary/5" : ""}`} onClick={onClick}>
       <td className="px-3 py-2.5 text-center text-base">
         {medals && rank < 3 ? MEDALS[rank] : <span className="text-xs text-muted-foreground font-mono">{rank + 1}</span>}
       </td>
@@ -128,7 +128,7 @@ function TableHeader({ sortDir, onToggleSort }: { sortDir: SortDir; onToggleSort
   );
 }
 
-export function StoreLeaderboard({ days, canal, customFrom, customTo, supplied }: { days: number; canal?: string; customFrom?: Date; customTo?: Date; supplied?: { title: string; columns: string[]; rows: { id: string; name: string; value: string; detail: React.ReactNode; cells: React.ReactNode[] }[] } }) {
+export function StoreLeaderboard({ days, canal, customFrom, customTo, supplied }: { days: number; canal?: string; customFrom?: Date; customTo?: Date; supplied?: { title: string; columns: string[]; rows: { id: string; name: string; value: string; detail: React.ReactNode; cells: React.ReactNode[]; onClick?: () => void }[] } }) {
   const [data, setData] = useState<RankingRow[]>([]);
   const [prevData, setPrevData] = useState<PrevRow[]>([]);
   const [budget, setBudget] = useState<Record<string, number>>({});
@@ -169,12 +169,12 @@ export function StoreLeaderboard({ days, canal, customFrom, customTo, supplied }
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 p-5 items-end">
         {[1, 0, 2].map(rank => {
           const row = supplied.rows[rank];
-          return row ? <div key={row.id} className={rank === 0 ? "sm:pb-4" : ""}><KpiCard label={`${MEDALS[rank]} ${row.name}`} value={row.value} icon={Trophy}>{row.detail}</KpiCard></div> : null;
+          return row ? <div key={row.id} className={rank === 0 ? "sm:pb-4" : ""}><KpiCard label={`${MEDALS[rank]} ${row.name}`} value={row.value} icon={Trophy} onClick={row.onClick}>{row.detail}</KpiCard></div> : null;
         })}
       </div>
       <Table>
         <SharedTableHeader><TableRow><TableHead>#</TableHead>{supplied.columns.map(col => <TableHead key={col} className="whitespace-nowrap">{col}</TableHead>)}</TableRow></SharedTableHeader>
-        <TableBody>{supplied.rows.map((row, rank) => <TableRow key={row.id}><TableCell>{rank < 3 ? MEDALS[rank] : rank + 1}</TableCell><TableCell className="font-medium">{row.name}</TableCell>{row.cells.map((cell, i) => <TableCell key={i} className="tabular-nums whitespace-nowrap">{cell}</TableCell>)}</TableRow>)}</TableBody>
+        <TableBody>{supplied.rows.map((row, rank) => <TableRow key={row.id} onClick={row.onClick} className={row.onClick ? "cursor-pointer hover:bg-muted/40" : undefined}><TableCell>{rank < 3 ? MEDALS[rank] : rank + 1}</TableCell><TableCell className="font-medium">{row.name}</TableCell>{row.cells.map((cell, i) => <TableCell key={i} className="tabular-nums whitespace-nowrap">{cell}</TableCell>)}</TableRow>)}</TableBody>
       </Table>
     </div>
   );

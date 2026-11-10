@@ -7,7 +7,7 @@ export type RecaudoRow = Rpc["reporte_mayoristas_recaudo"]["Returns"][number];
 
 export const carteraColumns = [
   { key: "cliente", label: "Cliente", text: true },
-  { key: "vendedora", label: "Vendedora", text: true },
+  { key: "vendedora", label: "Asesora", text: true },
   { key: "facturas", label: "Facturas", count: true },
   { key: "saldo", label: "Saldo" },
   { key: "por_vencer", label: "Por vencer" },
@@ -49,7 +49,7 @@ export function ordenarCartera(rows: CarteraRow[], key: keyof CarteraRow, asc: b
 
 export function carteraExcel(rows: CarteraRow[]) {
   return rows.map(r => ({
-    Cliente: r.cliente, Vendedora: r.vendedora, Facturas: Number(r.facturas), Saldo: Number(r.saldo),
+    Cliente: r.cliente, Asesora: r.vendedora, Facturas: Number(r.facturas), Saldo: Number(r.saldo),
     "Por vencer": Number(r.por_vencer), "1–30": Number(r.vencido_1_30), "31–60": Number(r.vencido_31_60),
     "61–90": Number(r.vencido_61_90), "+90": Number(r.vencido_90), "% vencido": r.pct_vencido == null ? null : Number(r.pct_vencido),
     "Días máx. vencido": r.dias_max_vencido, "Factura más antigua": r.factura_mas_antigua, "Actualizado": r.actualizado_en,
@@ -57,7 +57,7 @@ export function carteraExcel(rows: CarteraRow[]) {
 }
 
 export function recaudoExcel(rows: RecaudoRow[]) {
-  return rows.map(r => ({ Cliente: r.cliente, Vendedora: r.vendedora, Recaudo: Number(r.recaudo),
+  return rows.map(r => ({ Cliente: r.cliente, Asesora: r.vendedora, Recaudo: Number(r.recaudo),
     "Facturas pagadas": Number(r.facturas_pagadas), "Último pago": r.ultimo_pago, "Notas crédito (no es recaudo de caja)": Number(r.notas_credito),
     "Por asiento": Number(r.por_asiento), "Por pago": Number(r.por_pago) }));
 }

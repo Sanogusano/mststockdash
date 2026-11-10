@@ -132,7 +132,7 @@ export function MayoristasFacturas({ desde, hasta, vendedor, onVendedorChange, c
           <>
             <div className="hidden md:block">
               <TablaCard title={`Facturas (${fmtNum(visibles.length)})`} minW={1050}>
-                <TablaTh cols={["Factura", "Fecha", "Cliente", "Vendedora", "Unidades", "Referencias", "Valor", "Estado"]} />
+                <TablaTh cols={["Factura", "Fecha", "Cliente", "Asesora", "Unidades", "Referencias", "Valor", "Estado"]} />
                 <tbody>
                   {visibles.map(r => (
                     <tr key={r.factura} onClick={() => setAbierta(r)} className="border-b border-border cursor-pointer hover:bg-muted/40">

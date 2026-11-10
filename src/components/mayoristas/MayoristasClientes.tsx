@@ -130,7 +130,7 @@ export function MayoristasClientes({ desde, hasta, vendedor, onVendedorChange, o
             <>
               <div className="hidden md:block">
                 <TablaCard title={`Clientes (${fmtNum(visibles.length)})`} minW={1150}>
-                  <TablaTh cols={["Cliente", "Vendedora", "Estado", "Venta", "% canal", "Unidades", "Facturas", "Ticket", "vs periodo ant.", "Última compra"]} />
+                  <TablaTh cols={["Cliente", "Asesora", "Estado", "Venta", "% canal", "Unidades", "Facturas", "Ticket", "vs periodo ant.", "Última compra"]} />
                   <tbody>{visibles.map(r => (
                     <tr key={`${r.cliente_id}-${r.vendedor_id}`} className="border-b border-border last:border-0">
                       <td className="px-3 py-2.5"><button type="button" onClick={() => onClienteClick?.(r.cliente_id)} className="font-medium text-primary hover:underline text-left">{r.cliente}</button>{Number(r.puntos_entrega) > 1 && <p className="text-xs text-muted-foreground">{fmtNum(r.puntos_entrega)} puntos de entrega</p>}</td>
