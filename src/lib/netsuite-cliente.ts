@@ -6,6 +6,9 @@ export type ClienteNetSuiteRespuesta = {
     cliente_ns_id?: string | number;
     nombre?: string | null;
     nombre_ns?: string;
+    email?: string | null;
+    telefono?: string | null;
+    direccion_envio?: string | null;
     tipo?: string;
     doc_fuente?: string;
     requiere_elegir?: boolean;
@@ -99,9 +102,9 @@ export function camposClienteNetSuite(respuesta: ClienteNetSuiteRespuesta): Camp
     ["Documento", text(payload.documento, payload.vatregnumber, payload.custentity_co_identification_num)],
     ["Tipo", cliente?.tipo === "persona" ? "Persona" : cliente?.tipo === "empresa" ? "Empresa" : text(cliente?.tipo)],
     ["Origen del documento", fuenteDocumentoNetSuite(cliente?.doc_fuente)],
-    ["Email", text(payload.email)],
-    ["Teléfono", text(payload.telefono, payload.phone)],
-    ["Dirección", text(address?.addr1, payload.direccion, payload.defaultaddress)],
+    ["Email", text(cliente?.email)],
+    ["Teléfono", text(cliente?.telefono)],
+    ["Dirección", text(cliente?.direccion_envio)],
     ["Ciudad", text(ciudad, payload.ciudad)],
     campoZip,
   ];

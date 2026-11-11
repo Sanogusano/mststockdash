@@ -18,15 +18,18 @@ const fila = { shopify_order_id: "1", pedido: "#1234", estado: "pendiente", razo
 const preview: ClienteNetSuiteRespuesta = {
   cliente: {
     nombre: "Ana Prueba",
+    email: "ana@example.test",
+    telefono: "3001112233",
+    direccion_envio: "Calle 1 #2-3",
     tipo: "persona",
     existe: false,
     payload: {
       firstName: "Ana",
       lastName: "Prueba",
-      email: "ana@example.test",
+      email: "payload@example.test",
       phone: "555",
       vatregnumber: "456",
-      addressBook: { items: [{ addressBookAddress: { addr1: "Calle 1 #2-3", city: "Bogotá", state: "CUN" } }] },
+      addressBook: { items: [{ addressBookAddress: { addr1: "Dirección del payload", city: "Bogotá", state: "CUN" } }] },
     },
   },
 };
@@ -70,8 +73,18 @@ describe("mapeo de los datos del cliente NetSuite", () => {
     expect(faltaNombreClienteNetSuite({ cliente: { requiere_elegir: true, opciones: ["123"] } })).toBe(true);
     expect(faltaNombreClienteNetSuite(null)).toBe(true);
   });
-  it("toma la dirección del primer ítem del addressBook", () => {
-    expect(camposClienteNetSuite(preview)).toContainEqual(["Dirección", "Calle 1 #2-3"]);
+  it("lee email, teléfono y dirección de cliente, no del payload", () => {
+    const campos = camposClienteNetSuite(preview);
+    expect(campos).toContainEqual(["Email", "ana@example.test"]);
+    expect(campos).toContainEqual(["Teléfono", "3001112233"]);
+    expect(campos).toContainEqual(["Dirección", "Calle 1 #2-3"]);
+    expect(campos.some(([label, value]) => value === "payload@example.test" || value === "555" || value === "Dirección del payload")).toBe(false);
+  });
+  it("muestra guion cuando email, teléfono o dirección no vienen", () => {
+    const campos = camposClienteNetSuite({ cliente: { nombre: "Ana", tipo: "persona", payload: {} } });
+    expect(campos).toContainEqual(["Email", "—"]);
+    expect(campos).toContainEqual(["Teléfono", "—"]);
+    expect(campos).toContainEqual(["Dirección", "—"]);
   });
   it("muestra ciudad y estado separados por /", () => {
     expect(camposClienteNetSuite(preview)).toContainEqual(["Ciudad", "Bogotá / CUN"]);
