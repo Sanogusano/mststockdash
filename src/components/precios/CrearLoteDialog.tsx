@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
@@ -29,12 +30,14 @@ export function CrearLoteDialog({ open, onOpenChange, modo, rows, onCreated }: P
   const [piso, setPiso] = useState("40");
   const [poner, setPoner] = useState("");
   const [quitar, setQuitar] = useState("");
+  const [permitirSubir, setPermitirSubir] = useState(false);
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
-  useEffect(() => { if (open) { setNombre(`Precios ${hoy()}`); setErr(null); } }, [open]);
+  useEffect(() => { if (open) { setNombre(`Precios ${hoy()}`); setErr(null); setPermitirSubir(false); } else { setPermitirSubir(false); } }, [open]);
 
   const accion: AccionLote = modo === "poner" ? tipoPoner : modo;
+  useEffect(() => { if (accion !== "fijar") setPermitirSubir(false); }, [accion]);
   const necesitaValor = modo === "poner";
   const v = Number(valor);
   const pisoN = Number(piso) / 100;
@@ -54,11 +57,13 @@ export function CrearLoteDialog({ open, onOpenChange, modo, rows, onCreated }: P
       p_accion: accion,
       p_valor: necesitaValor ? v : null,
       p_piso_margen: pisoN,
+      p_permitir_subir: accion === "fijar" ? permitirSubir : false,
       p_etiqueta_poner: poner.trim() || null,
       p_etiqueta_quitar: quitar.trim() || null,
     });
     setSaving(false);
     if (error) { setErr(error.message); return; }
+    setPermitirSubir(false);
     onOpenChange(false);
     onCreated(Number(data));
   };
@@ -110,6 +115,15 @@ export function CrearLoteDialog({ open, onOpenChange, modo, rows, onCreated }: P
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1"><Label className="text-xs">Nombre del lote</Label><Input value={nombre} onChange={(e) => setNombre(e.target.value)} /></div>
                 <div className="space-y-1"><Label className="text-xs">Piso de margen %</Label><Input type="number" min={20} value={piso} onChange={(e) => setPiso(e.target.value)} className="w-28" /><p className="text-[11px] text-muted-foreground">Mínimo 20%</p></div>
+                {accion === "fijar" && (
+                  <div className="col-span-2 flex items-start gap-2">
+                    <Checkbox id="permitir-subir" checked={permitirSubir} onCheckedChange={(c) => setPermitirSubir(c === true)} className="mt-0.5" />
+                    <div className="space-y-0.5">
+                      <Label htmlFor="permitir-subir" className="cursor-pointer text-xs font-normal">Permitir subir el precio (reducir descuento)</Label>
+                      <p className="text-[11px] text-muted-foreground">Si está apagado, el lote bloquea las variantes cuyo precio subiría.</p>
+                    </div>
+                  </div>
+                )}
                 <div className="space-y-1"><Label className="text-xs">Etiqueta a poner</Label><Input value={poner} onChange={(e) => setPoner(e.target.value)} /></div>
                 <div className="space-y-1"><Label className="text-xs">Etiqueta a quitar</Label><Input value={quitar} onChange={(e) => setQuitar(e.target.value)} /></div>
               </div>
@@ -117,6 +131,7 @@ export function CrearLoteDialog({ open, onOpenChange, modo, rows, onCreated }: P
             </div>
           </details>
           {err && <p className="rounded-md border border-destructive/40 bg-destructive/5 p-2 text-xs text-destructive">{err}</p>}
+          {permitirSubir && <p className="rounded-md border border-amber-200 bg-amber-50 p-2 text-xs text-amber-900">Este lote puede subir precios a variantes que hoy tienen más descuento.</p>}
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
