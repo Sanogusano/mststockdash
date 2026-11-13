@@ -2633,6 +2633,13 @@ export type Database = {
             foreignKeyName: "order_items_shopify_order_id_fkey"
             columns: ["shopify_order_id"]
             isOneToOne: false
+            referencedRelation: "v_pedidos_online_sin_so"
+            referencedColumns: ["shopify_order_id"]
+          },
+          {
+            foreignKeyName: "order_items_shopify_order_id_fkey"
+            columns: ["shopify_order_id"]
+            isOneToOne: false
             referencedRelation: "v_pedidos_sin_so"
             referencedColumns: ["shopify_order_id"]
           },
@@ -5354,6 +5361,48 @@ export type Database = {
           puede_ser_origen: boolean | null
           tier: string | null
           wos_objetivo_semanas: number | null
+        }
+        Relationships: []
+      }
+      v_pedidos_online_sin_so: {
+        Row: {
+          creado: string | null
+          descuento: number | null
+          despacho: string | null
+          dias: number | null
+          financial_status: string | null
+          items: string | null
+          origen: string | null
+          pedido: string | null
+          shopify_order_id: string | null
+          total: number | null
+          unidades: number | null
+        }
+        Insert: {
+          creado?: string | null
+          descuento?: number | null
+          despacho?: never
+          dias?: never
+          financial_status?: string | null
+          items?: never
+          origen?: string | null
+          pedido?: string | null
+          shopify_order_id?: string | null
+          total?: never
+          unidades?: never
+        }
+        Update: {
+          creado?: string | null
+          descuento?: number | null
+          despacho?: never
+          dias?: never
+          financial_status?: string | null
+          items?: never
+          origen?: string | null
+          pedido?: string | null
+          shopify_order_id?: string | null
+          total?: never
+          unidades?: never
         }
         Relationships: []
       }
