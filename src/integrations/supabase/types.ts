@@ -5278,6 +5278,18 @@ export type Database = {
         }
         Relationships: []
       }
+      v_despachado_sin_factura_ns: {
+        Row: {
+          creado: string | null
+          dias: number | null
+          estado_ns: string | null
+          pedido: string | null
+          skus: string | null
+          so: string | null
+          unidades: number | null
+        }
+        Relationships: []
+      }
       v_facturado_pedido: {
         Row: {
           cufe: string | null
