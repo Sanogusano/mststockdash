@@ -19,6 +19,7 @@ import { SnapshotPreview } from "@/components/netsuite/SnapshotPreview";
 import { SnapshotHistoryTable } from "@/components/netsuite/SnapshotHistoryTable";
 import { ConciliacionCard } from "@/components/netsuite/ConciliacionCard";
 import { GenerarArchivoShopifyCard } from "@/components/netsuite/GenerarArchivoShopifyCard";
+import { DespachadoSinFacturaCard } from "@/components/netsuite/DespachadoSinFacturaCard";
 import {
   fetchActiveSnapshot,
   fetchSnapshotHistory,
@@ -178,6 +179,7 @@ export default function NetsuiteUpload() {
             {activeQ.data && !parsed && (
               <ConciliacionCard snapshotId={activeQ.data.id} />
             )}
+            {activeQ.data && !parsed && <DespachadoSinFacturaCard />}
             {activeQ.data && !parsed && <GenerarArchivoShopifyCard />}
 
             {/* Historial */}
