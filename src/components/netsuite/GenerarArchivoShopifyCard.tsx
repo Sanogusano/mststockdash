@@ -114,15 +114,17 @@ export function GenerarArchivoShopifyCard() {
           String(a.product_id).localeCompare(String(b.product_id)) ||
           String(a.sku ?? "").localeCompare(String(b.sku ?? ""))
       );
-      const headers = ["ID", "Command", "Variant ID", "Variant SKU", "Title", `Inventory On Hand: ${UBICACION}`];
+      const headers = ["ID", "Command", "Variant ID", "Variant SKU", "Title", `Inventory On Hand Adjust: ${UBICACION}`];
       const escape = (v: string | number) => {
         const s = String(v ?? "");
         return /[",\n;]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
       };
       const lines = [headers.join(",")];
       for (const r of ordenadas) {
+        const ajuste = Number(r.netsuite) - Number(r.shopify_on_hand);
+        if (ajuste === 0) continue;
         lines.push(
-          [r.product_id, "UPDATE", r.variant_id, r.sku, r.producto ?? "", r.netsuite]
+          [r.product_id, "UPDATE", r.variant_id, r.sku, r.producto ?? "", ajuste]
             .map(escape)
             .join(",")
         );
@@ -131,7 +133,7 @@ export function GenerarArchivoShopifyCard() {
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `Products_conciliacion_CEDI_Guayabal_${fechaBogota()}.csv`;
+      a.download = `Ajuste_inventario_CEDI_Guayabal_${fechaBogota()}.csv`;
       a.click();
       URL.revokeObjectURL(url);
     } catch (e: any) {
@@ -152,7 +154,7 @@ export function GenerarArchivoShopifyCard() {
         </CardTitle>
         <CardDescription>
           Compara el inventario real de Shopify en CEDI Guayabal (la única ubicación que despacha
-          online) contra el último inventario de NetSuite. El archivo actualiza On Hand: Shopify
+          online) contra el último inventario de NetSuite. El archivo ajusta On Hand (suma o resta la diferencia): Shopify
           conserva lo comprometido y recalcula el disponible. Importa el archivo en Matrixify apenas
           lo descargues.
         </CardDescription>
@@ -251,7 +253,7 @@ export function GenerarArchivoShopifyCard() {
                   <tr className="text-left">
                     <th className="px-3 py-2">SKU</th>
                     <th className="px-3 py-2">Producto</th>
-                    <th className="px-3 py-2 text-right">NetSuite</th>
+                    <th className="px-3 py-2 text-right">On Hand objetivo</th>
                     <th className="px-3 py-2 text-right">Shopify On Hand</th>
                     <th className="px-3 py-2 text-right">Comprometido</th>
                     <th className="px-3 py-2 text-right">Diferencia</th>
