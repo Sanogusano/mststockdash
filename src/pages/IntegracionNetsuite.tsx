@@ -10,6 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { LoadingState } from "@/components/dashboard/LoadingState";
+import { CrearSoPedidosCard } from "@/components/ecommerce/CrearSoPedidosCard";
 import { useChequeoIntegridad } from "@/hooks/useChequeoIntegridad";
 import { cn } from "@/lib/utils";
 
@@ -115,6 +116,8 @@ export default function IntegracionNetsuitePage() {
                 </Button>
               </CardContent>
             </Card>
+
+            <CrearSoPedidosCard />
 
             <Card>
               <CardHeader className="pb-3 flex flex-row items-center justify-between gap-3 space-y-0">
