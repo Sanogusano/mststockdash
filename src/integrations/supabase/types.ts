@@ -5372,37 +5372,13 @@ export type Database = {
           dias: number | null
           financial_status: string | null
           items: string | null
+          motivo: string | null
+          motivo_detalle: string | null
           origen: string | null
           pedido: string | null
           shopify_order_id: string | null
           total: number | null
           unidades: number | null
-        }
-        Insert: {
-          creado?: string | null
-          descuento?: number | null
-          despacho?: never
-          dias?: never
-          financial_status?: string | null
-          items?: never
-          origen?: string | null
-          pedido?: string | null
-          shopify_order_id?: string | null
-          total?: never
-          unidades?: never
-        }
-        Update: {
-          creado?: string | null
-          descuento?: number | null
-          despacho?: never
-          dias?: never
-          financial_status?: string | null
-          items?: never
-          origen?: string | null
-          pedido?: string | null
-          shopify_order_id?: string | null
-          total?: never
-          unidades?: never
         }
         Relationships: []
       }
