@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { format, differenceInCalendarDays, startOfMonth, subMonths, endOfMonth, subDays, subWeeks } from "date-fns";
+import { Fragment, useState } from "react";
+import { format, differenceInCalendarDays, startOfMonth, subMonths, endOfMonth, subDays, subWeeks, subYears } from "date-fns";
 import { es } from "date-fns/locale";
 import { CalendarIcon, ChevronDown, GitCompareArrows } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -120,7 +120,7 @@ export function getDateRange(value: number, customFrom?: Date, customTo?: Date):
 }
 
 /** Comparison period types */
-export type ComparisonPeriod = "previous" | "day" | "week" | "month";
+export type ComparisonPeriod = "previous" | "day" | "week" | "month" | "year1" | "year2";
 
 export const COMPARISON_OPTIONS: { value: ComparisonPeriod; label: string }[] = [
   { value: "previous", label: "Periodo Anterior" },
@@ -128,6 +128,15 @@ export const COMPARISON_OPTIONS: { value: ComparisonPeriod; label: string }[] = 
   { value: "week", label: "Semana Anterior" },
   { value: "month", label: "Mes Anterior" },
 ];
+
+export function getComparisonOptions(from: Date): typeof COMPARISON_OPTIONS {
+  const year = from.getFullYear();
+  return [
+    ...COMPARISON_OPTIONS,
+    { value: "year1", label: `Mismo periodo ${year - 1}` },
+    { value: "year2", label: `Mismo periodo ${year - 2}` },
+  ];
+}
 
 /** Resolves the comparison date range based on the current selection and comparison period */
 export function resolveComparisonRange(
@@ -155,6 +164,11 @@ export function resolveComparisonRange(
     const compTo = subWeeks(currentTo, 1);
     const compFrom = subWeeks(currentFrom, 1);
     return { from: compFrom, to: compTo };
+  }
+
+  if (comparisonPeriod === "year1" || comparisonPeriod === "year2") {
+    const years = comparisonPeriod === "year1" ? 1 : 2;
+    return { from: subYears(currentFrom, years), to: subYears(currentTo, years) };
   }
 
   // month
@@ -194,7 +208,8 @@ const presets: Preset[] = [
 ];
 
 function formatRange(from: Date, to: Date): string {
-  const fmt = (d: Date) => format(d, "d MMM", { locale: es });
+  const showYear = from.getFullYear() !== new Date().getFullYear();
+  const fmt = (d: Date) => format(d, showYear ? "d MMM yyyy" : "d MMM", { locale: es });
   return `${fmt(from)} – ${fmt(to)}`;
 }
 
@@ -271,8 +286,11 @@ export function TimeFilter({ value, onChange, comparisonPeriod, onComparisonChan
     ? `${format(customFrom!, "d MMM", { locale: es })} – ${customTo ? format(customTo, "d MMM", { locale: es }) : "Hoy"}`
     : presetLabel || "Seleccionar";
 
-  const compLabel = comparisonPeriod
-    ? COMPARISON_OPTIONS.find(o => o.value === comparisonPeriod)?.label ?? "vs Anterior"
+  const comparisonOptions = getComparisonOptions(from);
+  const compLabel = comparisonPeriod === "year1" || comparisonPeriod === "year2"
+    ? `vs ${from.getFullYear() - (comparisonPeriod === "year1" ? 1 : 2)}`
+    : comparisonPeriod
+    ? comparisonOptions.find(o => o.value === comparisonPeriod)?.label ?? "vs Anterior"
     : "vs Anterior";
 
   const compRange = comparisonPeriod
@@ -382,7 +400,14 @@ export function TimeFilter({ value, onChange, comparisonPeriod, onComparisonChan
           </PopoverTrigger>
           <PopoverContent className="w-auto p-0" align="end">
             <div className="py-1 min-w-[180px]">
-              {COMPARISON_OPTIONS.map((opt) => (
+              {comparisonOptions.map((opt) => (
+                <Fragment key={opt.value}>
+                {opt.value === "year1" && (
+                  <>
+                    <div className="h-px bg-border my-1" />
+                    <p className="px-4 py-2 text-xs text-muted-foreground">Año anterior</p>
+                  </>
+                )}
                 <button
                   key={opt.value}
                   onClick={() => {
@@ -398,6 +423,7 @@ export function TimeFilter({ value, onChange, comparisonPeriod, onComparisonChan
                 >
                   {opt.label}
                 </button>
+                </Fragment>
               ))}
             </div>
           </PopoverContent>
