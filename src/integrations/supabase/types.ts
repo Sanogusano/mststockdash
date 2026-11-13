@@ -1953,6 +1953,8 @@ export type Database = {
           departamento_norm: string | null
           municipio: string
           municipio_norm: string | null
+          ns_ciudad_id: number | null
+          ns_departamento_id: number | null
         }
         Insert: {
           codigo_dane: string
@@ -1960,6 +1962,8 @@ export type Database = {
           departamento_norm?: string | null
           municipio: string
           municipio_norm?: string | null
+          ns_ciudad_id?: number | null
+          ns_departamento_id?: number | null
         }
         Update: {
           codigo_dane?: string
@@ -1967,6 +1971,8 @@ export type Database = {
           departamento_norm?: string | null
           municipio?: string
           municipio_norm?: string | null
+          ns_ciudad_id?: number | null
+          ns_departamento_id?: number | null
         }
         Relationships: []
       }
