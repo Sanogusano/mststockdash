@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useNavigate } from "react-router-dom";
 import { AlertTriangle, CheckCircle2, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -24,6 +25,19 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { LoadingState } from "@/components/dashboard/LoadingState";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+
+type Motivo =
+  | "agotado"
+  | "marketplace_addi"
+  | "marketplace_otro"
+  | "pedido_manual"
+  | "integracion";
 
 type PedidoSinSo = {
   pedido: string;
@@ -37,7 +51,52 @@ type PedidoSinSo = {
   unidades: number | null;
   items: string | null;
   dias: number | null;
+  motivo: Motivo | null;
+  motivo_detalle: string | null;
 };
+
+const MOTIVO_CONFIG: Record<Motivo, { label: string; className: string }> = {
+  agotado: {
+    label: "Agotado",
+    className: "border-red-300 bg-red-50 text-red-700",
+  },
+  marketplace_addi: {
+    label: "Marketplace Addi",
+    className: "border-violet-300 bg-violet-50 text-violet-700",
+  },
+  marketplace_otro: {
+    label: "Marketplace",
+    className: "border-violet-300 bg-violet-50 text-violet-700",
+  },
+  pedido_manual: {
+    label: "Pedido manual",
+    className: "border-blue-300 bg-blue-50 text-blue-700",
+  },
+  integracion: {
+    label: "Falló integración",
+    className: "border-amber-300 bg-amber-50 text-amber-800",
+  },
+};
+
+type FiltroMotivo = "todos" | "agotado" | "marketplace" | "pedido_manual" | "integracion";
+
+const FILTROS: { key: FiltroMotivo; label: string }[] = [
+  { key: "todos", label: "Todos" },
+  { key: "agotado", label: "Agotado" },
+  { key: "marketplace", label: "Marketplace" },
+  { key: "pedido_manual", label: "Pedido manual" },
+  { key: "integracion", label: "Falló integración" },
+];
+
+const coincideFiltro = (motivo: Motivo | null, filtro: FiltroMotivo) => {
+  if (filtro === "todos") return true;
+  if (filtro === "marketplace")
+    return motivo === "marketplace_addi" || motivo === "marketplace_otro";
+  return motivo === filtro;
+};
+
+const contarFiltro = (rows: PedidoSinSo[], filtro: FiltroMotivo) =>
+  rows.filter((r) => coincideFiltro(r.motivo, filtro)).length;
 
 type SoLinea = {
   sku: string;
@@ -88,6 +147,8 @@ const esErrorPermiso = (msg: string) =>
 const MENSAJE_PERMISO = "No tienes permiso para crear órdenes de venta";
 
 export function CrearSoPedidosCard() {
+  const navigate = useNavigate();
+  const [filtro, setFiltro] = useState<FiltroMotivo>("todos");
   const q = useQuery({
     queryKey: ["ecommerce-pedidos-sin-so"],
     queryFn: async () => {
@@ -100,7 +161,22 @@ export function CrearSoPedidosCard() {
     },
   });
   const rows = q.data ?? [];
+  const filtradas = rows.filter((r) => coincideFiltro(r.motivo, filtro));
   const totalMonto = rows.reduce((a, r) => a + Number(r.total ?? 0), 0);
+  const conteoAgotados = rows.filter((r) => r.motivo === "agotado").length;
+  const conteoManuales = rows.filter((r) => r.motivo === "pedido_manual").length;
+  const conteoMarketplace = rows.filter(
+    (r) => r.motivo === "marketplace_addi" || r.motivo === "marketplace_otro",
+  ).length;
+  const conteoIntegracion = rows.filter((r) => r.motivo === "integracion").length;
+  const resumenMotivos = [
+    conteoAgotados > 0 ? `${conteoAgotados} agotados` : null,
+    conteoManuales > 0 ? `${conteoManuales} manuales` : null,
+    conteoMarketplace > 0 ? `${conteoMarketplace} marketplace` : null,
+    conteoIntegracion > 0 ? `${conteoIntegracion} falló integración` : null,
+  ]
+    .filter(Boolean)
+    .join(" · ");
 
   const [pedidoActivo, setPedidoActivo] = useState<string | null>(null);
   const [respuesta, setRespuesta] = useState<SoRespuesta | null>(null);
@@ -197,6 +273,9 @@ export function CrearSoPedidosCard() {
           <div>
             <CardTitle className="text-sm">
               Crear orden de venta en NetSuite · {rows.length.toLocaleString("es-CO")} pedidos · {fmtCOP(totalMonto)}
+              {resumenMotivos && (
+                <span className="text-muted-foreground font-normal"> · {resumenMotivos}</span>
+              )}
             </CardTitle>
             <p className="text-xs text-muted-foreground">
               Pedidos online de CEDI Guayabal sin SO (más de 2 horas, sin tarjetas de regalo). Usa la
@@ -220,10 +299,32 @@ export function CrearSoPedidosCard() {
           ) : q.error ? (
             <p className="text-sm text-destructive p-4">Error: {errMsg(q.error)}</p>
           ) : (
+            <>
+              <div className="flex flex-wrap gap-2 px-4 pt-3 pb-1">
+                {FILTROS.map((f) => {
+                  const n = contarFiltro(rows, f.key);
+                  const activo = filtro === f.key;
+                  return (
+                    <button
+                      key={f.key}
+                      type="button"
+                      onClick={() => setFiltro(f.key)}
+                      className={`rounded-full border px-3 py-1 text-xs transition-colors ${
+                        activo
+                          ? "border-foreground bg-foreground text-background"
+                          : "border-border bg-background text-muted-foreground hover:bg-muted"
+                      }`}
+                    >
+                      {f.label} · {n.toLocaleString("es-CO")}
+                    </button>
+                  );
+                })}
+              </div>
             <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>Pedido</TableHead>
+                  <TableHead>Motivo</TableHead>
                   <TableHead>Creado</TableHead>
                   <TableHead>Origen</TableHead>
                   <TableHead>Pago</TableHead>
@@ -236,20 +337,43 @@ export function CrearSoPedidosCard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {rows.length === 0 && (
+                {filtradas.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={10} className="text-center text-sm text-muted-foreground py-6">
+                    <TableCell colSpan={11} className="text-center text-sm text-muted-foreground py-6">
                       <span className="inline-flex items-center gap-1.5 text-emerald-700">
                         <CheckCircle2 className="h-4 w-4" /> Sin pedidos pendientes ✓
                       </span>
                     </TableCell>
                   </TableRow>
                 )}
-                {rows.map((r) => {
+                {filtradas.map((r) => {
                   const conDescuento = Number(r.descuento ?? 0) > 0;
+                  const esAgotado = r.motivo === "agotado";
+                  const motivoCfg = r.motivo ? MOTIVO_CONFIG[r.motivo] : null;
                   return (
                     <TableRow key={r.pedido}>
                       <TableCell className="font-medium">{r.pedido}</TableCell>
+                      <TableCell>
+                        {motivoCfg ? (
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Badge
+                                  variant="outline"
+                                  className={`text-[10px] whitespace-nowrap ${motivoCfg.className}`}
+                                >
+                                  {motivoCfg.label}
+                                </Badge>
+                              </TooltipTrigger>
+                              <TooltipContent className="max-w-xs">
+                                <p className="text-xs">{r.motivo_detalle ?? motivoCfg.label}</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        ) : (
+                          "—"
+                        )}
+                      </TableCell>
                       <TableCell>{fmtFecha(r.creado)}</TableCell>
                       <TableCell>{r.origen ?? "—"}</TableCell>
                       <TableCell>{r.financial_status ?? "—"}</TableCell>
@@ -281,6 +405,33 @@ export function CrearSoPedidosCard() {
                               Crear SO
                             </Button>
                           </div>
+                        ) : esAgotado ? (
+                          <div className="space-y-1">
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <span className="inline-block">
+                                    <Button size="sm" variant="outline" disabled>
+                                      Crear SO
+                                    </Button>
+                                  </span>
+                                </TooltipTrigger>
+                                <TooltipContent className="max-w-xs">
+                                  <p className="text-xs">
+                                    Sin stock en Guayabal: primero resolver el faltante (traslado)
+                                    en Agotados
+                                  </p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                            <button
+                              type="button"
+                              className="block text-xs text-primary underline underline-offset-2 hover:text-primary/80"
+                              onClick={() => navigate("/ecommerce/agotados")}
+                            >
+                              Resolver en Agotados
+                            </button>
+                          </div>
                         ) : (
                           <Button
                             size="sm"
@@ -297,6 +448,7 @@ export function CrearSoPedidosCard() {
                 })}
               </TableBody>
             </Table>
+            </>
           )}
         </CardContent>
       </Card>
