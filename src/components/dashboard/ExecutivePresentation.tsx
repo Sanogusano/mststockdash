@@ -18,22 +18,40 @@ export function CommercialSectionHeader({ title, children }: { title: string; ch
   );
 }
 
-export function ComparisonIndicator({ actual, anterior, label, percentage, points, invert }: { actual: number; anterior: number; label?: string; percentage?: number; points?: boolean; invert?: boolean }) {
+export type KpiDiffFormat = "money" | "units" | "decimal";
+
+/** Signed absolute difference vs the comparison period, or null when it is not meaningful. */
+export function formatKpiDiff(actual: number, anterior: number, fmt: KpiDiffFormat): string | null {
+  const a = Number(actual);
+  const b = Number(anterior);
+  if (!Number.isFinite(a) || !Number.isFinite(b)) return null;
+  if (a === 0 && b === 0) return null;
+  const diff = a - b;
+  if (diff === 0) return null;
+  const sign = diff > 0 ? "+" : "\u2212";
+  const abs = Math.abs(diff);
+  if (fmt === "money") return `${sign}${formatKpiMoney(abs)}`;
+  if (fmt === "units") return `${sign}${Math.round(abs).toLocaleString("es-CO")} uds`;
+  return `${sign}${abs.toFixed(2).replace(".", ",")}`;
+}
+
+export function ComparisonIndicator({ actual, anterior, label, percentage, points, invert, diffFormat }: { actual: number; anterior: number; label?: string; percentage?: number; points?: boolean; invert?: boolean; diffFormat?: KpiDiffFormat }) {
   const pct = percentage ?? (anterior > 0 ? ((actual - anterior) / anterior) * 100 : 0);
   const isUp = pct >= 0;
+  const diff = percentage === undefined && diffFormat ? formatKpiDiff(actual, anterior, diffFormat) : null;
   return (
     <div className="flex items-center gap-1 mt-0.5">
       <span className={cn("text-xs font-medium", (invert ? !isUp : isUp) ? "text-emerald-600" : "text-destructive")}>
-        {isUp ? "▲" : "▼"} {Math.abs(pct).toFixed(1)}{points ? " pp" : "%"}
+        {isUp ? "▲" : "▼"} {Math.abs(pct).toFixed(1)}{points ? " pp" : "%"}{diff ? ` (${diff})` : ""}
       </span>
       {label && <span className="text-xs text-muted-foreground">{label}</span>}
     </div>
   );
 }
 
-export function KpiCard({ label, value, mobileValue, prefix = "", icon: Icon, className, onClick, actual, anterior, children, ventaM2Status }: {
+export function KpiCard({ label, value, mobileValue, prefix = "", icon: Icon, className, onClick, actual, anterior, children, ventaM2Status, diffFormat }: {
   label: string; value: string; mobileValue?: string; prefix?: string; icon: React.ElementType; className?: string; onClick?: () => void;
-  actual?: number; anterior?: number; children?: React.ReactNode;
+  actual?: number; anterior?: number; children?: React.ReactNode; diffFormat?: KpiDiffFormat;
   ventaM2Status?: { label: string; icon: React.ElementType; colorClass: string; bgClass: string; borderClass: string };
 }) {
   return (
@@ -64,7 +82,7 @@ export function KpiCard({ label, value, mobileValue, prefix = "", icon: Icon, cl
           )}
         </p>
         {actual !== undefined && anterior !== undefined && (
-          <ComparisonIndicator actual={actual} anterior={anterior} label="vs ant." />
+          <ComparisonIndicator actual={actual} anterior={anterior} label="vs ant." diffFormat={diffFormat} />
         )}
         {children}
       </div>
