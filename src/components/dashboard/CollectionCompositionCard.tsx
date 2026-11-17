@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { isValidDays } from "@/lib/validation";
 import { buildRpcDateParams } from "./TimeFilter";
+import { formatKpiMoney } from "@/lib/kpi-money";
 import { LoadingState } from "./LoadingState";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 import { Layers, ChevronDown, ChevronRight } from "lucide-react";
@@ -19,8 +20,10 @@ const SUB_COLORS = [
   "hsl(190,40%,60%)", "hsl(280,35%,70%)", "hsl(45,60%,65%)", "hsl(300,30%,70%)",
 ];
 
-interface Row { coleccion: string; unidades: number; }
-interface DetailRow { coleccion: string; categoria: string; unidades: number; }
+interface Row { coleccion: string; unidades: number; venta: number; }
+interface DetailRow { coleccion: string; categoria: string; unidades: number; venta: number; }
+
+type ChartItem = { name: string; value: number; pct: number; venta?: number; detail?: string; onClick?: () => void };
 
 interface Props {
   days: number;
@@ -66,16 +69,19 @@ export function CollectionCompositionCard({ days, canal, locationId, zona, custo
   if (!supplied && !data.length) return null;
 
   const total = supplied ? supplied.items.reduce((s, r) => s + r.value, 0) : data.reduce((s, r) => s + (r.unidades ?? 0), 0);
-  const chartItems = supplied?.items ?? data.map((r) => ({
+  const totalVenta = data.reduce((s, r) => s + Number(r.venta ?? 0), 0);
+  const showVenta = !supplied && totalVenta > 0;
+  const chartItems: ChartItem[] = supplied?.items ?? data.map((r) => ({
     name: r.coleccion ?? "Otros",
     value: r.unidades ?? 0,
     pct: total > 0 ? ((r.unidades ?? 0) / total) * 100 : 0,
+    venta: Number(r.venta ?? 0),
   }));
 
-  const detailByCollection = detail.reduce<Record<string, { categoria: string; unidades: number }[]>>((acc, r) => {
+  const detailByCollection = detail.reduce<Record<string, { categoria: string; unidades: number; venta: number }[]>>((acc, r) => {
     const key = r.coleccion ?? "Otros";
     if (!acc[key]) acc[key] = [];
-    acc[key].push({ categoria: r.categoria, unidades: r.unidades });
+    acc[key].push({ categoria: r.categoria, unidades: r.unidades, venta: Number(r.venta ?? 0) });
     return acc;
   }, {});
 
@@ -88,7 +94,7 @@ export function CollectionCompositionCard({ days, canal, locationId, zona, custo
       <div className="flex items-center gap-2 mb-4">
         <Layers className="h-4 w-4 text-primary" />
         <h3 className="text-sm font-semibold text-foreground">{supplied?.title ?? "Composición por Colección"}</h3>
-        <span className="text-xs text-muted-foreground ml-auto">{total.toLocaleString()} uds totales</span>
+        <span className="text-xs text-muted-foreground ml-auto">{total.toLocaleString()} uds{showVenta ? ` · ${formatKpiMoney(totalVenta)}` : " totales"}</span>
       </div>
       <div className={`flex flex-col ${supplied ? "" : "sm:flex-row"} items-start gap-4 sm:gap-6`}>
         <ResponsiveContainer width={140} height={140} className="shrink-0">
@@ -98,7 +104,7 @@ export function CollectionCompositionCard({ days, canal, locationId, zona, custo
                 <Cell key={i} fill={COLORS[i % COLORS.length]} />
               ))}
             </Pie>
-            <Tooltip formatter={(v: number, name: string, entry: { payload?: { pct?: number; detail?: string } }) => [supplied ? `${v.toLocaleString("es-CO")} uds (${(entry.payload?.pct ?? 0).toFixed(1)}%)${entry.payload?.detail ? ` · ${entry.payload.detail}` : ""}` : `${v.toLocaleString()} uds (${((v / total) * 100).toFixed(1)}%)`, name]} />
+            <Tooltip formatter={(v: number, name: string, entry: { payload?: { pct?: number; detail?: string; venta?: number } }) => [supplied ? `${v.toLocaleString("es-CO")} uds (${(entry.payload?.pct ?? 0).toFixed(1)}%)${entry.payload?.detail ? ` · ${entry.payload.detail}` : ""}` : `${v.toLocaleString()} uds (${((v / total) * 100).toFixed(1)}%)${showVenta ? ` · ${formatKpiMoney(entry.payload?.venta ?? 0)}` : ""}`, name]} />
           </PieChart>
         </ResponsiveContainer>
         <div className="flex-1 space-y-0.5 max-h-[280px] overflow-y-auto w-full">
@@ -128,6 +134,7 @@ export function CollectionCompositionCard({ days, canal, locationId, zona, custo
                   <div className="flex items-center gap-3 shrink-0">
                     <span className="text-muted-foreground">{r.value.toLocaleString()} uds</span>
                     <span className="text-foreground font-mono font-semibold w-14 text-right">{r.pct.toFixed(1)}%</span>
+                    {showVenta && <span className="text-foreground font-mono font-semibold w-16 text-right">{formatKpiMoney(r.venta ?? 0)}</span>}
                   </div>
                 </button>
                 {isOpen && subs && (
@@ -143,6 +150,7 @@ export function CollectionCompositionCard({ days, canal, locationId, zona, custo
                           <div className="flex items-center gap-3 shrink-0">
                             <span className="text-muted-foreground">{sub.unidades.toLocaleString()}</span>
                             <span className="text-foreground font-mono text-[11px] w-14 text-right">{subPct.toFixed(1)}%</span>
+                            {showVenta && <span className="text-foreground font-mono text-[11px] w-16 text-right">{formatKpiMoney(sub.venta)}</span>}
                           </div>
                         </div>
                       );
