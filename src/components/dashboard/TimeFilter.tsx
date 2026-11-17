@@ -217,7 +217,7 @@ function formatRange(from: Date, to: Date): string {
   return `${fmt(from)} – ${fmt(to)}`;
 }
 
-function getPresetLabel(value: number): string | undefined {
+export function getPresetLabel(value: number): string | undefined {
   return presets.find((p) => p.value === value)?.label;
 }
 

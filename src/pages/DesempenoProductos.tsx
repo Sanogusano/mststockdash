@@ -5,7 +5,7 @@ import { useSearchParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
-import { TimeFilter, THIS_MONTH_SENTINEL, resolveDays, buildRpcDateParams } from "@/components/dashboard/TimeFilter";
+import { TimeFilter, THIS_MONTH_SENTINEL, resolveDays, buildRpcDateParams, getDateRange, getPresetLabel, CUSTOM_SENTINEL } from "@/components/dashboard/TimeFilter";
 import { LoadingState, EmptyState } from "@/components/dashboard/LoadingState";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -372,9 +372,51 @@ export default function DesempenoProductosPage() {
     );
   };
 
-  const handleExportPDF = () => {
-    if (!filtered.length) return;
-    exportDesempenoPDF(filtered, resolveDays(days));
+  const [generatingPdf, setGeneratingPdf] = useState(false);
+  const handleExportPDF = async () => {
+    if (!filtered.length || generatingPdf) return;
+    setGeneratingPdf(true);
+    try {
+      const isCustom = !!rangeFrom;
+      const { from, to } = getDateRange(isCustom ? CUSTOM_SENTINEL : days, rangeFrom, rangeTo);
+      const fmtD = (d: Date) => d.toLocaleDateString("es-CO", { day: "numeric", month: "short" }).replace(".", "");
+      const fechas = `${fmtD(from)} – ${fmtD(to)}`;
+      const preset = !isCustom ? getPresetLabel(days) : undefined;
+      const periodoLabel = preset ? `${preset} · ${fechas}` : fechas;
+      const filtros = [
+        `Canal: ${canal === "all" ? "Todos" : CANAL_OPTIONS.find(o => o.value === canal)?.label ?? canal}`,
+        `Categoría: ${catFilter === "all" ? "Todas" : catFilter}`,
+      ];
+      if (semanaFilter !== "all") filtros.push(`Semana: ${SEMANA_VIDA_OPTIONS.find(o => o.value === semanaFilter)?.label ?? semanaFilter}`);
+      if (mezclaFilter !== "all") filtros.push(`Mezcla: ${mezclaFilter}`);
+      await exportDesempenoPDF({
+        rows: filtered.map(r => ({
+          ...r,
+          stock_tiendas: r.stock_tiendas,
+          stock_online: r.stock_online,
+          stock_standby: r.stock_standby,
+          stock_mayoristas: r.stock_mayoristas,
+          coleccion: r.coleccion,
+          semanas_vida: r.semanas_vida,
+          venta_neta: (r as ProductRow & { venta_neta?: number }).venta_neta ?? null,
+        })),
+        periodoLabel,
+        filtrosLabel: filtros.join(" · "),
+        kpis: {
+          unidades: totalUnidadesUniverso,
+          referencias: universe.length,
+          inventario_total: inventarioUniverso.total,
+          stock_tiendas: inventarioUniverso.tiendas,
+          stock_online: inventarioUniverso.online,
+          stock_standby: inventarioUniverso.standby,
+          stock_mayoristas: inventarioUniverso.mayoristas,
+        },
+      });
+    } catch (e) {
+      toast.error(`No se pudo generar el PDF: ${e instanceof Error ? e.message : String(e)}`);
+    } finally {
+      setGeneratingPdf(false);
+    }
   };
 
   return (
@@ -491,8 +533,8 @@ export default function DesempenoProductosPage() {
                   <Button variant="outline" size="sm" onClick={handleExportCSV} disabled={!filtered.length}>
                     <Download className="h-4 w-4 mr-1" /> CSV
                   </Button>
-                  <Button variant="outline" size="sm" onClick={handleExportPDF} disabled={!filtered.length}>
-                    <FileText className="h-4 w-4 mr-1" /> PDF
+                  <Button variant="outline" size="sm" onClick={handleExportPDF} disabled={!filtered.length || generatingPdf}>
+                    <FileText className="h-4 w-4 mr-1" /> {generatingPdf ? "Generando PDF…" : "PDF"}
                   </Button>
                 </div>
               </div>
