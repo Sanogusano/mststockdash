@@ -6965,6 +6965,7 @@ export type Database = {
         Returns: {
           coleccion: string
           unidades: number
+          venta: number
         }[]
       }
       reporte_composicion_coleccion_linea: {
@@ -6979,6 +6980,7 @@ export type Database = {
           categoria: string
           coleccion: string
           unidades: number
+          venta: number
         }[]
       }
       reporte_composicion_ingresos: {
