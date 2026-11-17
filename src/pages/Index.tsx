@@ -29,6 +29,8 @@ export default function ExecutivePage() {
   const [comparisonPeriod, setComparisonPeriod] = useState<ComparisonPeriod>("previous");
   const [customFrom, setCustomFrom] = useState<Date | undefined>();
   const [customTo, setCustomTo] = useState<Date | undefined>();
+  const [compCustomFrom, setCompCustomFrom] = useState<Date | undefined>();
+  const [compCustomTo, setCompCustomTo] = useState<Date | undefined>();
 
   const handleDaysChange = (d: number) => {
     // A preset click clears any active custom range.
@@ -66,12 +68,15 @@ export default function ExecutivePage() {
             customFrom={customFrom}
             customTo={customTo}
             onCustomRangeChange={handleCustomRangeChange}
+            compCustomFrom={compCustomFrom}
+            compCustomTo={compCustomTo}
+            onCompCustomRangeChange={(f, t) => { setCompCustomFrom(f); setCompCustomTo(t); }}
           />
           <ReportGeneratorButton days={days} />
         </div>
       </header>
       <div className="flex-1 px-4 sm:px-6 py-4 sm:py-6">
-        <ExecutiveDashboard days={days} comparisonPeriod={comparisonPeriod} customFrom={customFrom} customTo={customTo} />
+        <ExecutiveDashboard days={days} comparisonPeriod={comparisonPeriod} customFrom={customFrom} customTo={customTo} comparisonFrom={compCustomFrom} comparisonTo={compCustomTo} />
       </div>
     </MainLayout>
   );

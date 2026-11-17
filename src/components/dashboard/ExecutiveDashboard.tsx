@@ -208,6 +208,8 @@ interface Props {
   comparisonPeriod?: ComparisonPeriod;
   customFrom?: Date;
   customTo?: Date;
+  comparisonFrom?: Date;
+  comparisonTo?: Date;
 }
 
 /** Format a Date as "YYYY-MM-DD" for RPC date params */
@@ -1183,10 +1185,10 @@ interface RankingRow {
 }
 
 /* ── Channel Panel ── */
-function ChannelPanel({ days, canal, showLocationFilter, locationFilter, comparisonPeriod = "previous", customFrom, customTo }: {
+function ChannelPanel({ days, canal, showLocationFilter, locationFilter, comparisonPeriod = "previous", customFrom, customTo, comparisonFrom, comparisonTo }: {
   days: number; canal: string; showLocationFilter: boolean;
   locationFilter?: "tiendas" | "outlets"; comparisonPeriod?: ComparisonPeriod;
-  customFrom?: Date; customTo?: Date;
+  customFrom?: Date; customTo?: Date; comparisonFrom?: Date; comparisonTo?: Date;
 }) {
   const [kpis, setKpis] = useState<KpiData | null>(null);
   const [prevKpis, setPrevKpis] = useState<KpiData | null>(null);
@@ -1231,7 +1233,7 @@ function ChannelPanel({ days, canal, showLocationFilter, locationFilter, compari
         const [kpiRes, prevKpiRes, topRes, bottomRes, m2Res] = await Promise.all([
           buildKpiCall(days, effectiveDays, { p_canal: canal, p_location_id: locParam, customFrom, customTo }),
           (() => {
-            const compRange = resolveComparisonRange(days, comparisonPeriod, customFrom, customTo);
+            const compRange = resolveComparisonRange(days, comparisonPeriod, customFrom, customTo, comparisonFrom, comparisonTo);
             return supabase.rpc("reporte_kpis_por_rango" as any, {
               p_desde: toDateStr(compRange.from),
               p_hasta: toDateStr(compRange.to),
@@ -1289,7 +1291,7 @@ function ChannelPanel({ days, canal, showLocationFilter, locationFilter, compari
       setLoading(false);
     }
     fetchAll();
-  }, [days, canal, selectedLocation, comparisonPeriod, customFrom, customTo]);
+  }, [days, canal, selectedLocation, comparisonPeriod, customFrom, customTo, comparisonFrom, comparisonTo]);
 
   if (loading) return <LoadingState rows={6} />;
 
@@ -1579,7 +1581,7 @@ function aggregateKpis(kpiMap: Record<string, KpiData>, selected: string[]): Kpi
 }
 
 /* ── Brand-wide KPI Panel ── */
-function BrandOverviewPanel({ days, comparisonPeriod = "previous", customFrom, customTo }: { days: number; comparisonPeriod?: ComparisonPeriod; customFrom?: Date; customTo?: Date }) {
+function BrandOverviewPanel({ days, comparisonPeriod = "previous", customFrom, customTo, comparisonFrom, comparisonTo }: { days: number; comparisonPeriod?: ComparisonPeriod; customFrom?: Date; customTo?: Date; comparisonFrom?: Date; comparisonTo?: Date }) {
   const [channelKpis, setChannelKpis] = useState<Record<string, KpiData>>({});
   const [prevChannelKpis, setPrevChannelKpis] = useState<Record<string, KpiData>>({});
   const [totalM2, setTotalM2] = useState<number>(0);
@@ -1593,7 +1595,7 @@ function BrandOverviewPanel({ days, comparisonPeriod = "previous", customFrom, c
       if (!isValidDays(days)) return;
       setLoading(true);
       const effectiveDays = resolveDays(days);
-      const cr = resolveComparisonRange(days, comparisonPeriod, customFrom, customTo);
+      const cr = resolveComparisonRange(days, comparisonPeriod, customFrom, customTo, comparisonFrom, comparisonTo);
 
       // Range mode is active when the user picked a custom range OR when the
       // current preset requires explicit date bounds (this month, prev month, yesterday, custom sentinel).
@@ -1668,7 +1670,7 @@ function BrandOverviewPanel({ days, comparisonPeriod = "previous", customFrom, c
       setLoading(false);
     }
     fetch();
-  }, [days, comparisonPeriod, customFrom, customTo]);
+  }, [days, comparisonPeriod, customFrom, customTo, comparisonFrom, comparisonTo]);
 
   if (loading) return <LoadingState rows={4} />;
 
@@ -1763,7 +1765,7 @@ function BrandParetoPreview({ days, customFrom, customTo }: { days: number; cust
 }
 
 /* ── Zone Panel ── */
-function ZonePanel({ days, locationFilter, comparisonPeriod = "previous", customFrom, customTo }: { days: number; locationFilter: "tiendas" | "outlets"; comparisonPeriod?: ComparisonPeriod; customFrom?: Date; customTo?: Date }) {
+function ZonePanel({ days, locationFilter, comparisonPeriod = "previous", customFrom, customTo, comparisonFrom, comparisonTo }: { days: number; locationFilter: "tiendas" | "outlets"; comparisonPeriod?: ComparisonPeriod; customFrom?: Date; customTo?: Date; comparisonFrom?: Date; comparisonTo?: Date }) {
   const [locations, setLocations] = useState<Location[]>([]);
   const [selectedZone, setSelectedZone] = useState("all");
   const [selectedLocation, setSelectedLocation] = useState("all");
@@ -1812,7 +1814,7 @@ function ZonePanel({ days, locationFilter, comparisonPeriod = "previous", custom
 
       const [kpiRes, prevKpiRes, rankRes, topRes, bottomRes, m2Res, zoneMetricsRes] = await Promise.all([
         buildKpiCall(days, effectiveDays, { p_canal: canal, p_location_id: locParam, p_zona: zonaParam, customFrom, customTo }),
-        (() => { const cr = resolveComparisonRange(days, comparisonPeriod, customFrom, customTo); return supabase.rpc("reporte_kpis_por_rango" as any, { p_desde: toDateStr(cr.from), p_hasta: toDateStr(cr.to), p_canal: canal, p_location_id: locParam, p_zona: zonaParam }); })(),
+        (() => { const cr = resolveComparisonRange(days, comparisonPeriod, customFrom, customTo, comparisonFrom, comparisonTo); return supabase.rpc("reporte_kpis_por_rango" as any, { p_desde: toDateStr(cr.from), p_hasta: toDateStr(cr.to), p_canal: canal, p_location_id: locParam, p_zona: zonaParam }); })(),
         supabase.rpc("reporte_ranking_tiendas", { dias_atras: effectiveDays, p_canal: canal, p_hasta: hastaParam }),
         fetchTopProductosGlobal({
           dias_atras: effectiveDays, p_hasta: hastaParam, p_desde: customFrom ? _toDateStr(customFrom) : null, p_orden: "TOP",
@@ -1863,7 +1865,7 @@ function ZonePanel({ days, locationFilter, comparisonPeriod = "previous", custom
     }
     fetchAll();
     return () => { active = false; };
-  }, [days, canal, selectedLocation, selectedZone, comparisonPeriod, customFrom, customTo]);
+  }, [days, canal, selectedLocation, selectedZone, comparisonPeriod, customFrom, customTo, comparisonFrom, comparisonTo]);
 
   if (loading) return <LoadingState rows={6} />;
 
@@ -2272,7 +2274,7 @@ function ZoneStoreRankCard({ days, canal, locationId, locationName, allRanking, 
 }
 
 /* ── Main Component ── */
-export function ExecutiveDashboard({ days, comparisonPeriod = "previous", customFrom, customTo }: Props) {
+export function ExecutiveDashboard({ days, comparisonPeriod = "previous", customFrom, customTo, comparisonFrom, comparisonTo }: Props) {
   const mayoristasRango = getRangeStrings(days, customFrom, customTo);
   return (
     <Tabs defaultValue="venta-directa" className="w-full">
@@ -2296,7 +2298,7 @@ export function ExecutiveDashboard({ days, comparisonPeriod = "previous", custom
       </TabsList>
 
       <TabsContent value="venta-directa">
-        <BrandOverviewPanel days={days} comparisonPeriod={comparisonPeriod} customFrom={customFrom} customTo={customTo} />
+        <BrandOverviewPanel days={days} comparisonPeriod={comparisonPeriod} customFrom={customFrom} customTo={customTo} comparisonFrom={comparisonFrom} comparisonTo={comparisonTo} />
         <BrandParetoPreview days={days} customFrom={customFrom} customTo={customTo} />
         <ParticipacionGeneroCard days={days} canal={null} customFrom={customFrom} customTo={customTo} />
       </TabsContent>
@@ -2316,10 +2318,10 @@ export function ExecutiveDashboard({ days, comparisonPeriod = "previous", custom
           </TabsList>
 
           <TabsContent value="tiendas" className="mt-6">
-            <ZonePanel days={days} locationFilter="tiendas" comparisonPeriod={comparisonPeriod} customFrom={customFrom} customTo={customTo} />
+            <ZonePanel days={days} locationFilter="tiendas" comparisonPeriod={comparisonPeriod} customFrom={customFrom} customTo={customTo} comparisonFrom={comparisonFrom} comparisonTo={comparisonTo} />
           </TabsContent>
           <TabsContent value="outlets" className="mt-6">
-            <ZonePanel days={days} locationFilter="outlets" comparisonPeriod={comparisonPeriod} customFrom={customFrom} customTo={customTo} />
+            <ZonePanel days={days} locationFilter="outlets" comparisonPeriod={comparisonPeriod} customFrom={customFrom} customTo={customTo} comparisonFrom={comparisonFrom} comparisonTo={comparisonTo} />
           </TabsContent>
         </Tabs>
       </TabsContent>
@@ -2345,13 +2347,13 @@ export function ExecutiveDashboard({ days, comparisonPeriod = "previous", custom
           </TabsList>
 
           <TabsContent value="tiendas" className="mt-6">
-            <ChannelPanel days={days} canal="tiendas" showLocationFilter={true} locationFilter="tiendas" comparisonPeriod={comparisonPeriod} customFrom={customFrom} customTo={customTo} />
+            <ChannelPanel days={days} canal="tiendas" showLocationFilter={true} locationFilter="tiendas" comparisonPeriod={comparisonPeriod} customFrom={customFrom} customTo={customTo} comparisonFrom={comparisonFrom} comparisonTo={comparisonTo} />
           </TabsContent>
           <TabsContent value="outlets" className="mt-6">
-            <ChannelPanel days={days} canal="outlets" showLocationFilter={true} locationFilter="outlets" comparisonPeriod={comparisonPeriod} customFrom={customFrom} customTo={customTo} />
+            <ChannelPanel days={days} canal="outlets" showLocationFilter={true} locationFilter="outlets" comparisonPeriod={comparisonPeriod} customFrom={customFrom} customTo={customTo} comparisonFrom={comparisonFrom} comparisonTo={comparisonTo} />
           </TabsContent>
           <TabsContent value="digital" className="mt-6">
-            <ChannelPanel days={days} canal="digital" showLocationFilter={false} comparisonPeriod={comparisonPeriod} customFrom={customFrom} customTo={customTo} />
+            <ChannelPanel days={days} canal="digital" showLocationFilter={false} comparisonPeriod={comparisonPeriod} customFrom={customFrom} customTo={customTo} comparisonFrom={comparisonFrom} comparisonTo={comparisonTo} />
           </TabsContent>
         </Tabs>
       </TabsContent>

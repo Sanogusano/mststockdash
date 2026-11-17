@@ -23,3 +23,13 @@ describe("same calendar period in earlier years", () => {
     expect([toDateStr(range.from), toDateStr(range.to)]).toEqual(["2026-10-19", "2026-10-31"]);
   });
 });
+import { resolveComparisonRange as rcr } from "@/components/dashboard/TimeFilter";
+describe("comparación personalizada", () => {
+  it("usa el rango elegido", () => {
+    const f = new Date(2025, 10, 1), t = new Date(2025, 10, 17);
+    expect(rcr(30, "custom", undefined, undefined, f, t)).toEqual({ from: f, to: t });
+  });
+  it("sin rango cae a periodo anterior", () => {
+    expect(rcr(30, "custom")).toEqual(rcr(30, "previous"));
+  });
+});

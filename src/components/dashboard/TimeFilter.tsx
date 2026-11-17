@@ -4,6 +4,7 @@ import { es } from "date-fns/locale";
 import { CalendarIcon, ChevronDown, GitCompareArrows } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Calendar } from "@/components/ui/calendar";
+import type { DateRange } from "react-day-picker";
 import {
   Popover,
   PopoverContent,
@@ -120,7 +121,7 @@ export function getDateRange(value: number, customFrom?: Date, customTo?: Date):
 }
 
 /** Comparison period types */
-export type ComparisonPeriod = "previous" | "day" | "week" | "month" | "year1" | "year2";
+export type ComparisonPeriod = "previous" | "day" | "week" | "month" | "year1" | "year2" | "custom";
 
 export const COMPARISON_OPTIONS: { value: ComparisonPeriod; label: string }[] = [
   { value: "previous", label: "Periodo Anterior" },
@@ -135,6 +136,7 @@ export function getComparisonOptions(from: Date): typeof COMPARISON_OPTIONS {
     ...COMPARISON_OPTIONS,
     { value: "year1", label: `Mismo periodo ${year - 1}` },
     { value: "year2", label: `Mismo periodo ${year - 2}` },
+    { value: "custom", label: "Personalizado…" },
   ];
 }
 
@@ -143,27 +145,29 @@ export function resolveComparisonRange(
   filterValue: number,
   comparisonPeriod: ComparisonPeriod,
   customFrom?: Date,
-  customTo?: Date
+  customTo?: Date,
+  compFrom?: Date,
+  compTo?: Date
 ): { from: Date; to: Date } {
   const { from: currentFrom, to: currentTo } = getDateRange(filterValue, customFrom, customTo);
   const rangeDays = differenceInCalendarDays(currentTo, currentFrom);
 
-  if (comparisonPeriod === "previous") {
-    const compTo = new Date(currentFrom.getFullYear(), currentFrom.getMonth(), currentFrom.getDate() - 1);
-    const compFrom = new Date(compTo.getFullYear(), compTo.getMonth(), compTo.getDate() - rangeDays);
+  if (comparisonPeriod === "custom" && compFrom && compTo) {
     return { from: compFrom, to: compTo };
+  }
+
+  if (comparisonPeriod === "previous" || comparisonPeriod === "custom") {
+    const prevTo = new Date(currentFrom.getFullYear(), currentFrom.getMonth(), currentFrom.getDate() - 1);
+    const prevFrom = new Date(prevTo.getFullYear(), prevTo.getMonth(), prevTo.getDate() - rangeDays);
+    return { from: prevFrom, to: prevTo };
   }
 
   if (comparisonPeriod === "day") {
-    const compTo = subDays(currentTo, 1);
-    const compFrom = subDays(currentFrom, 1);
-    return { from: compFrom, to: compTo };
+    return { from: subDays(currentFrom, 1), to: subDays(currentTo, 1) };
   }
 
   if (comparisonPeriod === "week") {
-    const compTo = subWeeks(currentTo, 1);
-    const compFrom = subWeeks(currentFrom, 1);
-    return { from: compFrom, to: compTo };
+    return { from: subWeeks(currentFrom, 1), to: subWeeks(currentTo, 1) };
   }
 
   if (comparisonPeriod === "year1" || comparisonPeriod === "year2") {
@@ -172,9 +176,7 @@ export function resolveComparisonRange(
   }
 
   // month
-  const compTo = subMonths(currentTo, 1);
-  const compFrom = subMonths(currentFrom, 1);
-  return { from: compFrom, to: compTo };
+  return { from: subMonths(currentFrom, 1), to: subMonths(currentTo, 1) };
 }
 
 /** Resolves comparison days for the backend RPC (dias_atras for comparison period) */
@@ -182,9 +184,11 @@ export function resolveComparisonDays(
   filterValue: number,
   comparisonPeriod: ComparisonPeriod,
   customFrom?: Date,
-  customTo?: Date
+  customTo?: Date,
+  compFrom?: Date,
+  compTo?: Date
 ): number {
-  const { from } = resolveComparisonRange(filterValue, comparisonPeriod, customFrom, customTo);
+  const { from } = resolveComparisonRange(filterValue, comparisonPeriod, customFrom, customTo, compFrom, compTo);
   const now = new Date();
   return Math.max(differenceInCalendarDays(now, from), 1);
 }
@@ -225,9 +229,14 @@ interface TimeFilterProps {
   customFrom?: Date;
   customTo?: Date;
   onCustomRangeChange?: (from: Date, to: Date) => void;
+  compCustomFrom?: Date;
+  compCustomTo?: Date;
+  onCompCustomRangeChange?: (from: Date, to: Date) => void;
 }
 
-export function TimeFilter({ value, onChange, comparisonPeriod, onComparisonChange, customFrom: externalFrom, customTo: externalTo, onCustomRangeChange }: TimeFilterProps) {
+export function TimeFilter({ value, onChange, comparisonPeriod, onComparisonChange, customFrom: externalFrom, customTo: externalTo, onCustomRangeChange, compCustomFrom, compCustomTo, onCompCustomRangeChange }: TimeFilterProps) {
+  const [compCalendar, setCompCalendar] = useState(false);
+  const [compDraft, setCompDraft] = useState<DateRange | undefined>();
   const [internalFrom, setInternalFrom] = useState<Date | undefined>();
   const [internalTo, setInternalTo] = useState<Date | undefined>();
   const [menuOpen, setMenuOpen] = useState(false);
@@ -289,12 +298,14 @@ export function TimeFilter({ value, onChange, comparisonPeriod, onComparisonChan
   const comparisonOptions = getComparisonOptions(from);
   const compLabel = comparisonPeriod === "year1" || comparisonPeriod === "year2"
     ? `vs ${from.getFullYear() - (comparisonPeriod === "year1" ? 1 : 2)}`
+    : comparisonPeriod === "custom"
+    ? "Personalizado"
     : comparisonPeriod
     ? comparisonOptions.find(o => o.value === comparisonPeriod)?.label ?? "vs Anterior"
     : "vs Anterior";
 
   const compRange = comparisonPeriod
-    ? resolveComparisonRange(isCustom ? CUSTOM_SENTINEL : value, comparisonPeriod, customFrom, customTo)
+    ? resolveComparisonRange(isCustom ? CUSTOM_SENTINEL : value, comparisonPeriod, customFrom, customTo, compCustomFrom, compCustomTo)
     : null;
 
   return (
@@ -388,7 +399,7 @@ export function TimeFilter({ value, onChange, comparisonPeriod, onComparisonChan
 
       {/* Comparison period selector */}
       {onComparisonChange && (
-        <Popover open={compOpen} onOpenChange={setCompOpen}>
+        <Popover open={compOpen} onOpenChange={(o) => { setCompOpen(o); if (!o) setCompCalendar(false); }}>
           <PopoverTrigger asChild>
             <button
               className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-muted-foreground/20 bg-muted/30 hover:bg-muted/50 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
@@ -399,6 +410,35 @@ export function TimeFilter({ value, onChange, comparisonPeriod, onComparisonChan
             </button>
           </PopoverTrigger>
           <PopoverContent className="w-auto p-0" align="end">
+            {compCalendar ? (
+              <div className="p-2">
+                <p className="px-3 pt-1 text-xs font-semibold text-foreground">📅 Rango de comparación</p>
+                <Calendar
+                  mode="range"
+                  selected={compDraft}
+                  onSelect={setCompDraft}
+                  disabled={(date) => date > new Date() || date < new Date("2024-01-01")}
+                  initialFocus
+                  className={cn("p-3 pointer-events-auto")}
+                />
+                <div className="flex justify-end gap-2 px-3 pb-2">
+                  <button onClick={() => setCompCalendar(false)} className="px-3 py-1.5 text-xs rounded-md text-muted-foreground hover:bg-muted">Cancelar</button>
+                  <button
+                    disabled={!compDraft?.from || !compDraft?.to}
+                    onClick={() => {
+                      if (!compDraft?.from || !compDraft?.to) return;
+                      onCompCustomRangeChange?.(compDraft.from, compDraft.to);
+                      onComparisonChange("custom");
+                      setCompCalendar(false);
+                      setCompOpen(false);
+                    }}
+                    className="px-3 py-1.5 text-xs rounded-md bg-primary text-primary-foreground font-medium disabled:opacity-50"
+                  >
+                    Aplicar
+                  </button>
+                </div>
+              </div>
+            ) : (
             <div className="py-1 min-w-[180px]">
               {comparisonOptions.map((opt) => (
                 <Fragment key={opt.value}>
@@ -408,9 +448,15 @@ export function TimeFilter({ value, onChange, comparisonPeriod, onComparisonChan
                     <p className="px-4 py-2 text-xs text-muted-foreground">Año anterior</p>
                   </>
                 )}
+                {opt.value === "custom" && <div className="h-px bg-border my-1" />}
                 <button
                   key={opt.value}
                   onClick={() => {
+                    if (opt.value === "custom") {
+                      setCompDraft(compCustomFrom && compCustomTo ? { from: compCustomFrom, to: compCustomTo } : undefined);
+                      setCompCalendar(true);
+                      return;
+                    }
                     onComparisonChange(opt.value);
                     setCompOpen(false);
                   }}
@@ -426,6 +472,7 @@ export function TimeFilter({ value, onChange, comparisonPeriod, onComparisonChan
                 </Fragment>
               ))}
             </div>
+            )}
           </PopoverContent>
         </Popover>
       )}
@@ -437,7 +484,9 @@ export function TimeFilter({ value, onChange, comparisonPeriod, onComparisonChan
         </span>
         {compRange && (
           <span className="text-[9px] sm:text-[10px] text-muted-foreground/60 whitespace-nowrap">
-            vs {formatRange(compRange.from, compRange.to)}
+            vs {comparisonPeriod === "custom" && compCustomFrom && compCustomTo
+              ? `${format(compRange.from, "d MMM yyyy", { locale: es })} – ${format(compRange.to, "d MMM yyyy", { locale: es })}`
+              : formatRange(compRange.from, compRange.to)}
           </span>
         )}
       </div>
