@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { isValidDays } from "@/lib/validation";
 import { buildRpcDateParams } from "./TimeFilter";
-import { formatKpiMoney } from "@/lib/kpi-money";
+import { formatMillonesSinDecimales } from "@/lib/kpi-money";
 import { LoadingState } from "./LoadingState";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 import { Layers, ChevronDown, ChevronRight } from "lucide-react";
@@ -94,7 +94,7 @@ export function CollectionCompositionCard({ days, canal, locationId, zona, custo
       <div className="flex items-center gap-2 mb-4">
         <Layers className="h-4 w-4 text-primary" />
         <h3 className="text-sm font-semibold text-foreground">{supplied?.title ?? "Composición por Colección"}</h3>
-        <span className="text-xs text-muted-foreground ml-auto">{total.toLocaleString()} uds{showVenta ? ` · ${formatKpiMoney(totalVenta)}` : " totales"}</span>
+        <span className="text-xs text-muted-foreground ml-auto">{total.toLocaleString()} uds{showVenta ? ` · ${formatMillonesSinDecimales(totalVenta)}` : " totales"}</span>
       </div>
       <div className={`flex flex-col ${supplied ? "" : "sm:flex-row"} items-start gap-4 sm:gap-6`}>
         <ResponsiveContainer width={140} height={140} className="shrink-0">
@@ -104,7 +104,7 @@ export function CollectionCompositionCard({ days, canal, locationId, zona, custo
                 <Cell key={i} fill={COLORS[i % COLORS.length]} />
               ))}
             </Pie>
-            <Tooltip formatter={(v: number, name: string, entry: { payload?: { pct?: number; detail?: string; venta?: number } }) => [supplied ? `${v.toLocaleString("es-CO")} uds (${(entry.payload?.pct ?? 0).toFixed(1)}%)${entry.payload?.detail ? ` · ${entry.payload.detail}` : ""}` : `${v.toLocaleString()} uds (${((v / total) * 100).toFixed(1)}%)${showVenta ? ` · ${formatKpiMoney(entry.payload?.venta ?? 0)}` : ""}`, name]} />
+            <Tooltip formatter={(v: number, name: string, entry: { payload?: { pct?: number; detail?: string; venta?: number } }) => [supplied ? `${v.toLocaleString("es-CO")} uds (${(entry.payload?.pct ?? 0).toFixed(1)}%)${entry.payload?.detail ? ` · ${entry.payload.detail}` : ""}` : `${v.toLocaleString()} uds (${((v / total) * 100).toFixed(1)}%)${showVenta ? ` · ${formatMillonesSinDecimales(entry.payload?.venta ?? 0)}` : ""}`, name]} />
           </PieChart>
         </ResponsiveContainer>
         <div className="flex-1 space-y-0.5 max-h-[280px] overflow-y-auto w-full">
@@ -134,7 +134,7 @@ export function CollectionCompositionCard({ days, canal, locationId, zona, custo
                   <div className="flex items-center gap-3 shrink-0">
                     <span className="text-muted-foreground">{r.value.toLocaleString()} uds</span>
                     <span className="text-foreground font-mono font-semibold w-14 text-right">{r.pct.toFixed(1)}%</span>
-                    {showVenta && <span className="text-foreground font-mono font-semibold w-16 text-right">{formatKpiMoney(r.venta ?? 0)}</span>}
+                    {showVenta && <span className="text-foreground font-mono font-semibold w-16 text-right">{formatMillonesSinDecimales(r.venta ?? 0)}</span>}
                   </div>
                 </button>
                 {isOpen && subs && (
@@ -150,7 +150,7 @@ export function CollectionCompositionCard({ days, canal, locationId, zona, custo
                           <div className="flex items-center gap-3 shrink-0">
                             <span className="text-muted-foreground">{sub.unidades.toLocaleString()}</span>
                             <span className="text-foreground font-mono text-[11px] w-14 text-right">{subPct.toFixed(1)}%</span>
-                            {showVenta && <span className="text-foreground font-mono text-[11px] w-16 text-right">{formatKpiMoney(sub.venta)}</span>}
+                            {showVenta && <span className="text-foreground font-mono text-[11px] w-16 text-right">{formatMillonesSinDecimales(sub.venta)}</span>}
                           </div>
                         </div>
                       );

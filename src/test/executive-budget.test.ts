@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { budgetMatches, budgetProgress, selectedBudget, type BudgetRow } from "@/lib/executive-budget";
-import { formatKpiMoney } from "@/lib/kpi-money";
+import { formatKpiMoney, formatMillonesSinDecimales } from "@/lib/kpi-money";
 
 const locations = [
   { location_id: "s", tipo_tienda: "A", zona: "1" },
@@ -51,4 +51,12 @@ describe("KPI pesos", () => {
   it("formats smaller values as whole Colombian pesos", () => expect(formatKpiMoney(754_782)).toBe("$754.782"));
   it("switches at one million", () => expect(formatKpiMoney(1_000_000)).toBe("$1M"));
   it("switches at one billion", () => expect(formatKpiMoney(1_000_000_000)).toBe("$1MM"));
+});
+describe("Composición por Colección pesos", () => {
+  it("formats millions as whole millions", () => expect(formatMillonesSinDecimales(489_000_000)).toBe("$489M"));
+  it("formats billions as millions with a thousands separator", () => expect(formatMillonesSinDecimales(1_704_000_000)).toBe("$1.704M"));
+  it("never uses MM", () => expect(formatMillonesSinDecimales(6_871_000_000)).toBe("$6.871M"));
+  it("rounds to the nearest million", () => expect(formatMillonesSinDecimales(6_871_400_000)).toBe("$6.871M"));
+  it("formats smaller values as whole Colombian pesos", () => expect(formatMillonesSinDecimales(754_782)).toBe("$754.782"));
+  it("keeps the sign", () => expect(formatMillonesSinDecimales(-1_704_000_000)).toBe("-$1.704M"));
 });
