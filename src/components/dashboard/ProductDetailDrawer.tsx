@@ -11,7 +11,7 @@ import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { exportToCSV } from "@/lib/csv-export";
-import { exportToPDF } from "@/lib/pdf-export";
+import { exportDetalleTiendaPDF } from "@/lib/detalle-tienda-pdf";
 import { Download, FileText, Gauge, Store, Copy, Check } from "lucide-react";
 import { ProductImageThumb } from "./ProductImageThumb";
 import { ResponsiveContainer, ComposedChart, Area, Line, XAxis, YAxis, Tooltip as RTooltip } from "recharts";
@@ -397,31 +397,29 @@ export function ProductDetailDrawer({
     );
   };
 
-  const handleExportPDF = () => {
-    if (!filtered.length || !product) return;
-    exportToPDF(
-      filtered.map((r) => ({
-        Zona: r.zona ?? "",
-        Tienda: r.tienda,
-        Tiempo: r.es_bodega || (r.semanas_en_tienda == null && r.dias_en_tienda == null)
-          ? "—"
-          : `${Math.floor(Number(r.semanas_en_tienda ?? 0))} sem · ${Math.floor(Number(r.dias_en_tienda ?? 0))} días`,
-        Recibido: r.es_bodega ? "—" : r.recibido,
-        "Und.": r.es_bodega ? "—" : r.und_vendidas,
-        "Vida": r.es_bodega ? "—" : r.und_vendidas_vida,
-        RDV: r.es_bodega || r.ritmo_semanal == null
-          ? "—"
-          : `${Number(r.ritmo_semanal).toLocaleString("es-CO", { maximumFractionDigits: 2 })} u/sem`,
-        Composición: r.es_bodega ? "—" : `Full ${r.pct_full ?? 0}% · Reb. ${r.pct_rebaja ?? 0}% · Promo ${r.pct_promo ?? 0}%`,
-        Stock: r.stock_actual,
-        "ST 120d": r.es_bodega ? "—" : r.st_120d ?? "—",
-        "ST acum.": r.es_bodega ? "—" : r.st_acum ?? "—",
-        WOS: r.es_bodega ? "—" : r.wos ?? "SIN ROTACIÓN",
-        Salud: r.estado_salud,
-      })),
-      `detalle_${product.product_id}`,
-      `Detalle: ${product.producto}`
-    );
+  const [pdfLoading, setPdfLoading] = useState(false);
+  const handleExportPDF = async () => {
+    if (!filtered.length || !product || pdfLoading) return;
+    setPdfLoading(true);
+    try {
+      const filtros = [
+        storeFilter === "all" ? "Todas las tiendas" : storeFilter,
+        WOS_OPTIONS.find((o) => o.value === wosFilter)?.label ?? "",
+        ST_OPTIONS.find((o) => o.value === stFilter)?.label ?? "",
+        soloDestalladas ? "Solo destalladas" : "",
+      ].filter(Boolean).join(" · ");
+      await exportDetalleTiendaPDF({
+        producto: product.producto,
+        foto: product.foto,
+        coleccion: metrics?.coleccion ?? null,
+        categoria: product.categoria,
+        periodoLabel: activeDateRange,
+        filtrosLabel: filtros,
+        rows: filtered,
+      });
+    } finally {
+      setPdfLoading(false);
+    }
   };
 
   return (
@@ -574,8 +572,8 @@ export function ProductDetailDrawer({
               <Button variant="outline" size="sm" onClick={handleExportCSV} disabled={!filtered.length}>
                 <Download className="h-4 w-4 mr-1" /> CSV
               </Button>
-              <Button variant="outline" size="sm" onClick={handleExportPDF} disabled={!filtered.length}>
-                <FileText className="h-4 w-4 mr-1" /> PDF
+              <Button variant="outline" size="sm" onClick={handleExportPDF} disabled={!filtered.length || pdfLoading}>
+                <FileText className="h-4 w-4 mr-1" /> {pdfLoading ? "Generando PDF…" : "PDF"}
               </Button>
             </div>
 
