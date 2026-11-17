@@ -19,3 +19,22 @@ describe("Excel Salud de Producto", () => {
     expect(stripEmojis("🟢 ÓPTIMO")).toBe("ÓPTIMO");
   });
 });
+
+import { displayProductName } from "@/lib/product-behavior-identifiers";
+describe("Excel cruce NetSuite", () => {
+  it("hoja 2 una fila por SKU, hoja 1 con N° SKUs", async () => {
+    const wb = await buildSaludWorkbook([{ "SKU padre": "1001", "Referencia NS": "ARMINIA", Producto: "A", "SKUs hijos": "1001100462101, 1001100462102 ,1001100462103", Categoría: "T", "Und. Vendidas": 5, "Estado Salud": "🟢 ÓPTIMO", "Product ID": "9" }], "T");
+    const h1 = wb.getWorksheet("Salud de Producto")!;
+    expect(h1.getRow(3).values).toContain("N° SKUs");
+    expect(h1.getRow(3).values).not.toContain("SKUs hijos");
+    const h2 = wb.getWorksheet("SKUs (cruce NetSuite)")!;
+    expect(h2.getCell(3, 1).value).toBe("SKU");
+    expect(h2.getCell(4, 1).value).toBe("1001100462101");
+    expect(h2.getCell(4, 1).numFmt).toBe("@");
+    expect(h2.getCell(4, 6).value).toBe("ÓPTIMO");
+  });
+  it("nombre visible usa referencia si el producto es un código", () => {
+    expect(displayProductName("10000411251401 : 1000041125140140", "ARMINIA")).toBe("ARMINIA");
+    expect(displayProductName("ARMINIA T-SHIRT", "X")).toBe("ARMINIA T-SHIRT");
+  });
+});

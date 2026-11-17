@@ -48,7 +48,11 @@ export function productExportIdentity(row: {
   return {
     "SKU padre": String(row.sku_padre ?? ""),
     "Referencia NS": row.referencia_ns ?? "",
-    Producto: row.producto,
+    Producto: displayProductName(row.producto, row.referencia_ns),
     "SKUs hijos": String(row.skus_hijos ?? ""),
   };
+}
+/** Productos sin título llegan como "10000411251401 : 1000…"; se muestra la referencia NS. */
+export function displayProductName(producto: string, referencia?: string | null) {
+  return /^\d+ : /.test(producto ?? "") && referencia ? referencia : producto;
 }

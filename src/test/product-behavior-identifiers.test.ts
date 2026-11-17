@@ -33,9 +33,12 @@ describe("Identificadores de Salud de Producto", () => {
     if (!ws) throw new Error("Hoja ausente");
     expect(ws.getCell(4, 1).value).toBe("1001100462101");
     expect(ws.getCell(4, 1).numFmt).toBe("@");
-    expect(ws.getCell(4, 4).value).toBe("00100110046210102");
-    expect(ws.getCell(4, 4).numFmt).toBe("@");
+    expect(ws.getCell(3, 4).value).toBe("N° SKUs");
+    expect(ws.getCell(4, 4).value).toBe(1);
     expect(ws.getCell(4, 5).value).toBe(1234);
+    const skus = wb.getWorksheet("SKUs (cruce NetSuite)")!;
+    expect(skus.getCell(4, 1).value).toBe("00100110046210102");
+    expect(skus.getCell(4, 1).numFmt).toBe("@");
   });
 
   it("CSV protege SKU numéricos frente a la conversión de Excel", () => {

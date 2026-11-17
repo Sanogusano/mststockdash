@@ -4,7 +4,7 @@ export type SaludRecord = Record<string, string | number | null>;
 
 export const PCT_COLS = ["ST 120d", "ST Total"];
 export const DEC_COLS = ["RDV Total", "RDV Tienda", "RDV Online"];
-export const TEXT_COLS = ["SKU padre", "Referencia NS", "SKUs hijos", "Product ID", "Producto", "Categoría", "Clasificación", "Estado Salud"];
+export const TEXT_COLS = ["SKU padre", "Referencia NS", "SKUs hijos", "SKU", "Product ID", "Producto", "Categoría", "Clasificación", "Estado Salud"];
 
 export function stripEmojis(s: unknown): string {
   return String(s ?? "")
@@ -17,9 +17,45 @@ export function buildSaludFileName(date = new Date()) {
   return `Salud_Producto_${date.toLocaleDateString("en-CA", { timeZone: "America/Bogota" })}.xlsx`;
 }
 
+export function splitSkus(v: unknown): string[] {
+  return String(v ?? "").split(", ").map((s) => s.trim()).filter(Boolean);
+}
+
+/** Hoja 1: quita "SKUs hijos" y agrega "N° SKUs" después de Producto. */
+export function toMainSheetRecords(records: SaludRecord[]): SaludRecord[] {
+  return records.map((r) => {
+    const out: SaludRecord = {};
+    for (const [k, v] of Object.entries(r)) {
+      if (k === "SKUs hijos") continue;
+      out[k] = v;
+      if (k === "Producto") out["N° SKUs"] = splitSkus(r["SKUs hijos"]).length;
+    }
+    return out;
+  });
+}
+
+/** Hoja 2: una fila por SKU hijo, sin métricas. */
+export function toSkuSheetRecords(records: SaludRecord[]): SaludRecord[] {
+  return records.flatMap((r) => splitSkus(r["SKUs hijos"]).map((sku) => ({
+    SKU: sku,
+    "SKU padre": String(r["SKU padre"] ?? ""),
+    "Referencia NS": String(r["Referencia NS"] ?? ""),
+    Producto: String(r.Producto ?? ""),
+    Categoría: String(r["Categoría"] ?? ""),
+    "Estado Salud": stripEmojis(r["Estado Salud"]),
+    "Product ID": String(r["Product ID"] ?? ""),
+  })));
+}
+
 export async function buildSaludWorkbook(records: SaludRecord[], title: string) {
   const wb = new ExcelJS.Workbook();
-  const ws = wb.addWorksheet("Salud de Producto");
+  const hasSkus = records.some((r) => "SKUs hijos" in r);
+  writeSheet(wb.addWorksheet("Salud de Producto"), hasSkus ? toMainSheetRecords(records) : records, title, "Producto");
+  if (hasSkus) writeSheet(wb.addWorksheet("SKUs (cruce NetSuite)"), toSkuSheetRecords(records), title, "SKU");
+  return wb;
+}
+
+function writeSheet(ws: ExcelJS.Worksheet, records: SaludRecord[], title: string, freezeCol: string) {
   const headers = Object.keys(records[0] ?? {});
   ws.getCell(1, 1).value = title;
   ws.getCell(1, 1).font = { bold: true, size: 13 };
@@ -50,10 +86,9 @@ export async function buildSaludWorkbook(records: SaludRecord[], title: string) 
     }
     ws.getColumn(i + 1).width = Math.min(Math.max(w + 2, 8), 60);
   });
-  const prodCol = Math.max(headers.indexOf("Producto") + 1, 1);
+  const prodCol = Math.max(headers.indexOf(freezeCol) + 1, 1);
   ws.views = [{ state: "frozen", xSplit: prodCol, ySplit: 3 }];
   if (headers.length) ws.autoFilter = { from: { row: 3, column: 1 }, to: { row: 3 + records.length, column: headers.length } };
-  return wb;
 }
 
 export async function exportSaludExcel(records: SaludRecord[], title: string) {
