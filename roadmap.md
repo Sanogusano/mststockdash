@@ -52,3 +52,5 @@
 
 - [x] Composición por Colección: montos en millones enteros con separador de miles ("$1.704M", "$6.871M") sin "MM" en filas, detalle, tooltip y total; formato KPI intacto. 26 pruebas aprobadas; sin sesión real (Supabase externo).
 - [x] Desempeño de Productos: "Ver detalle por tienda" resuelve productos de varias tallas (sku "Varias Tallas") buscando por title en product_catalog, avisa con toast "No se encontró el producto en el catálogo" si no hay product_id y muestra "Cargando…" mientras busca. 5 pruebas nuevas (170 en total) OK; sin sesión real (Supabase externo).
+
+- [x] Pasar venta_neta de reporte_top_productos_global a la tabla, la tarjeta de unidades y el PDF de Desempeño de Productos, en formato "$45,1M"/"$850k"; 177 pruebas y PDF renderizado con datos reales verificados.

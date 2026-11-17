@@ -18,6 +18,7 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import { exportDesempenoPDF } from "@/lib/desempeno-pdf-export";
+import { fmtVentaNeta } from "@/lib/venta-neta-format";
 import { exportToCSV } from "@/lib/csv-export";
 import { ProductImageThumb } from "@/components/dashboard/ProductImageThumb";
 import { ProductDetailDrawer } from "@/components/dashboard/ProductDetailDrawer";
@@ -47,6 +48,7 @@ interface ProductRow {
   stock_mayoristas: number;
   semanas_vida: number;
   primera_venta: string;
+  venta_neta: number;
 }
 
 // The ranking groups products sold in more than one size under this placeholder SKU.
@@ -321,6 +323,11 @@ export default function DesempenoProductosPage() {
     [universe]
   );
 
+  const totalVentaNetaUniverso = useMemo(
+    () => universe.reduce((s, r) => s + (Number(r.venta_neta) || 0), 0),
+    [universe]
+  );
+
   // Inventario del universo filtrado (por canal de depósito)
   const inventarioUniverso = useMemo(() => {
     let tiendas = 0, online = 0, standby = 0, mayoristas = 0, total = 0;
@@ -398,13 +405,14 @@ export default function DesempenoProductosPage() {
           stock_mayoristas: r.stock_mayoristas,
           coleccion: r.coleccion,
           semanas_vida: r.semanas_vida,
-          venta_neta: (r as ProductRow & { venta_neta?: number }).venta_neta ?? null,
+          venta_neta: r.venta_neta ?? null,
         })),
         periodoLabel,
         filtrosLabel: filtros.join(" · "),
         kpis: {
           unidades: totalUnidadesUniverso,
           referencias: universe.length,
+          venta_neta: totalVentaNetaUniverso,
           inventario_total: inventarioUniverso.total,
           stock_tiendas: inventarioUniverso.tiendas,
           stock_online: inventarioUniverso.online,
@@ -546,6 +554,12 @@ export default function DesempenoProductosPage() {
                     <p className="text-xs text-muted-foreground uppercase tracking-widest">Unidades vendidas — universo filtrado</p>
                     <p className="text-2xl font-display font-bold text-primary tabular-nums">
                       {totalUnidadesUniverso.toLocaleString("es-CO")}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground uppercase tracking-widest">Venta neta — universo filtrado</p>
+                    <p className="text-2xl font-display font-bold text-primary tabular-nums">
+                      {fmtVentaNeta(totalVentaNetaUniverso)}
                     </p>
                   </div>
                   <p className="text-xs text-muted-foreground">

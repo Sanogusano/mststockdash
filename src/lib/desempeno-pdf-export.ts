@@ -1,5 +1,6 @@
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+import { fmtVentaNeta } from "@/lib/venta-neta-format";
 
 export interface DesempenoPdfRow {
   foto: string;
@@ -25,6 +26,7 @@ export interface DesempenoPdfRow {
 export interface DesempenoPdfKpis {
   unidades: number;
   referencias: number;
+  venta_neta: number;
   inventario_total: number;
   stock_tiendas: number;
   stock_online: number;
@@ -198,6 +200,16 @@ export async function exportDesempenoPDF({ rows, periodoLabel, filtrosLabel, kpi
   doc.setTextColor(...MUTED);
   doc.text(`${fmt(kpis.referencias)} referencias`, M + 5, cardY + 27);
 
+  const cardRight = M + cardW - 5;
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(7.5);
+  doc.setTextColor(...MUTED);
+  doc.text("VENTA NETA — UNIVERSO FILTRADO", cardRight, cardY + 7, { align: "right" });
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(18);
+  doc.setTextColor(...DARK);
+  doc.text(fmtVentaNeta(kpis.venta_neta), cardRight, cardY + 19, { align: "right" });
+
   const x2 = M + cardW + gap;
   card(x2);
   doc.setFontSize(7.5);
@@ -315,12 +327,14 @@ export async function exportDesempenoPDF({ rows, periodoLabel, filtrosLabel, kpi
         doc.setFont("helvetica", "bold");
         doc.setFontSize(11);
         doc.setTextColor(...DARK);
-        doc.text(fmt(r.und_total), x + 2, y + height / 2 - 1);
+        doc.text(fmt(r.und_total), x + 2, y + 6);
+        doc.setFontSize(9);
+        doc.text(fmtVentaNeta(r.venta_neta), x + 2, y + 10.5);
         doc.setFont("helvetica", "normal");
-        doc.setFontSize(7.5);
+        doc.setFontSize(7);
         doc.setTextColor(...MUTED);
         const det = `Tiendas ${fmt(r.und_tiendas)} · Outlet ${fmt(r.und_outlets)} · Online ${fmt(r.und_digital)}`;
-        doc.text(doc.splitTextToSize(det, width - 4) as string[], x + 2, y + height / 2 + 3.5);
+        doc.text(doc.splitTextToSize(det, width - 4) as string[], x + 2, y + 14.2);
       }
 
       if (col === 4) {
