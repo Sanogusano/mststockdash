@@ -1,6 +1,7 @@
 import { Fragment, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { fetchAllRpc } from "@/lib/fetch-all-rpc";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { LoadingState, EmptyState } from "@/components/dashboard/LoadingState";
@@ -169,17 +170,13 @@ export default function ReporteRebajasPage() {
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["reporte_rebajas_activas", DIAS_VENTA, incluirAgotados],
-    queryFn: async () => {
-      const { data, error } = await supabase.rpc("reporte_rebajas_activas" as never, {
+    queryFn: () => fetchAllRpc<Row>("reporte_rebajas_activas", {
         p_coleccion: null,
         p_linea: null,
         p_genero: null,
         p_dias_venta: DIAS_VENTA,
         p_solo_con_stock: !incluirAgotados,
-      } as never);
-      if (error) throw error;
-      return (data ?? []) as unknown as Row[];
-    },
+      }, "product_id"),
     staleTime: 5 * 60 * 1000,
   });
 
@@ -344,17 +341,18 @@ export default function ReporteRebajasPage() {
   };
 
   const [exportingSku, setExportingSku] = useState(false);
+  const [loadedSkuCount, setLoadedSkuCount] = useState(0);
   const handleExportSkuXLS = async () => {
     setExportingSku(true);
+    setLoadedSkuCount(0);
     try {
-      const { data: skuData, error: skuErr } = await supabase.rpc("reporte_rebajas_activas_sku" as never, {
+      const skuData = await fetchAllRpc<any>("reporte_rebajas_activas_sku", {
         p_coleccion: null,
         p_linea: null,
         p_genero: null,
         p_dias_venta: DIAS_VENTA,
         p_solo_con_stock: !incluirAgotados,
-      } as never);
-      if (skuErr) throw skuErr;
+      }, ["product_id", "sku"], 1000, setLoadedSkuCount);
       const q = norm(busqueda.trim());
       const list = ((skuData ?? []) as any[])
         .filter((r) => coleccion === "all" || r.coleccion === coleccion)
@@ -567,7 +565,7 @@ export default function ReporteRebajasPage() {
               </Button>
               <Button onClick={handleExportSkuXLS} disabled={!filtradas.length || exportingSku} size="sm" variant="outline" className="gap-2">
                 {exportingSku ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
-                {exportingSku ? "Generando…" : "Excel por SKU"}
+                {exportingSku ? `Generando… ${fmtInt(loadedSkuCount)} SKUs` : "Excel por SKU"}
               </Button>
               <Button onClick={handleExportPDF} disabled={!filtradas.length} size="sm" className="gap-2">
                 <FileText className="h-4 w-4" /> PDF
@@ -757,6 +755,10 @@ export default function ReporteRebajasPage() {
                   </TableBody>
                 </Table>
               </div>
+            )}
+
+            {!isLoading && !error && (
+              <p className="text-xs text-muted-foreground">{fmtInt(filtradas.length)} productos rebajados</p>
             )}
 
             <p className="text-[11px] text-muted-foreground">

@@ -1,6 +1,7 @@
 import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { fetchAllRpc } from "@/lib/fetch-all-rpc";
 import { buildRpcDateParams, getDateRange, getPresetLabel } from "./TimeFilter";
 import { exportSaludExcel } from "@/lib/salud-producto-excel";
 import { loadProductIdentifiers, joinProductIdentifiers, matchesProductSearch, productExportIdentity } from "@/lib/product-behavior-identifiers";
@@ -284,21 +285,7 @@ export function ProductBehaviorTable({ days, initialWosFilter, initialLocationId
     queryFn: async () => {
       const params: { dias_atras: number; p_sku_filter?: string; p_location_id?: string; p_hasta?: string | null } = { dias_atras: resolvedDays, p_hasta: hastaParam };
       if (locationId !== "all") params.p_location_id = locationId;
-      const PAGE = 1000;
-      const all: ProductBehaviorRow[] = [];
-      setLoadedCount(0);
-      for (let desde = 0; ; desde += PAGE) {
-        const { data, error } = await supabase
-          .rpc("reporte_comportamiento_producto", params)
-          .order("product_id")
-          .range(desde, desde + PAGE - 1);
-        if (error) throw new Error(error.message);
-        const chunk = (data ?? []) as unknown as ProductBehaviorRow[];
-        all.push(...chunk);
-        setLoadedCount(all.length);
-        if (chunk.length < PAGE) break;
-      }
-      return all;
+      return fetchAllRpc<ProductBehaviorRow>("reporte_comportamiento_producto", params, "product_id", 1000, setLoadedCount);
     },
     staleTime: 5 * 60 * 1000,
     retry: 1,

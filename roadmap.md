@@ -1,5 +1,7 @@
 # Roadmap
 
+- [x] Unificar la carga completa de RPC de Rebajas y Salud de Producto, mostrar progreso de SKUs y total bajo la tabla, sin cambiar RPC ni columnas; 16 pruebas aprobadas y compilación correcta. Revisión con datos reales no disponible: Supabase externo y pantalla redirigida a login.
+
 - [x] Agregar SKU padre, Referencia NS y SKUs hijos a Salud de Producto con vista paginada y caché de 30 minutos, búsqueda local y exportaciones con identificadores como texto; sin cambiar RPC.
 
 - [x] Actualizar Factura a y Comprador en las cuatro pestañas y elegir documento ambiguo en la vista previa NetSuite, conservando estados y controles existentes; probado con respuestas de prueba, pendiente creación real por la limitación de sesión ya registrada.
