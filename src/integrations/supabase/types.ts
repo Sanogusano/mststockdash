@@ -5395,6 +5395,15 @@ export type Database = {
         }
         Relationships: []
       }
+      v_producto_sku_padre: {
+        Row: {
+          product_id: string | null
+          referencia_ns: string | null
+          sku_padre: string | null
+          skus_hijos: string | null
+        }
+        Relationships: []
+      }
       v_ubicaciones_gestion: {
         Row: {
           allocation_activa: boolean | null
