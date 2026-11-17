@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { buildRpcDateParams, getDateRange, getPresetLabel } from "./TimeFilter";
 import { exportSaludExcel } from "@/lib/salud-producto-excel";
+import { loadProductIdentifiers, joinProductIdentifiers, matchesProductSearch, productExportIdentity } from "@/lib/product-behavior-identifiers";
 import { FileSpreadsheet } from "lucide-react";
 import { LoadingState, EmptyState } from "./LoadingState";
 import { StatusBadge } from "./StatusBadge";
@@ -44,6 +45,9 @@ interface ProductBehaviorRow {
   foto: string;
   product_id: string;
   producto: string;
+  sku_padre?: string;
+  referencia_ns?: string;
+  skus_hijos?: string;
   distribuido: number;
   dist_tiendas: number;
   dist_online: number;
@@ -264,11 +268,21 @@ export function ProductBehaviorTable({ days, initialWosFilter, initialLocationId
 
   const [loadedCount, setLoadedCount] = useState(0);
   const [excelLoading, setExcelLoading] = useState(false);
-  const { data, isLoading, error } = useQuery({
-    queryKey: ["producto-comportamiento", resolvedDays, hastaParam, search, locationId],
+  const identifiersQuery = useQuery({
+    queryKey: ["producto-sku-padre"],
+    queryFn: () => loadProductIdentifiers(async (from, to) => {
+      const { data, error } = await supabase.from("v_producto_sku_padre")
+        .select("product_id, sku_padre, referencia_ns, skus_hijos")
+        .order("product_id").range(from, to);
+      if (error) throw new Error(error.message);
+      return data ?? [];
+    }),
+    staleTime: 30 * 60 * 1000,
+  });
+  const { data: reportData, isLoading: reportLoading, error: reportError } = useQuery({
+    queryKey: ["producto-comportamiento", resolvedDays, hastaParam, locationId],
     queryFn: async () => {
       const params: { dias_atras: number; p_sku_filter?: string; p_location_id?: string; p_hasta?: string | null } = { dias_atras: resolvedDays, p_hasta: hastaParam };
-      if (search.trim()) params.p_sku_filter = search.trim();
       if (locationId !== "all") params.p_location_id = locationId;
       const PAGE = 1000;
       const all: ProductBehaviorRow[] = [];
@@ -289,6 +303,9 @@ export function ProductBehaviorTable({ days, initialWosFilter, initialLocationId
     staleTime: 5 * 60 * 1000,
     retry: 1,
   });
+  const data = useMemo(() => joinProductIdentifiers(reportData ?? [], identifiersQuery.data ?? new Map()), [reportData, identifiersQuery.data]);
+  const isLoading = reportLoading || identifiersQuery.isLoading;
+  const error = reportError ?? identifiersQuery.error;
 
   const buildOpts = (key: "tipo" | "coleccion" | "clasificacion") => {
     const m = new Map<string, number>();
@@ -304,6 +321,7 @@ export function ProductBehaviorTable({ days, initialWosFilter, initialLocationId
 
   const rows = useMemo(() => {
     let all = data ?? [];
+    if (search.trim()) all = all.filter((r) => matchesProductSearch(r, search));
     if (tipoFilter !== "all") all = all.filter((r) => (r.tipo ?? "").trim() === tipoFilter);
     if (coleccionFilter !== "all") all = all.filter((r) => (r.coleccion ?? "").trim() === coleccionFilter);
     if (clasifFilter !== "all") all = all.filter((r) => (r.clasificacion ?? "").trim() === clasifFilter);
@@ -326,7 +344,7 @@ export function ProductBehaviorTable({ days, initialWosFilter, initialLocationId
       });
     }
     return all;
-  }, [data, wosFilter, stFilter, tipoFilter, coleccionFilter, clasifFilter]);
+  }, [data, search, wosFilter, stFilter, tipoFilter, coleccionFilter, clasifFilter]);
 
   const totalPages = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
   const paged = rows.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
@@ -335,8 +353,7 @@ export function ProductBehaviorTable({ days, initialWosFilter, initialLocationId
 
   const buildRecords = () =>
       rows.map((r) => ({
-        "Product ID": r.product_id,
-        Producto: r.producto,
+        ...productExportIdentity(r),
         Categoría: r.categoria,
         Clasificación: r.clasificacion,
         "Und. Vendidas": r.und_vendidas,
@@ -367,11 +384,12 @@ export function ProductBehaviorTable({ days, initialWosFilter, initialLocationId
         "RDV Online": Number(r.ritmo_online ?? 0),
         WOS: r.wos,
         "Estado Salud": r.estado_salud,
+        "Product ID": r.product_id,
       }));
 
   const handleExportCSV = () => {
     if (!rows.length) return;
-    exportToCSV(buildRecords(), "comportamiento_producto");
+    exportToCSV(buildRecords(), "comportamiento_producto", ["SKU padre", "SKUs hijos"]);
   };
 
   const handleExportExcel = async () => {
@@ -453,7 +471,7 @@ export function ProductBehaviorTable({ days, initialWosFilter, initialLocationId
         <div className="relative flex-1 w-full sm:max-w-xs">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Buscar por SKU o nombre..."
+            placeholder="Buscar por SKU, referencia o nombre..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="pl-10 h-10"
@@ -624,6 +642,11 @@ export function ProductBehaviorTable({ days, initialWosFilter, initialLocationId
                           )}
                           <div className="min-w-0">
                             <p className="text-sm font-medium text-foreground truncate">{row.producto}</p>
+                            {(row.sku_padre || row.referencia_ns) && (
+                              <p className="text-xs text-muted-foreground break-words">
+                                {row.sku_padre ? `SKU padre: ${row.sku_padre}${row.referencia_ns ? ` · ${row.referencia_ns}` : ""}` : row.referencia_ns}
+                              </p>
+                            )}
                             <div className="flex items-center gap-1.5">
                               <p className="text-xs text-muted-foreground">{row.categoria}</p>
                               <CollectionBadge coleccion={row.coleccion} />

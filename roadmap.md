@@ -1,5 +1,7 @@
 # Roadmap
 
+- [x] Agregar SKU padre, Referencia NS y SKUs hijos a Salud de Producto con vista paginada y caché de 30 minutos, búsqueda local y exportaciones con identificadores como texto; sin cambiar RPC.
+
 - [x] Actualizar Factura a y Comprador en las cuatro pestañas y elegir documento ambiguo en la vista previa NetSuite, conservando estados y controles existentes; probado con respuestas de prueba, pendiente creación real por la limitación de sesión ya registrada.
 
 - [x] Agregar creación de cliente NetSuite en Pendientes de Facturación: vista previa, confirmación, errores y recarga usando la función existente y controles compartidos.

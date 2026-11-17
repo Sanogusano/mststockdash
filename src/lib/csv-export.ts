@@ -3,7 +3,8 @@
  */
 export function exportToCSV(
   data: Record<string, unknown>[],
-  filename: string
+  filename: string,
+  textColumns: string[] = [],
 ) {
   if (!data.length) return;
 
@@ -14,7 +15,9 @@ export function exportToCSV(
       headers
         .map((h) => {
           const val = row[h];
-          const str = val == null ? "" : String(val);
+          // CSV has no cell types; a text prefix prevents Excel's numeric inference.
+          const raw = val == null ? "" : String(val);
+          const str = textColumns.includes(h) && raw ? `'${raw}` : raw;
           // Escape quotes and wrap in quotes if needed
           return str.includes(",") || str.includes('"') || str.includes("\n")
             ? `"${str.replace(/"/g, '""')}"`

@@ -4,7 +4,7 @@ export type SaludRecord = Record<string, string | number | null>;
 
 export const PCT_COLS = ["ST 120d", "ST Total"];
 export const DEC_COLS = ["RDV Total", "RDV Tienda", "RDV Online"];
-export const TEXT_COLS = ["Product ID", "Producto", "Categoría", "Clasificación", "Estado Salud"];
+export const TEXT_COLS = ["SKU padre", "Referencia NS", "SKUs hijos", "Product ID", "Producto", "Categoría", "Clasificación", "Estado Salud"];
 
 export function stripEmojis(s: unknown): string {
   return String(s ?? "")
@@ -35,7 +35,7 @@ export async function buildSaludWorkbook(records: SaludRecord[], title: string) 
     const row = ws.getRow(4 + ri);
     headers.forEach((h, ci) => {
       const c = row.getCell(ci + 1);
-      if (TEXT_COLS.includes(h)) { c.value = h === "Estado Salud" ? stripEmojis(r[h]) : String(r[h] ?? ""); return; }
+      if (TEXT_COLS.includes(h)) { c.value = h === "Estado Salud" ? stripEmojis(r[h]) : String(r[h] ?? ""); c.numFmt = "@"; return; }
       const v = Number(r[h]);
       c.value = Number.isFinite(v) ? v : null;
       c.numFmt = PCT_COLS.includes(h) ? '0.0"%"' : DEC_COLS.includes(h) ? "0.00" : "#,##0";
