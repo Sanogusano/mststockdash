@@ -51,3 +51,4 @@
 - [x] Diálogo Crear lote de precios: casilla "Permitir subir el precio (reducir descuento)" solo con acción Dejar en, aviso ámbar arriba del botón y parámetro p_permitir_subir en precio_lote_crear (false en cualquier otra acción); se reinicia al cambiar de acción, cerrar o crear. 4 pruebas nuevas aprobadas (138 en total) y tipos limpios.
 
 - [x] Composición por Colección: montos en millones enteros con separador de miles ("$1.704M", "$6.871M") sin "MM" en filas, detalle, tooltip y total; formato KPI intacto. 26 pruebas aprobadas; sin sesión real (Supabase externo).
+- [x] Desempeño de Productos: "Ver detalle por tienda" resuelve productos de varias tallas (sku "Varias Tallas") buscando por title en product_catalog, avisa con toast "No se encontró el producto en el catálogo" si no hay product_id y muestra "Cargando…" mientras busca. 5 pruebas nuevas (170 en total) OK; sin sesión real (Supabase externo).

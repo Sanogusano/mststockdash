@@ -23,6 +23,7 @@ import { ProductImageThumb } from "@/components/dashboard/ProductImageThumb";
 import { ProductDetailDrawer } from "@/components/dashboard/ProductDetailDrawer";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 
 
 interface ProductRow {
@@ -47,6 +48,9 @@ interface ProductRow {
   semanas_vida: number;
   primera_venta: string;
 }
+
+// The ranking groups products sold in more than one size under this placeholder SKU.
+const VARIAS_TALLAS = "Varias Tallas";
 
 const CANAL_OPTIONS = [
   { value: "all", label: "Todos los Canales" },
@@ -187,11 +191,31 @@ export default function DesempenoProductosPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedProduct, setSelectedProduct] = useState<{ foto: string; producto: string; product_id: string; categoria: string } | null>(null);
+  const [detalleCargando, setDetalleCargando] = useState<string | null>(null);
+
+  // Multi-size products come back with sku "Varias Tallas", so the catalog lookup
+  // falls back to the exact product title before telling the user nothing was found.
   const openDetalle = async (row: ProductRow) => {
-    const { data: pc } = await supabase.from("product_catalog").select("product_id").eq("sku", row.sku).not("product_id", "is", null).limit(1).maybeSingle();
-    const pid = (pc as { product_id: string | null } | null)?.product_id;
-    if (!pid) return;
-    setSelectedProduct({ foto: row.foto, producto: row.producto, product_id: pid, categoria: row.categoria });
+    if (detalleCargando) return;
+    setDetalleCargando(row.producto);
+    try {
+      let pid: string | null = null;
+      if (row.sku && row.sku !== VARIAS_TALLAS) {
+        const { data: pc } = await supabase.from("product_catalog").select("product_id").eq("sku", row.sku).not("product_id", "is", null).limit(1).maybeSingle();
+        pid = (pc as { product_id: string | null } | null)?.product_id ?? null;
+      }
+      if (!pid) {
+        const { data: pt } = await supabase.from("product_catalog").select("product_id").eq("title", row.producto).not("product_id", "is", null).limit(1).maybeSingle();
+        pid = (pt as { product_id: string | null } | null)?.product_id ?? null;
+      }
+      if (!pid) {
+        toast.error("No se encontró el producto en el catálogo");
+        return;
+      }
+      setSelectedProduct({ foto: row.foto, producto: row.producto, product_id: pid, categoria: row.categoria });
+    } finally {
+      setDetalleCargando(null);
+    }
   };
 
   useEffect(() => {
@@ -646,7 +670,9 @@ export default function DesempenoProductosPage() {
                         </TableRow>
                         {expandedProduct === row.producto && <TableRow><TableCell colSpan={7} className="bg-muted/20">
                           <ProductSkuBreakdown product={row.producto} days={days} canal={canal} location={locationId} from={rangeFrom} to={rangeTo} />
-                          <Button variant="link" size="sm" onClick={() => openDetalle(row)}>Ver detalle por tienda</Button>
+                          <Button variant="link" size="sm" disabled={detalleCargando === row.producto} onClick={() => openDetalle(row)}>
+                            {detalleCargando === row.producto ? "Cargando…" : "Ver detalle por tienda"}
+                          </Button>
                         </TableCell></TableRow>}
                         </Fragment>
                       ))}
