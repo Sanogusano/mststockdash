@@ -1,7 +1,9 @@
 import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { buildRpcDateParams } from "./TimeFilter";
+import { buildRpcDateParams, getDateRange, getPresetLabel } from "./TimeFilter";
+import { exportSaludExcel } from "@/lib/salud-producto-excel";
+import { FileSpreadsheet } from "lucide-react";
 import { LoadingState, EmptyState } from "./LoadingState";
 import { StatusBadge } from "./StatusBadge";
 import { ProductDetailDrawer } from "./ProductDetailDrawer";
@@ -260,15 +262,29 @@ export function ProductBehaviorTable({ days, initialWosFilter, initialLocationId
     }
   }, [canalFilter, filteredLocations]);
 
+  const [loadedCount, setLoadedCount] = useState(0);
+  const [excelLoading, setExcelLoading] = useState(false);
   const { data, isLoading, error } = useQuery({
     queryKey: ["producto-comportamiento", resolvedDays, hastaParam, search, locationId],
     queryFn: async () => {
       const params: { dias_atras: number; p_sku_filter?: string; p_location_id?: string; p_hasta?: string | null } = { dias_atras: resolvedDays, p_hasta: hastaParam };
       if (search.trim()) params.p_sku_filter = search.trim();
       if (locationId !== "all") params.p_location_id = locationId;
-      const { data, error } = await supabase.rpc("reporte_comportamiento_producto", params);
-      if (error) throw new Error(error.message);
-      return (data ?? []) as unknown as ProductBehaviorRow[];
+      const PAGE = 1000;
+      const all: ProductBehaviorRow[] = [];
+      setLoadedCount(0);
+      for (let desde = 0; ; desde += PAGE) {
+        const { data, error } = await supabase
+          .rpc("reporte_comportamiento_producto", params)
+          .order("product_id")
+          .range(desde, desde + PAGE - 1);
+        if (error) throw new Error(error.message);
+        const chunk = (data ?? []) as unknown as ProductBehaviorRow[];
+        all.push(...chunk);
+        setLoadedCount(all.length);
+        if (chunk.length < PAGE) break;
+      }
+      return all;
     },
     staleTime: 5 * 60 * 1000,
     retry: 1,
@@ -317,9 +333,7 @@ export function ProductBehaviorTable({ days, initialWosFilter, initialLocationId
 
   useMemo(() => setPage(0), [search, days, wosFilter, stFilter, locationId, canalFilter, tipoFilter, coleccionFilter, clasifFilter]);
 
-  const handleExportCSV = () => {
-    if (!rows.length) return;
-    exportToCSV(
+  const buildRecords = () =>
       rows.map((r) => ({
         "Product ID": r.product_id,
         Producto: r.producto,
@@ -353,9 +367,36 @@ export function ProductBehaviorTable({ days, initialWosFilter, initialLocationId
         "RDV Online": Number(r.ritmo_online ?? 0),
         WOS: r.wos,
         "Estado Salud": r.estado_salud,
-      })),
-      "comportamiento_producto"
-    );
+      }));
+
+  const handleExportCSV = () => {
+    if (!rows.length) return;
+    exportToCSV(buildRecords(), "comportamiento_producto");
+  };
+
+  const handleExportExcel = async () => {
+    if (!rows.length || excelLoading) return;
+    setExcelLoading(true);
+    try {
+      const { from, to } = getDateRange(days, customFrom, customTo);
+      const fmtD = (d: Date) => d.toLocaleDateString("es-CO", { timeZone: "America/Bogota", day: "numeric", month: "short", year: "numeric" });
+      const periodo = getPresetLabel(days) ?? `${fmtD(from)} – ${fmtD(to)}`;
+      const loc = allLocations?.find((l) => l.location_id === locationId)?.name;
+      const filtros = [
+        search.trim() && `Búsqueda: ${search.trim()}`,
+        canalFilter !== "all" && `Canal: ${canalFilter}`,
+        loc && `Ubicación: ${loc}`,
+        tipoFilter !== "all" && `Tipo: ${tipoFilter}`,
+        coleccionFilter !== "all" && `Colección: ${coleccionFilter}`,
+        clasifFilter !== "all" && `Clasificación: ${clasifFilter}`,
+        wosFilter !== "all" && `WOS: ${wosFilter}`,
+        stFilter !== "all" && `ST: ${stFilter}`,
+      ].filter(Boolean).join(", ") || "Sin filtros";
+      const gen = new Date().toLocaleString("es-CO", { timeZone: "America/Bogota", dateStyle: "medium", timeStyle: "short" });
+      await exportSaludExcel(buildRecords(), `Salud de Producto · ${periodo} · ${filtros} · generado ${gen}`);
+    } finally {
+      setExcelLoading(false);
+    }
   };
 
   const handleExportPDF = async () => {
@@ -502,6 +543,9 @@ export function ProductBehaviorTable({ days, initialWosFilter, initialLocationId
           <Button variant="outline" size="sm" onClick={handleExportCSV} disabled={!rows.length}>
             <Download className="h-4 w-4 mr-1" /> CSV
           </Button>
+          <Button variant="outline" size="sm" onClick={handleExportExcel} disabled={!rows.length || excelLoading}>
+            <FileSpreadsheet className="h-4 w-4 mr-1" /> {excelLoading ? "Generando Excel…" : "Excel"}
+          </Button>
           <Button variant="outline" size="sm" onClick={handleExportPDF} disabled={!rows.length}>
             <FileText className="h-4 w-4 mr-1" /> PDF
           </Button>
@@ -511,7 +555,10 @@ export function ProductBehaviorTable({ days, initialWosFilter, initialLocationId
       {/* Table */}
       <div className="glass-card overflow-hidden">
         {isLoading ? (
-          <div className="p-6"><LoadingState rows={8} /></div>
+          <div className="p-6 space-y-3">
+            <p className="text-sm text-muted-foreground">Cargando productos… {loadedCount.toLocaleString("es-CO")}</p>
+            <LoadingState rows={8} />
+          </div>
         ) : error ? (
           <div className="flex flex-col items-center justify-center py-16 text-center">
             <p className="text-4xl mb-3">⚠️</p>
@@ -743,6 +790,10 @@ export function ProductBehaviorTable({ days, initialWosFilter, initialLocationId
               </TableBody>
             </Table>
             </div>
+
+            <p className="px-4 py-2 text-xs text-muted-foreground border-t border-border">
+              {(data?.length ?? 0).toLocaleString("es-CO")} productos · mostrando {rows.length.toLocaleString("es-CO")} filtrados
+            </p>
 
             {totalPages > 1 && (
               <div className="flex items-center justify-between px-4 py-3 border-t border-border">
