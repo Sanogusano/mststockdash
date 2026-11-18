@@ -1,10 +1,9 @@
 import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { fetchAllRpc } from "@/lib/fetch-all-rpc";
 import { buildRpcDateParams, getDateRange, getPresetLabel } from "./TimeFilter";
 import { exportSaludExcel } from "@/lib/salud-producto-excel";
-import { loadProductIdentifiers, joinProductIdentifiers, matchesProductSearch, productExportIdentity } from "@/lib/product-behavior-identifiers";
+import { matchesProductSearch, productExportIdentity } from "@/lib/product-behavior-identifiers";
 import { FileSpreadsheet } from "lucide-react";
 import { LoadingState, EmptyState } from "./LoadingState";
 import { StatusBadge } from "./StatusBadge";
@@ -267,32 +266,19 @@ export function ProductBehaviorTable({ days, initialWosFilter, initialLocationId
     }
   }, [canalFilter, filteredLocations]);
 
-  const [loadedCount, setLoadedCount] = useState(0);
   const [excelLoading, setExcelLoading] = useState(false);
-  const identifiersQuery = useQuery({
-    queryKey: ["producto-sku-padre"],
-    queryFn: () => loadProductIdentifiers(async (from, to) => {
-      const { data, error } = await supabase.from("v_producto_sku_padre")
-        .select("product_id, sku_padre, referencia_ns, skus_hijos")
-        .order("product_id").range(from, to);
-      if (error) throw new Error(error.message);
-      return data ?? [];
-    }),
-    staleTime: 30 * 60 * 1000,
-  });
-  const { data: reportData, isLoading: reportLoading, error: reportError } = useQuery({
+  const { data, isLoading, error } = useQuery({
     queryKey: ["producto-comportamiento", resolvedDays, hastaParam, locationId],
     queryFn: async () => {
       const params: { dias_atras: number; p_sku_filter?: string; p_location_id?: string; p_hasta?: string | null } = { dias_atras: resolvedDays, p_hasta: hastaParam };
       if (locationId !== "all") params.p_location_id = locationId;
-      return fetchAllRpc<ProductBehaviorRow>("reporte_comportamiento_producto", params, "product_id", 1000, setLoadedCount);
+      const { data, error } = await supabase.rpc("reporte_comportamiento_producto_json", params);
+      if (error) throw new Error(error.message);
+      return (Array.isArray(data) ? data : []) as unknown as ProductBehaviorRow[];
     },
-    staleTime: 5 * 60 * 1000,
+    staleTime: 10 * 60 * 1000,
     retry: 1,
   });
-  const data = useMemo(() => joinProductIdentifiers(reportData ?? [], identifiersQuery.data ?? new Map()), [reportData, identifiersQuery.data]);
-  const isLoading = reportLoading || identifiersQuery.isLoading;
-  const error = reportError ?? identifiersQuery.error;
 
   const buildOpts = (key: "tipo" | "coleccion" | "clasificacion") => {
     const m = new Map<string, number>();
@@ -561,7 +547,7 @@ export function ProductBehaviorTable({ days, initialWosFilter, initialLocationId
       <div className="glass-card overflow-hidden">
         {isLoading ? (
           <div className="p-6 space-y-3">
-            <p className="text-sm text-muted-foreground">Cargando productos… {loadedCount.toLocaleString("es-CO")}</p>
+            <p className="text-sm text-muted-foreground">Cargando 3.900+ productos, puede tardar unos segundos</p>
             <LoadingState rows={8} />
           </div>
         ) : error ? (
