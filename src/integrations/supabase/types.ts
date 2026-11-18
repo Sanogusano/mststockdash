@@ -6963,6 +6963,15 @@ export type Database = {
           wos_total: number
         }[]
       }
+      reporte_comportamiento_producto_json: {
+        Args: {
+          dias_atras?: number
+          p_hasta?: string
+          p_location_id?: string
+          p_sku_filter?: string
+        }
+        Returns: Json
+      }
       reporte_composicion_coleccion: {
         Args: {
           dias_atras: number
