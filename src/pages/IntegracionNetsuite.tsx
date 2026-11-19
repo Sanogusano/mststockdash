@@ -11,6 +11,8 @@ import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { LoadingState } from "@/components/dashboard/LoadingState";
 import { CrearSoPedidosCard } from "@/components/ecommerce/CrearSoPedidosCard";
+import { SoCreadasSelliq } from "@/components/ecommerce/SoCreadasSelliq";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useChequeoIntegridad } from "@/hooks/useChequeoIntegridad";
 import { cn } from "@/lib/utils";
 
@@ -92,6 +94,10 @@ export default function IntegracionNetsuitePage() {
           </header>
 
           <div className="flex-1 px-4 sm:px-6 py-4 sm:py-6 space-y-6">
+            <Tabs defaultValue="pendientes">
+              <TabsList><TabsTrigger value="pendientes">Pendientes de SO</TabsTrigger><TabsTrigger value="creadas">Creadas desde Selliq</TabsTrigger></TabsList>
+              <TabsContent value="creadas" className="mt-4"><SoCreadasSelliq /></TabsContent>
+              <TabsContent value="pendientes" className="mt-4 space-y-6">
             <Card className={cn("max-w-md", conNovedad ? "border-destructive bg-destructive/5" : "border-emerald-400")}>
               <CardContent className="p-4 space-y-2">
                 <p className="text-xs text-muted-foreground uppercase tracking-wide">Pedidos sin orden de venta</p>
@@ -161,6 +167,8 @@ export default function IntegracionNetsuitePage() {
                 )}
               </CardContent>
             </Card>
+              </TabsContent>
+            </Tabs>
           </div>
         </main>
       </div>

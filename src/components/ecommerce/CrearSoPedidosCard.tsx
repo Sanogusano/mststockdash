@@ -1,7 +1,7 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
-import { AlertTriangle, CheckCircle2, RefreshCw } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Copy, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -110,6 +110,7 @@ type SoLinea = {
 type SoRespuesta = {
   ok?: boolean;
   error?: string;
+  aviso_registro?: string | null;
   cliente?: {
     nombre?: string;
     documento?: string;
@@ -164,6 +165,23 @@ export function CrearSoPedidosCard() {
       return (data ?? []) as unknown as PedidoSinSo[];
     },
   });
+  const qc = useQueryClient();
+  const pedidosPend = (q.data ?? []).map((r) => r.pedido);
+  const creadasQ = useQuery({
+    queryKey: ["ns-so-creadas-pendientes", pedidosPend.join(",")],
+    enabled: pedidosPend.length > 0,
+    queryFn: async () => {
+      const m = new Map<string, string>();
+      for (let i = 0; i < pedidosPend.length; i += 200) {
+        const { data, error } = await supabase.from("netsuite_so_creadas" as never).select("pedido, tranid").in("pedido", pedidosPend.slice(i, i + 200));
+        if (error) throw error;
+        for (const x of (data ?? []) as { pedido: string; tranid: string | null }[]) m.set(x.pedido, x.tranid ?? "");
+      }
+      return m;
+    },
+  });
+  const [creadosLocal, setCreadosLocal] = useState<Map<string, string>>(new Map());
+  const soCreadaDe = (pedido: string) => creadosLocal.get(pedido) ?? creadasQ.data?.get(pedido);
   const rows = q.data ?? [];
   const filtradas = rows.filter((r) => coincideFiltro(r.motivo, filtro));
   const totalMonto = rows.reduce((a, r) => a + Number(r.total ?? 0), 0);
@@ -187,6 +205,7 @@ export function CrearSoPedidosCard() {
   const [documentoElegido, setDocumentoElegido] = useState<string | null>(null);
   const [errorDialogo, setErrorDialogo] = useState("");
   const [cargando, setCargando] = useState<"prueba" | "real" | null>(null);
+  const [exito, setExito] = useState<{ tranid: string; aviso: string | null } | null>(null);
   const [tipoCliente, setTipoCliente] = useState<TipoClienteSo>("final");
   const pfeQ = useQuery({
     queryKey: ["pedido-fe", pedidoActivo],
@@ -258,9 +277,14 @@ export function CrearSoPedidosCard() {
         setErrorDialogo(esErrorPermiso(msg) ? MENSAJE_PERMISO : msg);
         return;
       }
-      toast.success(`SO ${r.so?.tranid ?? ""} creada`.trim());
-      cerrarDialogo(true);
-      q.refetch();
+      const tranid = r.so?.tranid ?? "";
+      toast.success(`SO ${tranid} creada`.trim());
+      const pedido = pedidoActivo;
+      setExito({ tranid, aviso: r.aviso_registro ?? null });
+      setCreadosLocal((m) => new Map(m).set(pedido, tranid));
+      qc.setQueryData<PedidoSinSo[]>(["ecommerce-pedidos-sin-so"], (old) => (old ?? []).filter((x) => x.pedido !== pedido));
+      void q.refetch();
+      void qc.invalidateQueries({ queryKey: ["ns-so-creadas"] });
     } catch (e) {
       const msg = errMsg(e);
       setErrorDialogo(esErrorPermiso(msg) ? MENSAJE_PERMISO : msg);
@@ -270,7 +294,7 @@ export function CrearSoPedidosCard() {
   };
 
   const cambiarTipo = (t: TipoClienteSo) => {
-    if (cargando) return;
+    if (cargando || exito) return;
     setTipoCliente(t);
     setRespuesta(null);
     setDocumentoElegido(null);
@@ -284,13 +308,14 @@ export function CrearSoPedidosCard() {
     setDocumentoElegido(null);
     setErrorDialogo("");
     setTipoCliente("final");
+    setExito(null);
   };
 
   const esMostrador = tipoCliente === "mostrador";
   const cliente = respuesta?.cliente;
   const lineas = respuesta?.so?.resumen?.lineas ?? [];
   const confirmarDeshabilitado =
-    !!cargando || !respuesta || respuesta.ok === false || !!errorDialogo;
+    !!cargando || !respuesta || respuesta.ok === false || !!errorDialogo || !!exito;
 
   return (
     <>
@@ -419,7 +444,14 @@ export function CrearSoPedidosCard() {
                         {Number(r.dias ?? 0).toLocaleString("es-CO")}
                       </TableCell>
                       <TableCell>
-                        {conDescuento ? (
+                        {soCreadaDe(r.pedido) !== undefined ? (
+                          <div className="space-y-1">
+                            <Badge variant="outline" className="border-emerald-300 bg-emerald-50 text-emerald-700 text-[10px] whitespace-nowrap">
+                              SO creada · {soCreadaDe(r.pedido) || "—"}
+                            </Badge>
+                            <p className="text-xs text-muted-foreground">Esperando sincronización</p>
+                          </div>
+                        ) : conDescuento ? (
                           <div className="space-y-1">
                             <Badge
                               variant="outline"
@@ -492,9 +524,26 @@ export function CrearSoPedidosCard() {
             </DialogDescription>
           </DialogHeader>
 
+          {exito && (
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 rounded-lg border border-emerald-300 bg-emerald-50 p-3 text-sm text-emerald-800">
+                <CheckCircle2 className="h-4 w-4" />
+                <span className="font-medium">SO creada: {exito.tranid || "—"}</span>
+                <Button size="sm" variant="outline" className="ml-auto h-7" onClick={() => { void navigator.clipboard.writeText(exito.tranid); toast.success("Número copiado"); }}>
+                  <Copy className="h-3.5 w-3.5 mr-1" />Copiar
+                </Button>
+              </div>
+              {exito.aviso && (
+                <div className="rounded-md border border-amber-300 bg-amber-50 p-2 text-xs text-amber-800">
+                  La SO se creó en NetSuite, pero no se pudo registrar en Selliq: {exito.aviso}. Saldrá de la lista con la próxima sincronización.
+                </div>
+              )}
+            </div>
+          )}
+
           <div className="space-y-2 rounded-lg border p-3">
             <p className="text-xs font-medium">¿A quién se crea la SO? *</p>
-            <RadioGroup value={tipoCliente} onValueChange={(v) => cambiarTipo(v as TipoClienteSo)} disabled={!!cargando}>
+            <RadioGroup value={tipoCliente} onValueChange={(v) => cambiarTipo(v as TipoClienteSo)} disabled={!!cargando || !!exito}>
               <div className="flex items-center gap-2"><RadioGroupItem value="final" id="so-final" /><Label htmlFor="so-final" className="text-sm font-normal">Cliente final (buscar o crear el cliente)</Label></div>
               <div className="flex items-center gap-2"><RadioGroupItem value="mostrador" id="so-mostrador" /><Label htmlFor="so-mostrador" className="text-sm font-normal">Cliente mostrador (CLIENTE MOSTRADOR 222222222222)</Label></div>
             </RadioGroup>
@@ -518,7 +567,7 @@ export function CrearSoPedidosCard() {
                 </Alert>
               )}
 
-              {!respuesta && !errorDialogo && (
+              {!respuesta && !errorDialogo && !exito && (
                 <div className="text-center py-4 space-y-2">
                   <p className="text-sm text-muted-foreground">Prueba la orden antes de crearla.</p>
                   <Button size="sm" variant="outline" onClick={() => pedidoActivo && void abrirVistaPrevia(pedidoActivo)}>Probar</Button>
