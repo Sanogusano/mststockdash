@@ -4118,6 +4118,132 @@ export type Database = {
           },
         ]
       }
+      traslados_salida_config: {
+        Row: {
+          activo_desde: string
+          id: number
+          modo: string
+          ultima_corrida: string | null
+        }
+        Insert: {
+          activo_desde?: string
+          id?: number
+          modo?: string
+          ultima_corrida?: string | null
+        }
+        Update: {
+          activo_desde?: string
+          id?: number
+          modo?: string
+          ultima_corrida?: string | null
+        }
+        Relationships: []
+      }
+      traslados_salida_guayabal: {
+        Row: {
+          actualizado_en: string
+          cerrado: boolean
+          creado_ns: string | null
+          creado_por: string | null
+          descontado_shopify: number
+          despachado: number
+          destino: string | null
+          estado_to: string | null
+          fecha: string | null
+          item_id: number
+          nombre: string | null
+          ordenado: number
+          primera_vez: string
+          reservado_shopify: number
+          sku: string | null
+          to_id: number
+          tranid: string
+          ultimo_error: string | null
+        }
+        Insert: {
+          actualizado_en?: string
+          cerrado?: boolean
+          creado_ns?: string | null
+          creado_por?: string | null
+          descontado_shopify?: number
+          despachado?: number
+          destino?: string | null
+          estado_to?: string | null
+          fecha?: string | null
+          item_id: number
+          nombre?: string | null
+          ordenado?: number
+          primera_vez?: string
+          reservado_shopify?: number
+          sku?: string | null
+          to_id: number
+          tranid: string
+          ultimo_error?: string | null
+        }
+        Update: {
+          actualizado_en?: string
+          cerrado?: boolean
+          creado_ns?: string | null
+          creado_por?: string | null
+          descontado_shopify?: number
+          despachado?: number
+          destino?: string | null
+          estado_to?: string | null
+          fecha?: string | null
+          item_id?: number
+          nombre?: string | null
+          ordenado?: number
+          primera_vez?: string
+          reservado_shopify?: number
+          sku?: string | null
+          to_id?: number
+          tranid?: string
+          ultimo_error?: string | null
+        }
+        Relationships: []
+      }
+      traslados_salida_log: {
+        Row: {
+          accion: string
+          cantidad: number
+          corrida_en: string
+          error: string | null
+          id: number
+          item_id: number | null
+          modo: string
+          ok: boolean
+          sku: string | null
+          to_id: number | null
+          tranid: string | null
+        }
+        Insert: {
+          accion: string
+          cantidad: number
+          corrida_en?: string
+          error?: string | null
+          id?: number
+          item_id?: number | null
+          modo: string
+          ok?: boolean
+          sku?: string | null
+          to_id?: number | null
+          tranid?: string | null
+        }
+        Update: {
+          accion?: string
+          cantidad?: number
+          corrida_en?: string
+          error?: string | null
+          id?: number
+          item_id?: number | null
+          modo?: string
+          ok?: boolean
+          sku?: string | null
+          to_id?: number | null
+          tranid?: string | null
+        }
+        Relationships: []
+      }
       user_permission_overrides: {
         Row: {
           action_key: string
