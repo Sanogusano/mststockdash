@@ -4150,6 +4150,7 @@ export type Database = {
           destino: string | null
           estado_to: string | null
           fecha: string | null
+          historico: boolean
           item_id: number
           nombre: string | null
           ordenado: number
@@ -4170,6 +4171,7 @@ export type Database = {
           destino?: string | null
           estado_to?: string | null
           fecha?: string | null
+          historico?: boolean
           item_id: number
           nombre?: string | null
           ordenado?: number
@@ -4190,6 +4192,7 @@ export type Database = {
           destino?: string | null
           estado_to?: string | null
           fecha?: string | null
+          historico?: boolean
           item_id?: number
           nombre?: string | null
           ordenado?: number
