@@ -131,7 +131,7 @@ const ecommerceItems: NavItem[] = [
   { title: "Pendientes de Facturación", url: "/finanzas/reporte-facturacion", icon: LayoutDashboard, description: "Pedidos pendientes por facturar", module: "ecommerce.precios", action: "view" },
   { title: "Agotados", url: "/ecommerce/agotados", icon: AlertTriangle, description: "Faltantes en pedidos y traslados", module: "ecommerce.precios", action: "view" },
   { title: "Salidas de Guayabal", url: "/gestion-ecommerce/salidas-guayabal", icon: Truck, description: "Traslados que salen del CEDI online", module: "ecommerce.precios", action: "view" },
-  { title: "Integración NetSuite", url: "/ecommerce/integracion-netsuite", icon: Database, description: "Pedidos sin SO y SO de cancelados", module: "ecommerce.precios", action: "view" },
+  { title: "Ordenes de Venta NS", url: "/ecommerce/integracion-netsuite", icon: Database, description: "Pedidos sin SO y SO de cancelados", module: "ecommerce.precios", action: "view" },
   { title: "Precios Ecommerce", url: "/ecommerce/precios", icon: Tags, description: "Monitor de precios y descuentos", module: "ecommerce.precios", action: "view" },
   { title: "Reporte de Rebajas", url: "/reporte-rebajas", icon: Tag, description: "Productos con precio rebajado", module: "ecommerce.precios", action: "view" },
   { title: "Salud de Publicación", url: "/salud-publicacion", icon: Globe, description: "Diagnóstico del canal online", module: "ecommerce.precios", action: "view" },

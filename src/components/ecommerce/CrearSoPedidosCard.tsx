@@ -8,6 +8,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Label } from "@/components/ui/label";
 import {
   Dialog,
   DialogContent,
@@ -116,6 +118,7 @@ type SoRespuesta = {
     cliente_ns_id?: string | number;
     requiere_elegir?: boolean;
     opciones?: string[];
+    mostrador?: boolean;
   };
   so?: {
     tranid?: string;
@@ -144,6 +147,7 @@ const errMsg = (e: unknown) =>
     : String(e);
 const esErrorPermiso = (msg: string) =>
   /403|permiso|unauthori[sz]ed|forbidden/i.test(msg);
+export type TipoClienteSo = "final" | "mostrador";
 const MENSAJE_PERMISO = "No tienes permiso para crear órdenes de venta";
 
 export function CrearSoPedidosCard() {
@@ -183,17 +187,29 @@ export function CrearSoPedidosCard() {
   const [documentoElegido, setDocumentoElegido] = useState<string | null>(null);
   const [errorDialogo, setErrorDialogo] = useState("");
   const [cargando, setCargando] = useState<"prueba" | "real" | null>(null);
+  const [tipoCliente, setTipoCliente] = useState<TipoClienteSo>("final");
+  const pfeQ = useQuery({
+    queryKey: ["pedido-fe", pedidoActivo],
+    enabled: !!pedidoActivo && tipoCliente === "mostrador",
+    queryFn: async () => {
+      const { data, error } = await supabase.from("pedido_factura_electronica" as never).select("pedido").eq("pedido", pedidoActivo!).limit(1);
+      if (error) throw error;
+      return ((data ?? []) as unknown[]).length > 0;
+    },
+  });
 
   const invocarSo = async (
     pedido: string,
     modo: "prueba" | "real",
-    documento?: string | null,
+    documento: string | null | undefined,
+    tipo: TipoClienteSo,
   ): Promise<SoRespuesta> => {
     const { data, error } = await supabase.functions.invoke("netsuite-crear", {
       body: {
         accion: "so",
         pedido,
         modo,
+        cliente: tipo,
         ...(documento ? { documento_elegido: documento } : {}),
       },
     });
@@ -207,7 +223,7 @@ export function CrearSoPedidosCard() {
     return data as SoRespuesta;
   };
 
-  const abrirVistaPrevia = async (pedido: string, documento?: string | null) => {
+  const abrirVistaPrevia = async (pedido: string, documento?: string | null, tipo: TipoClienteSo = tipoCliente) => {
     if (cargando) return;
     setPedidoActivo(pedido);
     setRespuesta(null);
@@ -215,7 +231,7 @@ export function CrearSoPedidosCard() {
     setErrorDialogo("");
     setCargando("prueba");
     try {
-      const r = await invocarSo(pedido, "prueba", documento ?? null);
+      const r = await invocarSo(pedido, "prueba", tipo === "mostrador" ? null : documento ?? null, tipo);
       setRespuesta(r);
       if (r?.ok === false && r.error) setErrorDialogo(r.error);
     } catch (e) {
@@ -236,7 +252,7 @@ export function CrearSoPedidosCard() {
     if (!pedidoActivo || cargando || !respuesta || respuesta.ok === false) return;
     setCargando("real");
     try {
-      const r = await invocarSo(pedidoActivo, "real", documentoElegido);
+      const r = await invocarSo(pedidoActivo, "real", tipoCliente === "mostrador" ? null : documentoElegido, tipoCliente);
       if (!r?.ok) {
         const msg = String(r?.error ?? "No se pudo crear la orden de venta");
         setErrorDialogo(esErrorPermiso(msg) ? MENSAJE_PERMISO : msg);
@@ -253,14 +269,24 @@ export function CrearSoPedidosCard() {
     }
   };
 
+  const cambiarTipo = (t: TipoClienteSo) => {
+    if (cargando) return;
+    setTipoCliente(t);
+    setRespuesta(null);
+    setDocumentoElegido(null);
+    setErrorDialogo("");
+  };
+
   const cerrarDialogo = (forzar = false) => {
     if (cargando && !forzar) return; // no se puede cerrar mientras corre
     setPedidoActivo(null);
     setRespuesta(null);
     setDocumentoElegido(null);
     setErrorDialogo("");
+    setTipoCliente("final");
   };
 
+  const esMostrador = tipoCliente === "mostrador";
   const cliente = respuesta?.cliente;
   const lineas = respuesta?.so?.resumen?.lineas ?? [];
   const confirmarDeshabilitado =
@@ -436,7 +462,7 @@ export function CrearSoPedidosCard() {
                           <Button
                             size="sm"
                             variant="outline"
-                            onClick={() => void abrirVistaPrevia(r.pedido)}
+                            onClick={() => { setTipoCliente("final"); void abrirVistaPrevia(r.pedido, undefined, "final"); }}
                             disabled={!!cargando}
                           >
                             Crear SO
@@ -466,6 +492,19 @@ export function CrearSoPedidosCard() {
             </DialogDescription>
           </DialogHeader>
 
+          <div className="space-y-2 rounded-lg border p-3">
+            <p className="text-xs font-medium">¿A quién se crea la SO? *</p>
+            <RadioGroup value={tipoCliente} onValueChange={(v) => cambiarTipo(v as TipoClienteSo)} disabled={!!cargando}>
+              <div className="flex items-center gap-2"><RadioGroupItem value="final" id="so-final" /><Label htmlFor="so-final" className="text-sm font-normal">Cliente final (buscar o crear el cliente)</Label></div>
+              <div className="flex items-center gap-2"><RadioGroupItem value="mostrador" id="so-mostrador" /><Label htmlFor="so-mostrador" className="text-sm font-normal">Cliente mostrador (CLIENTE MOSTRADOR 222222222222)</Label></div>
+            </RadioGroup>
+            {esMostrador && pfeQ.data && (
+              <div className="rounded-md border border-amber-300 bg-amber-50 p-2 text-xs text-amber-800">
+                Este pedido pidió factura electrónica a nombre propio. Con Cliente mostrador la factura no saldrá a su nombre.
+              </div>
+            )}
+          </div>
+
           {cargando === "prueba" ? (
             <p className="text-sm text-muted-foreground py-6 text-center">
               Generando vista previa…
@@ -479,7 +518,21 @@ export function CrearSoPedidosCard() {
                 </Alert>
               )}
 
-              {cliente && (
+              {!respuesta && !errorDialogo && (
+                <div className="text-center py-4 space-y-2">
+                  <p className="text-sm text-muted-foreground">Prueba la orden antes de crearla.</p>
+                  <Button size="sm" variant="outline" onClick={() => pedidoActivo && void abrirVistaPrevia(pedidoActivo)}>Probar</Button>
+                </div>
+              )}
+
+              {cliente && esMostrador && (
+                <div className="rounded-lg border bg-muted/20 p-3 text-xs">
+                  <span className="text-muted-foreground">Cliente:</span>{" "}
+                  <span className="font-medium">CLIENTE MOSTRADOR 222222222222</span>
+                </div>
+              )}
+
+              {cliente && !esMostrador && (
                 <div className="rounded-lg border bg-muted/20 p-3 text-xs space-y-1">
                   <p>
                     <span className="text-muted-foreground">Cliente:</span>{" "}
@@ -497,7 +550,7 @@ export function CrearSoPedidosCard() {
                 </div>
               )}
 
-              {cliente?.requiere_elegir && (cliente.opciones?.length ?? 0) > 0 && (
+              {!esMostrador && cliente?.requiere_elegir && (cliente.opciones?.length ?? 0) > 0 && (
                 <div className="space-y-2">
                   <p className="text-xs font-medium">Elige el documento correcto:</p>
                   <div className="flex flex-wrap gap-2">

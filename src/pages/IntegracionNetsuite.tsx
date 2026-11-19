@@ -86,7 +86,7 @@ export default function IntegracionNetsuitePage() {
           <header className="flex items-center gap-3 px-4 sm:px-6 py-3 sm:py-4 border-b border-border sticky top-0 bg-background/90 backdrop-blur-sm z-10">
             <SidebarTrigger className="text-muted-foreground hover:text-foreground" />
             <div>
-              <h2 className="font-display text-base sm:text-lg font-semibold text-foreground">Integración NetSuite</h2>
+              <h2 className="font-display text-base sm:text-lg font-semibold text-foreground">Ordenes de Venta NS</h2>
               <p className="text-[10px] sm:text-xs text-muted-foreground">Pedidos sin orden de venta y órdenes abiertas de cancelados</p>
             </div>
           </header>
