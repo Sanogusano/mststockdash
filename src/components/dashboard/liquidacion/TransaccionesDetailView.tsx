@@ -8,6 +8,8 @@ import { Progress } from "@/components/ui/progress";
 import { Download } from "lucide-react";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { exportToCSV } from "@/lib/csv-export";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { tiendaInfo, ordenarPorTiendaVendedor, type LocInfo } from "./tienda-info";
 import type { LiquidacionRow, CampanaResumen } from "./types";
 
 type FilterCumple = "todos" | "cumple" | "no_cumple";
@@ -17,6 +19,7 @@ interface Props {
   rows: LiquidacionRow[];
   vendedorMap: Map<string, string>;
   locMap: Map<string, string>;
+  locInfo: Map<string, LocInfo>;
 }
 
 const fmt = (n: number) => "$" + Math.round(n).toLocaleString("es-CO");
@@ -32,7 +35,8 @@ const pct = (l: number, m: number) => (m > 0 ? Math.min((l / m) * 100, 100) : 0)
  * - upt_minimo:       progreso { tx_que_cumplen, tx_totales, unidades_minimas, meta_transacciones }
  * - numero_pedidos:   progreso { pedidos_totales, ticket_promedio, ticket_promedio_minimo, meta_pedidos }
  */
-export function TransaccionesDetailView({ campana, rows, vendedorMap, locMap }: Props) {
+export function TransaccionesDetailView({ campana, rows, vendedorMap, locMap, locInfo }: Props) {
+  const [filterTienda, setFilterTienda] = useState("todas");
   const [exporting, setExporting] = useState(false);
   const [filterCumple, setFilterCumple] = useState<FilterCumple>("todos");
   const tipo = campana.tipo_regla;
@@ -85,6 +89,7 @@ export function TransaccionesDetailView({ campana, rows, vendedorMap, locMap }: 
         id: r.id,
         refId: id,
         nombre,
+        ...tiendaInfo(locInfo, r.location_id),
         logrado,
         total,
         extra,
@@ -97,11 +102,14 @@ export function TransaccionesDetailView({ campana, rows, vendedorMap, locMap }: 
 
   const participantes = useMemo(
     () =>
-      filterCumple === "todos"
-        ? participantesAll
-        : participantesAll.filter((v) => (filterCumple === "cumple" ? v.cumple_meta : !v.cumple_meta)),
-    [participantesAll, filterCumple]
+      participantesAll
+        .filter((v) => filterCumple === "todos" || (filterCumple === "cumple" ? v.cumple_meta : !v.cumple_meta))
+        .filter((v) => !isAsesor || filterTienda === "todas" || v.tienda === filterTienda),
+    [participantesAll, filterCumple, filterTienda, isAsesor]
   );
+  const tiendasOpc = useMemo(() => [...new Set(participantesAll.map((v) => v.tienda))].sort((a, b) => a.localeCompare(b, "es")), [participantesAll]);
+  const paraExport = isAsesor ? ordenarPorTiendaVendedor(participantes) : participantes;
+  const colsTienda = (v: { tienda: string; ciudad: string; zona: string }) => (isAsesor ? { Tienda: v.tienda, Ciudad: v.ciudad, Zona: v.zona } : {});
 
   const totalLogrado = participantes.reduce((s, v) => s + v.logrado, 0);
   const cumplen = participantes.filter((v) => v.cumple_meta).length;
@@ -113,9 +121,10 @@ export function TransaccionesDetailView({ campana, rows, vendedorMap, locMap }: 
   const exportExcel = async () => {
     setExporting(true);
     try {
-      const summaryRows = participantes.map((v, i) => ({
+      const summaryRows = paraExport.map((v, i) => ({
         "#": i + 1,
         [isAsesor ? "Vendedor" : "Tienda"]: v.nombre,
+        ...colsTienda(v),
         Condición: condicionLabel,
         Desde: campana.fecha_inicio,
         Hasta: campana.fecha_fin,
@@ -164,14 +173,20 @@ export function TransaccionesDetailView({ campana, rows, vendedorMap, locMap }: 
         <Card><CardContent className="p-3"><p className="text-[11px] text-muted-foreground">Total a Pagar</p><p className="text-xl font-semibold tabular-nums">{fmt(totalGanado)}</p></CardContent></Card>
       </div>
 
-      <div className="flex justify-between items-center gap-2">
+      <div className="flex flex-wrap justify-between items-center gap-2">
         <ToggleGroup type="single" value={filterCumple} onValueChange={(v) => v && setFilterCumple(v as FilterCumple)} size="sm">
           <ToggleGroupItem value="todos" className="text-xs">Todos</ToggleGroupItem>
           <ToggleGroupItem value="cumple" className="text-xs">Cumplen</ToggleGroupItem>
           <ToggleGroupItem value="no_cumple" className="text-xs">No cumplen</ToggleGroupItem>
         </ToggleGroup>
+        {isAsesor && (
+          <Select value={filterTienda} onValueChange={setFilterTienda}>
+            <SelectTrigger className="h-8 w-48 text-xs"><SelectValue placeholder="Tienda" /></SelectTrigger>
+            <SelectContent><SelectItem value="todas">Todas las tiendas</SelectItem>{tiendasOpc.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}</SelectContent>
+          </Select>
+        )}
         <div className="flex gap-2">
-          <Button variant="outline" size="sm" className="gap-1.5" onClick={() => exportToCSV(participantes.map((v, i) => ({ "#": i + 1, Nombre: v.nombre, [colLogrado]: v.logrado, Meta: v.meta, [colExtra]: v.extra, Cumple: v.cumple_meta ? "Sí" : "No", Ganado: v.monto_ganado })), `liquidacion_${campana.nombre}`)}>
+          <Button variant="outline" size="sm" className="gap-1.5" onClick={() => exportToCSV(paraExport.map((v, i) => ({ "#": i + 1, Nombre: v.nombre, ...colsTienda(v), [colLogrado]: v.logrado, Meta: v.meta, [colExtra]: v.extra, Cumple: v.cumple_meta ? "Sí" : "No", Ganado: v.monto_ganado })), `liquidacion_${campana.nombre}`)}>
             <Download className="h-3.5 w-3.5" /> CSV
           </Button>
           <Button variant="outline" size="sm" className="gap-1.5" onClick={exportExcel} disabled={exporting}>
@@ -186,6 +201,7 @@ export function TransaccionesDetailView({ campana, rows, vendedorMap, locMap }: 
             <TableRow>
               <TableHead className="w-[50px]">#</TableHead>
               <TableHead>{isAsesor ? "Vendedor" : "Tienda"}</TableHead>
+              {isAsesor && <TableHead>Tienda</TableHead>}
               <TableHead className="text-center">{colLogrado}</TableHead>
               <TableHead className="text-center">Meta</TableHead>
               <TableHead className="min-w-[180px]">% Avance</TableHead>
@@ -201,6 +217,7 @@ export function TransaccionesDetailView({ campana, rows, vendedorMap, locMap }: 
                 <TableRow key={v.id}>
                   <TableCell className="text-sm font-medium tabular-nums">{i + 1}</TableCell>
                   <TableCell className="text-sm">{v.nombre}</TableCell>
+                  {isAsesor && <TableCell className="text-sm text-muted-foreground">{v.tienda}</TableCell>}
                   <TableCell className="text-center tabular-nums font-medium">{v.logrado}</TableCell>
                   <TableCell className="text-center tabular-nums text-muted-foreground">{v.meta}</TableCell>
                   <TableCell>

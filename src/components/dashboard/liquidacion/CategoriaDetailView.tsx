@@ -8,6 +8,8 @@ import { Progress } from "@/components/ui/progress";
 import { Download } from "lucide-react";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { exportToCSV } from "@/lib/csv-export";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { tiendaInfo, ordenarPorTiendaVendedor, type LocInfo } from "./tienda-info";
 import type { LiquidacionRow, CampanaResumen } from "./types";
 
 type FilterCumple = "todos" | "cumple" | "no_cumple";
@@ -16,6 +18,7 @@ interface Props {
   campana: CampanaResumen;
   rows: LiquidacionRow[];
   vendedorMap: Map<string, string>;
+  locInfo: Map<string, LocInfo>;
 }
 
 const fmt = (n: number) => "$" + Math.round(n).toLocaleString("es-CO");
@@ -25,7 +28,8 @@ const fmtDate = (d: string) => {
 };
 const pct = (l: number, m: number) => (m > 0 ? Math.min((l / m) * 100, 100) : 0);
 
-export function CategoriaDetailView({ campana, rows, vendedorMap }: Props) {
+export function CategoriaDetailView({ campana, rows, vendedorMap, locInfo }: Props) {
+  const [filterTienda, setFilterTienda] = useState("todas");
   const [exporting, setExporting] = useState(false);
   const [filterCumple, setFilterCumple] = useState<FilterCumple>("todos");
   const [expanded, setExpanded] = useState<string | null>(null);
@@ -47,6 +51,7 @@ export function CategoriaDetailView({ campana, rows, vendedorMap }: Props) {
         id: r.id,
         vendedor_id: r.vendedor_id ?? "",
         nombre: vendedorMap.get(r.vendedor_id ?? "") ?? r.vendedor_id ?? "—",
+        ...tiendaInfo(locInfo, r.location_id),
         unidades,
         meta,
         cumple_meta: r.cumple_meta,
@@ -57,11 +62,13 @@ export function CategoriaDetailView({ campana, rows, vendedorMap }: Props) {
 
   const vendedores = useMemo(
     () =>
-      filterCumple === "todos"
-        ? vendedoresAll
-        : vendedoresAll.filter((v) => (filterCumple === "cumple" ? v.cumple_meta : !v.cumple_meta)),
-    [vendedoresAll, filterCumple]
+      vendedoresAll
+        .filter((v) => filterCumple === "todos" || (filterCumple === "cumple" ? v.cumple_meta : !v.cumple_meta))
+        .filter((v) => filterTienda === "todas" || v.tienda === filterTienda),
+    [vendedoresAll, filterCumple, filterTienda]
   );
+  const tiendasOpc = useMemo(() => [...new Set(vendedoresAll.map((v) => v.tienda))].sort((a, b) => a.localeCompare(b, "es")), [vendedoresAll]);
+  const paraExport = ordenarPorTiendaVendedor(vendedores);
 
   const totalUnidades = vendedores.reduce((s, v) => s + v.unidades, 0);
   const cumplen = vendedores.filter((v) => v.cumple_meta).length;
@@ -76,9 +83,9 @@ export function CategoriaDetailView({ campana, rows, vendedorMap }: Props) {
     : "—";
 
   const exportCSV = () => {
-    const data = vendedores.map((v, i) => ({
+    const data = paraExport.map((v, i) => ({
       "#": i + 1,
-      Vendedor: v.nombre,
+      Vendedor: v.nombre, Tienda: v.tienda, Ciudad: v.ciudad, Zona: v.zona,
       "Unidades Vendidas": v.unidades,
       Meta: v.meta,
       "% Avance": Math.round(pct(v.unidades, v.meta)),
@@ -91,9 +98,9 @@ export function CategoriaDetailView({ campana, rows, vendedorMap }: Props) {
   const exportExcel = async () => {
     setExporting(true);
     try {
-      const summaryRows = vendedores.map((v, i) => ({
+      const summaryRows = paraExport.map((v, i) => ({
         "#": i + 1,
-        Vendedor: v.nombre,
+        Vendedor: v.nombre, Tienda: v.tienda, Ciudad: v.ciudad, Zona: v.zona,
         Categoría: categorias,
         Desde: campana.fecha_inicio,
         Hasta: campana.fecha_fin,
@@ -172,12 +179,18 @@ export function CategoriaDetailView({ campana, rows, vendedorMap }: Props) {
         </CardContent></Card>
       </div>
 
-      <div className="flex justify-between items-center gap-2">
+      <div className="flex flex-wrap justify-between items-center gap-2">
         <ToggleGroup type="single" value={filterCumple} onValueChange={(v) => v && setFilterCumple(v as FilterCumple)} size="sm">
           <ToggleGroupItem value="todos" className="text-xs">Todos</ToggleGroupItem>
           <ToggleGroupItem value="cumple" className="text-xs">Cumplen</ToggleGroupItem>
           <ToggleGroupItem value="no_cumple" className="text-xs">No cumplen</ToggleGroupItem>
         </ToggleGroup>
+        {(
+          <Select value={filterTienda} onValueChange={setFilterTienda}>
+            <SelectTrigger className="h-8 w-48 text-xs"><SelectValue placeholder="Tienda" /></SelectTrigger>
+            <SelectContent><SelectItem value="todas">Todas las tiendas</SelectItem>{tiendasOpc.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}</SelectContent>
+          </Select>
+        )}
         <div className="flex gap-2">
           <Button variant="outline" size="sm" className="gap-1.5" onClick={exportCSV}>
             <Download className="h-3.5 w-3.5" /> CSV
@@ -194,6 +207,7 @@ export function CategoriaDetailView({ campana, rows, vendedorMap }: Props) {
             <TableRow>
               <TableHead className="w-[50px]">#</TableHead>
               <TableHead>Vendedor</TableHead>
+              <TableHead>Tienda</TableHead>
               <TableHead className="text-center">Unidades</TableHead>
               <TableHead className="text-center">Meta</TableHead>
               <TableHead className="min-w-[180px]">% Avance</TableHead>
@@ -210,6 +224,7 @@ export function CategoriaDetailView({ campana, rows, vendedorMap }: Props) {
                 <TableRow className="cursor-pointer hover:bg-muted/40" onClick={() => setExpanded(isOpen ? null : v.id)}>
                   <TableCell className="text-sm font-medium tabular-nums">{i + 1}</TableCell>
                   <TableCell className="text-sm">{v.nombre}</TableCell>
+                  <TableCell className="text-sm text-muted-foreground">{v.tienda}</TableCell>
                   <TableCell className="text-center tabular-nums font-medium">{v.unidades}</TableCell>
                   <TableCell className="text-center tabular-nums text-muted-foreground">{v.meta}</TableCell>
                   <TableCell>
@@ -241,7 +256,7 @@ export function CategoriaDetailView({ campana, rows, vendedorMap }: Props) {
                 </TableRow>
                 {isOpen && (
                   <TableRow>
-                    <TableCell colSpan={7} className="bg-muted/20">
+                    <TableCell colSpan={8} className="bg-muted/20">
                       <IncentivoDetalleTable incentivoId={campana.incentivo_id} vendedorId={v.vendedor_id || null} />
                     </TableCell>
                   </TableRow>

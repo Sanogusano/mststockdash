@@ -12,12 +12,14 @@ import { SkuDetailView } from "./liquidacion/SkuDetailView";
 import { TransaccionesDetailView } from "./liquidacion/TransaccionesDetailView";
 import { TiendaCumplimientoDetailView } from "./liquidacion/TiendaCumplimientoDetailView";
 import type { CampanaResumen, LiquidacionRow } from "./liquidacion/types";
+import type { LocInfo } from "./liquidacion/tienda-info";
 
 export function LiquidacionPanel() {
   const [loading, setLoading] = useState(true);
   const [campanas, setCampanas] = useState<CampanaResumen[]>([]);
   const [allRows, setAllRows] = useState<LiquidacionRow[]>([]);
   const [locMap, setLocMap] = useState<Map<string, string>>(new Map());
+  const [locInfo, setLocInfo] = useState<Map<string, LocInfo>>(new Map());
   const [vendedorMap, setVendedorMap] = useState<Map<string, string>>(new Map());
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
@@ -36,16 +38,13 @@ export function LiquidacionPanel() {
       }
 
       const incentivoIds = [...new Set(liq.map((r) => r.incentivo_id))];
-      const locationIds = [...new Set(liq.map((r) => r.location_id).filter(Boolean) as string[])];
-      const vendedorIds = [...new Set(liq.map((r) => r.vendedor_id).filter(Boolean) as string[])];
+          const vendedorIds = [...new Set(liq.map((r) => r.vendedor_id).filter(Boolean) as string[])];
 
       const [incRes, reglasRes, recompRes, locRes, staffRes] = await Promise.all([
         supabase.from("incentivos").select("id, nombre, fecha_inicio, fecha_fin, alcance").in("id", incentivoIds),
         supabase.from("incentivo_reglas").select("incentivo_id, tipo_regla, parametros, valor_objetivo").in("incentivo_id", incentivoIds),
         supabase.from("incentivo_recompensas").select("incentivo_id, tipo_pago, valor, tope_minimo, tope_maximo").in("incentivo_id", incentivoIds),
-        locationIds.length > 0
-          ? supabase.from("locations").select("location_id, name").in("location_id", locationIds)
-          : Promise.resolve({ data: [] as any[] }),
+        supabase.from("locations").select("location_id, name, ciudad, zona"),
         vendedorIds.length > 0
           ? supabase.from("staff_members").select("shopify_user_id, nombre").in("shopify_user_id", vendedorIds)
           : Promise.resolve({ data: [] as any[] }),
@@ -58,6 +57,7 @@ export function LiquidacionPanel() {
       const vendM = new Map((staffRes.data ?? []).map((s: any) => [s.shopify_user_id, s.nombre]));
 
       setLocMap(locM);
+      setLocInfo(new Map((locRes.data ?? []).map((l: any) => [l.location_id, { name: l.name, ciudad: l.ciudad, zona: l.zona }])));
       setVendedorMap(vendM);
       setAllRows(liq as LiquidacionRow[]);
 
@@ -159,11 +159,11 @@ export function LiquidacionPanel() {
         ) : selected.tipo_regla === "tienda_cumplimiento" ? (
           <TiendaCumplimientoDetailView campana={selected} rows={selectedRows} locMap={locMap} />
         ) : selected.tipo_regla === "venta_categoria" ? (
-          <CategoriaDetailView campana={selected} rows={selectedRows} vendedorMap={vendedorMap} />
+          <CategoriaDetailView campana={selected} rows={selectedRows} vendedorMap={vendedorMap} locInfo={locInfo} />
         ) : selected.tipo_regla === "venta_sku" ? (
-          <SkuDetailView campana={selected} rows={selectedRows} vendedorMap={vendedorMap} locMap={locMap} />
+          <SkuDetailView campana={selected} rows={selectedRows} vendedorMap={vendedorMap} locMap={locMap} locInfo={locInfo} />
         ) : ["ticket_minimo", "upt_minimo", "numero_pedidos"].includes(selected.tipo_regla) ? (
-          <TransaccionesDetailView campana={selected} rows={selectedRows} vendedorMap={vendedorMap} locMap={locMap} />
+          <TransaccionesDetailView campana={selected} rows={selectedRows} vendedorMap={vendedorMap} locMap={locMap} locInfo={locInfo} />
         ) : (
           <p className="text-sm text-muted-foreground text-center py-8">
             Tipo de regla no soportado: {selected.tipo_regla}
