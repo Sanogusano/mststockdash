@@ -54,6 +54,7 @@ import AddiPage from "./pages/finanzas/AddiPage";
 import ComposicionIngresosPage from "./pages/finanzas/ComposicionIngresosPage";
 import FacturaElectronicaPage from "./pages/FacturaElectronica";
 import AgotadosPage from "./pages/Agotados";
+import SalidasGuayabalPage from "./pages/ecommerce/SalidasGuayabal";
 import IntegracionNetsuitePage from "./pages/IntegracionNetsuite";
 import PreciosEcommercePage from "./pages/ecommerce/PreciosEcommercePage";
 import { RequireRole } from "@/components/RequireRole";
@@ -134,6 +135,7 @@ const App = () => (
           <Route path="/rendimiento-red" element={<Guard module="dashboards.rendimiento_red" action="view"><RendimientoRedPage /></Guard>} />
 
           {/* ===== Gestión E-commerce ===== */}
+          <Route path="/gestion-ecommerce/salidas-guayabal" element={<ProtectedRoute><RequireRole roles={["admin", "finanzas", "gerencia", "logistica"]}><SalidasGuayabalPage /></RequireRole></ProtectedRoute>} />
           <Route path="/ecommerce/agotados" element={<ProtectedRoute><RequireRole roles={["admin", "finanzas", "gerencia", "logistica"]}><AgotadosPage mostrarSoCanceladas={false} /></RequireRole></ProtectedRoute>} />
           <Route path="/ecommerce/integracion-netsuite" element={<ProtectedRoute><RequireRole roles={["admin", "finanzas", "gerencia", "logistica"]}><IntegracionNetsuitePage /></RequireRole></ProtectedRoute>} />
           <Route path="/ecommerce/precios" element={<Guard module="ecommerce.precios" action="view"><PreciosEcommercePage /></Guard>} />
