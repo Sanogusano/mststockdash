@@ -9,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -20,7 +21,7 @@ type Linea = {
   to_id: number; tranid: string | null; item_id: number | null; sku: string | null; nombre: string | null;
   destino: string | null; creado_por: string | null; estado_to: string | null; fecha: string | null;
   ordenado: number | null; despachado: number | null; cerrado: boolean | number | null;
-  reservado_shopify: number | null; descontado_shopify: number | null; ultimo_error: string | null; actualizado_en: string | null;
+  reservado_shopify: number | null; descontado_shopify: number | null; ultimo_error: string | null; actualizado_en: string | null; historico: boolean | null;
 };
 type Log = { id: number; corrida_en: string; tranid: string | null; sku: string | null; accion: string; cantidad: number | null; ok: boolean | null; error: string | null };
 
@@ -34,6 +35,29 @@ export const ESTADOS: Record<string, { label: string; cls: string }> = {
   H: { label: "Cerrado", cls: "bg-slate-200 text-slate-700" },
   C: { label: "Rechazado", cls: "bg-red-100 text-red-800" },
 };
+export type EstadoShopify = { key: string; label: string; cls: string; rank: number; tip?: string };
+const SH: Record<string, Omit<EstadoShopify, "label" | "tip">> = {
+  error: { key: "error", cls: "bg-red-100 text-red-800", rank: 6 },
+  pendiente: { key: "pendiente", cls: "bg-amber-100 text-amber-800", rank: 5 },
+  aprobacion: { key: "aprobacion", cls: "bg-muted text-muted-foreground", rank: 4 },
+  reservado: { key: "reservado", cls: "bg-blue-100 text-blue-800", rank: 3 },
+  descontado: { key: "descontado", cls: "bg-emerald-100 text-emerald-800", rank: 2 },
+  historico: { key: "historico", cls: "bg-slate-200 text-slate-700", rank: 1 },
+  ninguno: { key: "ninguno", cls: "bg-muted text-muted-foreground", rank: 0 },
+};
+export const OPCIONES_SHOPIFY: [string, string][] = [["error", "Error"], ["pendiente", "Pendiente de reservar"], ["aprobacion", "Esperando aprobación"], ["reservado", "Reservado"], ["descontado", "Descontado"], ["historico", "Antes de activar"]];
+export function estadoShopify(l: Linea): EstadoShopify {
+  const ord = Number(l.ordenado) || 0, desp = Number(l.despachado) || 0, res = Number(l.reservado_shopify) || 0, desc = Number(l.descontado_shopify) || 0;
+  if (l.historico) return { ...SH.historico, label: "Antes de activar", tip: "Traslado anterior al 18-nov. Lo ajustó la conciliación, no Selliq" };
+  if (l.ultimo_error) return { ...SH.error, label: "Error", tip: l.ultimo_error };
+  if (desc >= desp && desp > 0) return { ...SH.descontado, label: "Descontado" };
+  if (res > 0) return { ...SH.reservado, label: `Reservado (${res.toLocaleString("es-CO")})` };
+  if (l.estado_to === "A") return { ...SH.aprobacion, label: "Esperando aprobación" };
+  if (ord - desp > 0) return { ...SH.pendiente, label: "Pendiente de reservar" };
+  return { ...SH.ninguno, label: "—" };
+}
+const inicioMes = () => hoy().slice(0, 8) + "01";
+const inicioAnio = () => hoy().slice(0, 5) + "01-01";
 const CERRADOS = new Set(["G", "H", "C"]);
 const n = (v: unknown) => Number(v) || 0;
 const fmt = (v: number) => v.toLocaleString("es-CO");
@@ -59,6 +83,8 @@ export default function SalidasGuayabal() {
   const [hasta, setHasta] = useState(hoy());
   const [destino, setDestino] = useState("todos");
   const [estado, setEstado] = useState("todos");
+  const [estadoSh, setEstadoSh] = useState("todos");
+  const [ocultarHist, setOcultarHist] = useState(false);
   const [abiertos, setAbiertos] = useState<Set<number>>(new Set());
 
   const cfgQ = useQuery({
@@ -85,21 +111,24 @@ export default function SalidasGuayabal() {
 
   const all = lineasQ.data ?? [];
   const destinos = useMemo(() => [...new Set(all.map((l) => l.destino ?? "—"))].sort(), [all]);
-  const filas = useMemo(() => all.filter((l) => (destino === "todos" || (l.destino ?? "—") === destino) && (estado === "todos" || ESTADOS[l.estado_to ?? ""]?.label === estado)), [all, destino, estado]);
+  const filas = useMemo(() => all.filter((l) => (destino === "todos" || (l.destino ?? "—") === destino) && (estado === "todos" || ESTADOS[l.estado_to ?? ""]?.label === estado)
+    && (!ocultarHist || !l.historico) && (estadoSh === "todos" || estadoShopify(l).key === estadoSh)), [all, destino, estado, ocultarHist, estadoSh]);
+  const vivas = useMemo(() => filas.filter((l) => !l.historico), [filas]);
 
   const kpis = useMemo(() => ({
     salieron: filas.reduce((s, l) => s + n(l.ordenado), 0),
-    pendientes: filas.filter((l) => !CERRADOS.has(l.estado_to ?? "") && l.cerrado !== true).reduce((s, l) => s + Math.max(n(l.ordenado) - n(l.despachado), 0), 0),
-    reservadas: filas.reduce((s, l) => s + n(l.reservado_shopify), 0),
-    alertas: filas.filter((l) => l.ultimo_error).length,
-  }), [filas]);
+    pendientes: vivas.filter((l) => !CERRADOS.has(l.estado_to ?? "") && l.cerrado !== true).reduce((s, l) => s + Math.max(n(l.ordenado) - n(l.despachado), 0), 0),
+    reservadas: vivas.reduce((s, l) => s + n(l.reservado_shopify), 0),
+    alertas: vivas.filter((l) => l.ultimo_error).length,
+  }), [filas, vivas]);
 
   const grupos = useMemo(() => {
-    const m = new Map<number, { to_id: number; tranid: string; fecha: string | null; destino: string; creado_por: string; estado_to: string; unidades: number; despachadas: number; reservadas: number; alertas: number; lineas: Linea[] }>();
+    const m = new Map<number, { to_id: number; tranid: string; fecha: string | null; destino: string; creado_por: string; estado_to: string; unidades: number; despachadas: number; reservadas: number; alertas: number; peor: EstadoShopify | null; lineas: Linea[] }>();
     for (const l of filas) {
       let g = m.get(l.to_id);
-      if (!g) { g = { to_id: l.to_id, tranid: l.tranid ?? String(l.to_id), fecha: l.fecha, destino: l.destino ?? "—", creado_por: l.creado_por ?? "—", estado_to: l.estado_to ?? "", unidades: 0, despachadas: 0, reservadas: 0, alertas: 0, lineas: [] }; m.set(l.to_id, g); }
+      if (!g) { g = { to_id: l.to_id, tranid: l.tranid ?? String(l.to_id), fecha: l.fecha, destino: l.destino ?? "—", creado_por: l.creado_por ?? "—", estado_to: l.estado_to ?? "", unidades: 0, despachadas: 0, reservadas: 0, alertas: 0, peor: null, lineas: [] }; m.set(l.to_id, g); }
       g.unidades += n(l.ordenado); g.despachadas += n(l.despachado); g.reservadas += n(l.reservado_shopify); if (l.ultimo_error) g.alertas++; g.lineas.push(l);
+      const e = estadoShopify(l); if (!g.peor || e.rank > g.peor.rank) g.peor = e;
     }
     return [...m.values()].sort((a, b) => String(b.fecha).localeCompare(String(a.fecha)) || b.to_id - a.to_id);
   }, [filas]);
@@ -122,20 +151,26 @@ export default function SalidasGuayabal() {
       { header: "Creado por", key: "creado", width: 22 }, { header: "Estado", key: "estado", width: 24 }, { header: "SKU", key: "sku", width: 18 },
       { header: "Nombre", key: "nombre", width: 40 }, { header: "Unidades", key: "ord", width: 10 }, { header: "Despachadas", key: "desp", width: 12 },
       { header: "Reservadas en Shopify", key: "res", width: 12 }, { header: "Descontadas en Shopify", key: "desc", width: 12 }, { header: "Alerta", key: "err", width: 40 },
+      { header: "Estado Shopify", key: "esh", width: 24 }, { header: "Reservado en Shopify", key: "res2", width: 12 }, { header: "Descontado en Shopify", key: "desc2", width: 12 }, { header: "Histórico", key: "hist", width: 10 },
     ];
     for (const g of grupos) for (const l of g.lineas) ws.addRow({
       to: g.tranid, fecha: l.fecha?.slice(0, 10) ?? "", destino: g.destino, creado: g.creado_por, estado: ESTADOS[g.estado_to]?.label ?? g.estado_to,
       sku: l.sku ?? "", nombre: l.nombre ?? "", ord: n(l.ordenado), desp: n(l.despachado), res: n(l.reservado_shopify), desc: n(l.descontado_shopify), err: l.ultimo_error ?? "",
+      esh: estadoShopify(l).label, res2: n(l.reservado_shopify), desc2: n(l.descontado_shopify), hist: l.historico ? "Sí" : "No",
     });
     ws.getRow(1).font = { bold: true };
     ws.views = [{ state: "frozen", ySplit: 1 }];
-    ws.autoFilter = { from: "A1", to: "L1" };
+    ws.autoFilter = { from: "A1", to: "P1" };
     ws.getColumn("sku").numFmt = "@";
     saveAs(new Blob([await wb.xlsx.writeBuffer()]), `Salidas_Guayabal_${hoy()}.xlsx`);
   };
 
   const toggle = (id: number) => setAbiertos((s) => { const x = new Set(s); x.has(id) ? x.delete(id) : x.add(id); return x; });
   const Pill = ({ e }: { e: string }) => <span className={cn("inline-block rounded-full px-2 py-0.5 text-[11px] font-medium whitespace-nowrap", ESTADOS[e]?.cls ?? "bg-muted")}>{ESTADOS[e]?.label ?? (e || "—")}</span>;
+
+  const ShPill = ({ e }: { e: EstadoShopify | null }) => !e || e.key === "ninguno" ? <span className="text-muted-foreground">—</span> : (
+    <span title={e.tip} className={cn("inline-block rounded-full px-2 py-0.5 text-[11px] font-medium whitespace-nowrap", e.cls)}>{e.label}</span>
+  );
 
   return (
     <SidebarProvider>
@@ -162,6 +197,11 @@ export default function SalidasGuayabal() {
 
               <TabsContent value="traslados" className="space-y-6 mt-4">
                 <div className="flex flex-wrap items-end gap-3">
+                  <div className="flex gap-1">
+                    {([["7 días", haceDias(6)], ["30 días", haceDias(29)], ["Este mes", inicioMes()], ["Este año", inicioAnio()]] as const).map(([t, d]) => (
+                      <Button key={t} size="sm" variant={desde === d && hasta === hoy() ? "default" : "outline"} onClick={() => { setDesde(d); setHasta(hoy()); }}>{t}</Button>
+                    ))}
+                  </div>
                   <div><p className="text-xs text-muted-foreground mb-1">Desde</p><Input type="date" value={desde} onChange={(e) => setDesde(e.target.value)} className="w-40" /></div>
                   <div><p className="text-xs text-muted-foreground mb-1">Hasta</p><Input type="date" value={hasta} onChange={(e) => setHasta(e.target.value)} className="w-40" /></div>
                   <Select value={destino} onValueChange={setDestino}>
@@ -172,6 +212,11 @@ export default function SalidasGuayabal() {
                     <SelectTrigger className="w-52"><SelectValue placeholder="Estado" /></SelectTrigger>
                     <SelectContent><SelectItem value="todos">Todos los estados</SelectItem>{[...new Set(Object.values(ESTADOS).map((e) => e.label))].map((e) => <SelectItem key={e} value={e}>{e}</SelectItem>)}</SelectContent>
                   </Select>
+                  <Select value={estadoSh} onValueChange={setEstadoSh}>
+                    <SelectTrigger className="w-52"><SelectValue placeholder="Estado Shopify" /></SelectTrigger>
+                    <SelectContent><SelectItem value="todos">Todos (Estado Shopify)</SelectItem>{OPCIONES_SHOPIFY.map(([k, t]) => <SelectItem key={k} value={k}>{t}</SelectItem>)}</SelectContent>
+                  </Select>
+                  <label className="flex items-center gap-2 text-sm"><Switch checked={ocultarHist} onCheckedChange={setOcultarHist} />Ocultar históricos</label>
                   <Button variant="outline" size="sm" className="ml-auto" onClick={exportar} disabled={!grupos.length}><Download className="h-4 w-4 mr-1" />Excel</Button>
                 </div>
 
@@ -189,10 +234,10 @@ export default function SalidasGuayabal() {
                       <Table>
                         <TableHeader><TableRow>
                           <TableHead className="w-8" /><TableHead>TO</TableHead><TableHead>Fecha</TableHead><TableHead>Destino</TableHead><TableHead>Creado por</TableHead><TableHead>Estado</TableHead>
-                          <TableHead className="text-right">Unidades</TableHead><TableHead className="text-right">Despachadas</TableHead><TableHead className="text-right">Reservadas en Shopify</TableHead><TableHead>Alerta</TableHead>
+                          <TableHead className="text-right">Unidades</TableHead><TableHead className="text-right">Despachadas</TableHead><TableHead className="text-right">Reservadas en Shopify</TableHead><TableHead>Shopify</TableHead><TableHead>Alerta</TableHead>
                         </TableRow></TableHeader>
                         <TableBody>
-                          {!grupos.length && <TableRow><TableCell colSpan={10} className="text-center text-sm text-muted-foreground py-8">Sin traslados en el período</TableCell></TableRow>}
+                          {!grupos.length && <TableRow><TableCell colSpan={11} className="text-center text-sm text-muted-foreground py-8">Sin traslados en el período</TableCell></TableRow>}
                           {grupos.map((g) => (
                             <Fragment key={g.to_id}>
                               <TableRow className="cursor-pointer" onClick={() => toggle(g.to_id)}>
@@ -200,13 +245,13 @@ export default function SalidasGuayabal() {
                                 <TableCell className="font-medium">{g.tranid}</TableCell>
                                 <TableCell className="whitespace-nowrap">{g.fecha?.slice(0, 10) ?? "—"}</TableCell>
                                 <TableCell>{g.destino}</TableCell><TableCell>{g.creado_por}</TableCell><TableCell><Pill e={g.estado_to} /></TableCell>
-                                <TableCell className="text-right">{fmt(g.unidades)}</TableCell><TableCell className="text-right">{fmt(g.despachadas)}</TableCell><TableCell className="text-right">{fmt(g.reservadas)}</TableCell>
+                                <TableCell className="text-right">{fmt(g.unidades)}</TableCell><TableCell className="text-right">{fmt(g.despachadas)}</TableCell><TableCell className="text-right">{fmt(g.reservadas)}</TableCell><TableCell><ShPill e={g.peor} /></TableCell>
                                 <TableCell>{g.alertas > 0 ? <Badge variant="destructive">{g.alertas}</Badge> : "—"}</TableCell>
                               </TableRow>
                               {abiertos.has(g.to_id) && g.lineas.map((l, i) => (
                                 <TableRow key={`${g.to_id}-${l.item_id}-${i}`} className="bg-muted/40 text-xs">
                                   <TableCell /><TableCell className="font-mono">{l.sku}</TableCell><TableCell colSpan={4}>{l.nombre}</TableCell>
-                                  <TableCell className="text-right">{fmt(n(l.ordenado))}</TableCell><TableCell className="text-right">{fmt(n(l.despachado))}</TableCell><TableCell className="text-right">{fmt(n(l.reservado_shopify))}</TableCell>
+                                  <TableCell className="text-right">{fmt(n(l.ordenado))}</TableCell><TableCell className="text-right">{fmt(n(l.despachado))}</TableCell><TableCell className="text-right">{fmt(n(l.reservado_shopify))}</TableCell><TableCell><ShPill e={estadoShopify(l)} /></TableCell>
                                   <TableCell className="text-destructive max-w-xs break-words">{l.ultimo_error ?? ""}</TableCell>
                                 </TableRow>
                               ))}
