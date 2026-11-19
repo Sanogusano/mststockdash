@@ -2483,6 +2483,57 @@ export type Database = {
         }
         Relationships: []
       }
+      netsuite_so_creadas: {
+        Row: {
+          cliente_nombre: string | null
+          cliente_ns_id: string | null
+          cliente_tipo: string
+          creado_en: string
+          creado_por: string | null
+          creado_por_email: string | null
+          id: number
+          monto_sin_iva: number | null
+          netsuite_id: string | null
+          pedido: string
+          rol: string | null
+          total: number | null
+          tranid: string | null
+          unidades: number | null
+        }
+        Insert: {
+          cliente_nombre?: string | null
+          cliente_ns_id?: string | null
+          cliente_tipo: string
+          creado_en?: string
+          creado_por?: string | null
+          creado_por_email?: string | null
+          id?: number
+          monto_sin_iva?: number | null
+          netsuite_id?: string | null
+          pedido: string
+          rol?: string | null
+          total?: number | null
+          tranid?: string | null
+          unidades?: number | null
+        }
+        Update: {
+          cliente_nombre?: string | null
+          cliente_ns_id?: string | null
+          cliente_tipo?: string
+          creado_en?: string
+          creado_por?: string | null
+          creado_por_email?: string | null
+          id?: number
+          monto_sin_iva?: number | null
+          netsuite_id?: string | null
+          pedido?: string
+          rol?: string | null
+          total?: number | null
+          tranid?: string | null
+          unidades?: number | null
+        }
+        Relationships: []
+      }
       netsuite_traslados: {
         Row: {
           destino_location_id: string | null
