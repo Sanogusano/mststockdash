@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import { loadProductIdentifiers, joinProductIdentifiers, matchesProductSearch, productExportIdentity } from "@/lib/product-behavior-identifiers";
+import { loadProductIdentifiers, joinProductIdentifiers, matchesProductSearch, productExportIdentity, isAgotadoSinVenta } from "@/lib/product-behavior-identifiers";
 import { buildSaludWorkbook } from "@/lib/salud-producto-excel";
 import { exportToCSV } from "@/lib/csv-export";
 
@@ -15,6 +15,13 @@ describe("Identificadores de Salud de Producto", () => {
     const rows = joinProductIdentifiers([{ product_id: "1000", producto: "Camiseta" }, { product_id: "missing", producto: "Otra" }], map);
     expect(rows[0].sku_padre).toBe("1001100462101");
     expect(rows[1].referencia_ns).toBe("");
+  });
+
+  it("marca agotado sin venta solo cuando und_vendidas y stock_total son cero", () => {
+    expect(isAgotadoSinVenta({ und_vendidas: 0, stock_total: 0 })).toBe(true);
+    expect(isAgotadoSinVenta({ und_vendidas: 0, stock_total: 5 })).toBe(false);
+    expect(isAgotadoSinVenta({ und_vendidas: 3, stock_total: 0 })).toBe(false);
+    expect(isAgotadoSinVenta({ und_vendidas: null, stock_total: null })).toBe(true);
   });
 
   it("busca SKU padre, referencia y SKU hijo aunque no estén en el nombre", () => {

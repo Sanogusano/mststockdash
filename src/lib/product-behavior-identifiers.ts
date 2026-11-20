@@ -52,6 +52,11 @@ export function productExportIdentity(row: {
     "SKUs hijos": String(row.skus_hijos ?? ""),
   };
 }
+/** Agotado sin venta: no vendió en el período y no tiene stock en ninguna bodega. */
+export function isAgotadoSinVenta(row: { und_vendidas?: number | null; stock_total?: number | null }) {
+  return Number(row.und_vendidas ?? 0) === 0 && Number(row.stock_total ?? 0) === 0;
+}
+
 /** Productos sin título llegan como "10000411251401 : 1000…"; se muestra la referencia NS. */
 export function displayProductName(producto: string, referencia?: string | null) {
   return /^\d+ : /.test(producto ?? "") && referencia ? referencia : producto;

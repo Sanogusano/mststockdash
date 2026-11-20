@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { buildRpcDateParams, getDateRange, getPresetLabel } from "./TimeFilter";
 import { exportSaludExcel } from "@/lib/salud-producto-excel";
-import { matchesProductSearch, productExportIdentity } from "@/lib/product-behavior-identifiers";
+import { matchesProductSearch, productExportIdentity, isAgotadoSinVenta } from "@/lib/product-behavior-identifiers";
 import { FileSpreadsheet } from "lucide-react";
 import { LoadingState, EmptyState } from "./LoadingState";
 import { StatusBadge } from "./StatusBadge";
@@ -27,6 +27,8 @@ import { ProductImageThumb } from "./ProductImageThumb";
 
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
 import {
@@ -234,6 +236,7 @@ export function ProductBehaviorTable({ days, initialWosFilter, initialLocationId
   const [clasifFilter, setClasifFilter] = useState("all");
   const [canalFilter, setCanalFilter] = useState("all");
   const [locationId, setLocationId] = useState(initialLocationId ?? "all");
+  const [hideAgotados, setHideAgotados] = useState(true);
 
   const { dias_atras: resolvedDays, p_hasta: hastaParam } = buildRpcDateParams(days, customFrom, customTo);
 
@@ -294,6 +297,7 @@ export function ProductBehaviorTable({ days, initialWosFilter, initialLocationId
 
   const rows = useMemo(() => {
     let all = data ?? [];
+    if (hideAgotados) all = all.filter((r) => !isAgotadoSinVenta(r));
     if (search.trim()) all = all.filter((r) => matchesProductSearch(r, search));
     if (tipoFilter !== "all") all = all.filter((r) => (r.tipo ?? "").trim() === tipoFilter);
     if (coleccionFilter !== "all") all = all.filter((r) => (r.coleccion ?? "").trim() === coleccionFilter);
@@ -317,12 +321,12 @@ export function ProductBehaviorTable({ days, initialWosFilter, initialLocationId
       });
     }
     return all;
-  }, [data, search, wosFilter, stFilter, tipoFilter, coleccionFilter, clasifFilter]);
+  }, [data, search, wosFilter, stFilter, tipoFilter, coleccionFilter, clasifFilter, hideAgotados]);
 
   const totalPages = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
   const paged = rows.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
 
-  useMemo(() => setPage(0), [search, days, wosFilter, stFilter, locationId, canalFilter, tipoFilter, coleccionFilter, clasifFilter]);
+  useMemo(() => setPage(0), [search, days, wosFilter, stFilter, locationId, canalFilter, tipoFilter, coleccionFilter, clasifFilter, hideAgotados]);
 
   const buildRecords = () =>
       rows.map((r) => ({
@@ -515,8 +519,12 @@ export function ProductBehaviorTable({ days, initialWosFilter, initialLocationId
       </div>
 
       {/* Export row */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4 text-xs text-muted-foreground">
+      <div className="flex items-center justify-between flex-wrap gap-3">
+        <div className="flex items-center gap-4 text-xs text-muted-foreground flex-wrap">
+          <div className="flex items-center gap-2">
+            <Switch id="hide-agotados" checked={hideAgotados} onCheckedChange={setHideAgotados} />
+            <Label htmlFor="hide-agotados" className="text-xs cursor-pointer">Ocultar agotados sin venta</Label>
+          </div>
           <div className="flex items-center gap-1.5">
             <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
             Full Price
@@ -601,7 +609,6 @@ export function ProductBehaviorTable({ days, initialWosFilter, initialLocationId
                   const full = row.und_full_price ?? 0;
                   const reb = row.und_rebajas ?? 0;
                   const promo = row.und_promo ?? 0;
-                  const isFull = full >= (reb + promo);
                   const showStandby = locationId === "all" && row.stock_standby > 0;
 
                   return (
@@ -705,12 +712,20 @@ export function ProductBehaviorTable({ days, initialWosFilter, initialLocationId
                       </TableCell>
 
                       <TableCell>
-                        <span className={cn(
-                          "inline-flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-bold",
-                          isFull ? "bg-emerald-500/10 text-emerald-600" : "bg-destructive/10 text-destructive"
-                        )}>
-                          {isFull ? "✅ Venta Full" : "🔻 Con Impulso"}
-                        </span>
+                        {(() => {
+                          const cl = (row.clasificacion ?? "").trim();
+                          const lower = cl.toLocaleLowerCase("es");
+                          const sinVenta = lower.includes("sin venta");
+                          const esFull = lower.includes("full");
+                          return (
+                            <span className={cn(
+                              "inline-flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-bold",
+                              sinVenta ? "bg-muted text-muted-foreground" : esFull ? "bg-emerald-500/10 text-emerald-600" : "bg-destructive/10 text-destructive"
+                            )}>
+                              {cl || "—"}
+                            </span>
+                          );
+                        })()}
                       </TableCell>
 
                       <TableCell>
