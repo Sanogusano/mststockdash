@@ -28,6 +28,19 @@ import {
 } from "@/components/ui/table";
 import { LoadingState } from "@/components/dashboard/LoadingState";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  CANAL_CONFIG,
+  CANAL_OPCIONES,
+  canalDesdeSource,
+  type FiltroCanal,
+} from "@/lib/canal-pedido";
+import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
@@ -182,8 +195,29 @@ export function CrearSoPedidosCard() {
   });
   const [creadosLocal, setCreadosLocal] = useState<Map<string, string>>(new Map());
   const soCreadaDe = (pedido: string) => creadosLocal.get(pedido) ?? creadasQ.data?.get(pedido);
+  const canalesQ = useQuery({
+    queryKey: ["ns-so-canales-pendientes", pedidosPend.join(",")],
+    enabled: pedidosPend.length > 0,
+    queryFn: async () => {
+      const m = new Map<string, string | null>();
+      for (let i = 0; i < pedidosPend.length; i += 200) {
+        const { data, error } = await supabase
+          .from("orders")
+          .select("order_number, source_name")
+          .in("order_number", pedidosPend.slice(i, i + 200));
+        if (error) throw error;
+        for (const x of (data ?? []) as { order_number: string; source_name: string | null }[])
+          m.set(x.order_number, x.source_name);
+      }
+      return m;
+    },
+  });
+  const canalDe = (pedido: string) => canalDesdeSource(canalesQ.data?.get(pedido));
+  const [canalFiltro, setCanalFiltro] = useState<FiltroCanal>("todos");
   const rows = q.data ?? [];
-  const filtradas = rows.filter((r) => coincideFiltro(r.motivo, filtro));
+  const filtradas = rows.filter(
+    (r) => coincideFiltro(r.motivo, filtro) && (canalFiltro === "todos" || canalDe(r.pedido) === canalFiltro),
+  );
   const totalMonto = rows.reduce((a, r) => a + Number(r.total ?? 0), 0);
   const conteoAgotados = rows.filter((r) => r.motivo === "agotado").length;
   const conteoManuales = rows.filter((r) => r.motivo === "pedido_manual").length;
@@ -370,12 +404,25 @@ export function CrearSoPedidosCard() {
                     </button>
                   );
                 })}
+                <Select value={canalFiltro} onValueChange={(v) => setCanalFiltro(v as FiltroCanal)}>
+                  <SelectTrigger className="w-44 h-8 text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {CANAL_OPCIONES.map((o) => (
+                      <SelectItem key={o.key} value={o.key}>
+                        {o.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>Pedido</TableHead>
                   <TableHead>Motivo</TableHead>
+                  <TableHead>Canal</TableHead>
                   <TableHead>Creado</TableHead>
                   <TableHead>Origen</TableHead>
                   <TableHead>Pago</TableHead>
@@ -390,7 +437,7 @@ export function CrearSoPedidosCard() {
               <TableBody>
                 {filtradas.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={11} className="text-center text-sm text-muted-foreground py-6">
+                    <TableCell colSpan={12} className="text-center text-sm text-muted-foreground py-6">
                       <span className="inline-flex items-center gap-1.5 text-emerald-700">
                         <CheckCircle2 className="h-4 w-4" /> Sin pedidos pendientes ✓
                       </span>
@@ -401,6 +448,7 @@ export function CrearSoPedidosCard() {
                   const conDescuento = Number(r.descuento ?? 0) > 0;
                   const esAgotado = r.motivo === "agotado";
                   const motivoCfg = r.motivo ? MOTIVO_CONFIG[r.motivo] : null;
+                  const canalCfg = CANAL_CONFIG[canalDe(r.pedido)];
                   return (
                     <TableRow key={r.pedido}>
                       <TableCell className="font-medium">{r.pedido}</TableCell>
@@ -424,6 +472,14 @@ export function CrearSoPedidosCard() {
                         ) : (
                           "—"
                         )}
+                      </TableCell>
+                      <TableCell>
+                        <Badge
+                          variant="outline"
+                          className={`text-[10px] whitespace-nowrap ${canalCfg.className}`}
+                        >
+                          {canalCfg.label}
+                        </Badge>
                       </TableCell>
                       <TableCell>{fmtFecha(r.creado)}</TableCell>
                       <TableCell>{r.origen ?? "—"}</TableCell>
