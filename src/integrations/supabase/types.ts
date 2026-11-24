@@ -1131,6 +1131,93 @@ export type Database = {
         }
         Relationships: []
       }
+      descuentos_tiendas: {
+        Row: {
+          actualizado_en: string
+          bruto_sin_iva: number | null
+          cod_vendedor: string | null
+          descuento_sin_iva: number | null
+          fecha: string
+          item_id: string | null
+          linea_id: string
+          nota: string | null
+          pct: number | null
+          precio_lista_sin_iva: number | null
+          producto: string | null
+          sku: string | null
+          so_id: number
+          so_tranid: string | null
+          tienda: string | null
+          unidades: number | null
+          vendedor: string | null
+        }
+        Insert: {
+          actualizado_en?: string
+          bruto_sin_iva?: number | null
+          cod_vendedor?: string | null
+          descuento_sin_iva?: number | null
+          fecha: string
+          item_id?: string | null
+          linea_id: string
+          nota?: string | null
+          pct?: number | null
+          precio_lista_sin_iva?: number | null
+          producto?: string | null
+          sku?: string | null
+          so_id: number
+          so_tranid?: string | null
+          tienda?: string | null
+          unidades?: number | null
+          vendedor?: string | null
+        }
+        Update: {
+          actualizado_en?: string
+          bruto_sin_iva?: number | null
+          cod_vendedor?: string | null
+          descuento_sin_iva?: number | null
+          fecha?: string
+          item_id?: string | null
+          linea_id?: string
+          nota?: string | null
+          pct?: number | null
+          precio_lista_sin_iva?: number | null
+          producto?: string | null
+          sku?: string | null
+          so_id?: number
+          so_tranid?: string | null
+          tienda?: string | null
+          unidades?: number | null
+          vendedor?: string | null
+        }
+        Relationships: []
+      }
+      descuentos_tiendas_ventas: {
+        Row: {
+          actualizado_en: string
+          bruto_sin_iva: number | null
+          fecha: string
+          tienda: string
+          unidades: number | null
+          vendedor: string
+        }
+        Insert: {
+          actualizado_en?: string
+          bruto_sin_iva?: number | null
+          fecha: string
+          tienda: string
+          unidades?: number | null
+          vendedor: string
+        }
+        Update: {
+          actualizado_en?: string
+          bruto_sin_iva?: number | null
+          fecha?: string
+          tienda?: string
+          unidades?: number | null
+          vendedor?: string
+        }
+        Relationships: []
+      }
       distribucion_config: {
         Row: {
           clave: string
@@ -2486,6 +2573,45 @@ export type Database = {
           shopify_order_number?: string | null
           tranid?: string
           ubicacion_netsuite?: string | null
+        }
+        Relationships: []
+      }
+      netsuite_promociones: {
+        Row: {
+          actualizado_en: string
+          auto: boolean | null
+          desde: string | null
+          hasta: string | null
+          id: number
+          inactiva: boolean | null
+          nombre: string | null
+          tiendas: string[] | null
+          tipo: string | null
+          valor: number | null
+        }
+        Insert: {
+          actualizado_en?: string
+          auto?: boolean | null
+          desde?: string | null
+          hasta?: string | null
+          id: number
+          inactiva?: boolean | null
+          nombre?: string | null
+          tiendas?: string[] | null
+          tipo?: string | null
+          valor?: number | null
+        }
+        Update: {
+          actualizado_en?: string
+          auto?: boolean | null
+          desde?: string | null
+          hasta?: string | null
+          id?: number
+          inactiva?: boolean | null
+          nombre?: string | null
+          tiendas?: string[] | null
+          tipo?: string | null
+          valor?: number | null
         }
         Relationships: []
       }
@@ -5495,6 +5621,32 @@ export type Database = {
         }
         Relationships: []
       }
+      v_descuentos_tiendas: {
+        Row: {
+          actualizado_en: string | null
+          bruto_sin_iva: number | null
+          cod_vendedor: string | null
+          descuento_sin_iva: number | null
+          fecha: string | null
+          item_id: string | null
+          linea_id: string | null
+          motivo: string | null
+          nota: string | null
+          origen: string | null
+          pct: number | null
+          precio_lista_sin_iva: number | null
+          producto: string | null
+          promocion: string | null
+          rango: string | null
+          sku: string | null
+          so_id: number | null
+          so_tranid: string | null
+          tienda: string | null
+          unidades: number | null
+          vendedor: string | null
+        }
+        Relationships: []
+      }
       v_despachado_sin_factura_ns: {
         Row: {
           creado: string | null
@@ -6533,6 +6685,7 @@ export type Database = {
           venta_promedio_dia: number
         }[]
       }
+      motivo_nota_descuento: { Args: { p_nota: string }; Returns: string }
       normalizar_lote_nombres: {
         Args: { p_nombres: string[] }
         Returns: string[]
@@ -7517,6 +7670,46 @@ export type Database = {
           stock_actual: number
           tienda: string
           tipo_tienda: string
+        }[]
+      }
+      reporte_descuentos_tiendas: {
+        Args: {
+          p_desde: string
+          p_hasta: string
+          p_motivo?: string
+          p_origen?: string
+          p_tienda?: string
+          p_vendedor?: string
+        }
+        Returns: Json
+      }
+      reporte_descuentos_tiendas_detalle: {
+        Args: {
+          p_desde: string
+          p_hasta: string
+          p_limite?: number
+          p_motivo?: string
+          p_origen?: string
+          p_tienda?: string
+          p_vendedor?: string
+        }
+        Returns: {
+          cod_vendedor: string
+          descuento_sin_iva: number
+          fecha: string
+          motivo: string
+          nota: string
+          orden_netsuite: string
+          origen: string
+          pct: number
+          precio_lista_sin_iva: number
+          producto: string
+          promocion: string
+          rango: string
+          sku: string
+          tienda: string
+          unidades: number
+          vendedor: string
         }[]
       }
       reporte_desempeño_comercial: {
