@@ -1946,6 +1946,36 @@ export type Database = {
         }
         Relationships: []
       }
+      monitoreo_inventario_hallazgos: {
+        Row: {
+          chequeo: string
+          corrida_en: string
+          detalle: Json | null
+          id: number
+          nombre: string | null
+          severidad: string
+          sku: string | null
+        }
+        Insert: {
+          chequeo: string
+          corrida_en?: string
+          detalle?: Json | null
+          id?: number
+          nombre?: string | null
+          severidad: string
+          sku?: string | null
+        }
+        Update: {
+          chequeo?: string
+          corrida_en?: string
+          detalle?: Json | null
+          id?: number
+          nombre?: string | null
+          severidad?: string
+          sku?: string | null
+        }
+        Relationships: []
+      }
       municipios: {
         Row: {
           codigo_dane: string
@@ -8388,13 +8418,21 @@ export type Database = {
           p_zona?: string
         }
         Returns: {
+          cobertura_costo_pct: number
+          costo_total: number
+          desc_prom_full_price: number
+          desc_prom_promo: number
+          desc_prom_rebajas: number
           ingresos_desc_promo: number
           ingresos_full_price: number
           ingresos_rebajas: number
           ingresos_total: number
+          margen_bruto_pct: number
           pct_desc_promo: number
           pct_full_price: number
           pct_rebajas: number
+          utilidad_bruta: number
+          venta_neta_sin_iva: number
         }[]
       }
       reporte_pedidos_por_tipo_venta: {
