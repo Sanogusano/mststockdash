@@ -49,14 +49,14 @@ export function ComparisonIndicator({ actual, anterior, label, percentage, point
   );
 }
 
-export function KpiCard({ label, value, mobileValue, prefix = "", icon: Icon, className, onClick, actual, anterior, children, ventaM2Status, diffFormat }: {
-  label: string; value: string; mobileValue?: string; prefix?: string; icon: React.ElementType; className?: string; onClick?: () => void;
+export function KpiCard({ label, value, mobileValue, prefix = "", icon: Icon, className, cardClassName, onClick, actual, anterior, children, ventaM2Status, diffFormat }: {
+  label: string; value: string; mobileValue?: string; prefix?: string; icon: React.ElementType; className?: string; cardClassName?: string; onClick?: () => void;
   actual?: number; anterior?: number; children?: React.ReactNode; diffFormat?: KpiDiffFormat;
   ventaM2Status?: { label: string; icon: React.ElementType; colorClass: string; bgClass: string; borderClass: string };
 }) {
   return (
     <div
-      className={cn("glass-card min-w-0 p-3 sm:p-5 flex items-start gap-2 sm:gap-4", ventaM2Status && `border ${ventaM2Status.borderClass}`, onClick && "cursor-pointer hover:ring-2 hover:ring-primary/30 transition-all")}
+      className={cn("glass-card min-w-0 p-3 sm:p-5 flex items-start gap-2 sm:gap-4", cardClassName, ventaM2Status && `border ${ventaM2Status.borderClass}`, onClick && "cursor-pointer hover:ring-2 hover:ring-primary/30 transition-all")}
       onClick={onClick}
     >
       <div className={cn("h-10 w-10 rounded-lg flex items-center justify-center shrink-0", ventaM2Status ? ventaM2Status.bgClass : "bg-primary/10")}>

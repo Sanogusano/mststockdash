@@ -620,30 +620,37 @@ export function VentasTipoCards({ days, canal, locationId, zona, customFrom, cus
   const ventaNeta = data?.venta_neta_sin_iva ?? 0;
 
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-      <KpiCard label="% Full Price" value={`${(data?.pct_full_price ?? 0).toFixed(1)}%`} icon={Star} className="text-emerald-600"
+    <div className="grid grid-cols-2 lg:grid-cols-4 items-stretch gap-4">
+      <KpiCard label="% Full Price" value={`${(data?.pct_full_price ?? 0).toFixed(1)}%`} icon={Star} className="text-emerald-600" cardClassName="h-full"
         onClick={() => navigate(`/pedidos?tipo=full_price${canalParam}&days=${daysParam}`)}>
         <p className="text-xs text-muted-foreground mt-0.5">Desc. promedio: {(data?.desc_prom_full_price ?? 0).toFixed(1)}%</p>
       </KpiCard>
-      <KpiCard label="% Rebajas" value={`${(data?.pct_rebajas ?? 0).toFixed(1)}%`} icon={Tag} className="text-blue-500"
+      <KpiCard label="% Rebajas" value={`${(data?.pct_rebajas ?? 0).toFixed(1)}%`} icon={Tag} className="text-blue-500" cardClassName="h-full"
         onClick={() => navigate(`/pedidos?tipo=rebajas${canalParam}&days=${daysParam}`)}>
         <p className="text-xs text-muted-foreground mt-0.5">Desc. promedio: {(data?.desc_prom_rebajas ?? 0).toFixed(1)}%</p>
       </KpiCard>
-      <div className="relative">
-        <KpiCard label="% Desc. Promo" value={`${pctDesc.toFixed(1)}%`} icon={Percent} className="text-orange-500"
+      <div className="relative h-full">
+        <KpiCard label="% Desc. Promo" value={`${pctDesc.toFixed(1)}%`} icon={Percent} className="text-orange-500" cardClassName="h-full"
           onClick={() => navigate(`/pedidos?tipo=descuento${canalParam}&days=${daysParam}`)}>
           <p className="text-xs text-muted-foreground mt-0.5">Desc. promedio: {(data?.desc_prom_promo ?? 0).toFixed(1)}%</p>
         </KpiCard>
         {pctDesc > 30 && (
-          <div className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-destructive flex items-center justify-center">
-            <AlertTriangle className="h-3 w-3 text-destructive-foreground" />
-          </div>
+          <UiTooltip>
+            <UiTooltipTrigger asChild>
+              <div className="absolute top-3 right-3 h-5 w-5 rounded-full bg-destructive flex items-center justify-center">
+                <AlertTriangle className="h-3 w-3 text-destructive-foreground" />
+              </div>
+            </UiTooltipTrigger>
+            <UiTooltipContent side="top" className="max-w-xs text-xs leading-relaxed">
+              Descuento promocional por encima del 30% de la venta
+            </UiTooltipContent>
+          </UiTooltip>
         )}
       </div>
       <UiTooltip>
         <UiTooltipTrigger asChild>
           <span className="block cursor-help">
-            <KpiCard label="Margen bruto" value={`${margen.toFixed(1)}%`} icon={TrendingUp} className={margenBrutoColor(margen)}>
+            <KpiCard label="Margen bruto" value={`${margen.toFixed(1)}%`} icon={TrendingUp} className={margenBrutoColor(margen)} cardClassName="h-full">
               <p className="text-xs text-muted-foreground mt-0.5">
                 Utilidad bruta {formatMillonesSinDecimales(utilidad)} · Venta neta {formatMillonesSinDecimales(ventaNeta)}
               </p>
