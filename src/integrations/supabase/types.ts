@@ -7077,6 +7077,13 @@ export type Database = {
           und_vendidas: number
         }[]
       }
+      reporte_colecciones_con_venta: {
+        Args: { dias_atras?: number; p_hasta?: string }
+        Returns: {
+          coleccion: string
+          unidades: number
+        }[]
+      }
       reporte_comportamiento_linea: {
         Args: { dias_atras?: number; p_hasta?: string; p_location_id?: string }
         Returns: {
@@ -8446,6 +8453,30 @@ export type Database = {
         Returns: {
           cantidad: number
           categoria: string
+          compare_at_price: number
+          descuento_otorgado: number
+          fecha: string
+          numero_pedido: string
+          precio: number
+          producto: string
+          sku: string
+          sucursal: string
+          tipo_venta: string
+        }[]
+      }
+      reporte_pedidos_por_tipo_venta_v2: {
+        Args: {
+          dias_atras: number
+          p_canal?: string
+          p_coleccion?: string
+          p_hasta?: string
+          p_location_id?: string
+          p_tipo?: string
+        }
+        Returns: {
+          cantidad: number
+          categoria: string
+          coleccion: string
           compare_at_price: number
           descuento_otorgado: number
           fecha: string
