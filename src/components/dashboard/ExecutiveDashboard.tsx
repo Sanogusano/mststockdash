@@ -9,7 +9,9 @@ import { resolveDays, resolveComparisonRange, getDateRange, needsDateRange, toDa
 import { CumplimientoPresupuestoCard } from "@/components/dashboard/CumplimientoPresupuestoCard";
 import { exportToCSV } from "@/lib/csv-export";
 import { cn } from "@/lib/utils";
-import { formatKpiMoney } from "@/lib/kpi-money";
+import { formatKpiMoney, formatMillonesSinDecimales } from "@/lib/kpi-money";
+import { margenBrutoColor, margenBrutoTooltip } from "@/lib/rentabilidad-kpi";
+import { Tooltip as UiTooltip, TooltipContent as UiTooltipContent, TooltipTrigger as UiTooltipTrigger } from "@/components/ui/tooltip";
 import type { BudgetChannel } from "@/lib/executive-budget";
 import { exportToPDF } from "@/lib/pdf-export";
 import { LoadingState, EmptyState } from "./LoadingState";
@@ -546,9 +548,17 @@ interface VentasTipoData {
   pct_full_price: number;
   pct_rebajas: number;
   pct_desc_promo: number;
+  desc_prom_full_price: number;
+  desc_prom_rebajas: number;
+  desc_prom_promo: number;
+  venta_neta_sin_iva: number;
+  costo_total: number;
+  utilidad_bruta: number;
+  margen_bruto_pct: number;
+  cobertura_costo_pct: number;
 }
 
-function VentasTipoCards({ days, canal, locationId, zona, customFrom, customTo }: { days: number; canal?: string | null; locationId?: string | null; zona?: string | null; customFrom?: Date; customTo?: Date }) {
+export function VentasTipoCards({ days, canal, locationId, zona, customFrom, customTo }: { days: number; canal?: string | null; locationId?: string | null; zona?: string | null; customFrom?: Date; customTo?: Date }) {
   const [data, setData] = useState<VentasTipoData | null>(null);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
@@ -571,9 +581,29 @@ function VentasTipoCards({ days, canal, locationId, zona, customFrom, customTo }
           pct_full_price: toNumber(r.pct_full_price),
           pct_rebajas: toNumber(r.pct_rebajas),
           pct_desc_promo: toNumber(r.pct_desc_promo),
+          desc_prom_full_price: toNumber(r.desc_prom_full_price),
+          desc_prom_rebajas: toNumber(r.desc_prom_rebajas),
+          desc_prom_promo: toNumber(r.desc_prom_promo),
+          venta_neta_sin_iva: toNumber(r.venta_neta_sin_iva),
+          costo_total: toNumber(r.costo_total),
+          utilidad_bruta: toNumber(r.utilidad_bruta),
+          margen_bruto_pct: toNumber(r.margen_bruto_pct),
+          cobertura_costo_pct: toNumber(r.cobertura_costo_pct),
         });
       } else {
-        setData({ pct_full_price: 0, pct_rebajas: 0, pct_desc_promo: 0 });
+        setData({
+          pct_full_price: 0,
+          pct_rebajas: 0,
+          pct_desc_promo: 0,
+          desc_prom_full_price: 0,
+          desc_prom_rebajas: 0,
+          desc_prom_promo: 0,
+          venta_neta_sin_iva: 0,
+          costo_total: 0,
+          utilidad_bruta: 0,
+          margen_bruto_pct: 0,
+          cobertura_costo_pct: 0,
+        });
       }
       setLoading(false);
     }
@@ -585,22 +615,45 @@ function VentasTipoCards({ days, canal, locationId, zona, customFrom, customTo }
   const canalParam = canal ? `&canal=${canal}` : '';
   const daysParam = resolveDays(days);
   const pctDesc = data?.pct_desc_promo ?? 0;
+  const margen = data?.margen_bruto_pct ?? 0;
+  const utilidad = data?.utilidad_bruta ?? 0;
+  const ventaNeta = data?.venta_neta_sin_iva ?? 0;
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
       <KpiCard label="% Full Price" value={`${(data?.pct_full_price ?? 0).toFixed(1)}%`} icon={Star} className="text-emerald-600"
-        onClick={() => navigate(`/pedidos?tipo=full_price${canalParam}&days=${daysParam}`)} />
+        onClick={() => navigate(`/pedidos?tipo=full_price${canalParam}&days=${daysParam}`)}>
+        <p className="text-xs text-muted-foreground mt-0.5">Desc. promedio: {(data?.desc_prom_full_price ?? 0).toFixed(1)}%</p>
+      </KpiCard>
       <KpiCard label="% Rebajas" value={`${(data?.pct_rebajas ?? 0).toFixed(1)}%`} icon={Tag} className="text-blue-500"
-        onClick={() => navigate(`/pedidos?tipo=rebajas${canalParam}&days=${daysParam}`)} />
+        onClick={() => navigate(`/pedidos?tipo=rebajas${canalParam}&days=${daysParam}`)}>
+        <p className="text-xs text-muted-foreground mt-0.5">Desc. promedio: {(data?.desc_prom_rebajas ?? 0).toFixed(1)}%</p>
+      </KpiCard>
       <div className="relative">
         <KpiCard label="% Desc. Promo" value={`${pctDesc.toFixed(1)}%`} icon={Percent} className="text-orange-500"
-          onClick={() => navigate(`/pedidos?tipo=descuento${canalParam}&days=${daysParam}`)} />
+          onClick={() => navigate(`/pedidos?tipo=descuento${canalParam}&days=${daysParam}`)}>
+          <p className="text-xs text-muted-foreground mt-0.5">Desc. promedio: {(data?.desc_prom_promo ?? 0).toFixed(1)}%</p>
+        </KpiCard>
         {pctDesc > 30 && (
           <div className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-destructive flex items-center justify-center">
             <AlertTriangle className="h-3 w-3 text-destructive-foreground" />
           </div>
         )}
       </div>
+      <UiTooltip>
+        <UiTooltipTrigger asChild>
+          <span className="block cursor-help">
+            <KpiCard label="Rentabilidad" value={`${margen.toFixed(1)}%`} icon={TrendingUp} className={margenBrutoColor(margen)}>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Utilidad {formatMillonesSinDecimales(utilidad)} · Venta neta {formatMillonesSinDecimales(ventaNeta)}
+              </p>
+            </KpiCard>
+          </span>
+        </UiTooltipTrigger>
+        <UiTooltipContent side="top" className="max-w-xs text-xs leading-relaxed">
+          {margenBrutoTooltip(data?.cobertura_costo_pct ?? 0)}
+        </UiTooltipContent>
+      </UiTooltip>
     </div>
   );
 }
