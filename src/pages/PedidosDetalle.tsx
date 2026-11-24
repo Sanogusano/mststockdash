@@ -14,6 +14,9 @@ import { exportToCSV } from "@/lib/csv-export";
 import { exportToPDF } from "@/lib/pdf-export";
 import { LoadingState } from "@/components/dashboard/LoadingState";
 import { differenceInCalendarDays } from "date-fns";
+import { useHasPermission } from "@/hooks/useHasPermission";
+import { DescuentosTiendasReport } from "@/components/dashboard/DescuentosTiendasReport";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TimeFilter, resolveDays, buildRpcDateParams } from "@/components/dashboard/TimeFilter";
 
 interface OrderRow {
@@ -41,7 +44,14 @@ const CEDI_DISPLAY = "Bodega Ecommerce";
 const ALERT_CATEGORIES = ["SUNGLASSES", "FRAGANCE"];
 
 export default function PedidosDetallePage() {
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const canDescTiendas = useHasPermission({ module: "comercial.descuentos_tiendas", action: "view" });
+  const vista = canDescTiendas && searchParams.get("vista") === "descuentos-tiendas" ? "descuentos-tiendas" : "pedidos";
+  const setVista = (v: string) => {
+    const next = new URLSearchParams(searchParams);
+    if (v === "descuentos-tiendas") next.set("vista", v); else next.delete("vista");
+    setSearchParams(next, { replace: true });
+  };
   const navigate = useNavigate();
 
   const tipo = (searchParams.get("tipo") as "full_price" | "descuento" | "rebajas") || "descuento";
@@ -275,7 +285,7 @@ export default function PedidosDetallePage() {
                 </p>
               </div>
             </div>
-            {filteredData.length > 0 && (
+            {vista === "pedidos" && filteredData.length > 0 && (
               <div className="flex items-center gap-1">
                 <button
                   onClick={() => exportToCSV(exportData as any, `pedidos_${tipo}_${resolveDays(days)}d`)}
@@ -293,6 +303,22 @@ export default function PedidosDetallePage() {
             )}
           </header>
 
+          {canDescTiendas && (
+            <div className="px-4 sm:px-6 pt-3 overflow-x-auto">
+              <Tabs value={vista} onValueChange={setVista}>
+                <TabsList>
+                  <TabsTrigger value="pedidos">Pedidos</TabsTrigger>
+                  <TabsTrigger value="descuentos-tiendas">Descuentos en tiendas</TabsTrigger>
+                </TabsList>
+              </Tabs>
+            </div>
+          )}
+
+          {vista === "descuentos-tiendas" ? (
+            <div className="p-4 sm:p-6 min-w-0">
+              <DescuentosTiendasReport />
+            </div>
+          ) : (<>
           {/* Alert Banner for control categories */}
           {tipo === "descuento" && alertStats.length > 0 && (
             <div className="px-4 sm:px-6 py-2 border-b border-border bg-destructive/5">
@@ -567,6 +593,7 @@ export default function PedidosDetallePage() {
               </div>
             )}
           </div>
+          </>)}
         </main>
       </div>
     </SidebarProvider>
