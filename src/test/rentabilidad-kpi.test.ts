@@ -22,7 +22,7 @@ describe("Tarjeta Rentabilidad: color por margen bruto", () => {
 describe("Tooltip de Rentabilidad", () => {
   it("muestra la cobertura de costo con un decimal", () => {
     expect(margenBrutoTooltip(98.8)).toBe(
-      "Margen bruto sobre venta neta sin IVA. Costo: costo promedio NetSuite. Cobertura de costo: 98.8%",
+      "Margen bruto = (venta neta sin IVA − costo) / venta neta. Costo: costo promedio actual de NetSuite. No incluye devoluciones parciales, envíos, comisiones de marketplace ni pasarela. Cobertura de costo: 98.8%",
     );
   });
 

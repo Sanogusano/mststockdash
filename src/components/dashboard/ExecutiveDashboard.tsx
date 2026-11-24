@@ -643,9 +643,9 @@ export function VentasTipoCards({ days, canal, locationId, zona, customFrom, cus
       <UiTooltip>
         <UiTooltipTrigger asChild>
           <span className="block cursor-help">
-            <KpiCard label="Rentabilidad" value={`${margen.toFixed(1)}%`} icon={TrendingUp} className={margenBrutoColor(margen)}>
+            <KpiCard label="Margen bruto" value={`${margen.toFixed(1)}%`} icon={TrendingUp} className={margenBrutoColor(margen)}>
               <p className="text-xs text-muted-foreground mt-0.5">
-                Utilidad {formatMillonesSinDecimales(utilidad)} · Venta neta {formatMillonesSinDecimales(ventaNeta)}
+                Utilidad bruta {formatMillonesSinDecimales(utilidad)} · Venta neta {formatMillonesSinDecimales(ventaNeta)}
               </p>
             </KpiCard>
           </span>

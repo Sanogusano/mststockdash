@@ -8,8 +8,8 @@ export function margenBrutoColor(margen: number): string {
   return "text-destructive";
 }
 
-/** Texto del tooltip de Rentabilidad, con la cobertura de costo ya aplicada. */
+/** Texto del tooltip de Margen bruto, con la cobertura de costo ya aplicada. */
 export function margenBrutoTooltip(coberturaCostoPct: number): string {
   const n = Number.isFinite(coberturaCostoPct) ? coberturaCostoPct : 0;
-  return `Margen bruto sobre venta neta sin IVA. Costo: costo promedio NetSuite. Cobertura de costo: ${n.toFixed(1)}%`;
+  return `Margen bruto = (venta neta sin IVA \u2212 costo) / venta neta. Costo: costo promedio actual de NetSuite. No incluye devoluciones parciales, env\u00edos, comisiones de marketplace ni pasarela. Cobertura de costo: ${n.toFixed(1)}%`;
 }

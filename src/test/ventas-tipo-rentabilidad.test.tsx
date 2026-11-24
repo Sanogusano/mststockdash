@@ -48,7 +48,7 @@ const cardWithLabel = (host: HTMLElement, label: string) => {
   return labelEl?.closest("div.glass-card") ?? null;
 };
 
-describe("Fila % Full Price / % Rebajas / % Desc. Promo / Rentabilidad", () => {
+describe("Fila % Full Price / % Rebajas / % Desc. Promo / Margen bruto", () => {
   it("usa una sola llamada a reporte_pct_ventas_por_tipo", async () => {
     const { host, root } = await renderCards();
     expect(calls.rpc).toHaveBeenCalledTimes(1);
@@ -62,7 +62,7 @@ describe("Fila % Full Price / % Rebajas / % Desc. Promo / Rentabilidad", () => {
     expect(t).toContain("% Full Price");
     expect(t).toContain("% Rebajas");
     expect(t).toContain("% Desc. Promo");
-    expect(t).toContain("Rentabilidad");
+    expect(t).toContain("Margen bruto");
     expect(t).toContain("26.7%");
     expect(t).toContain("21.1%");
     expect(t).toContain("52.2%");
@@ -73,38 +73,40 @@ describe("Fila % Full Price / % Rebajas / % Desc. Promo / Rentabilidad", () => {
     act(() => root.unmount());
   });
 
-  it("Rentabilidad muestra utilidad y venta neta en millones", async () => {
+  it("Margen bruto muestra utilidad y venta neta en millones", async () => {
     const { host, root } = await renderCards();
-    const card = cardWithLabel(host, "Rentabilidad");
-    expect(card?.textContent).toContain("Utilidad $4.267M · Venta neta $6.924M");
+    const card = cardWithLabel(host, "Margen bruto");
+    expect(card?.textContent).toContain("Utilidad bruta $4.267M · Venta neta $6.924M");
     act(() => root.unmount());
   });
 
-  it("Rentabilidad es verde desde 55%, ámbar entre 45% y 55% y rojo por debajo", async () => {
+  it("Margen bruto es verde desde 55%, ámbar entre 45% y 55% y rojo por debajo", async () => {
     const verde = await renderCards();
-    expect(cardWithLabel(verde.host, "Rentabilidad")?.querySelector("p.text-xl")).toHaveClass("text-emerald-600");
+    expect(cardWithLabel(verde.host, "Margen bruto")?.querySelector("p.text-xl")).toHaveClass("text-emerald-600");
     act(() => verde.root.unmount());
 
     const ambar = await renderCards({ margen_bruto_pct: 49.4 });
-    expect(cardWithLabel(ambar.host, "Rentabilidad")?.querySelector("p.text-xl")).toHaveClass("text-amber-500");
+    expect(cardWithLabel(ambar.host, "Margen bruto")?.querySelector("p.text-xl")).toHaveClass("text-amber-500");
     expect(text(ambar.host)).toContain("49.4%");
     act(() => ambar.root.unmount());
 
     const rojo = await renderCards({ margen_bruto_pct: 41.2 });
-    expect(cardWithLabel(rojo.host, "Rentabilidad")?.querySelector("p.text-xl")).toHaveClass("text-destructive");
+    expect(cardWithLabel(rojo.host, "Margen bruto")?.querySelector("p.text-xl")).toHaveClass("text-destructive");
     act(() => rojo.root.unmount());
   });
 
   it("el tooltip explica el margen con la cobertura de costo", async () => {
     const { host, root } = await renderCards();
-    const card = cardWithLabel(host, "Rentabilidad");
+    const card = cardWithLabel(host, "Margen bruto");
     const trigger = card?.parentElement;
     await act(async () => {
       trigger?.dispatchEvent(new Event("pointermove", { bubbles: true }));
       await new Promise((r) => setTimeout(r, 80));
     });
     const tip = Array.from(document.querySelectorAll("[role='tooltip']")).map((n) => n.textContent ?? "").join(" ");
-    expect(tip).toContain("Margen bruto sobre venta neta sin IVA");
+    expect(tip).toContain("Margen bruto = (venta neta sin IVA − costo) / venta neta");
+    expect(tip).toContain("Costo: costo promedio actual de NetSuite");
+    expect(tip).toContain("No incluye devoluciones parciales, envíos, comisiones de marketplace ni pasarela");
     expect(tip).toContain("Cobertura de costo: 98.8%");
     act(() => root.unmount());
   });
