@@ -28,6 +28,7 @@ interface OrderRow {
   tipo_venta: string;
   compare_at_price: number;
   categoria: string;
+  coleccion: string | null;
 }
 
 interface Location {
@@ -70,6 +71,12 @@ export default function PedidosDetallePage() {
   const [locations, setLocations] = useState<Location[]>([]);
   const [selectedLocation, setSelectedLocation] = useState<string>("all");
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  const [selectedCollections, setSelectedCollections] = useState<string[]>(() =>
+    (searchParams.get("coleccion") || "").split(",").map(c => c.trim()).filter(Boolean)
+  );
+  const [collectionOptions, setCollectionOptions] = useState<{ coleccion: string; unidades: number }[]>([]);
+  const toggleCollection = (c: string) =>
+    setSelectedCollections(prev => prev.includes(c) ? prev.filter(x => x !== c) : [...prev, c]);
   const [showAlertDetail, setShowAlertDetail] = useState(false);
 
   const title = tipo === "full_price" ? "Pedidos a Full Price" : tipo === "rebajas" ? "Pedidos con Rebajas" : "Pedidos con Descuento";
@@ -165,6 +172,19 @@ export default function PedidosDetallePage() {
     return { tiendas: tiendasOrders.size, digital: digitalOrders.size };
   }, [data]);
 
+  // Load collections
+  useEffect(() => {
+    const { dias_atras, p_hasta } = buildRpcDateParams(days, customFrom, customTo);
+    (supabase.rpc as any)("reporte_colecciones_con_venta", { dias_atras, p_hasta }).then(({ data: rows, error }: any) => {
+      if (error) {
+        if (import.meta.env.DEV) console.error("Error fetching collections:", error);
+        setCollectionOptions([]);
+      } else {
+        setCollectionOptions(((rows ?? []) as any[]).map(r => ({ coleccion: String(r.coleccion ?? ""), unidades: Number(r.unidades) || 0 })).filter(r => r.coleccion));
+      }
+    });
+  }, [days, customFrom, customTo]);
+
   // Load orders
   useEffect(() => {
     setLoading(true);
@@ -172,13 +192,14 @@ export default function PedidosDetallePage() {
     const canalParam = selectedCanal || null;
     const { dias_atras: effectiveDays, p_hasta: hastaParam } = buildRpcDateParams(days, customFrom, customTo);
 
-    supabase.rpc("reporte_pedidos_por_tipo_venta", {
+    (supabase.rpc as any)("reporte_pedidos_por_tipo_venta_v2", {
       dias_atras: effectiveDays,
       p_canal: canalParam,
       p_location_id: locParam,
       p_tipo: tipo,
       p_hasta: hastaParam,
-    }).then(({ data: rows, error }) => {
+      p_coleccion: selectedCollections.length ? selectedCollections.join(",") : null,
+    }).then(({ data: rows, error }: any) => {
       if (error) {
         console.error("Error fetching orders:", error);
         setData([]);
@@ -187,7 +208,7 @@ export default function PedidosDetallePage() {
       }
       setLoading(false);
     });
-  }, [days, selectedCanal, selectedLocation, tipo, customFrom, customTo]);
+  }, [days, selectedCanal, selectedLocation, tipo, customFrom, customTo, selectedCollections]);
 
   const calcDiscountPct = (row: OrderRow) => {
     if (row.tipo_venta === "Descuento de Producto" && row.compare_at_price > 0) {
@@ -218,6 +239,7 @@ export default function PedidosDetallePage() {
     Sucursal: r.sucursal,
     Producto: r.producto,
     Categoría: r.categoria,
+    Colección: r.coleccion ?? "",
     SKU: r.sku,
     Cantidad: r.cantidad,
     Precio: r.precio,
@@ -249,7 +271,7 @@ export default function PedidosDetallePage() {
               <div>
                 <h2 className="text-base sm:text-lg font-semibold text-foreground">{title}</h2>
                 <p className="text-[10px] sm:text-xs text-muted-foreground">
-                  Canal: {!selectedCanal ? "Todos" : selectedCanal === "digital" ? "Digital" : selectedCanal === "outlets" ? "Outlets" : "Tiendas"} · {resolveDays(days)} días
+                  Canal: {!selectedCanal ? "Todos" : selectedCanal === "digital" ? "Digital" : selectedCanal === "outlets" ? "Outlets" : "Tiendas"} · {resolveDays(days)} días{selectedCollections.length > 0 && ` · Colección: ${selectedCollections.join(", ")}`}
                 </p>
               </div>
             </div>
@@ -400,6 +422,42 @@ export default function PedidosDetallePage() {
               </Popover>
             </div>
 
+            {/* Multi-select collections */}
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-muted-foreground font-medium">Colección:</span>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" size="sm" className="h-8 text-xs gap-1.5 w-[200px] justify-between">
+                    <span className="truncate">
+                      {selectedCollections.length === 0 ? "Todas" : selectedCollections.length <= 2 ? selectedCollections.join(", ") : `${selectedCollections.length} seleccionadas`}
+                    </span>
+                    <ChevronDown className="h-3.5 w-3.5 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[240px] p-2 max-h-[280px] overflow-y-auto" align="start">
+                  {selectedCollections.length > 0 && (
+                    <button
+                      onClick={() => setSelectedCollections([])}
+                      className="w-full text-left px-2 py-1.5 text-xs text-muted-foreground hover:text-foreground hover:bg-muted rounded-sm mb-1 transition-colors"
+                    >
+                      Limpiar selección
+                    </button>
+                  )}
+                  {collectionOptions.map(opt => (
+                    <label key={opt.coleccion} className="flex items-center gap-2 px-2 py-1.5 rounded-sm cursor-pointer hover:bg-muted transition-colors text-sm">
+                      <Checkbox
+                        checked={selectedCollections.includes(opt.coleccion)}
+                        onCheckedChange={() => toggleCollection(opt.coleccion)}
+                        className="h-3.5 w-3.5"
+                      />
+                      <span className="flex-1 text-xs truncate">{opt.coleccion}</span>
+                      <span className="text-[10px] text-muted-foreground">{opt.unidades.toLocaleString("es-CO")}</span>
+                    </label>
+                  ))}
+                </PopoverContent>
+              </Popover>
+            </div>
+
             {/* Time filter */}
             <TimeFilter value={days} onChange={handleDaysChange} customFrom={customFrom} customTo={customTo} onCustomRangeChange={handleCustomRangeChange} />
 
@@ -451,6 +509,7 @@ export default function PedidosDetallePage() {
                         <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">Sucursal</th>
                         <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">Producto</th>
                         <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">Categoría</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">Colección</th>
                         <th className="px-4 py-3 text-right text-xs font-medium text-muted-foreground">Cant</th>
                         <th className="px-4 py-3 text-right text-xs font-medium text-muted-foreground">Precio</th>
                         {tipo === "descuento" && (
@@ -480,6 +539,7 @@ export default function PedidosDetallePage() {
                                 {row.categoria}
                               </span>
                             </td>
+                            <td className="px-4 py-2.5 text-xs">{row.coleccion || "—"}</td>
                             <td className="px-4 py-2.5 text-right">{row.cantidad}</td>
                             <td className="px-4 py-2.5 text-right">{fmtCOP(row.precio)}</td>
                             {tipo === "descuento" && (
