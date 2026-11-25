@@ -34,43 +34,76 @@ async function precargar(urls: string[]): Promise<Map<string, string>> {
   return m;
 }
 
-function tarjetaHtml(p: CatalogoProducto, img: string | undefined, s: number) {
+/** "Generado el 25 nov 2026 · 3:13 p. m." en hora de Colombia. */
+export function textoGenerado(d = new Date()): string {
+  const tz = "America/Bogota";
+  const parts = new Intl.DateTimeFormat("es-CO", { day: "numeric", month: "short", year: "numeric", timeZone: tz }).formatToParts(d);
+  const g = (t: string) => parts.find((x) => x.type === t)?.value ?? "";
+  const fecha = `${g("day")} ${g("month").replace(".", "")} ${g("year")}`;
+  const hora = new Intl.DateTimeFormat("es-CO", { hour: "numeric", minute: "2-digit", hour12: true, timeZone: tz }).format(d).replace(/\u00a0/g, " ");
+  return `Generado el ${fecha} · ${hora}`;
+}
+
+// Medidas del mosaico (px a 1080 de ancho). k escala los textos (ficha individual).
+const PAD = 28, GAP = 20, HEAD = 128, FOOT = 60;
+const infoAlto = (k: number) => Math.round(215 * k);
+
+function tarjetaHtml(p: CatalogoProducto, img: string | undefined, cw: number, k: number) {
   const pct = Math.round(Number(p.pct_descuento) || 0);
   const antes = p.precio_antes && Number(p.precio_antes) > Number(p.precio) ? formatCOP(p.precio_antes) : null;
-  const tallas = tallasConStock(p).map((t) => esc(t.talla)).join("&nbsp;&nbsp;");
-  return `<div style="display:flex;flex-direction:column;border:1px solid #e5e5e5;border-radius:${10 * s}px;overflow:hidden;background:#fff;min-height:0">
-    <div style="flex:1;min-height:0;background:#f5f5f5;position:relative;display:flex;align-items:center;justify-content:center;padding:${6 * s}px">
-      ${img ? `<img src="${esc(img)}" style="max-width:100%;max-height:100%;object-fit:contain" />` : `<span style="color:#aaa;font-size:${12 * s}px;letter-spacing:3px">MONASTERY</span>`}
-      ${antes && pct > 0 ? `<span style="position:absolute;top:${6 * s}px;left:${6 * s}px;background:#dc2626;color:#fff;font-weight:800;font-size:${12 * s}px;padding:${2 * s}px ${6 * s}px;border-radius:${4 * s}px">-${pct}%</span>` : ""}
-      ${tieneUltimas(p) ? `<span style="position:absolute;bottom:${6 * s}px;left:${6 * s}px;background:#f59e0b;color:#111;font-weight:800;font-size:${10 * s}px;padding:${3 * s}px ${7 * s}px;border-radius:${4 * s}px">¡Últimas unidades!</span>` : ""}
+  const tallas = tallasConStock(p);
+  const fh = Math.round((cw * 5) / 4);
+  const r = 16;
+  return `<div style="width:${cw}px;display:flex;flex-direction:column;border:1px solid #e5e5e5;border-radius:${r}px;overflow:hidden;background:#fff;flex:none">
+    <div style="width:${cw}px;height:${fh}px;position:relative;overflow:hidden;border-radius:${r}px ${r}px 0 0;background:#f5f5f5">
+      ${img ? `<img src="${esc(img)}" style="width:100%;height:100%;object-fit:cover;object-position:center;display:block" />` : `<div style="height:100%;display:flex;align-items:center;justify-content:center;color:#aaa;font-size:28px;letter-spacing:6px">MONASTERY</div>`}
+      ${antes && pct > 0 ? `<span style="position:absolute;top:${14 * k}px;left:${14 * k}px;background:#dc2626;color:#fff;font-weight:800;font-size:${26 * k}px;padding:${4 * k}px ${12 * k}px;border-radius:${8 * k}px">-${pct}%</span>` : ""}
+      ${tieneUltimas(p) ? `<span style="position:absolute;bottom:${14 * k}px;left:${14 * k}px;background:#f59e0b;color:#111;font-weight:800;font-size:${22 * k}px;padding:${6 * k}px ${14 * k}px;border-radius:${8 * k}px">¡Últimas unidades!</span>` : ""}
     </div>
-    <div style="padding:${6 * s}px ${8 * s}px ${8 * s}px">
-      <div style="font-size:${11 * s}px;font-weight:800;text-transform:uppercase;line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(p.nombre)}</div>
-      ${p.color ? `<div style="font-size:${9 * s}px;color:#666">${esc(p.color)}</div>` : ""}
-      <div style="display:flex;align-items:baseline;gap:${6 * s}px;margin-top:${3 * s}px">
-        <span style="font-size:${Math.max(17 * s, s >= 2 ? 40 : 0)}px;font-weight:900;line-height:1">${formatCOP(p.precio)}</span>
-        ${antes ? `<span style="font-size:${10 * s}px;color:#888;text-decoration:line-through">${antes}</span>` : ""}
+    <div style="height:${infoAlto(k)}px;box-sizing:border-box;padding:${14 * k}px ${18 * k}px;overflow:hidden">
+      <div style="font-size:${30 * k}px;font-weight:800;text-transform:uppercase;line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(p.nombre)}</div>
+      <div style="font-size:${20 * k}px;color:#666;line-height:1.3;height:${26 * k}px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(p.color ?? "")}</div>
+      <div style="display:flex;align-items:baseline;gap:${12 * k}px;margin-top:${6 * k}px;white-space:nowrap">
+        <span style="font-size:${52 * k}px;font-weight:900;line-height:1.05">${formatCOP(p.precio)}</span>
+        ${antes ? `<span style="font-size:${26 * k}px;color:#888;text-decoration:line-through">${antes}</span>` : ""}
       </div>
-      ${tallas ? `<div style="font-size:${9 * s}px;color:#333;margin-top:${2 * s}px"><b>Tallas:</b> ${tallas}</div>` : ""}
+      ${tallas.length ? `<div style="display:flex;align-items:center;flex-wrap:wrap;gap:${8 * k}px;margin-top:${12 * k}px">
+        <span style="font-size:${22 * k}px;font-weight:700;color:#333">Tallas:</span>
+        ${tallas.map((t) => `<span style="font-size:${20 * k}px;font-weight:700;border:2px solid #111;border-radius:${6 * k}px;padding:${2 * k}px ${10 * k}px;min-width:${24 * k}px;text-align:center">${esc(t.talla)}</span>`).join("")}
+      </div>` : ""}
     </div>
   </div>`;
 }
 
-function paginaHtml(ps: CatalogoProducto[], imgs: Map<string, string>, opt: { w: number; h: number; cols: number; rows: number; s: number; titulo: string; fecha: string; pagina: number; total: number; etiqueta: string }) {
-  const { w, h, cols, rows, s } = opt;
-  return `<div style="width:${w}px;height:${h}px;background:#fff;font-family:Helvetica,Arial,sans-serif;color:#111;display:flex;flex-direction:column;padding:${14 * s}px;box-sizing:border-box">
-    <div style="display:flex;justify-content:space-between;align-items:baseline;border-bottom:${2 * s}px solid #111;padding-bottom:${6 * s}px;margin-bottom:${10 * s}px">
-      <span style="font-size:${16 * s}px;font-weight:900;letter-spacing:${4 * s}px">MONASTERY</span>
-      <span style="font-size:${9 * s}px;color:#555">${esc(opt.titulo)} · ${esc(opt.fecha)}</span>
+export type MosaicoOpt = { cols: number; k?: number; titulo: string; generado: string; pagina?: number; total?: number; etiqueta?: string };
+
+/** Mosaico de ancho 1080 y alto según las filas reales. Devuelve html y alto. */
+export function mosaicoHtml(ps: CatalogoProducto[], imgs: Map<string, string>, opt: MosaicoOpt): { html: string; h: number } {
+  const W = 1080, k = opt.k ?? 1, cols = opt.cols;
+  const cw = Math.floor((W - PAD * 2 - GAP * (cols - 1)) / cols);
+  const cell = Math.round((cw * 5) / 4) + infoAlto(k) + 2;
+  const rows = Math.ceil(ps.length / cols);
+  const h = PAD * 2 + HEAD + rows * cell + (rows - 1) * GAP + FOOT;
+  const pie = [opt.pagina && opt.total ? `${opt.etiqueta ?? "Imagen"} ${opt.pagina} de ${opt.total}` : "", "Precios y disponibilidad sujetos a cambio"].filter(Boolean).join(" · ");
+  const html = `<div style="width:${W}px;height:${h}px;background:#fff;font-family:Helvetica,Arial,sans-serif;color:#111;padding:${PAD}px;box-sizing:border-box;display:flex;flex-direction:column">
+    <div style="height:${HEAD - 20}px;margin-bottom:20px;border-bottom:3px solid #111;display:flex;justify-content:space-between;align-items:flex-end;padding-bottom:14px;box-sizing:border-box">
+      <span style="font-size:40px;font-weight:900;letter-spacing:10px;line-height:1">MONASTERY</span>
+      <div style="text-align:right;line-height:1.35">
+        <div style="font-size:22px;font-weight:700;color:#333;max-width:560px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(opt.titulo)}</div>
+        <div style="font-size:18px;color:#666">${esc(opt.generado)}</div>
+      </div>
     </div>
-    <div style="flex:1;min-height:0;display:grid;grid-template-columns:repeat(${cols},1fr);grid-template-rows:repeat(${rows},minmax(0,1fr));gap:${10 * s}px">
-      ${ps.map((p) => tarjetaHtml(p, p.imagen ? imgs.get(p.imagen) : undefined, s)).join("")}
+    <div style="display:flex;flex-wrap:wrap;justify-content:center;gap:${GAP}px;align-content:flex-start">
+      ${ps.map((p) => tarjetaHtml(p, p.imagen ? imgs.get(p.imagen) : undefined, cw, k)).join("")}
     </div>
-    <div style="text-align:center;font-size:${8 * s}px;color:#777;margin-top:${6 * s}px">${opt.etiqueta} ${opt.pagina} de ${opt.total}</div>
+    <div style="margin-top:auto;height:${FOOT - 16}px;display:flex;align-items:flex-end;justify-content:center;font-size:18px;color:#777">${esc(pie)}</div>
   </div>`;
+  return { html, h };
 }
 
-async function renderPagina(html: string, imgPx: { pixelRatio: number }) {
+export { precargar };
+
+export async function renderPagina(html: string, imgPx: { pixelRatio: number }) {
   const host = document.createElement("div");
   host.style.cssText = "position:fixed;left:-30000px;top:0;z-index:-1;";
   host.innerHTML = html;
@@ -93,23 +126,26 @@ export async function generarCatalogo(
   const paginas: CatalogoProducto[][] = [];
   for (let i = 0; i < productos.length; i += porPag) paginas.push(productos.slice(i, i + porPag));
   const slug = titulo.replace(/[\\/:*?"<>|·]+/g, "").replace(/\s+/g, "-").replace(/-+/g, "-").slice(0, 60) || "Todos";
+  const generado = textoGenerado();
   try {
     if (formato === "pdf") {
-      // A4 a 96dpi: 794x1123
       const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
       for (let i = 0; i < paginas.length; i++) {
         onProgress(i + 1, paginas.length);
-        const url = await renderPagina(paginaHtml(paginas[i], imgs, { w: 794, h: 1123, cols: 2, rows: 3, s: 1.4, titulo, fecha, pagina: i + 1, total: paginas.length, etiqueta: "Página" }), { pixelRatio: 2 });
+        const { html, h } = mosaicoHtml(paginas[i], imgs, { cols: 2, titulo, generado, pagina: i + 1, total: paginas.length, etiqueta: "Página" });
+        const url = await renderPagina(html, { pixelRatio: 1.5 });
         if (i > 0) doc.addPage();
-        doc.addImage(url, "JPEG", 0, 0, 210, 297);
+        let w = 210, hh = (210 * h) / 1080;
+        if (hh > 297) { w = (297 * 1080) / h; hh = 297; }
+        doc.addImage(url, "JPEG", (210 - w) / 2, 0, w, hh);
       }
       return { tipo: "pdf", blob: doc.output("blob"), nombre: `Catalogo-Monastery-${slug}-${fecha}.pdf` };
     }
     const files: File[] = [];
     for (let i = 0; i < paginas.length; i++) {
       onProgress(i + 1, paginas.length);
-      const ocho = formato === "img8";
-      const url = await renderPagina(paginaHtml(paginas[i], imgs, { w: 1080, h: ocho ? 1920 : 1350, cols: 2, rows: ocho ? 4 : 3, s: 2, titulo, fecha, pagina: i + 1, total: paginas.length, etiqueta: "Imagen" }), { pixelRatio: 1 });
+      const { html } = mosaicoHtml(paginas[i], imgs, { cols: 2, titulo, generado, pagina: i + 1, total: paginas.length, etiqueta: "Imagen" });
+      const url = await renderPagina(html, { pixelRatio: 1 });
       const blob = await (await fetch(url)).blob();
       files.push(new File([blob], `Monastery-${slug}-${String(i + 1).padStart(2, "0")}.jpg`, { type: "image/jpeg" }));
     }
