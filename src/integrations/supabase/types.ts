@@ -760,6 +760,33 @@ export type Database = {
         }
         Relationships: []
       }
+      catalogo_stock_guayabal: {
+        Row: {
+          actualizado_en: string
+          comprometido: number
+          disponible: number
+          en_mano: number
+          inventory_item_id: string | null
+          sku: string
+        }
+        Insert: {
+          actualizado_en?: string
+          comprometido?: number
+          disponible?: number
+          en_mano?: number
+          inventory_item_id?: string | null
+          sku: string
+        }
+        Update: {
+          actualizado_en?: string
+          comprometido?: number
+          disponible?: number
+          en_mano?: number
+          inventory_item_id?: string | null
+          sku?: string
+        }
+        Relationships: []
+      }
       categoria_padre_map: {
         Row: {
           categoria_padre: string
@@ -6062,6 +6089,26 @@ export type Database = {
       canal_desde_source: {
         Args: { p_origen: string; p_source: string }
         Returns: string
+      }
+      catalogo_filtros: { Args: never; Returns: Json }
+      catalogo_productos: {
+        Args: {
+          p_busqueda?: string
+          p_categorias?: string[]
+          p_colecciones?: string[]
+          p_colores?: string[]
+          p_generos?: string[]
+          p_incluir_agotados?: boolean
+          p_limite?: number
+          p_offset?: number
+          p_orden?: string
+          p_precio_max?: number
+          p_precio_min?: number
+          p_solo_rebajados?: boolean
+          p_tallas?: string[]
+          p_vista?: string
+        }
+        Returns: Json
       }
       categorias_disponibles: {
         Args: { p_dias?: number }
