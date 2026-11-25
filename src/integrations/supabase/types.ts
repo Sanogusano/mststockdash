@@ -760,6 +760,30 @@ export type Database = {
         }
         Relationships: []
       }
+      catalogo_entrantes_guayabal: {
+        Row: {
+          actualizado_en: string
+          en_camino: number
+          por_despachar: number
+          sku: string
+          traslados: string | null
+        }
+        Insert: {
+          actualizado_en?: string
+          en_camino?: number
+          por_despachar?: number
+          sku: string
+          traslados?: string | null
+        }
+        Update: {
+          actualizado_en?: string
+          en_camino?: number
+          por_despachar?: number
+          sku?: string
+          traslados?: string | null
+        }
+        Relationships: []
+      }
       catalogo_stock_guayabal: {
         Row: {
           actualizado_en: string
@@ -6104,6 +6128,7 @@ export type Database = {
           p_orden?: string
           p_precio_max?: number
           p_precio_min?: number
+          p_solo_confirmar?: boolean
           p_solo_rebajados?: boolean
           p_tallas?: string[]
           p_vista?: string
