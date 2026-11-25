@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useInfiniteQuery, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Search, RefreshCw, SlidersHorizontal, X, Download, Copy, CheckSquare, AlertTriangle, ImageOff, Check } from "lucide-react";
+import { Search, RefreshCw, SlidersHorizontal, X, Download, Copy, CheckSquare, AlertTriangle, ImageOff, Check, FileDown } from "lucide-react";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { supabase } from "@/integrations/supabase/client";
@@ -18,6 +18,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { useHasPermission } from "@/hooks/useHasPermission";
 import { useUserRole } from "@/hooks/useUserRole";
 import { cn } from "@/lib/utils";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { DescargarCatalogoDialog } from "@/components/catalogo/DescargarCatalogoDialog";
 import { formatCOP, minutosDesde, textoWhatsApp, type CatalogoProducto } from "@/lib/catalogo";
 import { descargarFicha, descargarFichas } from "@/lib/catalogo-ficha";
 
@@ -163,6 +165,8 @@ export default function CatalogoPage() {
   };
 
   const [filtrosOpen, setFiltrosOpen] = useState(false);
+  const [stockCanal, setStockCanal] = useState(false);
+  const [exportOpen, setExportOpen] = useState(false);
   const [detalle, setDetalle] = useState<CatalogoProducto | null>(null);
   const [seleccionando, setSeleccionando] = useState(false);
   const [seleccion, setSeleccion] = useState<Map<string, CatalogoProducto>>(new Map());
@@ -192,6 +196,10 @@ export default function CatalogoPage() {
   if (incluirAgotados) chipsActivos.push({ k: "agotados", label: "Con agotados" });
   if (pmin !== null || pmax !== null) chipsActivos.push({ k: "precio", label: `${formatCOP(pmin ?? filtrosQ.data?.precio_min)} – ${formatCOP(pmax ?? filtrosQ.data?.precio_max)}` });
   if (soloUltimas) chipsActivos.push({ k: "ultimas", label: "Últimas unidades" });
+  const tituloFiltro = [
+    ...getList("cat"), ...getList("col"), ...getList("gen"), ...getList("color"), ...getList("talla").map((t) => `Talla ${t}`),
+    soloRebajados ? "Rebajados" : "", sp.get("q") ? `"${sp.get("q")}"` : "",
+  ].filter(Boolean).join(" · ") || "Todos";
   const quitarChip = (c: { k: string; v?: string }) => {
     if (c.v) return toggleList(c.k, c.v);
     if (c.k === "precio") { const n = new URLSearchParams(sp); n.delete("pmin"); n.delete("pmax"); setSp(n, { replace: true }); return; }
@@ -218,6 +226,15 @@ export default function CatalogoPage() {
               <span className={cn("text-[11px] sm:text-xs whitespace-nowrap", mins !== null && mins > 20 ? "text-destructive font-medium" : "text-muted-foreground")}>
                 {mins === null ? "" : mins < 1 ? "Actualizado ahora" : `Actualizado hace ${mins} min`}
               </span>
+              {vista === "comercial" && (
+                <label className="hidden sm:flex items-center gap-1.5 text-xs text-muted-foreground whitespace-nowrap">
+                  <Switch checked={stockCanal} onCheckedChange={setStockCanal} /> Stock por canal
+                </label>
+              )}
+              <Button size="sm" variant="outline" onClick={() => setExportOpen(true)} className="h-8 shrink-0">
+                <FileDown className="h-4 w-4" />
+                <span className="hidden sm:inline ml-1.5">Descargar catálogo</span>
+              </Button>
               <Button size="sm" variant="outline" onClick={sincronizar} disabled={sincronizando} className="h-8 shrink-0">
                 <RefreshCw className={cn("h-4 w-4", sincronizando && "animate-spin")} />
                 <span className="hidden sm:inline ml-1.5">Sincronizar</span>
@@ -233,6 +250,11 @@ export default function CatalogoPage() {
                 <SelectTrigger className="h-9 w-[44%] sm:w-48 shrink-0"><SelectValue /></SelectTrigger>
                 <SelectContent>{ORDENES.map((o) => <SelectItem key={o.v} value={o.v}>{o.l}</SelectItem>)}</SelectContent>
               </Select>
+              {vista === "comercial" && (
+                <label className="flex sm:hidden items-center gap-1 text-[11px] text-muted-foreground shrink-0">
+                  <Switch checked={stockCanal} onCheckedChange={setStockCanal} aria-label="Stock por canal" /> Canal
+                </label>
+              )}
               <Button size="sm" variant="outline" className="h-9 lg:hidden shrink-0" onClick={() => setFiltrosOpen(true)} aria-label="Filtros">
                 <SlidersHorizontal className="h-4 w-4" />
                 {chipsActivos.length > 0 && <span className="ml-1 text-xs">{chipsActivos.length}</span>}
@@ -286,11 +308,11 @@ export default function CatalogoPage() {
                 </div>
               )}
 
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-2.5 sm:gap-4">
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                 {prodQ.isLoading
                   ? Array.from({ length: 12 }).map((_, i) => <TarjetaSkeleton key={i} />)
                   : visibles.map((p) => (
-                    <TarjetaProducto key={String(p.product_id)} p={p} comercial={vista === "comercial"}
+                    <TarjetaProducto key={String(p.product_id)} p={p} stockCanal={vista === "comercial" && stockCanal}
                       seleccionando={seleccionando} seleccionado={seleccion.has(String(p.product_id))}
                       onClick={() => (seleccionando ? toggleSel(p) : setDetalle(p))} />
                   ))}
@@ -315,6 +337,8 @@ export default function CatalogoPage() {
         </DrawerContent>
       </Drawer>
 
+      <DescargarCatalogoDialog open={exportOpen} onOpenChange={setExportOpen} params={params} total={total}
+        seleccionados={[...seleccion.values()]} titulo={tituloFiltro} />
       <DetalleProducto p={detalle} comercial={vista === "comercial"} onClose={() => setDetalle(null)} />
     </SidebarProvider>
   );
@@ -379,9 +403,10 @@ function FiltrosPanel(props: {
 }
 
 /* ---------- Tarjeta ---------- */
-function Foto({ src, alt, className }: { src?: string | null; alt: string; className?: string }) {
+function Foto({ src, alt, className, contain }: { src?: string | null; alt: string; className?: string; contain?: boolean }) {
   const [err, setErr] = useState(false);
   if (!src || err) return <div className={cn("flex items-center justify-center bg-muted text-muted-foreground", className)}><ImageOff className="h-6 w-6" /></div>;
+  if (contain) return <div className={cn("bg-muted/50 p-2", className)}><img src={src} alt={alt} loading="lazy" onError={() => setErr(true)} className="h-full w-full object-contain" /></div>;
   return <img src={src} alt={alt} loading="lazy" onError={() => setErr(true)} className={cn("object-cover bg-muted", className)} />;
 }
 
@@ -410,6 +435,30 @@ function Tallas({ p, comercial, size = "sm" }: { p: CatalogoProducto; comercial:
   );
 }
 
+function TallasChips({ p }: { p: CatalogoProducto }) {
+  return (
+    <div className="flex flex-wrap gap-1">
+      {(p.tallas ?? []).map((t) => {
+        const agotada = Number(t.disponible) <= 0;
+        return (
+          <span key={t.sku || t.talla} aria-disabled={agotada}
+            className={cn("inline-flex h-7 min-w-[36px] items-center justify-center gap-1 rounded-md border px-1.5 text-[11px] leading-none whitespace-nowrap",
+              agotada ? "border-border bg-muted text-muted-foreground line-through"
+                : t.ultimas ? "border-warning bg-warning/15 text-foreground" : "border-border text-foreground")}>
+            <span className="font-semibold">{t.talla}</span>
+            {!agotada && <span className={cn("text-[10px]", t.ultimas ? "font-bold" : "text-muted-foreground")}>· {t.disponible}</span>}
+          </span>
+        );
+      })}
+    </div>
+  );
+}
+
+function StockCanalLinea({ p }: { p: CatalogoProducto }) {
+  const sum = (k: "tiendas" | "outlets" | "reservas") => (p.tallas ?? []).reduce((a, t) => a + (Number(t[k]) || 0), 0);
+  return <p className="text-[11px] text-muted-foreground">Tiendas {sum("tiendas")} · Outlets {sum("outlets")} · Reservas {sum("reservas")}</p>;
+}
+
 function Acciones({ p, compact }: { p: CatalogoProducto; compact?: boolean }) {
   const [bajando, setBajando] = useState(false);
   const bajar = async (e: React.MouseEvent) => {
@@ -421,6 +470,20 @@ function Acciones({ p, compact }: { p: CatalogoProducto; compact?: boolean }) {
     try { await navigator.clipboard.writeText(textoWhatsApp(p)); toast.success("Copiado"); } catch { toast.error("No se pudo copiar"); }
   };
   return (
+    compact ? (
+      <div className="flex justify-end gap-1.5">
+        <Tooltip><TooltipTrigger asChild>
+          <Button size="icon" variant="outline" onClick={bajar} disabled={bajando} className="h-8 w-8" aria-label="Descargar JPG">
+            <Download className={cn("h-4 w-4", bajando && "animate-pulse")} />
+          </Button>
+        </TooltipTrigger><TooltipContent>Descargar JPG</TooltipContent></Tooltip>
+        <Tooltip><TooltipTrigger asChild>
+          <Button size="icon" variant="outline" onClick={copiar} className="h-8 w-8" aria-label="Copiar para WhatsApp">
+            <Copy className="h-4 w-4" />
+          </Button>
+        </TooltipTrigger><TooltipContent>Copiar para WhatsApp</TooltipContent></Tooltip>
+      </div>
+    ) : (
     <div className="grid grid-cols-2 gap-1.5">
       <Button size="sm" variant="outline" onClick={bajar} disabled={bajando} className={cn("h-8 px-1.5", compact && "text-[11px]")}>
         <Download className={cn("h-3.5 w-3.5 shrink-0", !compact && "mr-1")} />{compact ? <span className="ml-1">{bajando ? "…" : "JPG"}</span> : bajando ? "Generando…" : "Descargar JPG"}
@@ -429,6 +492,7 @@ function Acciones({ p, compact }: { p: CatalogoProducto; compact?: boolean }) {
         <Copy className={cn("h-3.5 w-3.5 shrink-0", !compact && "mr-1")} />{compact ? <span className="ml-1">Copiar</span> : "Copiar para WhatsApp"}
       </Button>
     </div>
+    )
   );
 }
 
@@ -447,19 +511,19 @@ function Badges({ p }: { p: CatalogoProducto }) {
   return (
     <>
       {pct > 0 && <span className="absolute left-1.5 top-1.5 rounded bg-destructive px-1.5 py-0.5 text-[11px] font-bold text-destructive-foreground">-{pct}%</span>}
-      {p.alerta === "ULTIMAS UNIDADES" && <span className="absolute right-1.5 top-1.5 rounded bg-warning px-1.5 py-0.5 text-[9px] sm:text-[10px] font-bold text-warning-foreground animate-pulse">ÚLTIMAS UNIDADES</span>}
+      {p.alerta === "ULTIMAS UNIDADES" && <span className="absolute left-1.5 bottom-1.5 rounded bg-warning px-1.5 py-0.5 text-[11px] font-bold text-warning-foreground shadow-sm">ÚLTIMAS UNIDADES</span>}
       {p.alerta === "AGOTADO" && <span className="absolute right-1.5 top-1.5 rounded bg-muted px-1.5 py-0.5 text-[10px] font-bold text-muted-foreground">AGOTADO</span>}
     </>
   );
 }
 
-function TarjetaProducto({ p, comercial, seleccionando, seleccionado, onClick }: { p: CatalogoProducto; comercial: boolean; seleccionando: boolean; seleccionado: boolean; onClick: () => void }) {
+function TarjetaProducto({ p, stockCanal, seleccionando, seleccionado, onClick }: { p: CatalogoProducto; stockCanal: boolean; seleccionando: boolean; seleccionado: boolean; onClick: () => void }) {
   return (
     <div onClick={onClick} role="button" tabIndex={0} onKeyDown={(e) => e.key === "Enter" && onClick()}
       className={cn("group flex flex-col overflow-hidden rounded-xl border bg-card text-card-foreground cursor-pointer transition-shadow hover:shadow-md",
         seleccionado ? "border-primary ring-2 ring-primary" : "border-border")}>
-      <div className="relative aspect-square">
-        <Foto src={p.imagen} alt={p.nombre} className="h-full w-full" />
+      <div className="relative aspect-[4/5]">
+        <Foto src={p.imagen} alt={p.nombre} className="h-full w-full" contain />
         <Badges p={p} />
         {seleccionando && (
           <span className={cn("absolute bottom-1.5 right-1.5 flex h-6 w-6 items-center justify-center rounded-full border-2",
@@ -478,7 +542,8 @@ function TarjetaProducto({ p, comercial, seleccionando, seleccionado, onClick }:
           )}
         </div>
         <Precio p={p} />
-        <Tallas p={p} comercial={comercial} />
+        <TallasChips p={p} />
+        {stockCanal && <StockCanalLinea p={p} />}
         {!seleccionando && <div className="mt-auto pt-1"><Acciones p={p} compact /></div>}
       </div>
     </div>
@@ -488,7 +553,7 @@ function TarjetaProducto({ p, comercial, seleccionando, seleccionado, onClick }:
 function TarjetaSkeleton() {
   return (
     <div className="overflow-hidden rounded-xl border border-border">
-      <Skeleton className="aspect-square w-full rounded-none" />
+      <Skeleton className="aspect-[4/5] w-full rounded-none" />
       <div className="space-y-2 p-3"><Skeleton className="h-4 w-4/5" /><Skeleton className="h-3 w-1/2" /><Skeleton className="h-5 w-2/5" /><Skeleton className="h-6 w-full" /></div>
     </div>
   );
