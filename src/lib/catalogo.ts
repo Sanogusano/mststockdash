@@ -6,6 +6,17 @@ export type CatalogoTalla = {
   tiendas?: number | null;
   outlets?: number | null;
   reservas?: number | null;
+  vendible?: number | null;
+  confirmar?: boolean | null;
+  fisico_netsuite?: number | null;
+  en_mano_shopify?: number | null;
+  comprometido?: number | null;
+  facturado_sin_despachar?: number | null;
+  saliendo_traslados?: number | null;
+  en_camino?: number | null;
+  por_llegar?: number | null;
+  traslados_entrantes?: string | null;
+  diferencia_netsuite?: number | null;
 };
 
 export type CatalogoProducto = {
@@ -26,16 +37,21 @@ export type CatalogoProducto = {
   vendidas_14d?: number | null;
   alerta?: "ULTIMAS UNIDADES" | "AGOTADO" | null;
   tallas: CatalogoTalla[];
+  tallas_confirmar?: number | null;
 };
 
 export const formatCOP = (n: number | null | undefined) =>
   "$ " + Math.round(Number(n) || 0).toLocaleString("es-CO");
 
+/** Unidades que se pueden vender: usa vendible cuando viene, si no disponible. */
+export const unidadesVendibles = (t: CatalogoTalla) => Number(t.vendible ?? t.disponible) || 0;
+
+/** Tallas que ve el cliente (ficha, mosaico, WhatsApp): solo vendible > 0, sin alertas internas. */
 export const tallasConStock = (p: CatalogoProducto) =>
-  (p.tallas ?? []).filter((t) => Number(t.disponible) > 0);
+  (p.tallas ?? []).filter((t) => unidadesVendibles(t) > 0);
 
 export const tieneUltimas = (p: CatalogoProducto) =>
-  p.alerta === "ULTIMAS UNIDADES" || (p.tallas ?? []).some((t) => t.ultimas && Number(t.disponible) > 0);
+  p.alerta === "ULTIMAS UNIDADES" || (p.tallas ?? []).some((t) => t.ultimas && unidadesVendibles(t) > 0);
 
 /** Texto para WhatsApp; omite líneas que no aplican. */
 export function textoWhatsApp(p: CatalogoProducto): string {

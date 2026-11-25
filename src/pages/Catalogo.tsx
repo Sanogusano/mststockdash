@@ -21,7 +21,7 @@ import { cn } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { FiltrosDesplegables } from "@/components/catalogo/FiltrosDesplegables";
 import { DescargarCatalogoDialog } from "@/components/catalogo/DescargarCatalogoDialog";
-import { formatCOP, minutosDesde, textoWhatsApp, type CatalogoProducto } from "@/lib/catalogo";
+import { formatCOP, minutosDesde, textoWhatsApp, unidadesVendibles, type CatalogoProducto, type CatalogoTalla } from "@/lib/catalogo";
 import { descargarFicha, descargarFichas } from "@/lib/catalogo-ficha";
 
 const LIMITE = 48;
@@ -88,6 +88,7 @@ export default function CatalogoPage() {
   const pmin = sp.get("pmin") ? Number(sp.get("pmin")) : null;
   const pmax = sp.get("pmax") ? Number(sp.get("pmax")) : null;
   const soloUltimas = sp.get("ultimas") === "1";
+  const soloConfirmar = sp.get("confirmar") === "1";
 
   const filtrosQ = useQuery({
     queryKey: ["catalogo-filtros"],
@@ -113,6 +114,7 @@ export default function CatalogoPage() {
     p_colores: getList("color").length ? getList("color") : null,
     p_precio_min: pmin, p_precio_max: pmax,
     p_solo_rebajados: soloRebajados, p_incluir_agotados: incluirAgotados,
+    p_solo_confirmar: soloConfirmar,
     p_orden: orden, p_vista: vista, p_limite: LIMITE,
   };
 
@@ -124,13 +126,16 @@ export default function CatalogoPage() {
       const { data, error } = await supabase.rpc("catalogo_productos" as any, { ...params, p_offset: pageParam } as any);
       if (error) throw error;
       const d: any = data ?? {};
-      return { total: Number(d.total) || 0, actualizado_en: d.actualizado_en as string | undefined, productos: (d.productos ?? []) as CatalogoProducto[], offset: pageParam as number };
+      return { total: Number(d.total) || 0, actualizado_en: d.actualizado_en as string | undefined, productos: (d.productos ?? []) as CatalogoProducto[], offset: pageParam as number,
+        tallas_confirmar: Number(d.tallas_confirmar) || 0, netsuite_actualizado_en: d.netsuite_actualizado_en as string | undefined };
     },
     getNextPageParam: (last) => (last.offset + last.productos.length < last.total && last.productos.length > 0 ? last.offset + LIMITE : undefined),
   });
 
   const todos = useMemo(() => prodQ.data?.pages.flatMap((p) => p.productos) ?? [], [prodQ.data]);
   const total = prodQ.data?.pages[0]?.total ?? 0;
+  const tallasConfirmar = prodQ.data?.pages[0]?.tallas_confirmar ?? 0;
+  const nsActualizado = prodQ.data?.pages[0]?.netsuite_actualizado_en;
   const actualizado = prodQ.data?.pages[0]?.actualizado_en ?? filtrosQ.data?.actualizado_en;
   const mins = minutosDesde(actualizado, ahora);
   const nUltimas = todos.filter((p) => p.alerta === "ULTIMAS UNIDADES").length;
@@ -275,6 +280,13 @@ export default function CatalogoPage() {
                     <AlertTriangle className="h-3.5 w-3.5" /> {nUltimas} productos con últimas unidades
                   </button>
                 )}
+                {(tallasConfirmar > 0 || soloConfirmar) && (
+                  <button onClick={() => setParam("confirmar", soloConfirmar ? null : "1")}
+                    className={cn("inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-medium transition-colors",
+                      soloConfirmar ? "bg-destructive text-destructive-foreground border-destructive" : "border-destructive/50 text-destructive bg-destructive/10 hover:bg-destructive/20")}>
+                    <AlertTriangle className="h-3.5 w-3.5" /> {tallasConfirmar} tallas por confirmar
+                  </button>
+                )}
                 <div className="ml-auto flex items-center gap-2">
                   {seleccionando && seleccion.size > 0 && (
                     <Button size="sm" onClick={bajarSeleccion} disabled={!!descargando} className="h-8">
@@ -337,7 +349,7 @@ export default function CatalogoPage() {
 
       <DescargarCatalogoDialog open={exportOpen} onOpenChange={setExportOpen} params={params} total={total}
         seleccionados={[...seleccion.values()]} titulo={tituloFiltro} />
-      <DetalleProducto p={detalle} comercial={vista === "comercial"} onClose={() => setDetalle(null)} />
+      <DetalleProducto p={detalle} comercial={vista === "comercial"} nsActualizado={nsActualizado} ahora={ahora} onClose={() => setDetalle(null)} />
     </SidebarProvider>
   );
 }
@@ -354,24 +366,36 @@ function Tallas({ p, comercial, size = "sm" }: { p: CatalogoProducto; comercial:
   return (
     <div className="flex flex-wrap gap-1">
       {(p.tallas ?? []).map((t) => {
-        const agotada = Number(t.disponible) <= 0;
+        const agotada = unidadesVendibles(t) <= 0;
         return (
-          <div key={t.sku || t.talla} className="flex flex-col items-center">
+          <ConfirmarTip key={t.sku || t.talla} t={t}>
+          <div className="flex flex-col items-center">
             <span className={cn("inline-flex flex-col items-center justify-center rounded-md border leading-tight",
               size === "lg" ? "min-w-[52px] px-2 py-1.5" : "min-w-[34px] px-1.5 py-0.5",
               agotada ? "border-border text-muted-foreground/60 line-through opacity-60"
-                : t.ultimas ? "border-warning bg-warning/10 text-warning-foreground" : "border-border text-foreground")}
+                : t.ultimas ? "border-warning bg-warning/10 text-warning-foreground" : "border-border text-foreground",
+              t.confirmar && "border-destructive")}
               aria-disabled={agotada}>
-              <span className={cn("font-semibold", size === "lg" ? "text-sm" : "text-[11px]")}>{t.talla}</span>
-              {!agotada && <span className="text-[9px] text-muted-foreground no-underline">{t.ultimas ? "Últimas" : t.disponible}</span>}
+              <span className={cn("inline-flex items-center gap-0.5 font-semibold", size === "lg" ? "text-sm" : "text-[11px]")}>{t.confirmar && <AlertTriangle className="h-3 w-3 text-destructive" />}{t.talla}</span>
+              {!agotada && <span className="text-[9px] text-muted-foreground no-underline">{t.ultimas ? "Últimas" : unidadesVendibles(t)}</span>}
             </span>
             {comercial && (
               <span className="mt-0.5 text-[9px] text-muted-foreground whitespace-nowrap">T {t.tiendas ?? 0} · O {t.outlets ?? 0} · R {t.reservas ?? 0}</span>
             )}
           </div>
+          </ConfirmarTip>
         );
       })}
     </div>
+  );
+}
+
+function ConfirmarTip({ t, children }: { t: CatalogoTalla; children: React.ReactElement }) {
+  if (!t.confirmar) return children;
+  return (
+    <Tooltip><TooltipTrigger asChild>{children}</TooltipTrigger>
+      <TooltipContent className="max-w-[240px]">Shopify muestra {Number(t.disponible) || 0}, NetSuite respalda {unidadesVendibles(t)}. Confirma con bodega antes de vender.</TooltipContent>
+    </Tooltip>
   );
 }
 
@@ -379,15 +403,19 @@ function TallasChips({ p }: { p: CatalogoProducto }) {
   return (
     <div className="flex flex-wrap gap-1">
       {(p.tallas ?? []).map((t) => {
-        const agotada = Number(t.disponible) <= 0;
+        const agotada = unidadesVendibles(t) <= 0;
         return (
-          <span key={t.sku || t.talla} aria-disabled={agotada}
-            className={cn("inline-flex h-7 min-w-[36px] items-center justify-center gap-1 rounded-md border px-1.5 text-[11px] leading-none whitespace-nowrap",
-              agotada ? "border-border bg-muted text-muted-foreground line-through"
-                : t.ultimas ? "border-warning bg-warning/15 text-foreground" : "border-border text-foreground")}>
-            <span className="font-semibold">{t.talla}</span>
-            {!agotada && <span className={cn("text-[10px]", t.ultimas ? "font-bold" : "text-muted-foreground")}>· {t.disponible}</span>}
-          </span>
+          <ConfirmarTip key={t.sku || t.talla} t={t}>
+            <span aria-disabled={agotada} onClick={(e) => t.confirmar && e.stopPropagation()}
+              className={cn("inline-flex h-7 min-w-[36px] items-center justify-center gap-1 rounded-md border px-1.5 text-[11px] leading-none whitespace-nowrap",
+                agotada ? "border-border bg-muted text-muted-foreground line-through"
+                  : t.ultimas ? "border-warning bg-warning/15 text-foreground" : "border-border text-foreground",
+                t.confirmar && "border-destructive")}>
+              {t.confirmar && <AlertTriangle className="h-3 w-3 shrink-0 text-destructive" />}
+              <span className="font-semibold">{t.talla}</span>
+              {!agotada && <span className={cn("text-[10px]", t.ultimas ? "font-bold" : "text-muted-foreground")}>· {unidadesVendibles(t)}</span>}
+            </span>
+          </ConfirmarTip>
         );
       })}
     </div>
@@ -465,6 +493,9 @@ function TarjetaProducto({ p, stockCanal, seleccionando, seleccionado, onClick }
       <div className="relative aspect-[4/5]">
         <Foto src={p.imagen} alt={p.nombre} className="h-full w-full" contain />
         <Badges p={p} />
+        {Number(p.tallas_confirmar) > 0 && !seleccionando && (
+          <span className="absolute right-1.5 bottom-1.5 rounded bg-destructive px-1.5 py-0.5 text-[10px] font-bold text-destructive-foreground shadow-sm">Confirmar stock</span>
+        )}
         {seleccionando && (
           <span className={cn("absolute bottom-1.5 right-1.5 flex h-6 w-6 items-center justify-center rounded-full border-2",
             seleccionado ? "bg-primary border-primary text-primary-foreground" : "bg-background/90 border-border")}>
@@ -500,13 +531,13 @@ function TarjetaSkeleton() {
 }
 
 /* ---------- Detalle ---------- */
-function DetalleProducto({ p, comercial, onClose }: { p: CatalogoProducto | null; comercial: boolean; onClose: () => void }) {
+function DetalleProducto({ p, comercial, onClose, nsActualizado, ahora }: { p: CatalogoProducto | null; comercial: boolean; onClose: () => void; nsActualizado?: string; ahora: number }) {
   const copiarSku = async (sku: string) => {
     try { await navigator.clipboard.writeText(sku); toast.success(`SKU ${sku} copiado`); } catch { toast.error("No se pudo copiar"); }
   };
   return (
     <Dialog open={!!p} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-w-3xl p-0 gap-0 max-h-[92vh] overflow-y-auto">
+      <DialogContent className="max-w-4xl p-0 gap-0 max-h-[92vh] overflow-y-auto">
         {p && (
           <div className="grid md:grid-cols-2">
             <div className="relative aspect-square md:aspect-auto md:min-h-full">
@@ -528,17 +559,59 @@ function DetalleProducto({ p, comercial, onClose }: { p: CatalogoProducto | null
                     <button onClick={() => copiarSku(t.sku)} className="flex-1 min-w-0 truncate text-left font-mono text-xs text-muted-foreground hover:text-foreground inline-flex items-center gap-1">
                       {t.sku}<Copy className="h-3 w-3 shrink-0" />
                     </button>
-                    <span className={cn("text-xs tabular-nums", Number(t.disponible) <= 0 ? "text-muted-foreground" : t.ultimas ? "text-warning-foreground font-medium" : "")}>
-                      {Number(t.disponible) <= 0 ? "Agotada" : `${t.disponible} und`}
+                    <span className={cn("text-xs tabular-nums", unidadesVendibles(t) <= 0 ? "text-muted-foreground" : t.ultimas ? "text-warning-foreground font-medium" : "")}>
+                      {unidadesVendibles(t) <= 0 ? "Agotada" : `${unidadesVendibles(t)} und`}
                     </span>
                   </div>
                 ))}
               </div>
               <Acciones p={p} />
             </div>
+            {comercial && <TablaComercial p={p} nsActualizado={nsActualizado} ahora={ahora} />}
           </div>
         )}
       </DialogContent>
     </Dialog>
+  );
+}
+
+function TablaComercial({ p, nsActualizado, ahora }: { p: CatalogoProducto; nsActualizado?: string; ahora: number }) {
+  const n = (v: number | null | undefined) => (v == null ? "—" : Number(v).toLocaleString("es-CO"));
+  const mins = minutosDesde(nsActualizado, ahora);
+  const entrantes = (p.tallas ?? []).filter((t) => t.traslados_entrantes).map((t) => `${t.talla}: ${t.traslados_entrantes}`);
+  const cols: [string, (t: CatalogoTalla) => number | null | undefined][] = [
+    ["Shopify disponible", (t) => t.disponible], ["Vende máx.", (t) => t.vendible], ["NetSuite físico", (t) => t.fisico_netsuite],
+    ["Comprometido", (t) => t.comprometido], ["Facturado sin despachar", (t) => t.facturado_sin_despachar], ["Saliendo (traslados)", (t) => t.saliendo_traslados],
+    ["En camino", (t) => t.en_camino], ["Por llegar", (t) => t.por_llegar],
+  ];
+  return (
+    <div className="md:col-span-2 border-t border-border p-4 sm:p-5 space-y-2">
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <p className="text-sm font-semibold">Stock por talla (vista comercial)</p>
+        {mins !== null && <span className="text-xs text-muted-foreground">NetSuite actualizado hace {mins} min</span>}
+      </div>
+      <div className="overflow-x-auto rounded-lg border border-border">
+        <table className="w-full text-xs">
+          <thead className="bg-muted/50 text-muted-foreground">
+            <tr><th className="px-2 py-1.5 text-left font-medium">Talla</th>
+              {cols.map(([h]) => <th key={h} className="px-2 py-1.5 text-right font-medium whitespace-nowrap">{h}</th>)}
+              <th className="px-2 py-1.5 text-right font-medium">Diferencia</th></tr>
+          </thead>
+          <tbody className="divide-y divide-border">
+            {(p.tallas ?? []).map((t) => {
+              const dif = Number(t.diferencia_netsuite) || 0;
+              return (
+                <tr key={t.sku || t.talla} className={cn(t.confirmar && "bg-destructive/10")}>
+                  <td className={cn("px-2 py-1.5 font-semibold whitespace-nowrap", t.confirmar && "text-destructive")}>{t.confirmar && <AlertTriangle className="mr-1 inline h-3 w-3" />}{t.talla}</td>
+                  {cols.map(([h, f]) => <td key={h} className="px-2 py-1.5 text-right tabular-nums">{n(f(t))}</td>)}
+                  <td className={cn("px-2 py-1.5 text-right tabular-nums", dif !== 0 && "font-bold text-destructive")}>{n(t.diferencia_netsuite)}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+      {entrantes.length > 0 && <p className="text-xs text-muted-foreground">Traslados entrantes: {entrantes.join(" · ")}</p>}
+    </div>
   );
 }

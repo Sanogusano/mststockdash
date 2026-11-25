@@ -33,3 +33,14 @@ describe("filtros del catálogo", () => {
     expect(etiquetaFiltro("Talla", ["M", "L", "XL"])).toBe("Talla · 3");
   });
 });
+
+describe("confirmar antes de vender", () => {
+  it("el texto para el cliente omite tallas con vendible 0 e incluye las por confirmar con vendible > 0", () => {
+    const p = { ...base, alerta: null, tallas: [
+      { sku: "a", talla: "S", disponible: 3, vendible: 0, confirmar: true, ultimas: false },
+      { sku: "b", talla: "M", disponible: 5, vendible: 2, confirmar: true, ultimas: false },
+      { sku: "c", talla: "L", disponible: 4, vendible: 4, confirmar: false, ultimas: false },
+    ] };
+    expect(textoWhatsApp(p)).toBe("*ARMINIA T-SHIRT* – BLACK\n💰 $ 89.900 (antes $ 149.900, -40%)\n📏 Tallas: M, L");
+  });
+});
