@@ -1138,6 +1138,7 @@ export type Database = {
           cod_vendedor: string | null
           descuento_sin_iva: number | null
           fecha: string
+          inv_tranid: string | null
           item_id: string | null
           linea_id: string
           nota: string | null
@@ -1157,6 +1158,7 @@ export type Database = {
           cod_vendedor?: string | null
           descuento_sin_iva?: number | null
           fecha: string
+          inv_tranid?: string | null
           item_id?: string | null
           linea_id: string
           nota?: string | null
@@ -1176,6 +1178,7 @@ export type Database = {
           cod_vendedor?: string | null
           descuento_sin_iva?: number | null
           fecha?: string
+          inv_tranid?: string | null
           item_id?: string | null
           linea_id?: string
           nota?: string | null
@@ -5628,6 +5631,7 @@ export type Database = {
           cod_vendedor: string | null
           descuento_sin_iva: number | null
           fecha: string | null
+          inv_tranid: string | null
           item_id: string | null
           linea_id: string | null
           motivo: string | null
@@ -8635,6 +8639,18 @@ export type Database = {
           venta_neta_sin_iva: number
         }[]
       }
+      reporte_pedidos_detalles_descuento: {
+        Args: {
+          dias_atras: number
+          p_canal?: string
+          p_hasta?: string
+          p_location_id?: string
+        }
+        Returns: {
+          detalle_descuento: string
+          lineas: number
+        }[]
+      }
       reporte_pedidos_por_tipo_venta: {
         Args: {
           dias_atras: number
@@ -8672,6 +8688,32 @@ export type Database = {
           coleccion: string
           compare_at_price: number
           descuento_otorgado: number
+          fecha: string
+          numero_pedido: string
+          precio: number
+          producto: string
+          sku: string
+          sucursal: string
+          tipo_venta: string
+        }[]
+      }
+      reporte_pedidos_por_tipo_venta_v3: {
+        Args: {
+          dias_atras: number
+          p_canal?: string
+          p_coleccion?: string
+          p_detalle?: string
+          p_hasta?: string
+          p_location_id?: string
+          p_tipo?: string
+        }
+        Returns: {
+          cantidad: number
+          categoria: string
+          coleccion: string
+          compare_at_price: number
+          descuento_otorgado: number
+          detalle_descuento: string
           fecha: string
           numero_pedido: string
           precio: number
