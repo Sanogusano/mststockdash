@@ -6115,6 +6115,11 @@ export type Database = {
         Returns: string
       }
       catalogo_filtros: { Args: never; Returns: Json }
+      catalogo_norm_cat: {
+        Args: { cat: string; padre: string }
+        Returns: string
+      }
+      catalogo_norm_color: { Args: { t: string }; Returns: string }
       catalogo_productos: {
         Args: {
           p_busqueda?: string
