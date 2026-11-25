@@ -196,6 +196,35 @@ export default function CatalogoPage() {
     } finally { setDescargando(null); }
   };
 
+  const [cargandoTodo, setCargandoTodo] = useState(false);
+  const [avisoTodo, setAvisoTodo] = useState(false);
+  const filtroKey = JSON.stringify({ ...params, soloUltimas });
+  const filtroKeyPrev = useRef(filtroKey);
+  useEffect(() => {
+    if (filtroKeyPrev.current !== filtroKey) { filtroKeyPrev.current = filtroKey; setSeleccion(new Map()); }
+  }, [filtroKey]);
+  const todosSeleccionados = total > 0 && seleccion.size === total;
+  const seleccionarTodo = async () => {
+    setAvisoTodo(false); setCargandoTodo(true);
+    try {
+      const n = new Map<string, CatalogoProducto>();
+      for (let off = 0; off < total; off += 200) {
+        const { data, error } = await supabase.rpc("catalogo_productos" as any, { ...params, p_limite: 200, p_offset: off } as any);
+        if (error) throw error;
+        const ps = (((data as any)?.productos) ?? []) as CatalogoProducto[];
+        ps.forEach((p) => { if (!soloUltimas || p.alerta === "ULTIMAS UNIDADES") n.set(String(p.product_id), p); });
+        if (ps.length < 200) break;
+      }
+      setSeleccion(n);
+    } catch (e: any) {
+      toast.error(`No se pudieron cargar los productos: ${e?.message ?? e}`);
+    } finally { setCargandoTodo(false); }
+  };
+  const onSeleccionarTodo = () => {
+    if (todosSeleccionados) { setSeleccion(new Map()); return; }
+    if (total > 120) setAvisoTodo(true); else seleccionarTodo();
+  };
+
   const chipsActivos: { k: string; v?: string; label: string }[] = [];
   LISTAS.forEach((l) => getList(l.key).forEach((v) => chipsActivos.push({ k: l.key, v, label: v })));
   if (soloRebajados) chipsActivos.push({ k: "rebajados", label: "Solo rebajados" });
@@ -293,6 +322,11 @@ export default function CatalogoPage() {
                       <Download className="h-4 w-4 mr-1" />{descargando ?? `Descargar seleccionados (${seleccion.size})`}
                     </Button>
                   )}
+                  {seleccionando && (
+                    <Button size="sm" variant="outline" className="h-8" onClick={onSeleccionarTodo} disabled={cargandoTodo || total === 0}>
+                      {cargandoTodo ? "Cargando…" : todosSeleccionados ? "Quitar selección" : `Seleccionar todo (${total.toLocaleString("es-CO")})`}
+                    </Button>
+                  )}
                   <Button size="sm" variant={seleccionando ? "secondary" : "outline"} className="h-8"
                     onClick={() => { setSeleccionando(!seleccionando); setSeleccion(new Map()); }}>
                     <CheckSquare className="h-4 w-4 mr-1" />{seleccionando ? "Cancelar" : "Seleccionar"}
@@ -347,6 +381,16 @@ export default function CatalogoPage() {
         </DrawerContent>
       </Drawer>
 
+      <Dialog open={avisoTodo} onOpenChange={setAvisoTodo}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader><DialogTitle>Seleccionar todo</DialogTitle></DialogHeader>
+          <p className="text-sm text-muted-foreground">Vas a seleccionar {total.toLocaleString("es-CO")} productos; la descarga puede tardar</p>
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" size="sm" onClick={() => setAvisoTodo(false)}>Cancelar</Button>
+            <Button size="sm" onClick={seleccionarTodo}>Continuar</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
       <DescargarCatalogoDialog open={exportOpen} onOpenChange={setExportOpen} params={params} total={total}
         seleccionados={[...seleccion.values()]} titulo={tituloFiltro} />
       <DetalleProducto p={detalle} comercial={vista === "comercial"} nsActualizado={nsActualizado} ahora={ahora} onClose={() => setDetalle(null)} />
