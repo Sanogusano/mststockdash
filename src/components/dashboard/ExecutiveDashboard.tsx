@@ -5,7 +5,7 @@ import { useEffect, useState, Fragment } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { isValidDays } from "@/lib/validation";
-import { resolveDays, resolveComparisonRange, getDateRange, needsDateRange, toDateStr as _toDateStr, getFilterEndDate, buildRpcDateParams, CUSTOM_SENTINEL, PREV_MONTH_SENTINEL, THIS_MONTH_SENTINEL, type ComparisonPeriod } from "@/components/dashboard/TimeFilter";
+import { resolveDays, resolveComparisonRange, getDateRange, needsDateRange, toDateStr as _toDateStr, getFilterEndDate, buildRpcDateParams, CUSTOM_SENTINEL, PREV_MONTH_SENTINEL, THIS_MONTH_SENTINEL, type ComparisonPeriod, useComparisonLabel } from "@/components/dashboard/TimeFilter";
 import { CumplimientoPresupuestoCard } from "@/components/dashboard/CumplimientoPresupuestoCard";
 import { exportToCSV } from "@/lib/csv-export";
 import { cn } from "@/lib/utils";
@@ -985,6 +985,7 @@ function StoreRankCard({ days, canal, locationId, locationName, customFrom, cust
   days: number; canal?: string; locationId: string; locationName: string;
   customFrom?: Date; customTo?: Date;
 }) {
+  const comparisonLabel = useComparisonLabel();
   const [rank, setRank] = useState<number | null>(null);
   const [total, setTotal] = useState(0);
   const [extraMetrics, setExtraMetrics] = useState<ExtraMetrics | null>(null);
@@ -1086,17 +1087,17 @@ function StoreRankCard({ days, canal, locationId, locationName, customFrom, cust
               <div className="p-3 rounded-lg bg-muted/30 border border-border">
                 <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Venta Prom/Día</p>
                 <p className="text-base font-semibold text-foreground"><span className="sm:hidden">{fmtCurrencyCompact(extraMetrics?.venta_promedio_diaria_actual ?? 0)}</span><span className="hidden sm:inline">{fmtCurrencyCompact(extraMetrics?.venta_promedio_diaria_actual ?? 0)}</span></p>
-                <ComparisonIndicator actual={extraMetrics?.venta_promedio_diaria_actual ?? 0} anterior={extraMetrics?.venta_promedio_diaria_anterior ?? 0} label="vs ant." diffFormat="money" />
+                <ComparisonIndicator actual={extraMetrics?.venta_promedio_diaria_actual ?? 0} anterior={extraMetrics?.venta_promedio_diaria_anterior ?? 0} label={comparisonLabel} diffFormat="money" />
               </div>
               <div className="p-3 rounded-lg bg-muted/30 border border-border">
                 <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Pedidos Prom/Día</p>
                 <p className="text-base font-semibold text-foreground">{(extraMetrics?.pedidos_promedio_diario_actual ?? 0).toFixed(1)}</p>
-                <ComparisonIndicator actual={extraMetrics?.pedidos_promedio_diario_actual ?? 0} anterior={extraMetrics?.pedidos_promedio_diario_anterior ?? 0} label="vs ant." diffFormat="units" />
+                <ComparisonIndicator actual={extraMetrics?.pedidos_promedio_diario_actual ?? 0} anterior={extraMetrics?.pedidos_promedio_diario_anterior ?? 0} label={comparisonLabel} diffFormat="units" />
               </div>
               <div className="p-3 rounded-lg bg-muted/30 border border-border">
                 <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Uds Prom/Día</p>
                 <p className="text-base font-semibold text-foreground">{(extraMetrics?.unidades_promedio_diario_actual ?? 0).toFixed(1)}</p>
-                <ComparisonIndicator actual={extraMetrics?.unidades_promedio_diario_actual ?? 0} anterior={extraMetrics?.unidades_promedio_diario_anterior ?? 0} label="vs ant." diffFormat="units" />
+                <ComparisonIndicator actual={extraMetrics?.unidades_promedio_diario_actual ?? 0} anterior={extraMetrics?.unidades_promedio_diario_anterior ?? 0} label={comparisonLabel} diffFormat="units" />
               </div>
             </div>
           </div>
@@ -1124,6 +1125,7 @@ function StoreRankCard({ days, canal, locationId, locationName, customFrom, cust
 
 /* ── Digital Channel Card ── */
 function DigitalChannelCard({ days, customFrom, customTo }: { days: number; customFrom?: Date; customTo?: Date }) {
+  const comparisonLabel = useComparisonLabel();
   const [rank, setRank] = useState<number | null>(null);
   const [total, setTotal] = useState(0);
   const [extraMetrics, setExtraMetrics] = useState<ExtraMetrics | null>(null);
@@ -1215,17 +1217,17 @@ function DigitalChannelCard({ days, customFrom, customTo }: { days: number; cust
               <div className="p-3 rounded-lg bg-muted/30 border border-border">
                 <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Venta Prom/Día</p>
                 <p className="text-base font-semibold text-foreground"><span className="sm:hidden">{fmtCurrencyCompact(extraMetrics?.venta_promedio_diaria_actual ?? 0)}</span><span className="hidden sm:inline">{fmtCurrencyCompact(extraMetrics?.venta_promedio_diaria_actual ?? 0)}</span></p>
-                <ComparisonIndicator actual={extraMetrics?.venta_promedio_diaria_actual ?? 0} anterior={extraMetrics?.venta_promedio_diaria_anterior ?? 0} label="vs ant." diffFormat="money" />
+                <ComparisonIndicator actual={extraMetrics?.venta_promedio_diaria_actual ?? 0} anterior={extraMetrics?.venta_promedio_diaria_anterior ?? 0} label={comparisonLabel} diffFormat="money" />
               </div>
               <div className="p-3 rounded-lg bg-muted/30 border border-border">
                 <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Pedidos Prom/Día</p>
                 <p className="text-base font-semibold text-foreground">{(extraMetrics?.pedidos_promedio_diario_actual ?? 0).toFixed(1)}</p>
-                <ComparisonIndicator actual={extraMetrics?.pedidos_promedio_diario_actual ?? 0} anterior={extraMetrics?.pedidos_promedio_diario_anterior ?? 0} label="vs ant." diffFormat="units" />
+                <ComparisonIndicator actual={extraMetrics?.pedidos_promedio_diario_actual ?? 0} anterior={extraMetrics?.pedidos_promedio_diario_anterior ?? 0} label={comparisonLabel} diffFormat="units" />
               </div>
               <div className="p-3 rounded-lg bg-muted/30 border border-border">
                 <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Uds Prom/Día</p>
                 <p className="text-base font-semibold text-foreground">{(extraMetrics?.unidades_promedio_diario_actual ?? 0).toFixed(1)}</p>
-                <ComparisonIndicator actual={extraMetrics?.unidades_promedio_diario_actual ?? 0} anterior={extraMetrics?.unidades_promedio_diario_anterior ?? 0} label="vs ant." diffFormat="units" />
+                <ComparisonIndicator actual={extraMetrics?.unidades_promedio_diario_actual ?? 0} anterior={extraMetrics?.unidades_promedio_diario_anterior ?? 0} label={comparisonLabel} diffFormat="units" />
               </div>
             </div>
           </div>
@@ -1826,6 +1828,7 @@ function BrandParetoPreview({ days, customFrom, customTo }: { days: number; cust
 
 /* ── Zone Panel ── */
 function ZonePanel({ days, locationFilter, comparisonPeriod = "previous", customFrom, customTo, comparisonFrom, comparisonTo }: { days: number; locationFilter: "tiendas" | "outlets"; comparisonPeriod?: ComparisonPeriod; customFrom?: Date; customTo?: Date; comparisonFrom?: Date; comparisonTo?: Date }) {
+  const comparisonLabel = useComparisonLabel();
   const [locations, setLocations] = useState<Location[]>([]);
   const [selectedZone, setSelectedZone] = useState("all");
   const [selectedLocation, setSelectedLocation] = useState("all");
@@ -2063,17 +2066,17 @@ function ZonePanel({ days, locationFilter, comparisonPeriod = "previous", custom
               <div className="p-3 rounded-lg bg-muted/30 border border-border">
                 <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Venta Prom/Día</p>
                 <p className="text-base font-semibold text-foreground"><span className="sm:hidden">{fmtCurrencyCompact(zoneMetrics?.venta_promedio_diaria_actual ?? 0)}</span><span className="hidden sm:inline">{fmtCurrencyCompact(zoneMetrics?.venta_promedio_diaria_actual ?? 0)}</span></p>
-                <ComparisonIndicator actual={zoneMetrics?.venta_promedio_diaria_actual ?? 0} anterior={zoneMetrics?.venta_promedio_diaria_anterior ?? 0} label="vs ant." diffFormat="money" />
+                <ComparisonIndicator actual={zoneMetrics?.venta_promedio_diaria_actual ?? 0} anterior={zoneMetrics?.venta_promedio_diaria_anterior ?? 0} label={comparisonLabel} diffFormat="money" />
               </div>
               <div className="p-3 rounded-lg bg-muted/30 border border-border">
                 <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Pedidos Prom/Día</p>
                 <p className="text-base font-semibold text-foreground">{(zoneMetrics?.pedidos_promedio_diario_actual ?? 0).toFixed(1)}</p>
-                <ComparisonIndicator actual={zoneMetrics?.pedidos_promedio_diario_actual ?? 0} anterior={zoneMetrics?.pedidos_promedio_diario_anterior ?? 0} label="vs ant." diffFormat="units" />
+                <ComparisonIndicator actual={zoneMetrics?.pedidos_promedio_diario_actual ?? 0} anterior={zoneMetrics?.pedidos_promedio_diario_anterior ?? 0} label={comparisonLabel} diffFormat="units" />
               </div>
               <div className="p-3 rounded-lg bg-muted/30 border border-border">
                 <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Uds Prom/Día</p>
                 <p className="text-base font-semibold text-foreground">{(zoneMetrics?.unidades_promedio_diario_actual ?? 0).toFixed(1)}</p>
-                <ComparisonIndicator actual={zoneMetrics?.unidades_promedio_diario_actual ?? 0} anterior={zoneMetrics?.unidades_promedio_diario_anterior ?? 0} label="vs ant." diffFormat="units" />
+                <ComparisonIndicator actual={zoneMetrics?.unidades_promedio_diario_actual ?? 0} anterior={zoneMetrics?.unidades_promedio_diario_anterior ?? 0} label={comparisonLabel} diffFormat="units" />
               </div>
             </div>
           </div>
@@ -2196,6 +2199,7 @@ function ZoneStoreRankCard({ days, canal, locationId, locationName, allRanking, 
   allRanking: RankingRow[]; zoneRanking: RankingRow[]; zoneName: string;
   customFrom?: Date; customTo?: Date;
 }) {
+  const comparisonLabel = useComparisonLabel();
   const [extraMetrics, setExtraMetrics] = useState<ExtraMetrics | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -2297,17 +2301,17 @@ function ZoneStoreRankCard({ days, canal, locationId, locationName, allRanking, 
               <div className="p-3 rounded-lg bg-muted/30 border border-border">
                 <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Venta Prom/Día</p>
                 <p className="text-base font-semibold text-foreground"><span className="sm:hidden">{fmtCurrencyCompact(extraMetrics?.venta_promedio_diaria_actual ?? 0)}</span><span className="hidden sm:inline">{fmtCurrencyCompact(extraMetrics?.venta_promedio_diaria_actual ?? 0)}</span></p>
-                <ComparisonIndicator actual={extraMetrics?.venta_promedio_diaria_actual ?? 0} anterior={extraMetrics?.venta_promedio_diaria_anterior ?? 0} label="vs ant." diffFormat="money" />
+                <ComparisonIndicator actual={extraMetrics?.venta_promedio_diaria_actual ?? 0} anterior={extraMetrics?.venta_promedio_diaria_anterior ?? 0} label={comparisonLabel} diffFormat="money" />
               </div>
               <div className="p-3 rounded-lg bg-muted/30 border border-border">
                 <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Pedidos Prom/Día</p>
                 <p className="text-base font-semibold text-foreground">{(extraMetrics?.pedidos_promedio_diario_actual ?? 0).toFixed(1)}</p>
-                <ComparisonIndicator actual={extraMetrics?.pedidos_promedio_diario_actual ?? 0} anterior={extraMetrics?.pedidos_promedio_diario_anterior ?? 0} label="vs ant." diffFormat="units" />
+                <ComparisonIndicator actual={extraMetrics?.pedidos_promedio_diario_actual ?? 0} anterior={extraMetrics?.pedidos_promedio_diario_anterior ?? 0} label={comparisonLabel} diffFormat="units" />
               </div>
               <div className="p-3 rounded-lg bg-muted/30 border border-border">
                 <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Uds Prom/Día</p>
                 <p className="text-base font-semibold text-foreground">{(extraMetrics?.unidades_promedio_diario_actual ?? 0).toFixed(1)}</p>
-                <ComparisonIndicator actual={extraMetrics?.unidades_promedio_diario_actual ?? 0} anterior={extraMetrics?.unidades_promedio_diario_anterior ?? 0} label="vs ant." diffFormat="units" />
+                <ComparisonIndicator actual={extraMetrics?.unidades_promedio_diario_actual ?? 0} anterior={extraMetrics?.unidades_promedio_diario_anterior ?? 0} label={comparisonLabel} diffFormat="units" />
               </div>
             </div>
           </div>

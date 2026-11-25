@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { differenceInCalendarDays } from "date-fns";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { MainLayout } from "@/components/layout/MainLayout";
-import { TimeFilter, THIS_MONTH_SENTINEL, type ComparisonPeriod } from "@/components/dashboard/TimeFilter";
+import { TimeFilter, THIS_MONTH_SENTINEL, ComparisonLabelContext, getComparisonLabel, type ComparisonPeriod } from "@/components/dashboard/TimeFilter";
 import { ExecutiveDashboard } from "@/components/dashboard/ExecutiveDashboard";
 import { ReportGeneratorButton } from "@/components/dashboard/ReportGenerator";
 
@@ -76,7 +76,9 @@ export default function ExecutivePage() {
         </div>
       </header>
       <div className="flex-1 px-4 sm:px-6 py-4 sm:py-6">
+        <ComparisonLabelContext.Provider value={getComparisonLabel(days, comparisonPeriod, customFrom, customTo, compCustomFrom, compCustomTo)}>
         <ExecutiveDashboard days={days} comparisonPeriod={comparisonPeriod} customFrom={customFrom} customTo={customTo} comparisonFrom={compCustomFrom} comparisonTo={compCustomTo} />
+        </ComparisonLabelContext.Provider>
       </div>
     </MainLayout>
   );

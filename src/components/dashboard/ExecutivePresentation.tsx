@@ -1,3 +1,4 @@
+import { useComparisonLabel } from "@/components/dashboard/TimeFilter";
 import type React from "react";
 import { cn } from "@/lib/utils";
 import { formatKpiMoney } from "@/lib/kpi-money";
@@ -54,6 +55,7 @@ export function KpiCard({ label, value, mobileValue, prefix = "", icon: Icon, cl
   actual?: number; anterior?: number; children?: React.ReactNode; diffFormat?: KpiDiffFormat;
   ventaM2Status?: { label: string; icon: React.ElementType; colorClass: string; bgClass: string; borderClass: string };
 }) {
+  const comparisonLabel = useComparisonLabel();
   return (
     <div
       className={cn("glass-card min-w-0 p-3 sm:p-5 flex items-start gap-2 sm:gap-4", cardClassName, ventaM2Status && `border ${ventaM2Status.borderClass}`, onClick && "cursor-pointer hover:ring-2 hover:ring-primary/30 transition-all")}
@@ -82,7 +84,7 @@ export function KpiCard({ label, value, mobileValue, prefix = "", icon: Icon, cl
           )}
         </p>
         {actual !== undefined && anterior !== undefined && (
-          <ComparisonIndicator actual={actual} anterior={anterior} label="vs ant." diffFormat={diffFormat} />
+          <ComparisonIndicator actual={actual} anterior={anterior} label={comparisonLabel} diffFormat={diffFormat} />
         )}
         {children}
       </div>

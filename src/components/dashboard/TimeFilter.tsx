@@ -1,7 +1,7 @@
-import { Fragment, useState } from "react";
+import { createContext, Fragment, useContext, useEffect, useState } from "react";
 import { format, differenceInCalendarDays, startOfMonth, subMonths, endOfMonth, subDays, subWeeks, subYears } from "date-fns";
 import { es } from "date-fns/locale";
-import { CalendarIcon, ChevronDown, GitCompareArrows } from "lucide-react";
+import { CalendarIcon, ChevronDown, GitCompareArrows, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Calendar } from "@/components/ui/calendar";
 import type { DateRange } from "react-day-picker";
@@ -198,18 +198,65 @@ interface Preset {
   value: number;
 }
 
-const presets: Preset[] = [
+const dayPresets: Preset[] = [
   { label: "Hoy", value: 0 },
   { label: "Ayer", value: YESTERDAY_SENTINEL },
-  { label: "Este Mes", value: THIS_MONTH_SENTINEL },
   { label: "Última Semana", value: 7 },
   { label: "15 Días", value: 15 },
   { label: "30 Días", value: 30 },
-  { label: "Mes Anterior", value: PREV_MONTH_SENTINEL },
   { label: "90 Días", value: 90 },
   { label: "120 Días", value: 120 },
   { label: "180 Días", value: 180 },
 ];
+const monthPresets: Preset[] = [
+  { label: "Este Mes", value: THIS_MONTH_SENTINEL },
+  { label: "Mes Anterior", value: PREV_MONTH_SENTINEL },
+];
+const presetGroups: Preset[][] = [dayPresets, monthPresets];
+const presets: Preset[] = [...dayPresets, ...monthPresets];
+
+const MIN_DATE = new Date(2024, 0, 1);
+const isOutOfBounds = (date: Date) => date > new Date() || date < MIN_DATE;
+
+/** "1–24 nov 2025", "8–31 oct", "28 oct – 3 nov" (year only when not current year). */
+export function formatComparisonRange(from: Date, to: Date): string {
+  const curYear = new Date().getFullYear();
+  const sameYear = from.getFullYear() === to.getFullYear();
+  const yearSuffix = (d: Date) => (d.getFullYear() !== curYear ? ` ${d.getFullYear()}` : "");
+  if (sameYear && from.getMonth() === to.getMonth()) {
+    const m = format(to, "MMM", { locale: es });
+    if (from.getDate() === to.getDate()) return `${from.getDate()} ${m}${yearSuffix(to)}`;
+    return `${from.getDate()}–${to.getDate()} ${m}${yearSuffix(to)}`;
+  }
+  const a = format(from, "d MMM", { locale: es }) + (sameYear ? "" : yearSuffix(from) || ` ${from.getFullYear()}`);
+  return `${a} – ${format(to, "d MMM", { locale: es })}${yearSuffix(to)}`;
+}
+
+/** Label shown in KPI cards instead of "vs ant." — provided by pages that own a TimeFilter. */
+export const ComparisonLabelContext = createContext<string>("vs ant.");
+export const useComparisonLabel = () => useContext(ComparisonLabelContext);
+
+export function getComparisonLabel(
+  filterValue: number,
+  comparisonPeriod: ComparisonPeriod,
+  customFrom?: Date,
+  customTo?: Date,
+  compFrom?: Date,
+  compTo?: Date
+): string {
+  const { from, to } = resolveComparisonRange(customFrom ? CUSTOM_SENTINEL : filterValue, comparisonPeriod, customFrom, customTo, compFrom, compTo);
+  return `vs ${formatComparisonRange(from, to)}`;
+}
+
+function useIsMobile() {
+  const [m, setM] = useState(() => typeof window !== "undefined" && window.innerWidth < 640);
+  useEffect(() => {
+    const on = () => setM(window.innerWidth < 640);
+    window.addEventListener("resize", on);
+    return () => window.removeEventListener("resize", on);
+  }, []);
+  return m;
+}
 
 function formatRange(from: Date, to: Date): string {
   const showYear = from.getFullYear() !== new Date().getFullYear();
@@ -241,7 +288,8 @@ export function TimeFilter({ value, onChange, comparisonPeriod, onComparisonChan
   const [internalTo, setInternalTo] = useState<Date | undefined>();
   const [menuOpen, setMenuOpen] = useState(false);
   const [showCalendar, setShowCalendar] = useState(false);
-  const [calendarStep, setCalendarStep] = useState<"from" | "to">("from");
+  const [rangeDraft, setRangeDraft] = useState<DateRange | undefined>();
+  const isMobile = useIsMobile();
   const [compOpen, setCompOpen] = useState(false);
 
   const customFrom = externalFrom ?? internalFrom;
@@ -254,41 +302,27 @@ export function TimeFilter({ value, onChange, comparisonPeriod, onComparisonChan
     setInternalFrom(undefined);
     setInternalTo(undefined);
     setShowCalendar(false);
-    setCalendarStep("from");
     onChange(preset.value);
     setMenuOpen(false);
   };
 
   const handleCustomClick = () => {
+    setRangeDraft(isCustom ? { from: customFrom, to: customTo ?? customFrom } : undefined);
     setShowCalendar(true);
-    setCalendarStep("from");
   };
 
-  const handleFromSelect = (date: Date | undefined) => {
-    if (!date) return;
-    setInternalFrom(date);
-    setCalendarStep("to");
-  };
-
-  const handleToSelect = (date: Date | undefined) => {
-    if (!date) return;
-    const fromDate = internalFrom!;
-    const toDate = date;
-    setInternalTo(toDate);
-    if (onCustomRangeChange) {
-      onCustomRangeChange(fromDate, toDate);
-    }
+  const applyRange = () => {
+    if (!rangeDraft?.from || !rangeDraft?.to) return;
+    setInternalFrom(rangeDraft.from);
+    setInternalTo(rangeDraft.to);
+    onCustomRangeChange?.(rangeDraft.from, rangeDraft.to);
     setShowCalendar(false);
-    setCalendarStep("from");
     setMenuOpen(false);
   };
 
   const handleOpenChange = (open: boolean) => {
     setMenuOpen(open);
-    if (!open) {
-      setShowCalendar(false);
-      setCalendarStep("from");
-    }
+    if (!open) setShowCalendar(false);
   };
 
   const displayLabel = isCustom
@@ -323,49 +357,40 @@ export function TimeFilter({ value, onChange, comparisonPeriod, onComparisonChan
         </PopoverTrigger>
         <PopoverContent className="w-auto p-0" align="end">
           {showCalendar ? (
-            <div>
-              <div className="px-3 pt-3 pb-1 flex items-center justify-between">
-                <button
-                  onClick={() => {
-                    if (calendarStep === "to") {
-                      setCalendarStep("from");
-                    } else {
-                      setShowCalendar(false);
-                    }
-                  }}
-                  className="text-xs text-muted-foreground hover:text-foreground transition-colors"
-                >
-                  ← Volver
-                </button>
-                <span className="text-xs font-medium text-foreground">
-                  {calendarStep === "from" ? "📅 Fecha Inicio" : "📅 Fecha Fin"}
-                </span>
-              </div>
-              {calendarStep === "from" && internalFrom === undefined && (
-                <p className="text-[10px] text-muted-foreground px-3 pb-1">Selecciona la fecha de inicio del rango</p>
-              )}
-              {calendarStep === "to" && (
-                <p className="text-[10px] text-muted-foreground px-3 pb-1">
-                  Desde: <span className="font-medium text-foreground">{format(internalFrom!, "d MMM yyyy", { locale: es })}</span> — selecciona fecha fin
-                </p>
-              )}
+            <div className="p-2">
+              <p className="px-3 pt-1 text-xs font-semibold text-foreground">📅 Rango personalizado</p>
               <Calendar
-                mode="single"
-                selected={calendarStep === "from" ? internalFrom : internalTo}
-                onSelect={calendarStep === "from" ? handleFromSelect : handleToSelect}
-                disabled={(date) => {
-                  if (date > new Date()) return true;
-                  if (date < new Date("2024-01-01")) return true;
-                  if (calendarStep === "to" && internalFrom && date < internalFrom) return true;
-                  return false;
-                }}
+                mode="range"
+                selected={rangeDraft}
+                onSelect={setRangeDraft}
+                numberOfMonths={isMobile ? 1 : 2}
+                defaultMonth={rangeDraft?.from ? (isMobile ? rangeDraft.from : subMonths(rangeDraft.to ?? rangeDraft.from, 1)) : (isMobile ? new Date() : subMonths(new Date(), 1))}
+                captionLayout="dropdown-buttons"
+                fromYear={2024}
+                toYear={new Date().getFullYear()}
+                fromDate={MIN_DATE}
+                toDate={new Date()}
+                disabled={isOutOfBounds}
                 initialFocus
                 className={cn("p-3 pointer-events-auto")}
               />
+              <div className="flex justify-end gap-2 px-3 pb-2">
+                <button onClick={() => setShowCalendar(false)} className="px-3 py-1.5 text-xs rounded-md text-muted-foreground hover:bg-muted">Cancelar</button>
+                <button
+                  disabled={!rangeDraft?.from || !rangeDraft?.to}
+                  onClick={applyRange}
+                  className="px-3 py-1.5 text-xs rounded-md bg-primary text-primary-foreground font-medium disabled:opacity-50"
+                >
+                  Aplicar
+                </button>
+              </div>
             </div>
           ) : (
             <div className="py-1 min-w-[180px]">
-              {presets.map((preset) => (
+              {presetGroups.map((group, gi) => (
+                <Fragment key={gi}>
+                {gi > 0 && <div className="h-px bg-border my-1" />}
+                {group.map((preset) => (
                 <button
                   key={preset.value}
                   onClick={() => handlePresetClick(preset)}
@@ -378,6 +403,8 @@ export function TimeFilter({ value, onChange, comparisonPeriod, onComparisonChan
                 >
                   {preset.label}
                 </button>
+                ))}
+                </Fragment>
               ))}
               <div className="h-px bg-border my-1" />
               <button
@@ -417,7 +444,14 @@ export function TimeFilter({ value, onChange, comparisonPeriod, onComparisonChan
                   mode="range"
                   selected={compDraft}
                   onSelect={setCompDraft}
-                  disabled={(date) => date > new Date() || date < new Date("2024-01-01")}
+                  numberOfMonths={isMobile ? 1 : 2}
+                  defaultMonth={compDraft?.from ?? (isMobile ? new Date() : subMonths(new Date(), 1))}
+                  captionLayout="dropdown-buttons"
+                  fromYear={2024}
+                  toYear={new Date().getFullYear()}
+                  fromDate={MIN_DATE}
+                  toDate={new Date()}
+                  disabled={isOutOfBounds}
                   initialFocus
                   className={cn("p-3 pointer-events-auto")}
                 />
@@ -475,6 +509,20 @@ export function TimeFilter({ value, onChange, comparisonPeriod, onComparisonChan
             )}
           </PopoverContent>
         </Popover>
+      )}
+
+      {onComparisonChange && comparisonPeriod === "custom" && compRange && (
+        <span className="inline-flex items-center gap-1 rounded-full border border-primary/30 bg-primary/10 pl-2.5 pr-1 py-0.5 text-xs font-medium text-primary whitespace-nowrap">
+          {formatComparisonRange(compRange.from, compRange.to)}
+          <button
+            type="button"
+            aria-label={`Volver a Mismo periodo ${from.getFullYear() - 1}`}
+            onClick={() => onComparisonChange("year1")}
+            className="rounded-full p-0.5 hover:bg-primary/20"
+          >
+            <X className="h-3 w-3" />
+          </button>
+        </span>
       )}
 
       {/* Date range display */}
