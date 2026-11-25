@@ -1,10 +1,11 @@
 import { toJpeg } from "html-to-image";
 import { jsPDF } from "jspdf";
-import JSZip from "jszip";
 import { supabase } from "@/integrations/supabase/client";
 import { formatCOP, tallasConStock, tieneUltimas, type CatalogoProducto } from "./catalogo";
 
-export const MAX_EXPORT = 300;
+export const MAX_EXPORT = 240;
+export type FormatoCatalogo = "pdf" | "img6" | "img8";
+export const porPagina = (f: FormatoCatalogo) => (f === "img8" ? 8 : 6);
 const esc = (s: string) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]!));
 
 /** Trae todos los productos del filtro (vista vendedor), en bloques de 200. */
@@ -47,7 +48,7 @@ function tarjetaHtml(p: CatalogoProducto, img: string | undefined, s: number) {
       <div style="font-size:${11 * s}px;font-weight:800;text-transform:uppercase;line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(p.nombre)}</div>
       ${p.color ? `<div style="font-size:${9 * s}px;color:#666">${esc(p.color)}</div>` : ""}
       <div style="display:flex;align-items:baseline;gap:${6 * s}px;margin-top:${3 * s}px">
-        <span style="font-size:${17 * s}px;font-weight:900">${formatCOP(p.precio)}</span>
+        <span style="font-size:${Math.max(17 * s, s >= 2 ? 40 : 0)}px;font-weight:900;line-height:1">${formatCOP(p.precio)}</span>
         ${antes ? `<span style="font-size:${10 * s}px;color:#888;text-decoration:line-through">${antes}</span>` : ""}
       </div>
       ${tallas ? `<div style="font-size:${9 * s}px;color:#333;margin-top:${2 * s}px"><b>Tallas:</b> ${tallas}</div>` : ""}
@@ -55,7 +56,7 @@ function tarjetaHtml(p: CatalogoProducto, img: string | undefined, s: number) {
   </div>`;
 }
 
-function paginaHtml(ps: CatalogoProducto[], imgs: Map<string, string>, opt: { w: number; h: number; cols: number; rows: number; s: number; titulo: string; fecha: string; pagina: number; total: number }) {
+function paginaHtml(ps: CatalogoProducto[], imgs: Map<string, string>, opt: { w: number; h: number; cols: number; rows: number; s: number; titulo: string; fecha: string; pagina: number; total: number; etiqueta: string }) {
   const { w, h, cols, rows, s } = opt;
   return `<div style="width:${w}px;height:${h}px;background:#fff;font-family:Helvetica,Arial,sans-serif;color:#111;display:flex;flex-direction:column;padding:${14 * s}px;box-sizing:border-box">
     <div style="display:flex;justify-content:space-between;align-items:baseline;border-bottom:${2 * s}px solid #111;padding-bottom:${6 * s}px;margin-bottom:${10 * s}px">
@@ -65,7 +66,7 @@ function paginaHtml(ps: CatalogoProducto[], imgs: Map<string, string>, opt: { w:
     <div style="flex:1;min-height:0;display:grid;grid-template-columns:repeat(${cols},1fr);grid-template-rows:repeat(${rows},minmax(0,1fr));gap:${10 * s}px">
       ${ps.map((p) => tarjetaHtml(p, p.imagen ? imgs.get(p.imagen) : undefined, s)).join("")}
     </div>
-    <div style="text-align:center;font-size:${8 * s}px;color:#777;margin-top:${6 * s}px">Página ${opt.pagina} de ${opt.total}</div>
+    <div style="text-align:center;font-size:${8 * s}px;color:#777;margin-top:${6 * s}px">${opt.etiqueta} ${opt.pagina} de ${opt.total}</div>
   </div>`;
 }
 
@@ -81,14 +82,14 @@ async function renderPagina(html: string, imgPx: { pixelRatio: number }) {
   } finally { host.remove(); }
 }
 
-export type ExportResult = { tipo: "pdf"; blob: Blob; nombre: string } | { tipo: "imagenes"; files: File[]; nombreZip: string };
+export type ExportResult = { tipo: "pdf"; blob: Blob; nombre: string } | { tipo: "imagenes"; files: File[] };
 
 export async function generarCatalogo(
-  productos: CatalogoProducto[], formato: "pdf" | "imagenes", titulo: string, fecha: string,
+  productos: CatalogoProducto[], formato: FormatoCatalogo, titulo: string, fecha: string,
   onProgress: (actual: number, total: number) => void,
 ): Promise<ExportResult> {
   const imgs = await precargar(productos.map((p) => p.imagen ?? ""));
-  const porPag = formato === "pdf" ? 6 : 4;
+  const porPag = porPagina(formato);
   const paginas: CatalogoProducto[][] = [];
   for (let i = 0; i < productos.length; i += porPag) paginas.push(productos.slice(i, i + porPag));
   const slug = titulo.replace(/[\\/:*?"<>|·]+/g, "").replace(/\s+/g, "-").replace(/-+/g, "-").slice(0, 60) || "Todos";
@@ -98,7 +99,7 @@ export async function generarCatalogo(
       const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
       for (let i = 0; i < paginas.length; i++) {
         onProgress(i + 1, paginas.length);
-        const url = await renderPagina(paginaHtml(paginas[i], imgs, { w: 794, h: 1123, cols: 2, rows: 3, s: 1.4, titulo, fecha, pagina: i + 1, total: paginas.length }), { pixelRatio: 2 });
+        const url = await renderPagina(paginaHtml(paginas[i], imgs, { w: 794, h: 1123, cols: 2, rows: 3, s: 1.4, titulo, fecha, pagina: i + 1, total: paginas.length, etiqueta: "Página" }), { pixelRatio: 2 });
         if (i > 0) doc.addPage();
         doc.addImage(url, "JPEG", 0, 0, 210, 297);
       }
@@ -107,11 +108,12 @@ export async function generarCatalogo(
     const files: File[] = [];
     for (let i = 0; i < paginas.length; i++) {
       onProgress(i + 1, paginas.length);
-      const url = await renderPagina(paginaHtml(paginas[i], imgs, { w: 1080, h: 1350, cols: 2, rows: 2, s: 2, titulo, fecha, pagina: i + 1, total: paginas.length }), { pixelRatio: 1 });
+      const ocho = formato === "img8";
+      const url = await renderPagina(paginaHtml(paginas[i], imgs, { w: 1080, h: ocho ? 1920 : 1350, cols: 2, rows: ocho ? 4 : 3, s: 2, titulo, fecha, pagina: i + 1, total: paginas.length, etiqueta: "Imagen" }), { pixelRatio: 1 });
       const blob = await (await fetch(url)).blob();
-      files.push(new File([blob], `${String(i + 1).padStart(2, "0")}-Catalogo-Monastery.jpg`, { type: "image/jpeg" }));
+      files.push(new File([blob], `Monastery-${slug}-${String(i + 1).padStart(2, "0")}.jpg`, { type: "image/jpeg" }));
     }
-    return { tipo: "imagenes", files, nombreZip: `Catalogo-Monastery-${slug}-${fecha}.zip` };
+    return { tipo: "imagenes", files };
   } finally {
     imgs.forEach((v, k) => v !== k && URL.revokeObjectURL(v));
   }
@@ -125,15 +127,26 @@ export function downloadBlob(blob: Blob, filename: string) {
   setTimeout(() => URL.revokeObjectURL(url), 30_000);
 }
 
-/** Debe llamarse directo desde un clic. En celular comparte los JPG; en computador descarga ZIP. */
-export async function entregarCatalogo(r: ExportResult): Promise<void> {
-  if (r.tipo === "pdf") return downloadBlob(r.blob, r.nombre);
-  const touch = matchMedia("(pointer: coarse)").matches;
-  if (touch && navigator.canShare?.({ files: r.files })) {
-    try { await navigator.share({ files: r.files }); return; }
-    catch (e) { if ((e as DOMException).name === "AbortError") return; }
+export const esTactil = () => matchMedia("(pointer: coarse)").matches;
+export const puedeCompartir = (files: File[]) => !!navigator.canShare?.({ files });
+
+/** Grupos para compartir: todos juntos si el navegador lo permite, si no de a 10. */
+export function gruposParaCompartir(files: File[]): File[][] {
+  if (puedeCompartir(files)) return [files];
+  const g: File[][] = [];
+  for (let i = 0; i < files.length; i += 10) g.push(files.slice(i, i + 10));
+  return g;
+}
+
+/** Llamar directo desde un clic. Devuelve false si el usuario canceló. */
+export async function compartirArchivos(files: File[]): Promise<boolean> {
+  try { await navigator.share({ files }); return true; }
+  catch (e) { if ((e as DOMException).name === "AbortError") return false; throw e; }
+}
+
+export async function descargarUnoPorUno(files: File[]) {
+  for (const f of files) {
+    downloadBlob(f, f.name);
+    await new Promise((r) => setTimeout(r, 300));
   }
-  const zip = new JSZip();
-  r.files.forEach((f) => zip.file(f.name, f));
-  downloadBlob(await zip.generateAsync({ type: "blob", compression: "STORE" }), r.nombreZip);
 }

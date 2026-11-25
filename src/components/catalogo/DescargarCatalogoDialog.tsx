@@ -6,7 +6,10 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { fechaBogotaISO } from "@/lib/catalogo-fecha";
-import { entregarCatalogo, fetchCatalogoCompleto, generarCatalogo, MAX_EXPORT, type ExportResult } from "@/lib/catalogo-export";
+import {
+  compartirArchivos, descargarUnoPorUno, downloadBlob, esTactil, fetchCatalogoCompleto, generarCatalogo, gruposParaCompartir,
+  MAX_EXPORT, porPagina, puedeCompartir, type ExportResult, type FormatoCatalogo,
+} from "@/lib/catalogo-export";
 import type { CatalogoProducto } from "@/lib/catalogo";
 
 export function DescargarCatalogoDialog({ open, onOpenChange, params, total, seleccionados, titulo }: {
@@ -14,15 +17,20 @@ export function DescargarCatalogoDialog({ open, onOpenChange, params, total, sel
   seleccionados: CatalogoProducto[]; titulo: string;
 }) {
   const [alcance, setAlcance] = useState<"filtro" | "seleccion">("filtro");
-  const [formato, setFormato] = useState<"pdf" | "imagenes">("pdf");
+  const [formato, setFormato] = useState<FormatoCatalogo>("img6");
   const [progreso, setProgreso] = useState<{ txt: string; pct: number } | null>(null);
   const [resultado, setResultado] = useState<ExportResult | null>(null);
+  const [grupos, setGrupos] = useState<File[][]>([]);
+  const [grupoIdx, setGrupoIdx] = useState(0);
 
-  useEffect(() => { if (open) { setAlcance(seleccionados.length ? "seleccion" : "filtro"); setResultado(null); setProgreso(null); } }, [open]); // eslint-disable-line
+  useEffect(() => { if (open) { setAlcance("filtro"); setResultado(null); setProgreso(null); } }, [open]);
   useEffect(() => { setResultado(null); }, [alcance, formato]);
 
   const cantidad = alcance === "seleccion" ? seleccionados.length : total;
   const excede = cantidad > MAX_EXPORT;
+  const nArchivos = Math.ceil(Math.min(cantidad, MAX_EXPORT) / porPagina(formato));
+  const esImg = formato !== "pdf";
+  const movil = typeof window !== "undefined" && esTactil();
 
   const generar = async () => {
     try {
@@ -30,8 +38,9 @@ export function DescargarCatalogoDialog({ open, onOpenChange, params, total, sel
       const productos = alcance === "seleccion" ? seleccionados : await fetchCatalogoCompleto({ ...params });
       if (!productos.length) { toast.error("No hay productos para descargar"); setProgreso(null); return; }
       const r = await generarCatalogo(productos, formato, alcance === "seleccion" ? "Selección" : titulo, fechaBogotaISO(),
-        (a, t) => setProgreso({ txt: `Generando página ${a} de ${t}`, pct: Math.round((a / t) * 100) }));
+        (a, t) => setProgreso({ txt: `Generando ${esImg ? "imagen" : "página"} ${a} de ${t}`, pct: Math.round((a / t) * 100) }));
       setResultado(r);
+      if (r.tipo === "imagenes") { setGrupos(gruposParaCompartir(r.files)); setGrupoIdx(0); }
       setProgreso(null);
     } catch (e: any) {
       setProgreso(null);
@@ -41,7 +50,27 @@ export function DescargarCatalogoDialog({ open, onOpenChange, params, total, sel
 
   const entregar = async () => {
     if (!resultado) return;
-    try { await entregarCatalogo(resultado); onOpenChange(false); } catch (e: any) { toast.error(`No se pudo descargar: ${e?.message ?? e}`); }
+    try {
+      if (resultado.tipo === "pdf") { downloadBlob(resultado.blob, resultado.nombre); onOpenChange(false); return; }
+      if (movil && puedeCompartir(grupos[grupoIdx] ?? [])) {
+        const ok = await compartirArchivos(grupos[grupoIdx]);
+        if (!ok) return;
+        if (grupoIdx + 1 < grupos.length) { setGrupoIdx(grupoIdx + 1); return; }
+        onOpenChange(false); return;
+      }
+      toast.info(`Se descargarán ${resultado.files.length} imágenes. Si el navegador pregunta, permite las descargas múltiples.`);
+      await descargarUnoPorUno(resultado.files);
+      onOpenChange(false);
+    } catch (e: any) { toast.error(`No se pudo entregar: ${e?.message ?? e}`); }
+  };
+
+  const textoBoton = () => {
+    if (!resultado) return progreso ? "Generando…" : "Generar";
+    if (resultado.tipo === "pdf") return "Descargar PDF";
+    if (movil && puedeCompartir(grupos[grupoIdx] ?? [])) {
+      return grupos.length > 1 ? `Compartir grupo ${grupoIdx + 1} de ${grupos.length}` : `Compartir ${resultado.files.length} imágenes`;
+    }
+    return `Descargar ${resultado.files.length} imágenes`;
   };
 
   return (
@@ -53,34 +82,31 @@ export function DescargarCatalogoDialog({ open, onOpenChange, params, total, sel
             <p className="text-sm font-medium">Qué incluir</p>
             <RadioGroup value={alcance} onValueChange={(v) => setAlcance(v as any)} disabled={!!progreso}>
               <Label className="flex items-center gap-2 font-normal"><RadioGroupItem value="filtro" />Todos los productos del filtro actual ({total.toLocaleString("es-CO")})</Label>
-              <Label className="flex items-center gap-2 font-normal aria-disabled:opacity-50" aria-disabled={!seleccionados.length}>
-                <RadioGroupItem value="seleccion" disabled={!seleccionados.length} />Solo los seleccionados ({seleccionados.length})
-              </Label>
+              {seleccionados.length > 0 && (
+                <Label className="flex items-center gap-2 font-normal"><RadioGroupItem value="seleccion" />Solo los seleccionados ({seleccionados.length})</Label>
+              )}
             </RadioGroup>
-            {excede && <p className="text-xs text-destructive">Son {cantidad.toLocaleString("es-CO")} productos; el máximo es {MAX_EXPORT}. Aplica más filtros para continuar.</p>}
+            {excede
+              ? <p className="text-xs text-destructive">Son {cantidad.toLocaleString("es-CO")} productos; el máximo es {MAX_EXPORT}. Aplica más filtros para continuar.</p>
+              : cantidad > 0 && <p className="text-xs text-muted-foreground">{cantidad.toLocaleString("es-CO")} productos → {nArchivos} {esImg ? (nArchivos === 1 ? "imagen" : "imágenes") : (nArchivos === 1 ? "página" : "páginas")}</p>}
           </div>
           <div className="space-y-2">
             <p className="text-sm font-medium">Formato</p>
-            <RadioGroup value={formato} onValueChange={(v) => setFormato(v as any)} disabled={!!progreso}>
+            <RadioGroup value={formato} onValueChange={(v) => setFormato(v as FormatoCatalogo)} disabled={!!progreso}>
+              <Label className="flex items-center gap-2 font-normal"><RadioGroupItem value="img6" />Imágenes · 6 por imagen (1080×1350)</Label>
+              <Label className="flex items-center gap-2 font-normal"><RadioGroupItem value="img8" />Imágenes · 8 por imagen (1080×1920)</Label>
               <Label className="flex items-center gap-2 font-normal"><RadioGroupItem value="pdf" />PDF (A4, 6 productos por página)</Label>
-              <Label className="flex items-center gap-2 font-normal"><RadioGroupItem value="imagenes" />Imágenes para WhatsApp (4 productos por imagen)</Label>
             </RadioGroup>
           </div>
-          {progreso && (
-            <div className="space-y-1.5"><Progress value={progreso.pct} /><p className="text-xs text-muted-foreground">{progreso.txt}</p></div>
-          )}
+          {progreso && <div className="space-y-1.5"><Progress value={progreso.pct} /><p className="text-xs text-muted-foreground">{progreso.txt}</p></div>}
           {resultado && (
             <p className="text-sm text-muted-foreground">
-              Listo: {resultado.tipo === "pdf" ? "el PDF está generado." : `${resultado.files.length} imágenes generadas.`}
+              {resultado.tipo === "pdf" ? "Listo: el PDF está generado." : `Listo: ${resultado.files.length} imágenes generadas.`}
             </p>
           )}
         </div>
         <DialogFooter>
-          {resultado ? (
-            <Button onClick={entregar}>{resultado.tipo === "pdf" ? "Descargar PDF" : "Compartir / descargar imágenes"}</Button>
-          ) : (
-            <Button onClick={generar} disabled={!!progreso || excede || cantidad === 0}>{progreso ? "Generando…" : "Generar"}</Button>
-          )}
+          <Button onClick={resultado ? entregar : generar} disabled={!resultado && (!!progreso || excede || cantidad === 0)}>{textoBoton()}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
