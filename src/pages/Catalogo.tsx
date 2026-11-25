@@ -364,7 +364,7 @@ function FiltrosPanel(props: {
                   <button key={o.valor} onClick={() => toggleList(l.key, o.valor)}
                     className={cn("inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs transition-colors",
                       on ? "bg-primary text-primary-foreground border-primary" : "border-border hover:bg-muted")}>
-                    {l.key === "color" && <span className="h-3 w-3 rounded-full border border-border" style={{ background: o.hex || "transparent" }} />}
+                    {l.key === "color" && o.hex && <span className="h-3 w-3 shrink-0 rounded-full border border-border" style={{ background: o.hex }} />}
                     {o.valor}
                     {o.productos != null && <span className={cn("text-[10px]", on ? "opacity-80" : "text-muted-foreground")}>{o.productos}</span>}
                   </button>
