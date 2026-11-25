@@ -48,6 +48,11 @@ export function RequirePermission({ module, action, requireScope, children }: Pr
   );
 
   if (!hasPermission) {
+    // Usuarios con acceso al Catálogo aterrizan allí (p. ej. solo "comercial.catalogo").
+    const canCatalogo = (permissions ?? []).some(
+      (p) => p.module_key === "comercial.catalogo" && p.action_key === "view" && p.granted === true,
+    );
+    if (canCatalogo && module !== "comercial.catalogo") return <Navigate to="/catalogo" replace />;
     toast.error("No tienes permiso para acceder a esta sección");
     return <Navigate to="/" replace />;
   }

@@ -105,6 +105,7 @@ const gestionComercialItems: NavItem[] = [
   { title: "Gestión de Incentivos", url: "/incentivos", icon: Trophy, description: "Campañas & liquidaciones", module: "incentivos", action: "view" },
   { title: "Rendimiento Equipo", url: "/rendimiento-vendedores", icon: Users, description: "Desempeño por vendedor", module: "dashboards.rendimiento_vendedores", action: "view" },
   { title: "Descuentos en Tiendas", url: "/descuentos-tiendas", icon: Percent, description: "Promoción, nota y sin nota", module: "comercial.descuentos_tiendas", action: "view" },
+  { title: "Catálogo", url: "/catalogo", icon: LayoutGrid, description: "Fichas para WhatsApp y stock", module: "comercial.catalogo", action: "view" },
   { title: "Liquidación Comisiones", url: "/comisiones", icon: Calculator, description: "Cálculo y aprobación", module: "comisiones", action: "view" },
   { title: "Equipo Comercial", url: "/vendedores", icon: UserCog, description: "Gestión de vendedores", module: "vendedores", action: "view" },
 ];
