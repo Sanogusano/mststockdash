@@ -19,6 +19,7 @@ import { useHasPermission } from "@/hooks/useHasPermission";
 import { useUserRole } from "@/hooks/useUserRole";
 import { cn } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { FiltrosDesplegables } from "@/components/catalogo/FiltrosDesplegables";
 import { DescargarCatalogoDialog } from "@/components/catalogo/DescargarCatalogoDialog";
 import { formatCOP, minutosDesde, textoWhatsApp, type CatalogoProducto } from "@/lib/catalogo";
 import { descargarFicha, descargarFichas } from "@/lib/catalogo-ficha";
@@ -207,12 +208,12 @@ export default function CatalogoPage() {
   };
   const limpiarTodo = () => { const n = new URLSearchParams(); if (sp.get("orden")) n.set("orden", orden); setBusqueda(""); setSp(n, { replace: true }); };
 
-  const panelFiltros = (
-    <FiltrosPanel filtros={filtrosQ.data} loading={filtrosQ.isLoading} error={filtrosQ.error as Error | null}
-      getList={getList} toggleList={toggleList} soloRebajados={soloRebajados} incluirAgotados={incluirAgotados}
-      setParam={setParam} pmin={pmin} pmax={pmax}
-      setPrecio={(a, b) => { const n = new URLSearchParams(sp); const f = filtrosQ.data!; a <= f.precio_min ? n.delete("pmin") : n.set("pmin", String(a)); b >= f.precio_max ? n.delete("pmax") : n.set("pmax", String(b)); setSp(n, { replace: true }); }} />
-  );
+  const setList = (k: string, v: string[]) => setParam(k, v.join(",") || null);
+  const filtrosProps = {
+    filtros: filtrosQ.data, loading: filtrosQ.isLoading, error: filtrosQ.error as Error | null,
+    getList, setList, soloRebajados, incluirAgotados, setParam, pmin, pmax,
+    setPrecio: (a: number, b: number) => { const n = new URLSearchParams(sp); const f = filtrosQ.data!; a <= f.precio_min ? n.delete("pmin") : n.set("pmin", String(a)); b >= f.precio_max ? n.delete("pmax") : n.set("pmax", String(b)); setSp(n, { replace: true }); },
+  };
 
   return (
     <SidebarProvider>
@@ -263,11 +264,8 @@ export default function CatalogoPage() {
           </header>
 
           <div className="flex min-w-0 flex-1">
-            <aside className="hidden lg:block w-64 shrink-0 border-r border-border p-4 overflow-y-auto sticky top-[104px] self-start max-h-[calc(100vh-104px)]">
-              {panelFiltros}
-            </aside>
-
             <div className="flex-1 min-w-0 p-3 sm:p-5 space-y-3">
+              <div className="hidden lg:block"><FiltrosDesplegables {...filtrosProps} /></div>
               <div className="flex flex-wrap items-center gap-2">
                 <span className="text-sm text-muted-foreground mr-1">{prodQ.isLoading ? "Cargando…" : `${total.toLocaleString("es-CO")} productos`}</span>
                 {nUltimas > 0 && (
@@ -333,7 +331,7 @@ export default function CatalogoPage() {
             <DrawerTitle>Filtros</DrawerTitle>
             <Button size="sm" onClick={() => setFiltrosOpen(false)}>Ver {total.toLocaleString("es-CO")}</Button>
           </DrawerHeader>
-          <div className="overflow-y-auto px-4 pb-6">{panelFiltros}</div>
+          <div className="overflow-y-auto px-4 pb-6"><FiltrosDesplegables {...filtrosProps} stacked /></div>
         </DrawerContent>
       </Drawer>
 
@@ -341,64 +339,6 @@ export default function CatalogoPage() {
         seleccionados={[...seleccion.values()]} titulo={tituloFiltro} />
       <DetalleProducto p={detalle} comercial={vista === "comercial"} onClose={() => setDetalle(null)} />
     </SidebarProvider>
-  );
-}
-
-/* ---------- Filtros ---------- */
-function FiltrosPanel(props: {
-  filtros?: Filtros; loading: boolean; error: Error | null;
-  getList: (k: string) => string[]; toggleList: (k: string, v: string) => void;
-  soloRebajados: boolean; incluirAgotados: boolean; setParam: (k: string, v: string | null) => void;
-  pmin: number | null; pmax: number | null; setPrecio: (a: number, b: number) => void;
-}) {
-  const { filtros: f, loading, error, getList, toggleList } = props;
-  const [rango, setRango] = useState<[number, number] | null>(null);
-  useEffect(() => { setRango(null); }, [props.pmin, props.pmax]);
-  if (loading) return <div className="space-y-3">{Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-16 w-full" />)}</div>;
-  if (error) return <p className="text-sm text-destructive">Error al cargar filtros: {error.message}</p>;
-  if (!f) return null;
-  const valor: [number, number] = rango ?? [props.pmin ?? f.precio_min, props.pmax ?? f.precio_max];
-  return (
-    <div className="space-y-5">
-      <div className="space-y-3">
-        <label className="flex items-center justify-between text-sm"><span>Solo rebajados</span>
-          <Switch checked={props.soloRebajados} onCheckedChange={(c) => props.setParam("rebajados", c ? "1" : null)} /></label>
-        <label className="flex items-center justify-between text-sm"><span>Mostrar agotados</span>
-          <Switch checked={props.incluirAgotados} onCheckedChange={(c) => props.setParam("agotados", c ? "1" : null)} /></label>
-      </div>
-      {f.precio_max > f.precio_min && (
-        <div className="space-y-2">
-          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Precio</p>
-          <Slider min={f.precio_min} max={f.precio_max} step={1000} value={valor}
-            onValueChange={(v) => setRango([v[0], v[1]])} onValueCommit={(v) => props.setPrecio(v[0], v[1])} />
-          <div className="flex justify-between text-xs text-muted-foreground"><span>{formatCOP(valor[0])}</span><span>{formatCOP(valor[1])}</span></div>
-        </div>
-      )}
-      {LISTAS.map((l) => {
-        const opciones = (f as any)[l.rpc] as Opcion[];
-        if (!opciones?.length) return null;
-        const sel = getList(l.key);
-        return (
-          <div key={l.key} className="space-y-2">
-            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{l.label}</p>
-            <div className="flex flex-wrap gap-1.5">
-              {opciones.map((o) => {
-                const on = sel.includes(o.valor);
-                return (
-                  <button key={o.valor} onClick={() => toggleList(l.key, o.valor)}
-                    className={cn("inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs transition-colors",
-                      on ? "bg-primary text-primary-foreground border-primary" : "border-border hover:bg-muted")}>
-                    {l.key === "color" && o.hex && <span className="h-3 w-3 shrink-0 rounded-full border border-border" style={{ background: o.hex }} />}
-                    {o.valor}
-                    {o.productos != null && <span className={cn("text-[10px]", on ? "opacity-80" : "text-muted-foreground")}>{o.productos}</span>}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        );
-      })}
-    </div>
   );
 }
 

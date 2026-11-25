@@ -62,3 +62,23 @@ export function minutosDesde(iso: string | null | undefined, now = Date.now()): 
   if (Number.isNaN(t)) return null;
   return Math.max(0, Math.floor((now - t) / 60000));
 }
+
+const ORDEN_TALLAS = ["XXS", "XS", "S", "M", "L", "XL", "XXL", "XXXL"];
+/** Orden lógico: letras (XS…XXL), luego numéricas de menor a mayor, luego el resto. */
+export function compararTallas(a: string, b: string): number {
+  const ia = ORDEN_TALLAS.indexOf(a.toUpperCase()), ib = ORDEN_TALLAS.indexOf(b.toUpperCase());
+  const na = /^\d+(\.\d+)?$/.test(a) ? Number(a) : null, nb = /^\d+(\.\d+)?$/.test(b) ? Number(b) : null;
+  const rank = (i: number, n: number | null) => (i >= 0 ? 0 : n !== null ? 1 : 2);
+  const ra = rank(ia, na), rb = rank(ib, nb);
+  if (ra !== rb) return ra - rb;
+  if (ra === 0) return ia - ib;
+  if (ra === 1) return na! - nb!;
+  return a.localeCompare(b, "es");
+}
+
+/** Texto del botón: "Talla" → "Talla: M" → "Talla: M, L" → "Talla · 3". */
+export function etiquetaFiltro(nombre: string, sel: string[]): string {
+  if (!sel.length) return nombre;
+  if (sel.length <= 2) return `${nombre}: ${sel.join(", ")}`;
+  return `${nombre} · ${sel.length}`;
+}

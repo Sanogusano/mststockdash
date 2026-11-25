@@ -20,3 +20,16 @@ describe("catálogo WhatsApp", () => {
     expect(formatCOP(1234.6)).toBe("$ 1.235");
   });
 });
+
+import { compararTallas, etiquetaFiltro } from "@/lib/catalogo";
+describe("filtros del catálogo", () => {
+  it("ordena tallas: letras, luego numéricas", () => {
+    expect(["10", "L", "06", "XS", "U", "XXL", "4", "M", "S", "XL"].sort(compararTallas)).toEqual(["XS", "S", "M", "L", "XL", "XXL", "4", "06", "10", "U"]);
+  });
+  it("etiqueta del botón según cantidad elegida", () => {
+    expect(etiquetaFiltro("Talla", [])).toBe("Talla");
+    expect(etiquetaFiltro("Talla", ["M"])).toBe("Talla: M");
+    expect(etiquetaFiltro("Talla", ["M", "L"])).toBe("Talla: M, L");
+    expect(etiquetaFiltro("Talla", ["M", "L", "XL"])).toBe("Talla · 3");
+  });
+});
