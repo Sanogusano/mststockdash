@@ -32,6 +32,7 @@ interface OrderRow {
   compare_at_price: number;
   categoria: string;
   coleccion: string | null;
+  detalle_descuento: string | null;
 }
 
 interface Location {
@@ -87,6 +88,13 @@ export default function PedidosDetallePage() {
   const [collectionOptions, setCollectionOptions] = useState<{ coleccion: string; unidades: number }[]>([]);
   const toggleCollection = (c: string) =>
     setSelectedCollections(prev => prev.includes(c) ? prev.filter(x => x !== c) : [...prev, c]);
+  const [selectedDetalles, setSelectedDetalles] = useState<string[]>(() =>
+    (searchParams.get("detalle") || "").split("|").map(c => c.trim()).filter(Boolean)
+  );
+  const [detalleOptions, setDetalleOptions] = useState<{ detalle_descuento: string; lineas: number }[]>([]);
+  const [detalleSearch, setDetalleSearch] = useState("");
+  const toggleDetalle = (d: string) =>
+    setSelectedDetalles(prev => prev.includes(d) ? prev.filter(x => x !== d) : [...prev, d]);
   const [showAlertDetail, setShowAlertDetail] = useState(false);
 
   const title = tipo === "full_price" ? "Pedidos a Full Price" : tipo === "rebajas" ? "Pedidos con Rebajas" : "Pedidos con Descuento";
@@ -195,6 +203,25 @@ export default function PedidosDetallePage() {
     });
   }, [days, customFrom, customTo]);
 
+  // Load discount detail options
+  useEffect(() => {
+    if (tipo !== "descuento") { setDetalleOptions([]); return; }
+    const { dias_atras, p_hasta } = buildRpcDateParams(days, customFrom, customTo);
+    (supabase.rpc as any)("reporte_pedidos_detalles_descuento", {
+      dias_atras,
+      p_canal: selectedCanal || null,
+      p_location_id: selectedLocation === "all" ? null : selectedLocation,
+      p_hasta,
+    }).then(({ data: rows, error }: any) => {
+      if (error) {
+        if (import.meta.env.DEV) console.error("Error fetching discount details:", error);
+        setDetalleOptions([]);
+      } else {
+        setDetalleOptions(((rows ?? []) as any[]).map(r => ({ detalle_descuento: String(r.detalle_descuento ?? ""), lineas: Number(r.lineas) || 0 })).filter(r => r.detalle_descuento));
+      }
+    });
+  }, [tipo, days, customFrom, customTo, selectedCanal, selectedLocation]);
+
   // Load orders
   useEffect(() => {
     setLoading(true);
@@ -202,13 +229,14 @@ export default function PedidosDetallePage() {
     const canalParam = selectedCanal || null;
     const { dias_atras: effectiveDays, p_hasta: hastaParam } = buildRpcDateParams(days, customFrom, customTo);
 
-    (supabase.rpc as any)("reporte_pedidos_por_tipo_venta_v2", {
+    (supabase.rpc as any)("reporte_pedidos_por_tipo_venta_v3", {
       dias_atras: effectiveDays,
       p_canal: canalParam,
       p_location_id: locParam,
       p_tipo: tipo,
       p_hasta: hastaParam,
       p_coleccion: selectedCollections.length ? selectedCollections.join(",") : null,
+      p_detalle: selectedDetalles.length ? selectedDetalles.join("|") : null,
     }).then(({ data: rows, error }: any) => {
       if (error) {
         console.error("Error fetching orders:", error);
@@ -218,7 +246,7 @@ export default function PedidosDetallePage() {
       }
       setLoading(false);
     });
-  }, [days, selectedCanal, selectedLocation, tipo, customFrom, customTo, selectedCollections]);
+  }, [days, selectedCanal, selectedLocation, tipo, customFrom, customTo, selectedCollections, selectedDetalles]);
 
   const calcDiscountPct = (row: OrderRow) => {
     if (row.tipo_venta === "Descuento de Producto" && row.compare_at_price > 0) {
@@ -238,6 +266,9 @@ export default function PedidosDetallePage() {
     return row.descuento_otorgado;
   };
 
+  const discountTypeLabel = (row: OrderRow) =>
+    row.tipo_venta === "Descuento de Producto" ? "Producto Rebajado" : (row.detalle_descuento?.trim() || "Descuento Promocional");
+
   const isAlertCategory = (cat: string) => ALERT_CATEGORIES.includes(cat);
 
   const fmtCOP = (v: number) =>
@@ -256,7 +287,7 @@ export default function PedidosDetallePage() {
     ...(tipo === "descuento" ? {
       "Descuento $": calcDiscountValue(r),
       "Descuento %": calcDiscountPct(r) + "%",
-      "Tipo Descuento": r.tipo_venta === "Descuento de Producto" ? "Producto Rebajado" : "Descuento Promocional",
+      "Tipo Descuento": discountTypeLabel(r),
     } : {}),
   }));
 
@@ -281,7 +312,7 @@ export default function PedidosDetallePage() {
               <div>
                 <h2 className="text-base sm:text-lg font-semibold text-foreground">{title}</h2>
                 <p className="text-[10px] sm:text-xs text-muted-foreground">
-                  Canal: {!selectedCanal ? "Todos" : selectedCanal === "digital" ? "Digital" : selectedCanal === "outlets" ? "Outlets" : "Tiendas"} · {resolveDays(days)} días{selectedCollections.length > 0 && ` · Colección: ${selectedCollections.join(", ")}`}
+                  Canal: {!selectedCanal ? "Todos" : selectedCanal === "digital" ? "Digital" : selectedCanal === "outlets" ? "Outlets" : "Tiendas"} · {resolveDays(days)} días{selectedCollections.length > 0 && ` · Colección: ${selectedCollections.join(", ")}`}{selectedDetalles.length > 0 && ` · Descuento: ${selectedDetalles.join(", ")}`}
                 </p>
               </div>
             </div>
@@ -484,6 +515,56 @@ export default function PedidosDetallePage() {
               </Popover>
             </div>
 
+            {tipo === "descuento" && (
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-muted-foreground font-medium">Descuento:</span>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" size="sm" className="h-8 text-xs gap-1.5 w-[200px] justify-between">
+                    <span className="truncate">
+                      {selectedDetalles.length === 0 ? "Todos" : selectedDetalles.length === 1 ? selectedDetalles[0] : `${selectedDetalles.length} seleccionados`}
+                    </span>
+                    <ChevronDown className="h-3.5 w-3.5 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[300px] p-2" align="start">
+                  <input
+                    value={detalleSearch}
+                    onChange={(e) => setDetalleSearch(e.target.value)}
+                    placeholder="Buscar descuento…"
+                    className="w-full h-8 px-2 mb-1 text-xs rounded-md border border-input bg-background focus:outline-none focus:ring-1 focus:ring-ring"
+                  />
+                  {selectedDetalles.length > 0 && (
+                    <button
+                      onClick={() => setSelectedDetalles([])}
+                      className="w-full text-left px-2 py-1.5 text-xs text-muted-foreground hover:text-foreground hover:bg-muted rounded-sm mb-1 transition-colors"
+                    >
+                      Limpiar selección
+                    </button>
+                  )}
+                  <div className="max-h-[260px] overflow-y-auto">
+                    {(() => {
+                      const q = detalleSearch.trim().toLowerCase();
+                      const opts = q ? detalleOptions.filter(o => o.detalle_descuento.toLowerCase().includes(q)) : detalleOptions;
+                      if (opts.length === 0) return <p className="px-2 py-2 text-xs text-muted-foreground">Sin resultados</p>;
+                      return opts.map(opt => (
+                        <label key={opt.detalle_descuento} title={opt.detalle_descuento} className="flex items-center gap-2 px-2 py-1.5 rounded-sm cursor-pointer hover:bg-muted transition-colors text-sm">
+                          <Checkbox
+                            checked={selectedDetalles.includes(opt.detalle_descuento)}
+                            onCheckedChange={() => toggleDetalle(opt.detalle_descuento)}
+                            className="h-3.5 w-3.5"
+                          />
+                          <span className="flex-1 text-xs truncate">{opt.detalle_descuento}</span>
+                          <span className="text-[10px] text-muted-foreground">{opt.lineas.toLocaleString("es-CO")}</span>
+                        </label>
+                      ));
+                    })()}
+                  </div>
+                </PopoverContent>
+              </Popover>
+            </div>
+            )}
+
             {/* Time filter */}
             <TimeFilter value={days} onChange={handleDaysChange} customFrom={customFrom} customTo={customTo} onCustomRangeChange={handleCustomRangeChange} />
 
@@ -573,13 +654,13 @@ export default function PedidosDetallePage() {
                                 <td className="px-4 py-2.5 text-right text-destructive font-medium">{calcDiscountPct(row)}%</td>
                                 <td className="px-4 py-2.5 text-right text-destructive font-medium">{fmtCOP(calcDiscountValue(row))}</td>
                                 <td className="px-4 py-2.5">
-                                  <span className={cn(
+                                  <span title={row.tipo_venta === "Descuento de Producto" ? undefined : (row.detalle_descuento ?? undefined)} className={cn(
                                     "inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium",
                                     row.tipo_venta === "Descuento de Producto"
                                       ? "bg-accent text-accent-foreground"
-                                      : "bg-destructive/10 text-destructive"
+                                      : "bg-destructive/10 text-destructive max-w-[260px] truncate block w-fit"
                                   )}>
-                                    {row.tipo_venta === "Descuento de Producto" ? "Producto Rebajado" : "Descuento Promocional"}
+                                    {discountTypeLabel(row)}
                                   </span>
                                 </td>
                               </>
