@@ -198,12 +198,14 @@ export default function CatalogoPage() {
 
   const [cargandoTodo, setCargandoTodo] = useState(false);
   const [avisoTodo, setAvisoTodo] = useState(false);
+  const [elegibles, setElegibles] = useState(0);
   const filtroKey = JSON.stringify({ ...params, soloUltimas });
   const filtroKeyPrev = useRef(filtroKey);
   useEffect(() => {
-    if (filtroKeyPrev.current !== filtroKey) { filtroKeyPrev.current = filtroKey; setSeleccion(new Map()); }
+    if (filtroKeyPrev.current !== filtroKey) { filtroKeyPrev.current = filtroKey; setSeleccion(new Map()); setElegibles(0); }
   }, [filtroKey]);
-  const todosSeleccionados = total > 0 && seleccion.size === total;
+  const todosSeleccionados = elegibles > 0 && seleccion.size >= elegibles;
+  const nTodo = soloUltimas ? nUltimas : total;
   const seleccionarTodo = async () => {
     setAvisoTodo(false); setCargandoTodo(true);
     try {
@@ -215,7 +217,7 @@ export default function CatalogoPage() {
         ps.forEach((p) => { if (!soloUltimas || p.alerta === "ULTIMAS UNIDADES") n.set(String(p.product_id), p); });
         if (ps.length < 200) break;
       }
-      setSeleccion(n);
+      setSeleccion(n); setElegibles(n.size);
     } catch (e: any) {
       toast.error(`No se pudieron cargar los productos: ${e?.message ?? e}`);
     } finally { setCargandoTodo(false); }
@@ -324,7 +326,7 @@ export default function CatalogoPage() {
                   )}
                   {seleccionando && (
                     <Button size="sm" variant="outline" className="h-8" onClick={onSeleccionarTodo} disabled={cargandoTodo || total === 0}>
-                      {cargandoTodo ? "Cargando…" : todosSeleccionados ? "Quitar selección" : `Seleccionar todo (${total.toLocaleString("es-CO")})`}
+                      {cargandoTodo ? "Cargando…" : todosSeleccionados ? "Quitar selección" : `Seleccionar todo (${nTodo.toLocaleString("es-CO")})`}
                     </Button>
                   )}
                   <Button size="sm" variant={seleccionando ? "secondary" : "outline"} className="h-8"
