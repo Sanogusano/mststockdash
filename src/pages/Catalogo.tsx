@@ -23,6 +23,26 @@ import { FiltrosDesplegables } from "@/components/catalogo/FiltrosDesplegables";
 import { DescargarCatalogoDialog } from "@/components/catalogo/DescargarCatalogoDialog";
 import { formatCOP, minutosDesde, textoWhatsApp, unidadesVendibles, type CatalogoProducto, type CatalogoTalla } from "@/lib/catalogo";
 import { descargarFicha, descargarFichas } from "@/lib/catalogo-ficha";
+import { CatalogoTiendas } from "@/components/catalogo/CatalogoTiendas";
+
+function CatalogoTabs({ tab }: { tab: "online" | "tiendas" }) {
+  const [sp, setSp] = useSearchParams();
+  const ir = (t: string) => { const n = new URLSearchParams(sp); if (t === "online") n.delete("tab"); else n.set("tab", t); setSp(n, { replace: true }); };
+  return (
+    <div className="inline-flex rounded-md bg-muted p-0.5 text-sm">
+      {([["online", "Online"], ["tiendas", "En tiendas"]] as const).map(([v, l]) => (
+        <button key={v} onClick={() => ir(v)}
+          className={cn("rounded px-3 py-1 font-medium transition-colors", tab === v ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground")}>{l}</button>
+      ))}
+    </div>
+  );
+}
+
+export default function CatalogoPage() {
+  const [sp] = useSearchParams();
+  const tab = sp.get("tab") === "tiendas" ? "tiendas" : "online";
+  return tab === "tiendas" ? <CatalogoTiendas tabs={<CatalogoTabs tab="tiendas" />} /> : <CatalogoOnline />;
+}
 
 const LIMITE = 48;
 const ORDENES = [
@@ -59,7 +79,7 @@ function useAhora(ms = 30000) {
   return n;
 }
 
-export default function CatalogoPage() {
+function CatalogoOnline() {
   const [sp, setSp] = useSearchParams();
   const qc = useQueryClient();
   const { isAdmin } = useUserRole();
@@ -277,6 +297,7 @@ export default function CatalogoPage() {
                 <span className="hidden sm:inline ml-1.5">Sincronizar</span>
               </Button>
             </div>
+            <CatalogoTabs tab="online" />
             <div className="flex items-center gap-2">
               <div className="relative flex-1 min-w-0">
                 <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />

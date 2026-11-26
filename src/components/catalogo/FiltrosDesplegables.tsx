@@ -27,7 +27,7 @@ function triggerCls(activo: boolean, stacked: boolean) {
     activo && "border-primary bg-primary/10 text-primary hover:bg-primary/15 hover:text-primary");
 }
 
-function MultiSelect({ label, opciones, seleccion, onApply, buscar, color, stacked }: {
+export function MultiSelect({ label, opciones, seleccion, onApply, buscar, color, stacked }: {
   label: string; opciones: Opcion[]; seleccion: string[]; onApply: (v: string[]) => void; buscar: boolean; color?: boolean; stacked: boolean;
 }) {
   const [open, setOpen] = useState(false);
