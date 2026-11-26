@@ -6140,6 +6140,18 @@ export type Database = {
         }
         Returns: Json
       }
+      catalogo_tiendas: {
+        Args: {
+          p_busqueda?: string
+          p_categorias?: string[]
+          p_ciudades?: string[]
+          p_generos?: string[]
+          p_limite?: number
+          p_offset?: number
+          p_tallas?: string[]
+        }
+        Returns: Json
+      }
       categorias_disponibles: {
         Args: { p_dias?: number }
         Returns: {
