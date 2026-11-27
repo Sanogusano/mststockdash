@@ -58,3 +58,6 @@
 - [x] Desempeño de Productos: "Ver detalle por tienda" resuelve productos de varias tallas (sku "Varias Tallas") buscando por title en product_catalog, avisa con toast "No se encontró el producto en el catálogo" si no hay product_id y muestra "Cargando…" mientras busca. 5 pruebas nuevas (170 en total) OK; sin sesión real (Supabase externo).
 
 - [x] Pasar venta_neta de reporte_top_productos_global a la tabla, la tarjeta de unidades y el PDF de Desempeño de Productos, en formato "$45,1M"/"$850k"; 177 pruebas y PDF renderizado con datos reales verificados.
+- [x] Reemplazar el envío individual del diálogo Compartir enlace por copia del enlace y del mensaje para Zenvia; mensaje verificado con prueba.
+- [x] Convertir el catálogo público en un pedido persistente de varios productos con cantidades, límites de stock y envío consolidado por WhatsApp; flujo completo verificado en navegador con datos de muestra.
+- [x] Aumentar el logo de la franja superior del catálogo público a las clases solicitadas; revisado visualmente en 390 px.

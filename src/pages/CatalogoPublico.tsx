@@ -1,9 +1,21 @@
 import { useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
+import { Minus, Plus, ShoppingBag, Trash2 } from "lucide-react";
+import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
-import { formatCOP, catalogoPublicoUrl } from "@/lib/catalogo";
+import {
+  agregarProductoAlPedido,
+  cambiarCantidadPedido,
+  catalogoPublicoUrl,
+  formatCOP,
+  mensajePedidoWhatsApp,
+  totalPedido,
+  unidadesPedido,
+  type PedidoItem,
+} from "@/lib/catalogo";
 import { imagenReducida } from "@/lib/catalogo-export";
 import logo from "@/assets/monastery-logo-white.png";
 
@@ -16,6 +28,15 @@ type Resp = { estado: "activo" | "vencido" | "no_existe"; titulo?: string; expir
 
 const WEB = "https://monasterycouture.com";
 const waUrl = (num: string | undefined, txt: string) => `https://wa.me/${(num ?? "").replace(/\D/g, "")}?text=${encodeURIComponent(txt)}`;
+
+function leerPedidoLocal(slug: string): PedidoItem[] {
+  try {
+    const valor = JSON.parse(localStorage.getItem(`pedido_catalogo_${slug}`) ?? "[]");
+    return Array.isArray(valor) ? valor as PedidoItem[] : [];
+  } catch {
+    return [];
+  }
+}
 
 export function restante(ms: number) {
   const t = Math.max(0, Math.floor(ms / 1000));
@@ -35,8 +56,8 @@ function Shell({ children }: { children: React.ReactNode }) {
 }
 /** Franja negra superior con el logo oficial blanco, centrado. */
 const FranjaLogo = () => (
-  <div className="bg-black py-3.5">
-    <div className="flex justify-center"><img src={logo} alt="MONASTERY" className="h-7 object-contain sm:h-8" /></div>
+  <div className="bg-black py-4">
+    <div className="flex justify-center"><img src={logo} alt="MONASTERY" className="h-12 w-auto object-contain sm:h-14" /></div>
   </div>
 );
 
@@ -45,6 +66,8 @@ export default function CatalogoPublicoPage() {
   const [d, setD] = useState<Resp | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [ahora, setAhora] = useState(Date.now());
+  const [pedido, setPedido] = useState<PedidoItem[]>(() => leerPedidoLocal(slug));
+  const [pedidoAbierto, setPedidoAbierto] = useState(false);
 
   useEffect(() => {
     document.title = "Catálogo Monastery";
@@ -53,11 +76,41 @@ export default function CatalogoPublicoPage() {
     });
   }, [slug]);
   useEffect(() => { const t = setInterval(() => setAhora(Date.now()), 1000); return () => clearInterval(t); }, []);
+  useEffect(() => {
+    try { localStorage.setItem(`pedido_catalogo_${slug}`, JSON.stringify(pedido)); } catch { /* El pedido sigue disponible durante esta visita. */ }
+  }, [pedido, slug]);
 
   const productos = useMemo(() => {
     const ps = d?.productos ?? [];
     return [...ps.filter((p) => !p.agotado), ...ps.filter((p) => p.agotado)];
   }, [d]);
+  const disponibilidad = useMemo(() => new Map(
+    (d?.productos ?? []).flatMap((p) => p.tallas.map((t) => [t.sku, Number(t.disponible) || 0] as const)),
+  ), [d]);
+
+  const agregar = (p: Prod, talla: Talla) => {
+    const resultado = agregarProductoAlPedido(pedido, p, talla);
+    if (!resultado.agregado) {
+      toast.error("No hay más unidades de esa talla");
+      return false;
+    }
+    setPedido(resultado.pedido);
+    toast.success("Agregado al pedido");
+    return true;
+  };
+  const cambiarCantidad = (item: PedidoItem, delta: number) => {
+    const disponible = disponibilidad.get(item.sku) ?? 0;
+    if (delta > 0 && item.cantidad >= disponible) {
+      toast.error("No hay más unidades de esa talla");
+      return;
+    }
+    setPedido((actual) => cambiarCantidadPedido(actual, item.sku, delta, disponible));
+  };
+  const eliminar = (sku: string) => {
+    const siguiente = pedido.filter((item) => item.sku !== sku);
+    setPedido(siguiente);
+    if (!siguiente.length) setPedidoAbierto(false);
+  };
 
   if (err) return <Shell><p className="text-center text-sm text-destructive">{err}</p></Shell>;
   if (!d) return <Shell><p className="text-center text-sm text-muted-foreground">Cargando catálogo…</p></Shell>;
@@ -86,6 +139,13 @@ export default function CatalogoPublicoPage() {
   );
 
   const ms = new Date(d.expira_en!).getTime() - ahora;
+  const total = totalPedido(pedido);
+  const enviarPedido = () => {
+    supabase.rpc("catalogo_publico_clic", { p_slug: slug }).then(() => undefined, () => undefined);
+    const mensaje = mensajePedidoWhatsApp(pedido, catalogoPublicoUrl(slug));
+    window.open(waUrl(d.whatsapp, mensaje), "_blank", "noopener,noreferrer");
+  };
+
   return (
     <div className="min-h-screen bg-background text-foreground">
       <FranjaLogo />
@@ -99,24 +159,79 @@ export default function CatalogoPublicoPage() {
             {d.agotados} productos de este catálogo ya se agotaron.
           </p>
         )}
-        <div className="grid grid-cols-2 gap-3">
-          {productos.map((p) => <Tarjeta key={p.product_id} p={p} slug={slug} whatsapp={d.whatsapp} />)}
+        <div className={cn("grid grid-cols-2 gap-3", pedido.length > 0 && "pb-24")}>
+          {productos.map((p) => <Tarjeta key={p.product_id} p={p} onAgregar={(talla) => agregar(p, talla)} />)}
         </div>
         <p className="mt-8 text-center text-xs text-muted-foreground">Precios y disponibilidad sujetos a cambio</p>
       </div>
+
+      {pedido.length > 0 && (
+        <>
+          <button
+            type="button"
+            onClick={() => setPedidoAbierto(true)}
+            className="fixed inset-x-0 bottom-0 z-40 flex min-h-14 items-center justify-center gap-2 bg-foreground px-4 py-3 text-sm font-semibold text-background shadow-lg"
+          >
+            <ShoppingBag className="h-5 w-5" />
+            Ver pedido ({unidadesPedido(pedido)} productos) · {formatCOP(total)}
+          </button>
+          <Sheet open={pedidoAbierto} onOpenChange={setPedidoAbierto}>
+            <SheetContent side="bottom" className="mx-auto max-h-[85vh] w-full max-w-xl overflow-y-auto p-4 sm:p-6">
+              <SheetHeader>
+                <SheetTitle>Tu pedido</SheetTitle>
+                <SheetDescription className="sr-only">Revisa los productos y las cantidades de tu pedido.</SheetDescription>
+              </SheetHeader>
+              <div className="divide-y divide-border">
+                {pedido.map((item) => {
+                  const disponible = disponibilidad.get(item.sku) ?? 0;
+                  return (
+                    <div key={item.sku} className="flex gap-3 py-4">
+                      {item.imagen ? (
+                        <img src={imagenReducida(item.imagen)} alt={item.nombre} className="h-20 w-16 shrink-0 rounded object-cover" />
+                      ) : <div className="h-20 w-16 shrink-0 rounded bg-muted" />}
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-semibold leading-tight">{item.nombre}</p>
+                        <p className="mt-1 text-xs text-muted-foreground">{[item.color, `Talla ${item.talla}`].filter(Boolean).join(" · ")}</p>
+                        <p className="mt-1 text-sm font-medium">{formatCOP(item.precio)} c/u</p>
+                        <div className="mt-2 flex items-center gap-2">
+                          <Button type="button" variant="outline" size="icon" className="h-8 w-8" disabled={item.cantidad <= 1} onClick={() => cambiarCantidad(item, -1)} aria-label={`Quitar una unidad de ${item.nombre}`}>
+                            <Minus className="h-4 w-4" />
+                          </Button>
+                          <span className="w-6 text-center text-sm font-semibold">{item.cantidad}</span>
+                          <Button type="button" variant="outline" size="icon" className="h-8 w-8" disabled={item.cantidad >= disponible} onClick={() => cambiarCantidad(item, 1)} aria-label={`Agregar una unidad de ${item.nombre}`}>
+                            <Plus className="h-4 w-4" />
+                          </Button>
+                          <Button type="button" variant="ghost" size="icon" className="ml-auto h-8 w-8 text-destructive" onClick={() => eliminar(item.sku)} aria-label={`Eliminar ${item.nombre}`}>
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+              <div className="flex items-center justify-between border-t border-border py-4 text-base font-bold">
+                <span>Total</span><span>{formatCOP(total)}</span>
+              </div>
+              <Button className="w-full bg-success text-success-foreground hover:bg-success/90" size="lg" onClick={enviarPedido}>
+                Enviar pedido por WhatsApp
+              </Button>
+              <Button variant="outline" className="mt-2 w-full" onClick={() => setPedidoAbierto(false)}>Seguir comprando</Button>
+            </SheetContent>
+          </Sheet>
+        </>
+      )}
     </div>
   );
 }
 
-function Tarjeta({ p, slug, whatsapp }: { p: Prod; slug: string; whatsapp?: string }) {
+function Tarjeta({ p, onAgregar }: { p: Prod; onAgregar: (talla: Talla) => boolean }) {
   const [talla, setTalla] = useState<Talla | null>(null);
   const pct = Math.round(Number(p.pct_descuento) || 0);
   const antes = p.precio_antes && Number(p.precio_antes) > Number(p.precio) ? p.precio_antes : null;
-  const pedir = () => {
+  const agregar = () => {
     if (!talla) return;
-    supabase.rpc("catalogo_publico_clic", { p_slug: slug }).then(() => undefined, () => undefined);
-    const txt = `Hola! Vi el catálogo Monastery y quiero:\n• ${p.nombre}${p.color ? ` ${p.color}` : ""}\n• Talla: ${talla.talla}\n• Precio: ${formatCOP(p.precio)}\n• Ref: ${talla.sku}\nCatálogo: ${catalogoPublicoUrl(slug)}`;
-    window.open(waUrl(whatsapp, txt), "_blank");
+    if (onAgregar(talla)) setTalla(null);
   };
   return (
     <div className={cn("flex flex-col overflow-hidden rounded-lg border border-border bg-card", p.agotado && "opacity-60 grayscale")}>
@@ -148,8 +263,8 @@ function Tarjeta({ p, slug, whatsapp }: { p: Prod; slug: string; whatsapp?: stri
                 );
               })}
             </div>
-            <Button size="sm" disabled={!talla} onClick={pedir} className="mt-auto bg-success text-success-foreground hover:bg-success/90">
-              {talla ? "Lo quiero por WhatsApp" : "Elige tu talla"}
+            <Button size="sm" disabled={!talla} onClick={agregar} className="mt-auto bg-success text-success-foreground hover:bg-success/90">
+              {talla ? "Agregar al pedido" : "Elige tu talla"}
             </Button>
           </>
         )}

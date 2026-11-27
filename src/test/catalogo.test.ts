@@ -1,5 +1,9 @@
 import { describe, it, expect } from "vitest";
-import { textoWhatsApp, nombreArchivo, formatCOP, PUBLIC_CATALOG_BASE, catalogoPublicoUrl, type CatalogoProducto } from "@/lib/catalogo";
+import {
+  textoWhatsApp, nombreArchivo, formatCOP, PUBLIC_CATALOG_BASE, catalogoPublicoUrl,
+  mensajeCatalogoZenvia, agregarProductoAlPedido, cambiarCantidadPedido,
+  mensajePedidoWhatsApp, totalPedido, unidadesPedido, type CatalogoProducto, type PedidoItem,
+} from "@/lib/catalogo";
 
 const base: CatalogoProducto = {
   product_id: 1, nombre: "ARMINIA T-SHIRT", color: "BLACK", precio: 89900, precio_antes: 149900, pct_descuento: 40,
@@ -49,5 +53,43 @@ describe("enlace público del catálogo", () => {
   it("usa siempre el dominio oficial, sin importar desde dónde se abra", () => {
     expect(PUBLIC_CATALOG_BASE).toBe("https://monasterysmart.shop");
     expect(catalogoPublicoUrl("abc123")).toBe("https://monasterysmart.shop/c/abc123");
+  });
+  it("arma el mensaje listo para pegar en Zenvia", () => {
+    expect(mensajeCatalogoZenvia("https://monasterysmart.shop/c/abc123")).toBe(
+      "¡Hola! Te comparto nuestro catálogo Monastery con precios especiales. Elige tus productos y tallas y envíanos tu pedido por aquí mismo. Disponible solo por 48 horas: https://monasterysmart.shop/c/abc123",
+    );
+  });
+});
+
+describe("pedido del catálogo público", () => {
+  const producto = { product_id: "p1", nombre: "ARMINIA T-SHIRT", color: "BLACK", precio: 89900, imagen: null };
+  const talla = { sku: "SKU-M", talla: "M", disponible: 2 };
+  const item: PedidoItem = { ...producto, sku: "SKU-M", talla: "M", cantidad: 1 };
+
+  it("suma el mismo SKU sin superar el disponible de la talla", () => {
+    const primero = agregarProductoAlPedido([], producto, talla);
+    const segundo = agregarProductoAlPedido(primero.pedido, producto, talla);
+    const tercero = agregarProductoAlPedido(segundo.pedido, producto, talla);
+    expect(primero.agregado).toBe(true);
+    expect(segundo.pedido[0].cantidad).toBe(2);
+    expect(tercero).toEqual({ pedido: segundo.pedido, agregado: false });
+  });
+
+  it("mantiene las cantidades entre una unidad y el disponible", () => {
+    expect(cambiarCantidadPedido([item], "SKU-M", -1, 2)[0].cantidad).toBe(1);
+    expect(cambiarCantidadPedido([item], "SKU-M", 1, 2)[0].cantidad).toBe(2);
+    expect(cambiarCantidadPedido([{ ...item, cantidad: 2 }], "SKU-M", 1, 2)[0].cantidad).toBe(2);
+  });
+
+  it("calcula unidades, total y mensaje consolidado para WhatsApp", () => {
+    const pedido = [item, { ...item, sku: "SKU-L", talla: "L", cantidad: 2 }];
+    expect(unidadesPedido(pedido)).toBe(3);
+    expect(totalPedido(pedido)).toBe(269700);
+    expect(mensajePedidoWhatsApp(pedido, "https://monasterysmart.shop/c/abc123")).toBe(
+      "¡Hola! Quiero hacer este pedido del catálogo Monastery:\n" +
+      "1. ARMINIA T-SHIRT BLACK – Talla M – 1 und – $ 89.900 c/u (Ref SKU-M)\n" +
+      "2. ARMINIA T-SHIRT BLACK – Talla L – 2 und – $ 89.900 c/u (Ref SKU-L)\n" +
+      "Total: $ 269.700\nCatálogo: https://monasterysmart.shop/c/abc123",
+    );
   });
 });

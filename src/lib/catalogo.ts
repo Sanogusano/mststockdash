@@ -104,3 +104,74 @@ export function etiquetaFiltro(nombre: string, sel: string[]): string {
   if (sel.length <= 2) return `${nombre}: ${sel.join(", ")}`;
   return `${nombre} · ${sel.length}`;
 }
+
+export const mensajeCatalogoZenvia = (url: string) =>
+  `¡Hola! Te comparto nuestro catálogo Monastery con precios especiales. Elige tus productos y tallas y envíanos tu pedido por aquí mismo. Disponible solo por 48 horas: ${url}`;
+
+export type PedidoItem = {
+  sku: string;
+  product_id: string;
+  nombre: string;
+  color: string | null;
+  talla: string;
+  precio: number;
+  imagen: string | null;
+  cantidad: number;
+};
+
+type ProductoParaPedido = Omit<PedidoItem, "sku" | "talla" | "cantidad" | "product_id"> & { product_id: string | number };
+
+/** Agrega una unidad sin superar las existencias informadas para esa talla. */
+export function agregarProductoAlPedido(
+  pedido: PedidoItem[],
+  producto: ProductoParaPedido,
+  talla: { sku: string; talla: string; disponible: number },
+): { pedido: PedidoItem[]; agregado: boolean } {
+  const disponible = Math.max(0, Number(talla.disponible) || 0);
+  const existente = pedido.find((item) => item.sku === talla.sku);
+  if (disponible < 1 || (existente && existente.cantidad >= disponible)) return { pedido, agregado: false };
+  if (existente) {
+    return {
+      pedido: pedido.map((item) => item.sku === talla.sku ? { ...item, cantidad: item.cantidad + 1 } : item),
+      agregado: true,
+    };
+  }
+  return {
+    pedido: [...pedido, {
+      sku: talla.sku,
+      product_id: String(producto.product_id),
+      nombre: producto.nombre,
+      color: producto.color,
+      talla: talla.talla,
+      precio: Number(producto.precio) || 0,
+      imagen: producto.imagen,
+      cantidad: 1,
+    }],
+    agregado: true,
+  };
+}
+
+/** Cambia cantidades entre 1 y el disponible; las eliminaciones se hacen aparte. */
+export function cambiarCantidadPedido(pedido: PedidoItem[], sku: string, delta: number, disponible: number): PedidoItem[] {
+  return pedido.map((item) => {
+    if (item.sku !== sku) return item;
+    const siguiente = item.cantidad + delta;
+    if (siguiente < 1) return item;
+    return { ...item, cantidad: Math.min(siguiente, Math.max(1, Number(disponible) || 0)) };
+  });
+}
+
+export const unidadesPedido = (pedido: PedidoItem[]) => pedido.reduce((sum, item) => sum + item.cantidad, 0);
+export const totalPedido = (pedido: PedidoItem[]) => pedido.reduce((sum, item) => sum + item.precio * item.cantidad, 0);
+
+export function mensajePedidoWhatsApp(pedido: PedidoItem[], url: string): string {
+  const lineas = pedido.map((item, index) =>
+    `${index + 1}. ${item.nombre}${item.color ? ` ${item.color}` : ""} – Talla ${item.talla} – ${item.cantidad} und – ${formatCOP(item.precio)} c/u (Ref ${item.sku})`,
+  );
+  return [
+    "¡Hola! Quiero hacer este pedido del catálogo Monastery:",
+    ...lineas,
+    `Total: ${formatCOP(totalPedido(pedido))}`,
+    `Catálogo: ${url}`,
+  ].join("\n");
+}

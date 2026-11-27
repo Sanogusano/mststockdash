@@ -1,12 +1,12 @@
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { Copy, Send } from "lucide-react";
+import { Copy, MessageSquareText } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { fetchCatalogoCompleto } from "@/lib/catalogo-export";
-import { catalogoPublicoUrl, type CatalogoProducto } from "@/lib/catalogo";
+import { catalogoPublicoUrl, mensajeCatalogoZenvia, type CatalogoProducto } from "@/lib/catalogo";
 
 export const fechaHoraBogota = (iso: string) =>
   new Intl.DateTimeFormat("es-CO", { dateStyle: "medium", timeStyle: "short", hour12: true, timeZone: "America/Bogota" })
@@ -44,7 +44,10 @@ export function CompartirEnlaceDialog({ open, onOpenChange, params, seleccionado
   }, [open]);
 
   const copiar = async () => { await navigator.clipboard.writeText(res!.url); toast.success("Enlace copiado"); };
-  const wa = res ? `https://wa.me/?text=${encodeURIComponent(`Mira el catálogo Monastery: ${res.url}`)}` : "#";
+  const copiarMensaje = async () => {
+    await navigator.clipboard.writeText(mensajeCatalogoZenvia(res!.url));
+    toast.success("Mensaje copiado");
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -55,9 +58,9 @@ export function CompartirEnlaceDialog({ open, onOpenChange, params, seleccionado
             <p className="text-sm text-muted-foreground">{res.productos.toLocaleString("es-CO")} productos</p>
             <div className="flex gap-2">
               <Input readOnly value={res.url} onFocus={(e) => e.target.select()} />
-              <Button variant="outline" onClick={copiar}><Copy className="h-4 w-4 mr-1" />Copiar</Button>
+              <Button variant="outline" onClick={copiar}><Copy className="h-4 w-4 mr-1" />Copiar enlace</Button>
             </div>
-            <Button asChild className="w-full"><a href={wa} target="_blank" rel="noreferrer"><Send className="h-4 w-4 mr-1" />Enviar por WhatsApp</a></Button>
+            <Button variant="outline" className="w-full" onClick={copiarMensaje}><MessageSquareText className="h-4 w-4 mr-1" />Copiar mensaje</Button>
             <p className="text-xs text-muted-foreground">Vence el {fechaHoraBogota(res.expira_en)} (48 h)</p>
           </div>
         )}
