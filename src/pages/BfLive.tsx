@@ -40,20 +40,15 @@ function Celebration({ hito, sound, onClose }: { hito: number; sound: boolean; o
     };
     confetti({ particleCount: 180, spread: 120, origin: { y: 0.6 }, zIndex: 10001 });
     burst();
-    let bell: HTMLAudioElement | null = null; let party: HTMLAudioElement | null = null;
-    if (sound) {
-      party = new Audio("/bf/celebracion.mp3");
-      const playParty = () => { void party?.play().catch(() => undefined); };
-      bell = new Audio("/bf/timbre.mp3");
-      bell.onended = playParty; bell.onerror = playParty;
-      void bell.play().catch(playParty);
-    }
-    return () => { window.clearTimeout(close); cancelAnimationFrame(frame); bell?.pause(); party?.pause(); if (bell) { bell.onended = null; bell.onerror = null; } };
+    let party: HTMLAudioElement | null = null;
+    if (sound) { party = new Audio("/bf/celebracion.mp3"); void party.play().catch(() => undefined); }
+    return () => { window.clearTimeout(close); cancelAnimationFrame(frame); party?.pause(); };
   }, [hito, sound, onClose]);
   return <div role="dialog" aria-label="Celebración de hito de ventas" onClick={onClose} className="bf-celebration fixed inset-0 z-[10000] flex cursor-pointer flex-col items-center justify-center gap-6 bg-black/75 p-6">
     <div className="bf-gold-flash pointer-events-none absolute inset-0" />
     <img src="/bf/celebracion.gif" alt="" className="relative max-h-[55vh] w-auto max-w-[90vw] rounded-xl" />
     <p className="relative text-center text-5xl font-black text-[#FFD700] drop-shadow-lg sm:text-7xl lg:text-8xl">{milestoneLabel(hito)}</p>
+    <p className="bf-ring relative flex items-center gap-3 text-center text-3xl font-black text-[#FFD700] sm:text-5xl"><span className="bf-bell inline-block" aria-hidden="true">🔔</span>¡TOQUEN EL TIMBRE!<span className="bf-bell inline-block" aria-hidden="true">🔔</span></p>
   </div>;
 }
 
