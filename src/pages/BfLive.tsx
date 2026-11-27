@@ -11,6 +11,52 @@ import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { BF_EVENT_END, BF_REFRESH_INTERVAL, bogotaTime, budgetMoney, budgetPace, expectedMonthProgress, canViewBfLive, countdown, isNewOrder, liveMoney, productThumbnail, type BfLiveData, type BfBudgetAmount, type BfBudgetGroup, type LiveOrder } from "@/lib/bf-live";
 
+export function playChaChing(ctx: AudioContext) {
+  const start = ctx.currentTime;
+  const master = ctx.createGain();
+  master.gain.setValueAtTime(0.6, start);
+  master.connect(ctx.destination);
+  let activeSources = 8;
+  const release = () => {
+    activeSources -= 1;
+    if (activeSources === 0) master.disconnect();
+  };
+
+  const buffer = ctx.createBuffer(1, Math.round(ctx.sampleRate * 0.08), ctx.sampleRate);
+  const samples = buffer.getChannelData(0);
+  for (let i = 0; i < samples.length; i++) samples[i] = Math.random() * 2 - 1;
+  const noise = ctx.createBufferSource();
+  noise.buffer = buffer;
+  const filter = ctx.createBiquadFilter();
+  filter.type = "bandpass";
+  filter.frequency.setValueAtTime(3000, start);
+  filter.Q.setValueAtTime(1.2, start);
+  const noiseGain = ctx.createGain();
+  noiseGain.gain.setValueAtTime(0.35, start);
+  noiseGain.gain.exponentialRampToValueAtTime(0.001, start + 0.08);
+  noise.connect(filter); filter.connect(noiseGain); noiseGain.connect(master);
+  noise.onended = () => { noise.onended = null; noise.disconnect(); filter.disconnect(); noiseGain.disconnect(); release(); };
+  noise.start(start); noise.stop(start + 0.08);
+
+  const tone = (type: OscillatorType, frequency: number, offset: number, volume: number, duration: number) => {
+    const oscillator = ctx.createOscillator();
+    const gain = ctx.createGain();
+    const at = start + offset;
+    oscillator.type = type;
+    oscillator.frequency.setValueAtTime(frequency, at);
+    gain.gain.setValueAtTime(volume, at);
+    gain.gain.exponentialRampToValueAtTime(0.001, at + duration);
+    oscillator.connect(gain); gain.connect(master);
+    oscillator.onended = () => { oscillator.onended = null; oscillator.disconnect(); gain.disconnect(); release(); };
+    oscillator.start(at); oscillator.stop(at + duration);
+  };
+  tone("square", 180, 0, 0.08, 0.06);
+  for (const frequency of [2093, 2637, 3136]) {
+    tone("sine", frequency, 0.09, 0.12, 0.6);
+    tone("sine", frequency, 0.22, 0.07, 0.45);
+  }
+}
+
 function useAnimatedAmount(value: number) {
   const [display, setDisplay] = useState(value);
   const current = useRef(value);
@@ -163,15 +209,7 @@ export function BfLiveBroadcast() {
       window.clearTimeout(toastTimer.current);
       toastTimer.current = window.setTimeout(() => setNewOrder(null), 3000);
       if (!mutedRef.current && audio.current) {
-        const ctx = audio.current;
-        const oscillator = ctx.createOscillator();
-        const gain = ctx.createGain();
-        oscillator.connect(gain); gain.connect(ctx.destination);
-        oscillator.frequency.value = 880;
-        gain.gain.setValueAtTime(0.12, ctx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.2);
-        oscillator.start(); oscillator.stop(ctx.currentTime + 0.22);
-        oscillator.onended = () => { oscillator.disconnect(); gain.disconnect(); };
+        playChaChing(audio.current);
       }
     }
     if (first) lastOrder.current = first;
