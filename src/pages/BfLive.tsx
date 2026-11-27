@@ -1,7 +1,8 @@
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Navigate } from "react-router-dom";
-import { Activity, Crown, Maximize, Minimize, Radio, ShoppingCart, Volume2, VolumeX, ImageOff } from "lucide-react";
+import confetti from "canvas-confetti";
+import { Activity, PartyPopper, Crown, Maximize, Minimize, Radio, ShoppingCart, Volume2, VolumeX, ImageOff } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useUserPermissions } from "@/hooks/useUserPermissions";
 import { useUserRole } from "@/hooks/useUserRole";
@@ -9,7 +10,52 @@ import { AppSidebar } from "@/components/AppSidebar";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { BF_EVENT_END, BF_REFRESH_INTERVAL, bogotaTime, budgetMoney, budgetPace, expectedMonthProgress, canViewBfLive, countdown, isNewOrder, liveMoney, productThumbnail, type BfLiveData, type BfBudgetAmount, type BfBudgetGroup, type LiveOrder } from "@/lib/bf-live";
+import { BF_EVENT_END, BF_REFRESH_INTERVAL, bogotaTime, budgetMoney, budgetPace, expectedMonthProgress, canViewBfLive, countdown, isNewOrder, liveMoney, productThumbnail, type BfLiveData, type BfBudgetAmount, type BfBudgetGroup, type LiveOrder, BF_MILESTONE_KEY, milestoneStep, milestoneLabel, salesMilestone } from "@/lib/bf-live";
+
+/** Plays the cash-register mp3; falls back to the synthesized sound when the file cannot play. */
+export function playOrderSound(el: HTMLAudioElement | null, ctx: AudioContext | null) {
+  const fallback = () => { if (ctx) playChaChing(ctx); };
+  if (!el || el.error) { fallback(); return; }
+  try {
+    el.currentTime = 0;
+    const result = el.play();
+    if (result && typeof result.catch === "function") result.catch(fallback);
+  } catch { fallback(); }
+}
+
+function readHito(): number | null {
+  try { const v = localStorage.getItem(BF_MILESTONE_KEY); const n = v === null ? NaN : Number(v); return Number.isFinite(n) ? n : null; } catch { return null; }
+}
+function writeHito(n: number) { try { localStorage.setItem(BF_MILESTONE_KEY, String(n)); } catch { /* ignore */ } }
+
+function Celebration({ hito, sound, onClose }: { hito: number; sound: boolean; onClose: () => void }) {
+  useEffect(() => {
+    const close = window.setTimeout(onClose, 10_000);
+    const end = Date.now() + 4000;
+    let frame = 0;
+    const burst = () => {
+      confetti({ particleCount: 6, angle: 60, spread: 70, origin: { x: 0, y: 0.7 }, zIndex: 10001 });
+      confetti({ particleCount: 6, angle: 120, spread: 70, origin: { x: 1, y: 0.7 }, zIndex: 10001 });
+      if (Date.now() < end) frame = requestAnimationFrame(burst);
+    };
+    confetti({ particleCount: 180, spread: 120, origin: { y: 0.6 }, zIndex: 10001 });
+    burst();
+    let bell: HTMLAudioElement | null = null; let party: HTMLAudioElement | null = null;
+    if (sound) {
+      party = new Audio("/bf/celebracion.mp3");
+      const playParty = () => { void party?.play().catch(() => undefined); };
+      bell = new Audio("/bf/timbre.mp3");
+      bell.onended = playParty; bell.onerror = playParty;
+      void bell.play().catch(playParty);
+    }
+    return () => { window.clearTimeout(close); cancelAnimationFrame(frame); bell?.pause(); party?.pause(); if (bell) { bell.onended = null; bell.onerror = null; } };
+  }, [hito, sound, onClose]);
+  return <div role="dialog" aria-label="Celebración de hito de ventas" onClick={onClose} className="bf-celebration fixed inset-0 z-[10000] flex cursor-pointer flex-col items-center justify-center gap-6 bg-black/75 p-6">
+    <div className="bf-gold-flash pointer-events-none absolute inset-0" />
+    <img src="/bf/celebracion.gif" alt="" className="relative max-h-[55vh] w-auto max-w-[90vw] rounded-xl" />
+    <p className="relative text-center text-5xl font-black text-[#FFD700] drop-shadow-lg sm:text-7xl lg:text-8xl">{milestoneLabel(hito)}</p>
+  </div>;
+}
 
 export function playChaChing(ctx: AudioContext) {
   const start = ctx.currentTime;
@@ -190,6 +236,16 @@ export function BfLiveBroadcast() {
   const [newOrder, setNewOrder] = useState<LiveOrder | null>(null);
   const toastTimer = useRef<number>();
   const [fullscreenError, setFullscreenError] = useState("");
+  const chaching = useRef<HTMLAudioElement | null>(null);
+  const [celebrating, setCelebrating] = useState<number | null>(null);
+  const closeCelebration = useCallback(() => setCelebrating(null), []);
+  const ventaTotal = data?.evento?.venta_neta;
+  useEffect(() => {
+    if (ventaTotal === undefined || ventaTotal === null) return;
+    const step = milestoneStep(readHito(), ventaTotal);
+    if (step.save !== null) writeHito(step.save);
+    if (step.celebrate !== null) setCelebrating(step.celebrate);
+  }, [ventaTotal]);
 
   useEffect(() => {
     const parsed = Date.parse(data?.ahora ?? "");
@@ -209,7 +265,7 @@ export function BfLiveBroadcast() {
       window.clearTimeout(toastTimer.current);
       toastTimer.current = window.setTimeout(() => setNewOrder(null), 3000);
       if (!mutedRef.current && audio.current) {
-        playChaChing(audio.current);
+        playOrderSound(chaching.current, audio.current);
       }
     }
     if (first) lastOrder.current = first;
@@ -218,7 +274,10 @@ export function BfLiveBroadcast() {
 
   async function toggleSound() {
     if (muted) {
-      try { audio.current ??= new AudioContext(); await audio.current.resume(); }
+      try {
+        audio.current ??= new AudioContext(); await audio.current.resume();
+        if (!chaching.current) { const el = new Audio("/bf/chaching.mp3"); el.preload = "auto"; el.volume = 0.8; el.load(); chaching.current = el; }
+      }
       catch { setFullscreenError("No se pudo activar el sonido en este navegador."); return; }
     }
     mutedRef.current = !muted;
@@ -242,6 +301,7 @@ export function BfLiveBroadcast() {
   const channels = data?.evento?.por_canal ?? [];
 
   return <div ref={screen} className="bf-live min-h-screen w-full min-w-0 bg-background text-foreground tabular-nums">
+    {celebrating !== null && <Celebration hito={celebrating} sound={!muted} onClose={closeCelebration} />}
     <div className="bf-content">
       <header className="bf-header">
         <div className="flex items-center gap-3"><SidebarTrigger className="text-foreground" /><span className="bf-live-dot" /><span className="text-sm font-bold text-destructive">EN VIVO</span></div>
@@ -249,6 +309,7 @@ export function BfLiveBroadcast() {
         <div className="flex flex-wrap items-center gap-2">
           <time className="mr-2 text-sm text-muted-foreground">{bogotaTime(now, true)} <span className="text-xs">BOGOTÁ</span></time>
           <Tooltip><TooltipTrigger asChild><Button variant="outline" size="icon" onClick={toggleSound} aria-label={muted ? "Activar sonido" : "Silenciar sonido"} aria-pressed={!muted}>{muted ? <VolumeX /> : <Volume2 />}</Button></TooltipTrigger><TooltipContent>{muted ? "Activar sonido" : "Silenciar sonido"}</TooltipContent></Tooltip>
+          <Button variant="outline" size="sm" onClick={() => setCelebrating(salesMilestone(data?.evento?.venta_neta ?? 0) + 1)}><PartyPopper /><span>Probar celebración</span></Button>
           <Button variant="outline" onClick={toggleFullscreen}>{fullscreen ? <Minimize /> : <Maximize />}<span>{fullscreen ? "Salir" : "Pantalla completa"}</span></Button>
         </div>
       </header>

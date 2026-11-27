@@ -83,3 +83,25 @@ describe("Black Friday cash register sound", () => {
     for (const g of gains) expect(g.disconnect).toHaveBeenCalledOnce();
   });
 });
+import { playOrderSound } from "@/pages/BfLive";
+import { milestoneStep, milestoneLabel } from "@/lib/bf-live";
+
+describe("Black Friday order sound file", () => {
+  it("plays the mp3 from the start when it loads", () => {
+    const el = { error: null, currentTime: 5, play: vi.fn(() => Promise.resolve()) };
+    playOrderSound(el as unknown as HTMLAudioElement, null);
+    expect(el.play).toHaveBeenCalledOnce();
+    expect(el.currentTime).toBe(0);
+  });
+  it("falls back to the synthesized sound when the file failed", () => {
+    const ctx = { createGain: vi.fn(() => { throw new Error("synth"); }) };
+    expect(() => playOrderSound({ error: {} } as unknown as HTMLAudioElement, ctx as unknown as AudioContext)).toThrow("synth");
+  });
+});
+
+describe("Black Friday $100M milestones", () => {
+  it("stores without celebrating on first load", () => expect(milestoneStep(null, 350_000_000)).toEqual({ save: 3, celebrate: null }));
+  it("does nothing when the milestone did not grow", () => expect(milestoneStep(3, 399_999_999)).toEqual({ save: null, celebrate: null }));
+  it("celebrates once with the highest milestone when several are skipped", () => expect(milestoneStep(3, 612_000_000)).toEqual({ save: 6, celebrate: 6 }));
+  it("labels the milestone in millions", () => expect(milestoneLabel(12)).toBe("¡$1.200 MILLONES!"));
+});

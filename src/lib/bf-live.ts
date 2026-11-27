@@ -72,3 +72,14 @@ export function productThumbnail(image: string) {
     return url.toString();
   } catch { return image; }
 }
+export const BF_MILESTONE = 100_000_000;
+export const BF_MILESTONE_KEY = "bf_ultimo_hito";
+export function salesMilestone(total: number) { return Math.max(0, Math.floor((Number(total) || 0) / BF_MILESTONE)); }
+/** Decide whether to celebrate: first load (no saved value) stores without celebrating; jumps celebrate once with the highest milestone. */
+export function milestoneStep(saved: number | null, total: number): { save: number | null; celebrate: number | null } {
+  const current = salesMilestone(total);
+  if (saved === null) return { save: current, celebrate: null };
+  if (current > saved) return { save: current, celebrate: current };
+  return { save: null, celebrate: null };
+}
+export function milestoneLabel(hito: number) { return `¡$${(hito * 100).toLocaleString("es-CO")} MILLONES!`; }

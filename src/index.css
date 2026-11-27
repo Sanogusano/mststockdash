@@ -274,3 +274,6 @@
   .bf-live *, .bf-live *::before, .bf-live *::after { animation: none !important; transition: none !important; }
   .bf-ticker-window { overflow-x: auto; }
 }
+
+@keyframes bf-gold-flash { 0%, 100% { opacity: 0; } 50% { opacity: 0.55; } }
+.bf-gold-flash { background: radial-gradient(circle, #ffd700 0%, #b8860b 70%); animation: bf-gold-flash 0.5s ease-in-out 3; opacity: 0; }
