@@ -45,7 +45,12 @@ export function CompartirEnlaceDialog({ open, onOpenChange, params, seleccionado
 
   const copiar = async () => { await navigator.clipboard.writeText(res!.url); toast.success("Enlace copiado"); };
   const copiarMensaje = async () => {
-    await navigator.clipboard.writeText(mensajeCatalogoZenvia(res!.url));
+    const opciones = {
+      categorias: (params.p_categorias as string[] | undefined) ?? [],
+      tallas: (params.p_tallas as string[] | undefined) ?? [],
+      seleccionados: seleccionados.length,
+    };
+    await navigator.clipboard.writeText(mensajeCatalogoZenvia(res!.url, opciones));
     toast.success("Mensaje copiado");
   };
 

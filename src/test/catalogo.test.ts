@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
   textoWhatsApp, nombreArchivo, formatCOP, PUBLIC_CATALOG_BASE, catalogoPublicoUrl,
-  mensajeCatalogoZenvia, agregarProductoAlPedido, cambiarCantidadPedido,
+  mensajeCatalogoZenvia, lineaSeleccionCatalogo, agregarProductoAlPedido, cambiarCantidadPedido,
   mensajePedidoWhatsApp, totalPedido, unidadesPedido, type CatalogoProducto, type PedidoItem,
 } from "@/lib/catalogo";
 
@@ -54,10 +54,38 @@ describe("enlace público del catálogo", () => {
     expect(PUBLIC_CATALOG_BASE).toBe("https://monasterysmart.shop");
     expect(catalogoPublicoUrl("abc123")).toBe("https://monasterysmart.shop/c/abc123");
   });
-  it("arma el mensaje listo para pegar en Zenvia", () => {
-    expect(mensajeCatalogoZenvia("https://monasterysmart.shop/c/abc123")).toBe(
-      "¡Hola! Te comparto nuestro catálogo Monastery con precios especiales. Elige tus productos y tallas y envíanos tu pedido por aquí mismo. Disponible solo por 48 horas: https://monasterysmart.shop/c/abc123",
+  it("arma el mensaje con los filtros con que se armó el catálogo", () => {
+    expect(mensajeCatalogoZenvia("https://monasterysmart.shop/c/abc123", {
+      categorias: ["CROP TOP WOMEN", "T-SHIRT WOMEN", "JEAN WOMEN"],
+      tallas: ["S", "M", "L"],
+    })).toBe(
+      "¡Hola! 👋 Armamos este catálogo Monastery personalizado para ti 🖤\n" +
+      "Incluye Crop Top Women, T-Shirt Women y Jean Women en talla S, M y L.\n" +
+      "Precios especiales y unidades limitadas.\n" +
+      "Elige tus productos y tallas y envíanos tu pedido por aquí mismo.\n" +
+      "⏳ Disponible solo por 48 horas: https://monasterysmart.shop/c/abc123",
     );
+  });
+  it("la línea de selección manda sobre los filtros", () => {
+    expect(mensajeCatalogoZenvia("https://monasterysmart.shop/c/abc123", {
+      categorias: ["CROP TOP WOMEN"], tallas: ["S"], seleccionados: 12,
+    })).toContain("Seleccionamos 12 productos especialmente para ti.");
+  });
+  it("omite la línea de selección si no hay filtros ni selección", () => {
+    expect(mensajeCatalogoZenvia("https://monasterysmart.shop/c/abc123")).toBe(
+      "¡Hola! 👋 Armamos este catálogo Monastery personalizado para ti 🖤\n" +
+      "Precios especiales y unidades limitadas.\n" +
+      "Elige tus productos y tallas y envíanos tu pedido por aquí mismo.\n" +
+      "⏳ Disponible solo por 48 horas: https://monasterysmart.shop/c/abc123",
+    );
+  });
+  it("describe solo categorías o solo tallas", () => {
+    expect(lineaSeleccionCatalogo({ categorias: ["CROP TOP WOMEN"] })).toBe("Incluye Crop Top Women.");
+    expect(lineaSeleccionCatalogo({ tallas: ["S", "M", "L"] })).toBe("Todo disponible en talla S, M y L.");
+  });
+  it("corta las categorías a 4 y suma el resto", () => {
+    expect(lineaSeleccionCatalogo({ categorias: ["A ONE", "B TWO", "C THREE", "D FOUR", "E FIVE", "F SIX"] }))
+      .toBe("Incluye A One, B Two, C Three y D Four y 2 más.");
   });
 });
 

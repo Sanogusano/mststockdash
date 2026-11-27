@@ -105,8 +105,42 @@ export function etiquetaFiltro(nombre: string, sel: string[]): string {
   return `${nombre} · ${sel.length}`;
 }
 
-export const mensajeCatalogoZenvia = (url: string) =>
-  `¡Hola! Te comparto nuestro catálogo Monastery con precios especiales. Elige tus productos y tallas y envíanos tu pedido por aquí mismo. Disponible solo por 48 horas: ${url}`;
+const unirLista = (partes: string[]) =>
+  partes.length <= 1 ? partes.join("") : `${partes.slice(0, -1).join(", ")} y ${partes[partes.length - 1]}`;
+
+const tituloCaso = (v: string) =>
+  v.trim().split(/\s+/).map((p) => p.split(/([-/])/).map((q) =>
+    q === "-" || q === "/" ? q : q.charAt(0).toUpperCase() + q.slice(1).toLowerCase(),
+  ).join("")).join(" ");
+
+/** Línea que describe cómo se armó el catálogo (selección manual o filtros). */
+export const lineaSeleccionCatalogo = (opc?: { categorias?: string[] | null; tallas?: string[] | null; seleccionados?: number }) => {
+  const cats = (opc?.categorias ?? []).filter((c) => String(c ?? "").trim());
+  const tallas = (opc?.tallas ?? []).filter((t) => String(t ?? "").trim());
+  const n = Number(opc?.seleccionados) || 0;
+  if (n > 0) return `Seleccionamos ${n} productos especialmente para ti.`;
+  if (!cats.length && !tallas.length) return "";
+  const catsTexto = cats.length > 4
+    ? `${unirLista(cats.slice(0, 4).map(tituloCaso))} y ${cats.length - 4} más`
+    : unirLista(cats.map(tituloCaso));
+  const tallasTexto = unirLista(tallas);
+  if (catsTexto && tallasTexto) return `Incluye ${catsTexto} en talla ${tallasTexto}.`;
+  if (catsTexto) return `Incluye ${catsTexto}.`;
+  return `Todo disponible en talla ${tallasTexto}.`;
+};
+
+export type MensajeCatalogoOpciones = { categorias?: string[] | null; tallas?: string[] | null; seleccionados?: number };
+
+export const mensajeCatalogoZenvia = (url: string, opciones?: MensajeCatalogoOpciones) => {
+  const linea = lineaSeleccionCatalogo(opciones);
+  return [
+    "¡Hola! 👋 Armamos este catálogo Monastery personalizado para ti 🖤",
+    linea,
+    "Precios especiales y unidades limitadas.",
+    "Elige tus productos y tallas y envíanos tu pedido por aquí mismo.",
+    `⏳ Disponible solo por 48 horas: ${url}`,
+  ].filter(Boolean).join("\n");
+};
 
 export type PedidoItem = {
   sku: string;
