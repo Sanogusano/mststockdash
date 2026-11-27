@@ -3,9 +3,11 @@ import type { UserPermission } from "@/hooks/useUserPermissions";
 export const BF_REFRESH_INTERVAL = 20_000;
 export const BF_EVENT_END = "2026-12-01T23:59:59-05:00";
 export type LiveOrder = { hora: string; venta: number; canal: string };
+export type BfBudgetAmount = { vendido: number; presupuesto: number; falta: number; pct: number };
+export type BfBudgetGroup = BfBudgetAmount & { grupo: "Tiendas" | "Ecommerce"; detalle: (BfBudgetAmount & { nombre: string })[] };
 export interface BfLiveData {
   ahora: string; evento_inicio: string; evento_fin: string;
-  presupuesto_mes: { presupuesto: number; vendido: number; falta: number; pct: number; online_presupuesto: number; online_vendido: number; online_falta: number };
+  presupuesto_bloques: { general: BfBudgetAmount; grupos: BfBudgetGroup[] };
   evento: { pedidos: number; compradores: number; articulos: number; venta_neta: number; ticket_promedio: number; por_canal: { canal: string; venta: number; pedidos: number }[] };
   online_vivo: { pedidos_min_15: number; articulos_min_15: number; venta_ultima_hora: number; pedidos_hoy: number; venta_hoy: number; serie_60min: { min: string; pedidos: number }[]; ultimos_pedidos: LiveOrder[] };
   por_zona: { zona: string; venta: number; pedidos: number }[];
@@ -28,6 +30,21 @@ export function liveMoney(value: number, compact = true) {
     return `$${(amount / 1_000_000).toLocaleString("es-CO", { minimumFractionDigits: 0, maximumFractionDigits: Math.abs(amount) >= 1_000_000_000 ? 0 : 1 })} M`;
   }
   return `$${Math.round(amount).toLocaleString("es-CO")}`;
+}
+
+export function budgetMoney(value: number) {
+  return `$${(value / 1_000_000).toLocaleString("es-CO", { maximumFractionDigits: 0 })} M`;
+}
+
+export function expectedMonthProgress(now: number) {
+  const parts = new Intl.DateTimeFormat("en-US", { timeZone: "America/Bogota", year: "numeric", month: "numeric", day: "numeric" }).formatToParts(now);
+  const part = (type: string) => Number(parts.find(p => p.type === type)?.value);
+  const days = new Date(Date.UTC(part("year"), part("month"), 0)).getUTCDate();
+  return part("day") / days * 100;
+}
+
+export function budgetPace(pct: number, expected: number) {
+  return pct >= expected ? "success" : pct >= expected - 5 ? "warning" : "destructive";
 }
 
 export function countdown(end: string, now: number) {

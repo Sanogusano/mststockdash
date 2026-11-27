@@ -1,6 +1,6 @@
 # Project architecture rules
 
-- Black Friday Live owns a scoped broadcast theme and uses only the existing bf_live RPC on a 20-second query interval; shared permission matching for its menu and route keeps access consistent without database changes.
+- Black Friday Live owns a scoped broadcast theme and uses only the existing bf_live RPC on a 20-second query interval; shared permission matching for its menu and route keeps access consistent without database changes. Its budget renders supplied blocks with shared animated amounts and pure Bogota month-progress/pace helpers so display thresholds remain testable without altering RPC calculations.
 
 - Executive budget selection lives in a pure frontend helper, matching physical goals by location_id and preserving inclusive daily proration; this isolates tab correctness without changing database functions.
 - Executive compliance uses the active panel's net-sales KPI as its numerator; the unfiltered total retains the existing compliance RPC's budget.

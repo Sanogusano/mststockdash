@@ -173,6 +173,7 @@
   --accent-foreground: 0 0% 100%;
   --destructive: 0 84.2% 60.2%;
   --success: 142.1 70.6% 45.3%;
+  --bf-budget-warning: 48 96% 53%;
   --ring: var(--success);
   color-scheme: dark;
   overflow-y: auto;
@@ -201,6 +202,18 @@
 .bf-bar-small { height: 5px; }
 .bf-bar-online::-webkit-progress-value { background: hsl(var(--destructive)); }
 .bf-bar-online::-moz-progress-bar { background: hsl(var(--destructive)); }
+.bf-budget-group { margin-top: 24px; padding-top: 20px; border-top: 1px solid hsl(var(--border)); }
+.bf-budget-track { position: relative; min-width: 0; }
+.bf-budget-bar { --bf-budget-fill: var(--success); }
+.bf-budget-warning { --bf-budget-fill: var(--bf-budget-warning); }
+.bf-budget-destructive { --bf-budget-fill: var(--destructive); }
+.bf-budget-bar::-webkit-progress-value { background: hsl(var(--bf-budget-fill)); }
+.bf-budget-bar::-moz-progress-bar { background: hsl(var(--bf-budget-fill)); }
+.bf-budget-bar-group { height: 9px; }
+.bf-budget-bar-detail { height: 4px; }
+.bf-budget-expected { position: absolute; top: -3px; bottom: -3px; width: 1px; background: hsl(var(--foreground)); transform: translateX(-50%); }
+.bf-budget-detail { display: grid; grid-template-columns: 140px minmax(40px, 1fr) 190px; align-items: center; gap: 12px; }
+.bf-budget-detail > :last-child { text-align: right; }
 .bf-kpis { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; padding: 24px 0; }
 .bf-kpi { background: hsl(var(--card)); border: 1px solid hsl(var(--border)); border-radius: 8px; padding: 20px; min-width: 0; }
 .bf-kpi-number { font-weight: 800; font-size: 38px; line-height: 1.3; margin: 8px 0; overflow-wrap: anywhere; }
@@ -250,6 +263,8 @@
   .bf-time-label { font-size: 8px; }
   .bf-budget-title { font-size: 32px; }
   .bf-percent { font-size: 28px; }
+  .bf-budget-detail { grid-template-columns: minmax(0, 1fr) auto; gap: 8px 12px; }
+  .bf-budget-detail > .bf-budget-track { grid-column: 1 / -1; grid-row: 2; }
   .bf-kpis, .bf-grid { grid-template-columns: minmax(0, 1fr); }
   .bf-kpi-number { font-size: 38px; }
   .bf-section { border-bottom: 1px solid hsl(var(--border)); }

@@ -9,7 +9,7 @@ import { AppSidebar } from "@/components/AppSidebar";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { BF_EVENT_END, BF_REFRESH_INTERVAL, bogotaTime, canViewBfLive, countdown, isNewOrder, liveMoney, productThumbnail, type BfLiveData, type LiveOrder } from "@/lib/bf-live";
+import { BF_EVENT_END, BF_REFRESH_INTERVAL, bogotaTime, budgetMoney, budgetPace, expectedMonthProgress, canViewBfLive, countdown, isNewOrder, liveMoney, productThumbnail, type BfLiveData, type BfBudgetAmount, type BfBudgetGroup, type LiveOrder } from "@/lib/bf-live";
 
 function useAnimatedAmount(value: number) {
   const [display, setDisplay] = useState(value);
@@ -65,19 +65,54 @@ function BarRows({ rows, units = false }: { rows: { name: string; value: number;
   </div>)}</div> : <p className="text-sm text-muted-foreground">Sin ventas registradas</p>;
 }
 
-function Budget({ budget }: { budget: BfLiveData["presupuesto_mes"] }) {
-  const remaining = useAnimatedAmount(budget.falta);
-  const onlineRemaining = useAnimatedAmount(budget.online_falta);
-  const onlinePct = budget.online_presupuesto > 0 ? budget.online_vendido / budget.online_presupuesto * 100 : 0;
+function Remaining({ value }: { value: number }) {
+  const remaining = useAnimatedAmount(value);
+  return <span className="tabular-nums">{budgetMoney(remaining)}</span>;
+}
+
+const budgetPercent = (pct: number) => `${pct.toLocaleString("es-CO", { maximumFractionDigits: 1 })}%`;
+
+function BudgetBar({ pct, expected, label, size = "general" }: { pct: number; expected: number; label: string; size?: "general" | "group" | "detail" }) {
+  return <div className="bf-budget-track">
+    <progress className={`bf-bar bf-budget-bar bf-budget-bar-${size} bf-budget-${budgetPace(pct, expected)}`} max={100} value={Math.min(100, Math.max(0, pct))} aria-label={label} />
+    {size === "general" && <span className="bf-budget-expected" style={{ left: `${Math.min(100, Math.max(0, expected))}%` }} title={`Avance esperado: ${budgetPercent(expected)}`} aria-label={`Avance esperado: ${budgetPercent(expected)}`} />}
+  </div>;
+}
+
+function BudgetDetail({ detail, expected }: { detail: BfBudgetAmount & { nombre: string }; expected: number }) {
+  return <div className="bf-budget-detail">
+    <span className="text-sm">{detail.nombre}</span>
+    <BudgetBar pct={detail.pct} expected={expected} label={`Presupuesto ${detail.nombre}`} size="detail" />
+    <span className="text-xs text-muted-foreground">{budgetPercent(detail.pct)} · faltan <Remaining value={detail.falta} /></span>
+  </div>;
+}
+
+function BudgetGroup({ group, expected }: { group: BfBudgetGroup; expected: number }) {
+  return <div className="bf-budget-group">
+    <h3 className="text-sm font-semibold text-muted-foreground">{group.grupo.toLocaleUpperCase("es-CO")}</h3>
+    <div className="mt-2 flex flex-wrap items-end justify-between gap-2">
+      <strong className="text-2xl">Faltan <Remaining value={group.falta} /></strong>
+      <strong className="text-2xl">{budgetPercent(group.pct)}</strong>
+    </div>
+    <div className="mt-3"><BudgetBar pct={group.pct} expected={expected} label={`Presupuesto ${group.grupo}`} size="group" /></div>
+    <div className="mt-4 space-y-3">{group.detalle.map(detail => <BudgetDetail key={detail.nombre} detail={detail} expected={expected} />)}</div>
+  </div>;
+}
+
+function Budget({ budget, now }: { budget: BfLiveData["presupuesto_bloques"]; now: number }) {
+  const general = budget.general;
+  const expected = expectedMonthProgress(now);
   return <section className="bf-budget">
     <div className="flex flex-wrap items-end justify-between gap-4">
-      <div><p className="text-sm text-muted-foreground">PRESUPUESTO DE NOVIEMBRE</p><h2 className="bf-budget-title">Faltan <span className="text-success tabular-nums">{liveMoney(remaining)}</span></h2><p className="text-sm text-muted-foreground">para el presupuesto de noviembre</p></div>
-      <strong className="bf-percent text-success">{Number(budget.pct).toLocaleString("es-CO", { maximumFractionDigits: 1 })}%</strong>
+      <div><p className="text-sm text-muted-foreground">GENERAL</p><h2 className="bf-budget-title">Faltan <span className="text-success"><Remaining value={general.falta} /></span></h2><p className="text-sm text-muted-foreground">para el presupuesto de noviembre</p></div>
+      <strong className="bf-percent text-success">{budgetPercent(general.pct)}</strong>
     </div>
-    <progress className="bf-bar mt-5" max={100} value={Math.min(100, Math.max(0, budget.pct))} aria-label="Presupuesto de noviembre" />
-    <div className="mt-2 flex flex-wrap justify-between gap-2 text-sm text-muted-foreground"><span>Vendido {liveMoney(budget.vendido)}</span><span>Presupuesto {liveMoney(budget.presupuesto)}</span></div>
-    <div className="mt-5 flex flex-wrap justify-between gap-2 text-sm"><span>Online · faltan <strong>{liveMoney(onlineRemaining)}</strong></span><span className="text-muted-foreground">{onlinePct.toLocaleString("es-CO", { maximumFractionDigits: 1 })}% · {liveMoney(budget.online_vendido)} / {liveMoney(budget.online_presupuesto)}</span></div>
-    <progress className="bf-bar bf-bar-small bf-bar-online mt-2" max={100} value={Math.min(100, Math.max(0, onlinePct))} aria-label="Presupuesto Online" />
+    <div className="mt-5"><BudgetBar pct={general.pct} expected={expected} label="Presupuesto general de noviembre" /></div>
+    <p className="mt-2 text-sm text-muted-foreground">Vendido {budgetMoney(general.vendido)} · Presupuesto {budgetMoney(general.presupuesto)}</p>
+    {["Tiendas", "Ecommerce"].map(name => {
+      const group = budget.grupos.find(item => item.grupo === name);
+      return group ? <BudgetGroup key={name} group={group} expected={expected} /> : null;
+    })}
   </section>;
 }
 
@@ -189,7 +224,7 @@ export function BfLiveBroadcast() {
       {error && <div role="alert" className="bf-error"><span>bf_live: {error.message}</span><Button variant="outline" onClick={() => void refetch()} disabled={isFetching}>Reintentar</Button>{data && <span className="text-xs">Mostrando el último dato recibido · {bogotaTime(dataUpdatedAt)}</span>}</div>}
       {isPending && <div role="status" className="flex justify-center gap-3 py-16 text-muted-foreground"><Radio className="animate-pulse" />Conectando con las ventas…</div>}
       {data && <>
-        <Budget budget={data.presupuesto_mes} />
+        <Budget budget={data.presupuesto_bloques} now={now} />
         <div className="bf-kpis">
           <Kpi label="Pedidos por minuto" value={data.online_vivo.pedidos_min_15} note="online · últimos 15 min" />
           <Kpi label="Artículos por minuto" value={data.online_vivo.articulos_min_15} note="online · últimos 15 min" />

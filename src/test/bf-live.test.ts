@@ -1,7 +1,29 @@
 import { describe, expect, it } from "vitest";
-import { BF_EVENT_END, BF_REFRESH_INTERVAL, canViewBfLive, countdown, isNewOrder, liveMoney } from "@/lib/bf-live";
+import { BF_EVENT_END, BF_REFRESH_INTERVAL, budgetMoney, budgetPace, expectedMonthProgress, canViewBfLive, countdown, isNewOrder, liveMoney } from "@/lib/bf-live";
 
 describe("Black Friday Live rules", () => {
+  it("uses the Bogota day divided by the days in the current month", () => {
+    expect(expectedMonthProgress(Date.parse("2026-11-27T17:14:00Z"))).toBe(90);
+    expect(expectedMonthProgress(Date.parse("2026-12-01T04:59:59Z"))).toBe(100);
+    expect(expectedMonthProgress(Date.parse("2026-12-01T05:00:00Z"))).toBeCloseTo(100 / 31);
+    expect(expectedMonthProgress(Date.parse("2024-02-29T17:00:00Z"))).toBe(100);
+  });
+  it("marks percentages at or above expected as green", () => {
+    expect(budgetPace(90, 90)).toBe("success");
+    expect(budgetPace(110, 90)).toBe("success");
+  });
+  it("marks percentages up to five points below expected as yellow", () => {
+    expect(budgetPace(85, 90)).toBe("warning");
+    expect(budgetPace(89.9, 90)).toBe("warning");
+  });
+  it("marks percentages more than five points below expected as red", () => {
+    expect(budgetPace(84.9, 90)).toBe("destructive");
+  });
+  it("abbreviates all budget amounts in whole millions", () => {
+    expect(budgetMoney(3341000000)).toBe("$3.341 M");
+    expect(budgetMoney(116400000)).toBe("$116 M");
+    expect(budgetMoney(0)).toBe("$0 M");
+  });
   it("refreshes every 20 seconds", () => expect(BF_REFRESH_INTERVAL).toBe(20000));
   it("ends December 1 at 23:59:59 in Colombia", () => {
     expect(countdown(BF_EVENT_END, Date.parse("2026-12-01T23:59:58-05:00"))).toEqual([0, 0, 0, 1]);
