@@ -850,6 +850,33 @@ export type Database = {
         }
         Relationships: []
       }
+      catalogo_stock_showroom: {
+        Row: {
+          actualizado_en: string
+          comprometido: number
+          disponible: number
+          en_mano: number
+          item_id: number | null
+          sku: string
+        }
+        Insert: {
+          actualizado_en?: string
+          comprometido?: number
+          disponible?: number
+          en_mano?: number
+          item_id?: number | null
+          sku: string
+        }
+        Update: {
+          actualizado_en?: string
+          comprometido?: number
+          disponible?: number
+          en_mano?: number
+          item_id?: number | null
+          sku?: string
+        }
+        Relationships: []
+      }
       categoria_padre_map: {
         Row: {
           categoria_padre: string
@@ -6213,6 +6240,24 @@ export type Database = {
       }
       catalogo_publico: { Args: { p_slug: string }; Returns: Json }
       catalogo_publico_clic: { Args: { p_slug: string }; Returns: undefined }
+      catalogo_showroom_filtros: { Args: never; Returns: Json }
+      catalogo_showroom_productos: {
+        Args: {
+          p_busqueda?: string
+          p_categorias?: string[]
+          p_colecciones?: string[]
+          p_colores?: string[]
+          p_generos?: string[]
+          p_limite?: number
+          p_offset?: number
+          p_orden?: string
+          p_precio_max?: number
+          p_precio_min?: number
+          p_solo_rebajados?: boolean
+          p_tallas?: string[]
+        }
+        Returns: Json
+      }
       catalogo_tiendas: {
         Args: {
           p_busqueda?: string
