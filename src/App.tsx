@@ -40,6 +40,7 @@ import RendimientoVendedoresPage from "./pages/RendimientoVendedores";
 import DescuentosTiendasPage from "./pages/DescuentosTiendas";
 import CatalogoPage from "./pages/Catalogo";
 import CatalogoPublicoPage from "./pages/CatalogoPublico";
+import BfLivePage from "./pages/BfLive";
 import ComisionesPage from "./pages/Comisiones";
 import VendedoresPage from "./pages/Vendedores";
 import ConfiguracionUbicacionesPage from "./pages/ConfiguracionUbicaciones";
@@ -134,6 +135,7 @@ const App = () => (
           <Route path="/cierre-coleccion" element={<Guard module="dashboards.cierre_colecciones" action="view"><CierreColeccionPage /></Guard>} />
           <Route path="/descuentos-tiendas" element={<Guard module="comercial.descuentos_tiendas" action="view"><DescuentosTiendasPage /></Guard>} />
           <Route path="/catalogo" element={<Guard module="comercial.catalogo" action="view"><CatalogoPage /></Guard>} />
+          <Route path="/bf-live" element={<ProtectedRoute><BfLivePage /></ProtectedRoute>} />
           <Route path="/rendimiento-vendedores" element={<Guard module="dashboards.rendimiento_vendedores" action="view"><RendimientoVendedoresPage /></Guard>} />
           <Route path="/comisiones" element={<Guard module="comisiones" action="view"><ComisionesPage /></Guard>} />
           <Route path="/vendedores" element={<Guard module="vendedores" action="view"><VendedoresPage /></Guard>} />

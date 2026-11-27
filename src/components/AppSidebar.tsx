@@ -1,4 +1,6 @@
 import { useState, useMemo } from "react";
+import { Radio } from "lucide-react";
+import { canViewBfLive } from "@/lib/bf-live";
 import { LineChart, BarChart3, TrendingUp, ArrowLeftRight, Package, Tag, Layers, Target, Zap, Trophy, Archive, Users, Calculator, UserCog, Briefcase, ChevronDown, Settings, MapPin, Upload, LogOut, Truck, Shield, Store, Banknote, LayoutDashboard, CreditCard, MessageCircle, AlertTriangle, RefreshCw, Sparkles, Search, LayoutGrid, TrendingDown, Globe, Gauge, ScatterChart, Siren, Database, Split, Activity, Scale, HeartPulse, FileText, Tags, Handshake, Percent } from "lucide-react";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useAuth } from "@/hooks/useAuth";
@@ -32,6 +34,7 @@ type NavItem = {
 // Items principales en orden solicitado
 const mayoristasItem: NavItem = { title: "Mayoristas", url: "/mayoristas", icon: Handshake, description: "Órdenes, clientes y cartera", module: "dashboards.resumen_ejecutivo", action: "view" };
 const resumenItem: NavItem = { title: "Resumen Ejecutivo", url: "/", icon: TrendingUp, description: "Desempeño comercial", module: "dashboards.resumen_ejecutivo", action: "view" };
+const bfLiveItem: NavItem = { title: "Black Friday Live", url: "/bf-live", icon: Radio, description: "Ventas en vivo", module: "dashboards.resumen_ejecutivo", action: "view" };
 const presupuestoItem: NavItem = { title: "Presupuesto", url: "/presupuestos", icon: Target, description: "Metas de venta", module: "dashboards.presupuestos", action: "view" };
 const rendimientoTiendasItem: NavItem = { title: "Rendimiento Tiendas", url: "/rendimiento-red", icon: Store, description: "Same-store, maduración y eficiencia", module: "dashboards.rendimiento_red", action: "view" };
 const saludProductoItem: NavItem = { title: "Salud de Producto", url: "/producto", icon: Tag, description: "Sell-through & WOS", module: "dashboards.salud_producto", action: "view" };
@@ -264,6 +267,7 @@ export function AppSidebar() {
             <SidebarMenu className="gap-0.5">
               {/* 1 - Resumen Ejecutivo */}
               {can(resumenItem.module, resumenItem.action) && renderItem(resumenItem)}
+              {canViewBfLive(permissions, isAdmin) && renderItem(bfLiveItem)}
 
               {/* 2 - Presupuesto (con sub-item Centro de Acciones) */}
               {canPresupuesto && (

@@ -1,5 +1,8 @@
 # Roadmap
 
+- [x] Crear Black Friday Live en /bf-live con permisos existentes, consulta cada 20 s, cuenta regresiva, presupuesto animado, KPIs, rankings y avisos de pedidos; sin cambiar RPC ni otros módulos. Cinco pruebas aprobadas, compilación correcta y revisión de escritorio/TV/celular con datos de muestra; pantalla completa, sonido y aviso de 3 s verificados.
+- [ ] Verificar Black Friday Live con sesión y ventas reales: Supabase externo no permite generar sesión de prueba; la ruta real redirige a login. Permiso EXECUTE de bf_live para authenticated confirmado.
+
 - [x] Unificar la carga completa de RPC de Rebajas y Salud de Producto, mostrar progreso de SKUs y total bajo la tabla, sin cambiar RPC ni columnas; 16 pruebas aprobadas y compilación correcta. Revisión con datos reales no disponible: Supabase externo y pantalla redirigida a login.
 
 - [x] Agregar SKU padre, Referencia NS y SKUs hijos a Salud de Producto con vista paginada y caché de 30 minutos, búsqueda local y exportaciones con identificadores como texto; sin cambiar RPC.

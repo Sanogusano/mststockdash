@@ -1,5 +1,7 @@
 # Project architecture rules
 
+- Black Friday Live owns a scoped broadcast theme and uses only the existing bf_live RPC on a 20-second query interval; shared permission matching for its menu and route keeps access consistent without database changes.
+
 - Executive budget selection lives in a pure frontend helper, matching physical goals by location_id and preserving inclusive daily proration; this isolates tab correctness without changing database functions.
 - Executive compliance uses the active panel's net-sales KPI as its numerator; the unfiltered total retains the existing compliance RPC's budget.
 - KPI amounts use the shared compact Colombian-peso formatter; exports and transaction-table money retain their full-value formats.
