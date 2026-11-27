@@ -760,6 +760,45 @@ export type Database = {
         }
         Relationships: []
       }
+      catalogo_compartido: {
+        Row: {
+          clics_whatsapp: number
+          creado_en: string
+          creado_por: string | null
+          expira_en: string
+          product_ids: string[]
+          slug: string
+          titulo: string | null
+          ultima_vista: string | null
+          vistas: number
+          whatsapp: string
+        }
+        Insert: {
+          clics_whatsapp?: number
+          creado_en?: string
+          creado_por?: string | null
+          expira_en?: string
+          product_ids: string[]
+          slug: string
+          titulo?: string | null
+          ultima_vista?: string | null
+          vistas?: number
+          whatsapp?: string
+        }
+        Update: {
+          clics_whatsapp?: number
+          creado_en?: string
+          creado_por?: string | null
+          expira_en?: string
+          product_ids?: string[]
+          slug?: string
+          titulo?: string | null
+          ultima_vista?: string | null
+          vistas?: number
+          whatsapp?: string
+        }
+        Relationships: []
+      }
       catalogo_entrantes_guayabal: {
         Row: {
           actualizado_en: string
@@ -3651,6 +3690,33 @@ export type Database = {
         }
         Relationships: []
       }
+      producto_gramaje: {
+        Row: {
+          actualizado_en: string
+          base_textil: string | null
+          coleccion: string | null
+          fuente: string | null
+          gramaje: number | null
+          referencia: string
+        }
+        Insert: {
+          actualizado_en?: string
+          base_textil?: string | null
+          coleccion?: string | null
+          fuente?: string | null
+          gramaje?: number | null
+          referencia: string
+        }
+        Update: {
+          actualizado_en?: string
+          base_textil?: string | null
+          coleccion?: string | null
+          fuente?: string | null
+          gramaje?: number | null
+          referencia?: string
+        }
+        Relationships: []
+      }
       proyecciones_snapshot: {
         Row: {
           anio: number
@@ -6114,6 +6180,10 @@ export type Database = {
         Args: { p_origen: string; p_source: string }
         Returns: string
       }
+      catalogo_compartir: {
+        Args: { p_product_ids: string[]; p_titulo: string }
+        Returns: Json
+      }
       catalogo_filtros: { Args: never; Returns: Json }
       catalogo_norm_cat: {
         Args: { cat: string; padre: string }
@@ -6140,6 +6210,8 @@ export type Database = {
         }
         Returns: Json
       }
+      catalogo_publico: { Args: { p_slug: string }; Returns: Json }
+      catalogo_publico_clic: { Args: { p_slug: string }; Returns: undefined }
       catalogo_tiendas: {
         Args: {
           p_busqueda?: string
