@@ -22,14 +22,21 @@ export async function fetchCatalogoCompleto(params: Record<string, unknown>, max
   return out.slice(0, max);
 }
 
+/** Fotos de Shopify reducidas a 600 px de ancho. */
+export function imagenReducida(u: string | null | undefined, ancho = 600): string {
+  if (!u) return "";
+  if (!/cdn\.shopify\.com/.test(u) || /[?&]width=/.test(u)) return u;
+  return u + (u.includes("?") ? "&" : "?") + `width=${ancho}`;
+}
+
 async function precargar(urls: string[]): Promise<Map<string, string>> {
   const m = new Map<string, string>();
   await Promise.all([...new Set(urls.filter(Boolean))].map(async (u) => {
     try {
-      const r = await fetch(u, { mode: "cors" });
+      const r = await fetch(imagenReducida(u), { mode: "cors" });
       if (!r.ok) throw new Error();
       m.set(u, URL.createObjectURL(await r.blob()));
-    } catch { m.set(u, u); }
+    } catch { m.set(u, imagenReducida(u)); }
   }));
   return m;
 }
@@ -115,6 +122,19 @@ export async function renderPagina(html: string, imgPx: { pixelRatio: number }) 
   } finally { host.remove(); }
 }
 
+/** Renderiza de a 3 en paralelo, conservando el orden. */
+async function renderEnBloques<T>(n: number, onProgress: (a: number, t: number) => void, fn: (i: number) => Promise<T>): Promise<T[]> {
+  const out: T[] = [];
+  let hechas = 0;
+  for (let i = 0; i < n; i += 3) {
+    const idx = Array.from({ length: Math.min(3, n - i) }, (_, k) => i + k);
+    onProgress(Math.min(i + 1, n), n);
+    const r = await Promise.all(idx.map((j) => fn(j).then((v) => { hechas++; onProgress(hechas, n); return v; })));
+    out.push(...r);
+  }
+  return out;
+}
+
 export type ExportResult = { tipo: "pdf"; blob: Blob; nombre: string } | { tipo: "imagenes"; files: File[] };
 
 export async function generarCatalogo(
@@ -130,25 +150,24 @@ export async function generarCatalogo(
   try {
     if (formato === "pdf") {
       const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
-      for (let i = 0; i < paginas.length; i++) {
-        onProgress(i + 1, paginas.length);
+      const urls = await renderEnBloques(paginas.length, onProgress, (i) => {
         const { html, h } = mosaicoHtml(paginas[i], imgs, { cols: 2, titulo, generado, pagina: i + 1, total: paginas.length, etiqueta: "Página" });
-        const url = await renderPagina(html, { pixelRatio: 1.5 });
+        return renderPagina(html, { pixelRatio: 1.5 }).then((url) => ({ url, h }));
+      });
+      urls.forEach(({ url, h }, i) => {
         if (i > 0) doc.addPage();
         let w = 210, hh = (210 * h) / 1080;
         if (hh > 297) { w = (297 * 1080) / h; hh = 297; }
         doc.addImage(url, "JPEG", (210 - w) / 2, 0, w, hh);
-      }
+      });
       return { tipo: "pdf", blob: doc.output("blob"), nombre: `Catalogo-Monastery-${slug}-${fecha}.pdf` };
     }
-    const files: File[] = [];
-    for (let i = 0; i < paginas.length; i++) {
-      onProgress(i + 1, paginas.length);
+    const files = await renderEnBloques(paginas.length, onProgress, async (i) => {
       const { html } = mosaicoHtml(paginas[i], imgs, { cols: 2, titulo, generado, pagina: i + 1, total: paginas.length, etiqueta: "Imagen" });
       const url = await renderPagina(html, { pixelRatio: 1 });
       const blob = await (await fetch(url)).blob();
-      files.push(new File([blob], `Monastery-${slug}-${String(i + 1).padStart(2, "0")}.jpg`, { type: "image/jpeg" }));
-    }
+      return new File([blob], `Monastery-${slug}-${String(i + 1).padStart(2, "0")}.jpg`, { type: "image/jpeg" });
+    });
     return { tipo: "imagenes", files };
   } finally {
     imgs.forEach((v, k) => v !== k && URL.revokeObjectURL(v));

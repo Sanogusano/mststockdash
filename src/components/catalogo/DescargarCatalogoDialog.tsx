@@ -105,6 +105,11 @@ export function DescargarCatalogoDialog({ open, onOpenChange, params, total, sel
             </p>
           )}
         </div>
+        {cantidad > 48 && !excede && (
+          <p className="rounded-md border border-warning/50 bg-warning/10 px-3 py-2 text-xs text-warning-foreground">
+            Para más de 48 productos usa 'Compartir enlace': se crea al instante y no hay que esperar.
+          </p>
+        )}
         <DialogFooter>
           <Button onClick={resultado ? entregar : generar} disabled={!resultado && (!!progreso || excede || cantidad === 0)}>{textoBoton()}</Button>
         </DialogFooter>

@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useInfiniteQuery, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Search, RefreshCw, SlidersHorizontal, X, Download, Copy, CheckSquare, AlertTriangle, ImageOff, Check, FileDown } from "lucide-react";
+import { Link2, Search, RefreshCw, SlidersHorizontal, X, Download, Copy, CheckSquare, AlertTriangle, ImageOff, Check, FileDown } from "lucide-react";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { supabase } from "@/integrations/supabase/client";
@@ -21,6 +21,7 @@ import { cn } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { FiltrosDesplegables } from "@/components/catalogo/FiltrosDesplegables";
 import { DescargarCatalogoDialog } from "@/components/catalogo/DescargarCatalogoDialog";
+import { CompartirEnlaceDialog } from "@/components/catalogo/CompartirEnlaceDialog";
 import { formatCOP, minutosDesde, textoWhatsApp, unidadesVendibles, type CatalogoProducto, type CatalogoTalla } from "@/lib/catalogo";
 import { descargarFicha, descargarFichas } from "@/lib/catalogo-ficha";
 import { CatalogoTiendas } from "@/components/catalogo/CatalogoTiendas";
@@ -193,6 +194,7 @@ function CatalogoOnline() {
   const [filtrosOpen, setFiltrosOpen] = useState(false);
   const [stockCanal, setStockCanal] = useState(false);
   const [exportOpen, setExportOpen] = useState(false);
+  const [shareOpen, setShareOpen] = useState(false);
   const [detalle, setDetalle] = useState<CatalogoProducto | null>(null);
   const [seleccionando, setSeleccionando] = useState(false);
   const [seleccion, setSeleccion] = useState<Map<string, CatalogoProducto>>(new Map());
@@ -291,6 +293,10 @@ function CatalogoOnline() {
               <Button size="sm" variant="outline" onClick={() => setExportOpen(true)} className="h-8 shrink-0">
                 <FileDown className="h-4 w-4" />
                 <span className="hidden sm:inline ml-1.5">Descargar catálogo</span>
+              </Button>
+              <Button size="sm" variant="outline" onClick={() => setShareOpen(true)} className="h-8 shrink-0">
+                <Link2 className="h-4 w-4" />
+                <span className="hidden sm:inline ml-1.5">Compartir enlace</span>
               </Button>
               <Button size="sm" variant="outline" onClick={sincronizar} disabled={sincronizando} className="h-8 shrink-0">
                 <RefreshCw className={cn("h-4 w-4", sincronizando && "animate-spin")} />
@@ -415,6 +421,8 @@ function CatalogoOnline() {
         </DialogContent>
       </Dialog>
       <DescargarCatalogoDialog open={exportOpen} onOpenChange={setExportOpen} params={params} total={total}
+        seleccionados={[...seleccion.values()]} titulo={tituloFiltro} />
+      <CompartirEnlaceDialog open={shareOpen} onOpenChange={setShareOpen} params={params}
         seleccionados={[...seleccion.values()]} titulo={tituloFiltro} />
       <DetalleProducto p={detalle} comercial={vista === "comercial"} nsActualizado={nsActualizado} ahora={ahora} onClose={() => setDetalle(null)} />
     </SidebarProvider>

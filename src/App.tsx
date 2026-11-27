@@ -39,6 +39,7 @@ import AsignacionTiendaPage from "./pages/AsignacionTienda";
 import RendimientoVendedoresPage from "./pages/RendimientoVendedores";
 import DescuentosTiendasPage from "./pages/DescuentosTiendas";
 import CatalogoPage from "./pages/Catalogo";
+import CatalogoPublicoPage from "./pages/CatalogoPublico";
 import ComisionesPage from "./pages/Comisiones";
 import VendedoresPage from "./pages/Vendedores";
 import ConfiguracionUbicacionesPage from "./pages/ConfiguracionUbicaciones";
@@ -96,6 +97,7 @@ const App = () => (
         <AlertaCriticaBanner />
         <Routes>
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/c/:slug" element={<CatalogoPublicoPage />} />
           <Route path="/reset-password" element={<ResetPasswordPage />} />
 
           {/* ===== Dashboards mapeados (13 originales + 9 nuevas) ===== */}
