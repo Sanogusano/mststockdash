@@ -63,7 +63,7 @@ import IntegracionNetsuitePage from "./pages/IntegracionNetsuite";
 import PreciosEcommercePage from "./pages/ecommerce/PreciosEcommercePage";
 import { RequireRole } from "@/components/RequireRole";
 import ConfiguracionEstadoSistemaPage from "./pages/ConfiguracionEstadoSistema";
-import { AlertaCriticaBanner } from "@/components/AlertaCriticaBanner";
+// import { AlertaCriticaBanner } from "@/components/AlertaCriticaBanner"; // Desactivado durante Black Friday; se reactiva después
 import ReporteFacturacionPage from "./pages/finanzas/ReporteFacturacionPage";
 import { WompiPage, MercadoPagoPage, SistecreditoPage } from "./pages/finanzas/PasarelaPlaceholder";
 
@@ -95,7 +95,7 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        <AlertaCriticaBanner />
+        {/* <AlertaCriticaBanner /> Desactivado durante Black Friday; se reactiva después */}
         <Routes>
           <Route path="/login" element={<LoginPage />} />
           <Route path="/c/:slug" element={<CatalogoPublicoPage />} />
