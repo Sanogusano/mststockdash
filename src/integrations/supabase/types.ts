@@ -6130,6 +6130,7 @@ export type Database = {
           unidades_totales: number
         }[]
       }
+      bf_live: { Args: { p_fin?: string; p_inicio?: string }; Returns: Json }
       bulk_update_payment_tokens: { Args: { records: Json }; Returns: number }
       calcular_comisiones_periodo: {
         Args: { p_anio: number; p_mes: number; p_reglas?: Json; p_rol?: string }
