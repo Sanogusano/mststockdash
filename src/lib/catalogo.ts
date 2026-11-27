@@ -40,6 +40,12 @@ export type CatalogoProducto = {
   tallas_confirmar?: number | null;
 };
 
+/** Dominio público de los catálogos compartidos: siempre el mismo, sin importar desde dónde se abra Selliq. */
+export const PUBLIC_CATALOG_BASE = "https://monasterysmart.shop";
+
+/** Enlace público de un catálogo compartido. */
+export const catalogoPublicoUrl = (slug: string) => `${PUBLIC_CATALOG_BASE}/c/${slug}`;
+
 export const formatCOP = (n: number | null | undefined) =>
   "$ " + Math.round(Number(n) || 0).toLocaleString("es-CO");
 

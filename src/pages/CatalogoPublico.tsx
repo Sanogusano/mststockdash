@@ -3,9 +3,9 @@ import { useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { formatCOP } from "@/lib/catalogo";
+import { formatCOP, catalogoPublicoUrl } from "@/lib/catalogo";
 import { imagenReducida } from "@/lib/catalogo-export";
-import logo from "@/assets/monastery-logo.png";
+import logo from "@/assets/monastery-logo-white.png";
 
 type Talla = { sku: string; talla: string; disponible: number; ultimas: boolean };
 type Prod = {
@@ -26,13 +26,19 @@ export function restante(ms: number) {
 function Shell({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen bg-background text-foreground">
+      <FranjaLogo />
       <div className="mx-auto max-w-xl px-3 pb-10">{children}
         <p className="mt-8 text-center text-xs text-muted-foreground">Precios y disponibilidad sujetos a cambio</p>
       </div>
     </div>
   );
 }
-const Logo = () => <div className="flex justify-center py-4"><img src={logo} alt="MONASTERY" className="h-8 object-contain" /></div>;
+/** Franja negra superior con el logo oficial blanco, centrado. */
+const FranjaLogo = () => (
+  <div className="bg-black py-3.5">
+    <div className="flex justify-center"><img src={logo} alt="MONASTERY" className="h-7 object-contain sm:h-8" /></div>
+  </div>
+);
 
 export default function CatalogoPublicoPage() {
   const { slug = "" } = useParams();
@@ -53,11 +59,11 @@ export default function CatalogoPublicoPage() {
     return [...ps.filter((p) => !p.agotado), ...ps.filter((p) => p.agotado)];
   }, [d]);
 
-  if (err) return <Shell><Logo /><p className="text-center text-sm text-destructive">{err}</p></Shell>;
-  if (!d) return <Shell><Logo /><p className="text-center text-sm text-muted-foreground">Cargando catálogo…</p></Shell>;
+  if (err) return <Shell><p className="text-center text-sm text-destructive">{err}</p></Shell>;
+  if (!d) return <Shell><p className="text-center text-sm text-muted-foreground">Cargando catálogo…</p></Shell>;
 
   if (d.estado === "no_existe") return (
-    <Shell><Logo />
+    <Shell>
       <div className="mt-16 space-y-4 text-center">
         <h1 className="text-xl font-semibold">Este catálogo no existe</h1>
         <Button asChild variant="outline"><a href={WEB}>Ir a monasterycouture.com</a></Button>
@@ -66,7 +72,7 @@ export default function CatalogoPublicoPage() {
   );
   const vencidoPorReloj = d.expira_en ? new Date(d.expira_en).getTime() <= ahora : false;
   if (d.estado === "vencido" || vencidoPorReloj) return (
-    <Shell><Logo />
+    <Shell>
       <div className="mt-16 space-y-4 text-center">
         <h1 className="text-lg font-semibold">Este catálogo ya venció. Muchos de estos productos ya no están disponibles o cambiaron de precio.</h1>
         <div className="flex flex-col gap-2">
@@ -82,11 +88,11 @@ export default function CatalogoPublicoPage() {
   const ms = new Date(d.expira_en!).getTime() - ahora;
   return (
     <div className="min-h-screen bg-background text-foreground">
+      <FranjaLogo />
       <div className={cn("sticky top-0 z-10 px-3 py-2 text-center text-sm font-medium", ms < 6 * 3600e3 ? "bg-destructive text-destructive-foreground" : "bg-foreground text-background")}>
         Este catálogo vence en {restante(ms)}
       </div>
       <div className="mx-auto max-w-xl px-3 pb-10">
-        <Logo />
         {d.titulo && <h1 className="mb-3 text-center text-base font-semibold">{d.titulo}</h1>}
         {(d.agotados ?? 0) > 0 && (
           <p className="mb-3 rounded-md border border-border bg-muted px-3 py-2 text-center text-xs text-muted-foreground">
@@ -109,7 +115,7 @@ function Tarjeta({ p, slug, whatsapp }: { p: Prod; slug: string; whatsapp?: stri
   const pedir = () => {
     if (!talla) return;
     supabase.rpc("catalogo_publico_clic", { p_slug: slug }).then(() => undefined, () => undefined);
-    const txt = `Hola! Vi el catálogo Monastery y quiero:\n• ${p.nombre}${p.color ? ` ${p.color}` : ""}\n• Talla: ${talla.talla}\n• Precio: ${formatCOP(p.precio)}\n• Ref: ${talla.sku}\nCatálogo: ${window.location.href}`;
+    const txt = `Hola! Vi el catálogo Monastery y quiero:\n• ${p.nombre}${p.color ? ` ${p.color}` : ""}\n• Talla: ${talla.talla}\n• Precio: ${formatCOP(p.precio)}\n• Ref: ${talla.sku}\nCatálogo: ${catalogoPublicoUrl(slug)}`;
     window.open(waUrl(whatsapp, txt), "_blank");
   };
   return (

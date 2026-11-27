@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { textoWhatsApp, nombreArchivo, formatCOP, type CatalogoProducto } from "@/lib/catalogo";
+import { textoWhatsApp, nombreArchivo, formatCOP, PUBLIC_CATALOG_BASE, catalogoPublicoUrl, type CatalogoProducto } from "@/lib/catalogo";
 
 const base: CatalogoProducto = {
   product_id: 1, nombre: "ARMINIA T-SHIRT", color: "BLACK", precio: 89900, precio_antes: 149900, pct_descuento: 40,
@@ -42,5 +42,12 @@ describe("confirmar antes de vender", () => {
       { sku: "c", talla: "L", disponible: 4, vendible: 4, confirmar: false, ultimas: false },
     ] };
     expect(textoWhatsApp(p)).toBe("*ARMINIA T-SHIRT* – BLACK\n💰 $ 89.900 (antes $ 149.900, -40%)\n📏 Tallas: M, L");
+  });
+});
+
+describe("enlace público del catálogo", () => {
+  it("usa siempre el dominio oficial, sin importar desde dónde se abra", () => {
+    expect(PUBLIC_CATALOG_BASE).toBe("https://monasterysmart.shop");
+    expect(catalogoPublicoUrl("abc123")).toBe("https://monasterysmart.shop/c/abc123");
   });
 });

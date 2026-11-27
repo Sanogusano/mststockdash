@@ -6,7 +6,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { fetchCatalogoCompleto } from "@/lib/catalogo-export";
-import type { CatalogoProducto } from "@/lib/catalogo";
+import { catalogoPublicoUrl, type CatalogoProducto } from "@/lib/catalogo";
 
 export const fechaHoraBogota = (iso: string) =>
   new Intl.DateTimeFormat("es-CO", { dateStyle: "medium", timeStyle: "short", hour12: true, timeZone: "America/Bogota" })
@@ -33,7 +33,7 @@ export function CompartirEnlaceDialog({ open, onOpenChange, params, seleccionado
         });
         if (error) throw error;
         const d = data as any;
-        if (vivo) setRes({ url: `${window.location.origin}/c/${d.slug}`, expira_en: d.expira_en, productos: Number(d.productos ?? ps.length) });
+        if (vivo) setRes({ url: catalogoPublicoUrl(String(d.slug)), expira_en: d.expira_en, productos: Number(d.productos ?? ps.length) });
       } catch (e: any) {
         toast.error(`No se pudo crear el enlace: ${e?.message ?? e}`);
         if (vivo) onOpenChange(false);
