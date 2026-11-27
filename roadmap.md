@@ -64,3 +64,6 @@
 - [x] Reemplazar el envío individual del diálogo Compartir enlace por copia del enlace y del mensaje para Zenvia; mensaje verificado con prueba.
 - [x] Convertir el catálogo público en un pedido persistente de varios productos con cantidades, límites de stock y envío consolidado por WhatsApp; flujo completo verificado en navegador con datos de muestra.
 - [x] Aumentar el logo de la franja superior del catálogo público a las clases solicitadas; revisado visualmente en 390 px.
+
+- [x] Crear Catálogo Showroom en /catalogo-showroom con el mismo permiso de Catálogo, RPC y exportaciones independientes, precios full/página, inventario NetSuite y sin compartir, WhatsApp, vista comercial ni contenido online/Guayabal; /catalogo quedó sin cambios. 16 pruebas aprobadas, typecheck limpio, pantalla escritorio/móvil y descargas JPG/PDF verificadas con datos de muestra.
+- [ ] Verificar /catalogo-showroom con sesión y datos reales: el Supabase externo no permite generar una sesión de prueba; ambas RPC existen y tienen EXECUTE para authenticated.

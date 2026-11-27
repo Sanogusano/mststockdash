@@ -91,7 +91,8 @@ const inventarioItems: NavItem[] = [inventariosItem];
 const reporteRebajasItem: NavItem = { title: "Reporte de Rebajas", url: "/reporte-rebajas", icon: Tag, description: "Productos con precio de catálogo rebajado", module: "dashboards.inventario_salud", action: "view" };
 
 const catalogoItem: NavItem = { title: "Catálogo", url: "/catalogo", icon: LayoutGrid, description: "Fichas para WhatsApp y stock", module: "comercial.catalogo", action: "view" };
-const herramientasItems: NavItem[] = [bundleConstructionItem, reporteRebajasItem, insumosItem, catalogoItem];
+const catalogoShowroomItem: NavItem = { title: "Catálogo Showroom", url: "/catalogo-showroom", icon: Store, description: "Precios e inventario de Showroom", module: "comercial.catalogo", action: "view" };
+const herramientasItems: NavItem[] = [bundleConstructionItem, reporteRebajasItem, insumosItem, catalogoItem, catalogoShowroomItem];
 
 const alertasDistribucionItem: NavItem = {
   title: "Alertas de distribución",
