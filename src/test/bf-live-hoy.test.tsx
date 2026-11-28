@@ -29,7 +29,7 @@ describe("Black Friday Live HOY section", () => {
     const { text, barClass, cards } = renderSection(
       <Today hoy={hoy({ tiendas_venta: 120_000_000, tiendas_pedidos: 18, online_venta: 45_000_000, online_pedidos: 12,
         online_ayer_misma_hora: 36_000_000, online_ayer: 80_000_000, tiendas_ayer: 210_000_000,
-        dias_restantes: 3, ritmo_necesario_dia: 100_000_000 })} now={NOW} />,
+        dias_restantes: 3, ritmo_necesario_dia: 0, meta_dia: 100_000_000 })} now={NOW} />,
     );
     expect(cards).toBe(3);
     expect(text).toContain("HOY · sábado 28 nov");
@@ -50,7 +50,7 @@ describe("Black Friday Live HOY section", () => {
     const { text } = renderSection(
       <Today hoy={hoy({ tiendas_venta: 5_000_000, tiendas_pedidos: 2, online_venta: 9_000_000, online_pedidos: 3,
         online_ayer_misma_hora: 0, online_ayer: 40_000_000, tiendas_ayer: 90_000_000,
-        dias_restantes: 3, ritmo_necesario_dia: 100_000_000 })} now={NOW} />,
+        dias_restantes: 3, ritmo_necesario_dia: 0, meta_dia: 100_000_000 })} now={NOW} />,
     );
     expect(text).not.toContain("vs ayer a esta hora");
     expect(text).not.toContain("▲");
@@ -63,7 +63,7 @@ describe("Black Friday Live HOY section", () => {
     const { text, barClass } = renderSection(
       <Today hoy={hoy({ tiendas_venta: 80_000_000, tiendas_pedidos: 12, online_venta: 30_000_000, online_pedidos: 7,
         online_ayer_misma_hora: 50_000_000, online_ayer: 70_000_000, tiendas_ayer: 150_000_000,
-        dias_restantes: 3, ritmo_necesario_dia: 100_000_000 })} now={NOW} />,
+        dias_restantes: 3, ritmo_necesario_dia: 0, meta_dia: 100_000_000 })} now={NOW} />,
     );
     expect(barClass).toContain("bf-budget-success");
     expect(barClass).not.toContain("bf-budget-warning");

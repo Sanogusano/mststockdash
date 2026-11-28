@@ -87,3 +87,10 @@ describe("Black Friday Live rules", () => {
     expect(bogotaDayLabel(Date.parse("2026-12-01T05:00:00Z"))).toBe("martes 1 dic");
   });
 });
+import { risenStores as _risen } from "@/lib/bf-live";
+describe("risenStores", () => {
+  it("flags only stores that moved up in the ranking", () => {
+    expect([..._risen(["A", "B", "C"], ["B", "A", "C"])]).toEqual(["B"]);
+    expect(_risen(["A", "B"], ["A", "B", "N"]).size).toBe(0);
+  });
+});

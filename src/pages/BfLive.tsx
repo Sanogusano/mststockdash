@@ -10,7 +10,7 @@ import { AppSidebar } from "@/components/AppSidebar";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { BF_EVENT_END, BF_REFRESH_INTERVAL, bogotaDayLabel, bogotaTime, budgetMoney, budgetPace, expectedMonthProgress, canViewBfLive, countdown, isNewOrder, liveMoney, onlineVsYesterdayPct, productThumbnail, todayPacePct, todayPaceTone, todayTotal, type BfLiveData, type BfBudgetAmount, type BfBudgetGroup, type BfToday, type LiveOrder, BF_MILESTONE_KEY, milestoneStep, milestoneLabel, salesMilestone } from "@/lib/bf-live";
+import { BF_EVENT_END, BF_REFRESH_INTERVAL, bogotaDayLabel, bogotaTime, budgetMoney, budgetPace, expectedMonthProgress, canViewBfLive, countdown, isNewOrder, liveMoney, onlineVsYesterdayPct, risenStores, productThumbnail, todayPacePct, todayPaceTone, todayTotal, type BfLiveData, type BfBudgetAmount, type BfBudgetGroup, type BfToday, type LiveOrder, BF_MILESTONE_KEY, milestoneStep, milestoneLabel, salesMilestone } from "@/lib/bf-live";
 
 /** Plays the cash-register mp3; falls back to the synthesized sound when the file cannot play. */
 export function playOrderSound(el: HTMLAudioElement | null, ctx: AudioContext | null) {
@@ -160,7 +160,7 @@ function TodayCard({ label, value, note, big = false, children }: { label: strin
 
 export function Today({ hoy, now }: { hoy: BfToday; now: number }) {
   const total = todayTotal(hoy);
-  const pct = todayPacePct(total, hoy.ritmo_necesario_dia);
+  const pct = todayPacePct(total, Number(hoy.meta_dia) || 0);
   const tone = todayPaceTone(pct);
   const delta = onlineVsYesterdayPct(hoy.online_venta, hoy.online_ayer_misma_hora);
   return <section className="bf-section bf-hoy" aria-label="Ventas de hoy">
@@ -169,17 +169,47 @@ export function Today({ hoy, now }: { hoy: BfToday; now: number }) {
       <TodayCard label="VENTA HOY TOTAL" value={total} big>
         <div className="mt-auto pt-4">
           <progress className={`bf-bar bf-budget-bar bf-budget-${tone}`} max={100} value={Math.min(100, Math.max(0, pct))} aria-label="Avance contra la meta del día" />
-          <p className="mt-2 text-xs text-muted-foreground">Meta del día {budgetMoney(hoy.ritmo_necesario_dia)} · {todayPercent(pct)}</p>
+          <p className="mt-2 text-xs text-muted-foreground">Meta del día {budgetMoney(Number(hoy.meta_dia) || 0)} · {todayPercent(pct)}</p>
+          <p className="mt-1 text-xs text-muted-foreground">Lo que falta del presupuesto de noviembre ÷ {hoy.dias_restantes} días</p>
         </div>
       </TodayCard>
       <TodayCard label="ONLINE HOY" value={hoy.online_venta} note={`${hoy.online_pedidos.toLocaleString("es-CO")} pedidos`}>
+        <p className="text-xs text-muted-foreground">{(Number(hoy.online_pedidos_min) || 0).toLocaleString("es-CO", { maximumFractionDigits: 1 })} pedidos/min · última hora</p>
         {delta !== null && <p className={`mt-auto pt-4 text-sm font-semibold ${delta >= 0 ? "text-success" : "text-destructive"}`}>{delta >= 0 ? "▲" : "▼"} {delta >= 0 ? "+" : "-"}{Math.abs(delta).toLocaleString("es-CO", { maximumFractionDigits: 1 })}% vs ayer a esta hora</p>}
       </TodayCard>
       <TodayCard label="TIENDAS HOY" value={hoy.tiendas_venta} note={`${hoy.tiendas_pedidos.toLocaleString("es-CO")} ventas`}>
+        <p className="text-xs text-muted-foreground">{(Number(hoy.tiendas_pedidos_min) || 0).toLocaleString("es-CO", { maximumFractionDigits: 1 })} ventas/min · promedio desde las 10:00</p>
         <p className="mt-auto pt-4 text-xs text-muted-foreground">Ayer total {liveMoney(hoy.tiendas_ayer)} · actualiza cada 10 min</p>
       </TodayCard>
     </div>
+    <TodayRanking rows={hoy.ranking_tiendas ?? []} />
   </section>;
+}
+
+function TodayRanking({ rows }: { rows: { tienda: string; venta: number; pedidos: number }[] }) {
+  const [all, setAll] = useState(false);
+  const [risen, setRisen] = useState<Set<string>>(new Set());
+  const prev = useRef<string[] | null>(null);
+  const key = rows.map(r => r.tienda).join("|");
+  useEffect(() => {
+    const names = key ? key.split("|") : [];
+    if (prev.current) {
+      const up = risenStores(prev.current, names);
+      if (up.size) { setRisen(up); const t = setTimeout(() => setRisen(new Set()), 1500); prev.current = names; return () => clearTimeout(t); }
+    }
+    prev.current = names;
+  }, [key]);
+  const shown = all ? rows : rows.slice(0, 10);
+  const max = Math.max(1, ...rows.map(r => Number(r.venta) || 0));
+  return <div className="mt-6">
+    <h3 className="mb-4 text-sm font-semibold tracking-wide text-muted-foreground">RANKING TIENDAS HOY</h3>
+    {rows.length ? <div className="space-y-5">{shown.map((r, i) => <div key={r.tienda} className={`rounded-md px-2 py-1 transition-colors ${risen.has(r.tienda) ? "bf-kpi-flash" : ""}`}>
+      <div className="flex items-start justify-between gap-3 text-sm"><span className="flex min-w-0 items-center gap-2 break-words"><span className="tabular-nums text-muted-foreground">{i + 1}.</span>{i === 0 && <Crown className="h-4 w-4 shrink-0 text-success" />}{r.tienda}</span><strong className="shrink-0 tabular-nums">{liveMoney(r.venta)}</strong></div>
+      <progress className="bf-bar bf-bar-small mt-2" max={max} value={Math.max(0, Number(r.venta) || 0)} aria-label={r.tienda} />
+      <p className="mt-1 text-xs text-muted-foreground">{(Number(r.pedidos) || 0).toLocaleString("es-CO")} ventas</p>
+    </div>)}</div> : <p className="text-sm text-muted-foreground">Aún no llegan ventas de tiendas hoy</p>}
+    {rows.length > 10 && <button type="button" className="mt-4 text-sm font-semibold text-primary underline-offset-4 hover:underline" onClick={() => setAll(v => !v)}>{all ? "Ver menos" : "Ver todas"}</button>}
+  </div>;
 }
 
 function Section({ title, children }: { title: string; children: ReactNode }) {

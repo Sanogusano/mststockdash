@@ -10,7 +10,15 @@ export type BfToday = {
   online_venta: number; online_pedidos: number;
   online_ayer_misma_hora: number; online_ayer: number;
   tiendas_ayer: number; dias_restantes: number; ritmo_necesario_dia: number;
+  meta_dia?: number; online_pedidos_min?: number; tiendas_pedidos_min?: number;
+  ranking_tiendas?: { tienda: string; venta: number; pedidos: number }[];
 };
+
+/** Tiendas whose position improved (lower index) vs the previous ranking. */
+export function risenStores(prev: string[], next: string[]) {
+  const before = new Map(prev.map((t, i) => [t, i]));
+  return new Set(next.filter((t, i) => before.has(t) && i < (before.get(t) as number)));
+}
 export interface BfLiveData {
   ahora: string; evento_inicio: string; evento_fin: string;
   hoy: BfToday;
