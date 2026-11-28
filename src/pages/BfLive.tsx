@@ -10,7 +10,7 @@ import { AppSidebar } from "@/components/AppSidebar";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { BF_EVENT_END, BF_REFRESH_INTERVAL, bogotaDayLabel, bogotaTime, budgetMoney, budgetPace, expectedMonthProgress, canViewBfLive, countdown, isNewOrder, liveMoney, onlineVsYesterdayPct, risenStores, productThumbnail, todayPacePct, todayPaceTone, todayTotal, type BfLiveData, type BfBudgetAmount, type BfBudgetGroup, type BfToday, type LiveOrder, BF_MILESTONE_KEY, milestoneStep, milestoneLabel, salesMilestone } from "@/lib/bf-live";
+import { BF_EVENT_END, BF_REFRESH_INTERVAL, bogotaDayLabel, bogotaTime, bfDeltaLabel, bfRankingDeltaChip, budgetMoney, budgetPace, expectedMonthProgress, canViewBfLive, countdown, isNewOrder, liveMoney, onlineVsYesterdayPct, risenStores, productThumbnail, storeVsYesterdayPct, todayPacePct, todayPaceTone, todayTotal, type BfLiveData, type BfBudgetAmount, type BfBudgetGroup, type BfToday, type LiveOrder, BF_MILESTONE_KEY, milestoneStep, milestoneLabel, salesMilestone } from "@/lib/bf-live";
 
 /** Plays the cash-register mp3; falls back to the synthesized sound when the file cannot play. */
 export function playOrderSound(el: HTMLAudioElement | null, ctx: AudioContext | null) {
@@ -163,6 +163,7 @@ export function Today({ hoy, now }: { hoy: BfToday; now: number }) {
   const pct = todayPacePct(total, Number(hoy.meta_dia) || 0);
   const tone = todayPaceTone(pct);
   const delta = onlineVsYesterdayPct(hoy.online_venta, hoy.online_ayer_misma_hora);
+  const tiendasDelta = storeVsYesterdayPct(hoy.tiendas_comparativo);
   return <section className="bf-section bf-hoy" aria-label="Ventas de hoy">
     <h2>HOY · {bogotaDayLabel(now)}</h2>
     <div className="bf-hoy-cards">
@@ -179,14 +180,23 @@ export function Today({ hoy, now }: { hoy: BfToday; now: number }) {
       </TodayCard>
       <TodayCard label="TIENDAS HOY" value={hoy.tiendas_venta} note={`${hoy.tiendas_pedidos.toLocaleString("es-CO")} ventas`}>
         <p className="text-xs text-muted-foreground">{(Number(hoy.tiendas_pedidos_min) || 0).toLocaleString("es-CO", { maximumFractionDigits: 1 })} ventas/min · promedio desde las 10:00</p>
-        <p className="mt-auto pt-4 text-xs text-muted-foreground">Ayer total {liveMoney(hoy.tiendas_ayer)} · actualiza cada 10 min</p>
+        <div className="mt-auto pt-4">
+          {tiendasDelta !== null && <p className={`text-sm font-semibold ${tiendasDelta >= 0 ? "text-success" : "text-destructive"}`}>{bfDeltaLabel(tiendasDelta)} vs ayer a esta hora</p>}
+          <p className="mt-1 text-xs text-muted-foreground">según facturas NetSuite · actualiza cada 10 min</p>
+        </div>
       </TodayCard>
     </div>
     <TodayRanking rows={hoy.ranking_tiendas ?? []} />
   </section>;
 }
 
-function TodayRanking({ rows }: { rows: { tienda: string; venta: number; pedidos: number }[] }) {
+const RANKING_CHIP_TONE = {
+  success: "border-success/30 bg-success/10 text-success",
+  destructive: "border-destructive/30 bg-destructive/10 text-destructive",
+  muted: "border-border bg-muted text-muted-foreground",
+} as const;
+
+function TodayRanking({ rows }: { rows: { tienda: string; venta: number; pedidos: number; var_pct?: number | null }[] }) {
   const [all, setAll] = useState(false);
   const [risen, setRisen] = useState<Set<string>>(new Set());
   const prev = useRef<string[] | null>(null);
@@ -203,11 +213,11 @@ function TodayRanking({ rows }: { rows: { tienda: string; venta: number; pedidos
   const max = Math.max(1, ...rows.map(r => Number(r.venta) || 0));
   return <div className="mt-6">
     <h3 className="mb-4 text-sm font-semibold tracking-wide text-muted-foreground">RANKING TIENDAS HOY</h3>
-    {rows.length ? <div className="space-y-5">{shown.map((r, i) => <div key={r.tienda} className={`rounded-md px-2 py-1 transition-colors ${risen.has(r.tienda) ? "bf-kpi-flash" : ""}`}>
-      <div className="flex items-start justify-between gap-3 text-sm"><span className="flex min-w-0 items-center gap-2 break-words"><span className="tabular-nums text-muted-foreground">{i + 1}.</span>{i === 0 && <Crown className="h-4 w-4 shrink-0 text-success" />}{r.tienda}</span><strong className="shrink-0 tabular-nums">{liveMoney(r.venta)}</strong></div>
+    {rows.length ? <div className="space-y-5">{shown.map((r, i) => { const chip = bfRankingDeltaChip(r.var_pct); return <div key={r.tienda} className={`rounded-md px-2 py-1 transition-colors ${risen.has(r.tienda) ? "bf-kpi-flash" : ""}`}>
+      <div className="flex items-start justify-between gap-3 text-sm"><span className="flex min-w-0 items-center gap-2 break-words"><span className="tabular-nums text-muted-foreground">{i + 1}.</span>{i === 0 && <Crown className="h-4 w-4 shrink-0 text-success" />}{r.tienda}</span><span className="flex shrink-0 items-center gap-2"><strong className="tabular-nums">{liveMoney(r.venta)}</strong><span className={`whitespace-nowrap rounded-full border px-2 py-0.5 text-xs font-semibold tabular-nums ${RANKING_CHIP_TONE[chip.tone]}`}>{chip.label}</span></span></div>
       <progress className="bf-bar bf-bar-small mt-2" max={max} value={Math.max(0, Number(r.venta) || 0)} aria-label={r.tienda} />
       <p className="mt-1 text-xs text-muted-foreground">{(Number(r.pedidos) || 0).toLocaleString("es-CO")} ventas</p>
-    </div>)}</div> : <p className="text-sm text-muted-foreground">Aún no llegan ventas de tiendas hoy</p>}
+    </div>; })}</div> : <p className="text-sm text-muted-foreground">Aún no llegan ventas de tiendas hoy</p>}
     {rows.length > 10 && <button type="button" className="mt-4 text-sm font-semibold text-primary underline-offset-4 hover:underline" onClick={() => setAll(v => !v)}>{all ? "Ver menos" : "Ver todas"}</button>}
   </div>;
 }

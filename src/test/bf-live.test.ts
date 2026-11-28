@@ -94,3 +94,32 @@ describe("risenStores", () => {
     expect(_risen(["A", "B"], ["A", "B", "N"]).size).toBe(0);
   });
 });
+import { bfDeltaLabel, bfPercent, bfRankingDeltaChip, storeVsYesterdayPct } from "@/lib/bf-live";
+describe("store comparison against yesterday at the same hour", () => {
+  it("reads the variance the RPC reports", () => {
+    expect(storeVsYesterdayPct({ var_pct: 12.5 })).toBe(12.5);
+    expect(storeVsYesterdayPct({ var_pct: -8 })).toBe(-8);
+  });
+  it("has no comparison when the RPC reports null, an empty object or no object at all", () => {
+    expect(storeVsYesterdayPct({ var_pct: null })).toBeNull();
+    expect(storeVsYesterdayPct(null)).toBeNull();
+    expect(storeVsYesterdayPct(undefined)).toBeNull();
+    expect(storeVsYesterdayPct({} as { var_pct: number | null })).toBeNull();
+  });
+  it("formats the arrow text with Colombian separators", () => {
+    expect(bfDeltaLabel(12.5)).toBe("▲ +12,5%");
+    expect(bfDeltaLabel(-8)).toBe("▼ -8%");
+    expect(bfDeltaLabel(0)).toBe("▲ +0%");
+    expect(bfPercent(1234.56)).toBe("1.234,6%");
+  });
+});
+describe("ranking delta chip", () => {
+  it("marks rises green and falls red", () => {
+    expect(bfRankingDeltaChip(12)).toEqual({ label: "▲ 12%", tone: "success" });
+    expect(bfRankingDeltaChip(-5)).toEqual({ label: "▼ 5%", tone: "destructive" });
+  });
+  it("says nuevo when the store had not sold at this hour yesterday", () => {
+    expect(bfRankingDeltaChip(null)).toEqual({ label: "nuevo", tone: "muted" });
+    expect(bfRankingDeltaChip(undefined)).toEqual({ label: "nuevo", tone: "muted" });
+  });
+});

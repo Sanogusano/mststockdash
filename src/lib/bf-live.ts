@@ -11,7 +11,8 @@ export type BfToday = {
   online_ayer_misma_hora: number; online_ayer: number;
   tiendas_ayer: number; dias_restantes: number; ritmo_necesario_dia: number;
   meta_dia?: number; online_pedidos_min?: number; tiendas_pedidos_min?: number;
-  ranking_tiendas?: { tienda: string; venta: number; pedidos: number }[];
+  tiendas_comparativo?: { var_pct: number | null } | null;
+  ranking_tiendas?: { tienda: string; venta: number; pedidos: number; var_pct?: number | null }[];
 };
 
 /** Tiendas whose position improved (lower index) vs the previous ranking. */
@@ -121,6 +122,32 @@ export function onlineVsYesterdayPct(onlineVenta: number, onlineAyerMismaHora: n
   const base = Number(onlineAyerMismaHora) || 0;
   if (base <= 0) return null;
   return ((Number(onlineVenta) || 0) - base) / base * 100;
+}
+
+/** Growth against yesterday at the same hour as reported by the RPC; null when there is no reference yet. */
+export function storeVsYesterdayPct(comparativo: { var_pct: number | null } | null | undefined) {
+  const pct = comparativo?.var_pct;
+  if (pct === null || pct === undefined || !Number.isFinite(Number(pct))) return null;
+  return Number(pct);
+}
+
+/** Percent with Colombian separators, e.g. 25 -> "25%", -8.25 -> "8,3%". */
+export function bfPercent(pct: number) {
+  return `${Math.abs(Number(pct) || 0).toLocaleString("es-CO", { maximumFractionDigits: 1 })}%`;
+}
+
+/** "▲ +25%" / "▼ -40%" arrow text used by the HOY cards. */
+export function bfDeltaLabel(pct: number) {
+  return `${pct >= 0 ? "▲ +" : "▼ -"}${bfPercent(pct)}`;
+}
+
+/** Ranking chip: green when the store grew, red when it fell, "nuevo" when it had not sold at this hour yesterday. */
+export function bfRankingDeltaChip(varPct: number | null | undefined): { label: string; tone: "success" | "destructive" | "muted" } {
+  if (varPct === null || varPct === undefined || !Number.isFinite(Number(varPct))) return { label: "nuevo", tone: "muted" };
+  const pct = Number(varPct);
+  return pct >= 0
+    ? { label: `▲ ${bfPercent(pct)}`, tone: "success" }
+    : { label: `▼ ${bfPercent(pct)}`, tone: "destructive" };
 }
 
 /** Bogota date for the section title, e.g. "sábado 28 nov". */

@@ -15,10 +15,11 @@ function renderSection(node: React.ReactElement) {
   const root = createRoot(host);
   act(() => root.render(node));
   const text = (host.textContent ?? "").replace(/\s+/g, " ").trim();
+  const html = host.innerHTML;
   const bar = host.querySelector("progress");
   const cards = host.querySelectorAll("article").length;
   act(() => root.unmount());
-  return { text, barClass: bar?.getAttribute("class") ?? "", cards };
+  return { text, html, barClass: bar?.getAttribute("class") ?? "", cards };
 }
 
 // 28 nov 2026, 11:45 a. m. en Bogotá
@@ -42,7 +43,8 @@ describe("Black Friday Live HOY section", () => {
     expect(text).not.toContain("▼");
     expect(text).toContain("TIENDAS HOY");
     expect(text).toContain("18 ventas");
-    expect(text).toContain("Ayer total $210 M · actualiza cada 10 min");
+    expect(text).toContain("según facturas NetSuite · actualiza cada 10 min");
+    expect(text).not.toContain("Ayer total");
     expect(barClass).toContain("bf-budget-success");
   });
 
@@ -80,5 +82,60 @@ describe("Black Friday Live HOY section", () => {
     );
     expect(text).toContain("Meta del día $0 M · 0%");
     expect(barClass).toContain("bf-budget-warning");
+  });
+
+  it("shows the stores growth against yesterday at the same hour in green", () => {
+    const { text } = renderSection(
+      <Today hoy={hoy({ tiendas_venta: 60_000_000, tiendas_pedidos: 9, online_venta: 10_000_000, online_pedidos: 2,
+        online_ayer_misma_hora: 10_000_000, online_ayer: 30_000_000, tiendas_ayer: 60_000_000,
+        dias_restantes: 3, ritmo_necesario_dia: 0, meta_dia: 100_000_000,
+        tiendas_comparativo: { var_pct: 12.5 } })} now={NOW} />,
+    );
+    expect(text).toContain("▲ +12,5% vs ayer a esta hora");
+    expect(text).toContain("según facturas NetSuite · actualiza cada 10 min");
+    expect(text).not.toContain("▼");
+  });
+
+  it("shows the stores drop against yesterday at the same hour in red", () => {
+    const { text, html } = renderSection(
+      <Today hoy={hoy({ tiendas_venta: 40_000_000, tiendas_pedidos: 6, online_venta: 10_000_000, online_pedidos: 2,
+        online_ayer_misma_hora: 0, online_ayer: 30_000_000, tiendas_ayer: 60_000_000,
+        dias_restantes: 3, ritmo_necesario_dia: 0, meta_dia: 100_000_000,
+        tiendas_comparativo: { var_pct: -8 } })} now={NOW} />,
+    );
+    expect(text).toContain("▼ -8% vs ayer a esta hora");
+    expect(text).not.toContain("▲");
+    expect(html).toContain("text-destructive");
+  });
+
+  it("hides the stores comparison when NetSuite has no reference for this hour yesterday", () => {
+    const { text } = renderSection(
+      <Today hoy={hoy({ tiendas_venta: 40_000_000, tiendas_pedidos: 6, online_venta: 10_000_000, online_pedidos: 2,
+        online_ayer_misma_hora: 0, online_ayer: 30_000_000, tiendas_ayer: 60_000_000,
+        dias_restantes: 3, ritmo_necesario_dia: 0, meta_dia: 100_000_000,
+        tiendas_comparativo: { var_pct: null } })} now={NOW} />,
+    );
+    expect(text).not.toContain("vs ayer a esta hora");
+    expect(text).not.toContain("▲");
+    expect(text).not.toContain("▼");
+    expect(text).toContain("según facturas NetSuite · actualiza cada 10 min");
+  });
+
+  it("marks each ranking row with its variance: up green, down red, null nuevo", () => {
+    const { text, html } = renderSection(
+      <Today hoy={hoy({ tiendas_venta: 90_000_000, tiendas_pedidos: 14, online_venta: 20_000_000, online_pedidos: 5,
+        online_ayer_misma_hora: 20_000_000, online_ayer: 40_000_000, tiendas_ayer: 90_000_000,
+        dias_restantes: 3, ritmo_necesario_dia: 0, meta_dia: 100_000_000,
+        ranking_tiendas: [
+          { tienda: "Andino", venta: 50_000_000, pedidos: 8, var_pct: 12 },
+          { tienda: "Chia", venta: 30_000_000, pedidos: 4, var_pct: -5 },
+          { tienda: "Bogota", venta: 10_000_000, pedidos: 2, var_pct: null },
+        ] })} now={NOW} />,
+    );
+    expect(text).toContain("▲ 12%");
+    expect(text).toContain("▼ 5%");
+    expect(text).toContain("nuevo");
+    expect(html).toContain("text-success");
+    expect(html).toContain("text-destructive");
   });
 });
