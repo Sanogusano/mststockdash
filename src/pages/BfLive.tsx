@@ -10,7 +10,7 @@ import { AppSidebar } from "@/components/AppSidebar";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { BF_EVENT_END, BF_REFRESH_INTERVAL, bogotaTime, budgetMoney, budgetPace, expectedMonthProgress, canViewBfLive, countdown, isNewOrder, liveMoney, productThumbnail, type BfLiveData, type BfBudgetAmount, type BfBudgetGroup, type LiveOrder, BF_MILESTONE_KEY, milestoneStep, milestoneLabel, salesMilestone } from "@/lib/bf-live";
+import { BF_EVENT_END, BF_REFRESH_INTERVAL, bogotaDayLabel, bogotaTime, budgetMoney, budgetPace, expectedMonthProgress, canViewBfLive, countdown, isNewOrder, liveMoney, onlineVsYesterdayPct, productThumbnail, todayPacePct, todayPaceTone, todayTotal, type BfLiveData, type BfBudgetAmount, type BfBudgetGroup, type BfToday, type LiveOrder, BF_MILESTONE_KEY, milestoneStep, milestoneLabel, salesMilestone } from "@/lib/bf-live";
 
 /** Plays the cash-register mp3; falls back to the synthesized sound when the file cannot play. */
 export function playOrderSound(el: HTMLAudioElement | null, ctx: AudioContext | null) {
@@ -122,7 +122,8 @@ function useAnimatedAmount(value: number) {
   return display;
 }
 
-function Kpi({ label, value, note, money = false }: { label: string; value: number; note?: string; money?: boolean }) {
+/** Flashes a card once, the same way the current KPIs do, when its amount goes up. */
+function useFlashOnRise(value: number) {
   const previous = useRef(value);
   const [flash, setFlash] = useState(false);
   useEffect(() => {
@@ -132,11 +133,53 @@ function Kpi({ label, value, note, money = false }: { label: string; value: numb
     const timer = window.setTimeout(() => setFlash(false), 1000);
     return () => window.clearTimeout(timer);
   }, [value]);
+  return flash;
+}
+
+function Kpi({ label, value, note, money = false }: { label: string; value: number; note?: string; money?: boolean }) {
+  const flash = useFlashOnRise(value);
   return <article className={`bf-kpi ${flash ? "bf-kpi-flash" : ""}`}>
     <p className="text-sm text-muted-foreground">{label}</p>
     <div className="bf-kpi-number">{money ? liveMoney(value) : Number(value).toLocaleString("es-CO", { maximumFractionDigits: 2 })}</div>
     {note && <p className="text-xs text-muted-foreground">{note}</p>}
   </article>;
+}
+
+const todayPercent = (pct: number) => `${pct.toLocaleString("es-CO", { maximumFractionDigits: 1 })}%`;
+
+function TodayCard({ label, value, note, big = false, children }: { label: string; value: number; note?: string; big?: boolean; children?: ReactNode }) {
+  const flash = useFlashOnRise(value);
+  const animated = useAnimatedAmount(value);
+  return <article className={`bf-kpi bf-hoy-card ${flash ? "bf-kpi-flash" : ""}`}>
+    <p className="text-sm text-muted-foreground">{label}</p>
+    <div className={`bf-kpi-number ${big ? "bf-hoy-total" : ""}`}>{liveMoney(animated)}</div>
+    {note && <p className="text-sm text-muted-foreground">{note}</p>}
+    {children}
+  </article>;
+}
+
+export function Today({ hoy, now }: { hoy: BfToday; now: number }) {
+  const total = todayTotal(hoy);
+  const pct = todayPacePct(total, hoy.ritmo_necesario_dia);
+  const tone = todayPaceTone(pct);
+  const delta = onlineVsYesterdayPct(hoy.online_venta, hoy.online_ayer_misma_hora);
+  return <section className="bf-section bf-hoy" aria-label="Ventas de hoy">
+    <h2>HOY · {bogotaDayLabel(now)}</h2>
+    <div className="bf-hoy-cards">
+      <TodayCard label="VENTA HOY TOTAL" value={total} big>
+        <div className="mt-auto pt-4">
+          <progress className={`bf-bar bf-budget-bar bf-budget-${tone}`} max={100} value={Math.min(100, Math.max(0, pct))} aria-label="Avance contra la meta del día" />
+          <p className="mt-2 text-xs text-muted-foreground">Meta del día {budgetMoney(hoy.ritmo_necesario_dia)} · {todayPercent(pct)}</p>
+        </div>
+      </TodayCard>
+      <TodayCard label="ONLINE HOY" value={hoy.online_venta} note={`${hoy.online_pedidos.toLocaleString("es-CO")} pedidos`}>
+        {delta !== null && <p className={`mt-auto pt-4 text-sm font-semibold ${delta >= 0 ? "text-success" : "text-destructive"}`}>{delta >= 0 ? "▲" : "▼"} {delta >= 0 ? "+" : "-"}{Math.abs(delta).toLocaleString("es-CO", { maximumFractionDigits: 1 })}% vs ayer a esta hora</p>}
+      </TodayCard>
+      <TodayCard label="TIENDAS HOY" value={hoy.tiendas_venta} note={`${hoy.tiendas_pedidos.toLocaleString("es-CO")} ventas`}>
+        <p className="mt-auto pt-4 text-xs text-muted-foreground">Ayer total {liveMoney(hoy.tiendas_ayer)} · actualiza cada 10 min</p>
+      </TodayCard>
+    </div>
+  </section>;
 }
 
 function Section({ title, children }: { title: string; children: ReactNode }) {
@@ -318,6 +361,7 @@ export function BfLiveBroadcast() {
       {error && <div role="alert" className="bf-error"><span>bf_live: {error.message}</span><Button variant="outline" onClick={() => void refetch()} disabled={isFetching}>Reintentar</Button>{data && <span className="text-xs">Mostrando el último dato recibido · {bogotaTime(dataUpdatedAt)}</span>}</div>}
       {isPending && <div role="status" className="flex justify-center gap-3 py-16 text-muted-foreground"><Radio className="animate-pulse" />Conectando con las ventas…</div>}
       {data && <>
+        {data.hoy && <Today hoy={data.hoy} now={now} />}
         <Budget budget={data.presupuesto_bloques} now={now} />
         <div className="bf-kpis">
           <Kpi label="Pedidos por minuto" value={data.online_vivo.pedidos_min_15} note="online · últimos 15 min" />

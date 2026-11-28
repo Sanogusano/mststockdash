@@ -5,8 +5,15 @@ export const BF_EVENT_END = "2026-12-01T23:59:59-05:00";
 export type LiveOrder = { hora: string; venta: number; canal: string };
 export type BfBudgetAmount = { vendido: number; presupuesto: number; falta: number; pct: number };
 export type BfBudgetGroup = BfBudgetAmount & { grupo: "Tiendas" | "Ecommerce"; detalle: (BfBudgetAmount & { nombre: string })[] };
+export type BfToday = {
+  tiendas_venta: number; tiendas_pedidos: number;
+  online_venta: number; online_pedidos: number;
+  online_ayer_misma_hora: number; online_ayer: number;
+  tiendas_ayer: number; dias_restantes: number; ritmo_necesario_dia: number;
+};
 export interface BfLiveData {
   ahora: string; evento_inicio: string; evento_fin: string;
+  hoy: BfToday;
   presupuesto_bloques: { general: BfBudgetAmount; grupos: BfBudgetGroup[] };
   evento: { pedidos: number; compradores: number; articulos: number; venta_neta: number; ticket_promedio: number; por_canal: { canal: string; venta: number; pedidos: number }[] };
   online_vivo: { pedidos_min_15: number; articulos_min_15: number; venta_ultima_hora: number; pedidos_hoy: number; venta_hoy: number; serie_60min: { min: string; pedidos: number }[]; ultimos_pedidos: LiveOrder[] };
@@ -83,3 +90,34 @@ export function milestoneStep(saved: number | null, total: number): { save: numb
   return { save: null, celebrate: null };
 }
 export function milestoneLabel(hito: number) { return `¡$${(hito * 100).toLocaleString("es-CO")} MILLONES!`; }
+
+/** Total sold today across physical stores and online. */
+export function todayTotal(hoy: BfToday) {
+  return (Number(hoy.tiendas_venta) || 0) + (Number(hoy.online_venta) || 0);
+}
+
+/** Percentage of the daily pace goal already reached; a missing goal never divides by zero. */
+export function todayPacePct(vendido: number, ritmoNecesarioDia: number) {
+  const ritmo = Number(ritmoNecesarioDia) || 0;
+  if (ritmo <= 0) return 0;
+  return Math.max(0, (Number(vendido) || 0) / ritmo * 100);
+}
+
+/** Green only once the day's goal is reached; golden while still below it. */
+export function todayPaceTone(pct: number) {
+  return pct >= 100 ? "success" : "warning";
+}
+
+/** Growth against yesterday at the same hour; null when there is no yesterday reference to compare with. */
+export function onlineVsYesterdayPct(onlineVenta: number, onlineAyerMismaHora: number) {
+  const base = Number(onlineAyerMismaHora) || 0;
+  if (base <= 0) return null;
+  return ((Number(onlineVenta) || 0) - base) / base * 100;
+}
+
+/** Bogota date for the section title, e.g. "sábado 28 nov". */
+export function bogotaDayLabel(now: number) {
+  const parts = new Intl.DateTimeFormat("es-CO", { timeZone: "America/Bogota", weekday: "long", day: "numeric", month: "short" }).formatToParts(now);
+  const part = (type: string) => parts.find(p => p.type === type)?.value ?? "";
+  return `${part("weekday")} ${part("day")} ${part("month")}`;
+}

@@ -218,6 +218,9 @@
 .bf-kpi { background: hsl(var(--card)); border: 1px solid hsl(var(--border)); border-radius: 8px; padding: 20px; min-width: 0; }
 .bf-kpi-number { font-weight: 800; font-size: 38px; line-height: 1.3; margin: 8px 0; overflow-wrap: anywhere; }
 .bf-kpi-flash { animation: bf-flash 1s ease-out; }
+.bf-hoy-cards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.bf-hoy-card { display: flex; flex-direction: column; }
+.bf-hoy-total { font-size: 56px; }
 .bf-pulse { padding: 0 0 24px; border-bottom: 1px solid hsl(var(--border)); }
 .bf-pulse-bars { display: flex; gap: 3px; align-items: flex-end; height: 90px; margin: 20px 0 8px; }
 .bf-pulse-track { display: flex; flex: 1; min-width: 0; height: 100%; align-items: flex-end; border-bottom: 1px solid hsl(var(--border)); }
@@ -266,6 +269,8 @@
   .bf-budget-detail { grid-template-columns: minmax(0, 1fr) auto; gap: 8px 12px; }
   .bf-budget-detail > .bf-budget-track { grid-column: 1 / -1; grid-row: 2; }
   .bf-kpis, .bf-grid { grid-template-columns: minmax(0, 1fr); }
+  .bf-hoy-cards { grid-template-columns: minmax(0, 1fr); }
+  .bf-hoy-total { font-size: 40px; }
   .bf-kpi-number { font-size: 38px; }
   .bf-section { border-bottom: 1px solid hsl(var(--border)); }
   .bf-ticker-label { font-size: 0; padding-right: 12px; }

@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { BF_EVENT_END, BF_REFRESH_INTERVAL, budgetMoney, budgetPace, expectedMonthProgress, canViewBfLive, countdown, isNewOrder, liveMoney } from "@/lib/bf-live";
+import { BF_EVENT_END, BF_REFRESH_INTERVAL, bogotaDayLabel, budgetMoney, budgetPace, expectedMonthProgress, canViewBfLive, countdown, isNewOrder, liveMoney, onlineVsYesterdayPct, todayPacePct, todayPaceTone, todayTotal, type BfToday } from "@/lib/bf-live";
+
+const hoy = (over: Partial<BfToday> = {}): BfToday => ({
+  tiendas_venta: 0, tiendas_pedidos: 0, online_venta: 0, online_pedidos: 0,
+  online_ayer_misma_hora: 0, online_ayer: 0, tiendas_ayer: 0,
+  dias_restantes: 0, ritmo_necesario_dia: 0, ...over,
+});
 
 describe("Black Friday Live rules", () => {
   it("uses the Bogota day divided by the days in the current month", () => {
@@ -52,5 +58,32 @@ describe("Black Friday Live rules", () => {
     expect(liveMoney(116400000)).toBe("$116,4 M");
     expect(liveMoney(3376000000)).toBe("$3.376 M");
     expect(liveMoney(161345.4, false)).toBe("$161.345");
+  });
+  it("adds stores and online for the section's total", () => {
+    expect(todayTotal(hoy({ tiendas_venta: 120000000, online_venta: 45000000 }))).toBe(165000000);
+    expect(todayTotal(hoy())).toBe(0);
+  });
+  it("measures the day against the required pace without dividing by zero", () => {
+    expect(todayPacePct(50000000, 100000000)).toBe(50);
+    expect(todayPacePct(120000000, 100000000)).toBe(120);
+    expect(todayPacePct(50000000, 0)).toBe(0);
+    expect(todayPacePct(-10, 100000000)).toBe(0);
+  });
+  it("turns the pace bar green only once the day's goal is reached", () => {
+    expect(todayPaceTone(100)).toBe("success");
+    expect(todayPaceTone(140)).toBe("success");
+    expect(todayPaceTone(99.9)).toBe("warning");
+    expect(todayPaceTone(0)).toBe("warning");
+  });
+  it("compares online with yesterday at the same hour, skipping a missing reference", () => {
+    expect(onlineVsYesterdayPct(125000000, 100000000)).toBe(25);
+    expect(onlineVsYesterdayPct(60000000, 100000000)).toBe(-40);
+    expect(onlineVsYesterdayPct(100000000, 100000000)).toBe(0);
+    expect(onlineVsYesterdayPct(100000000, 0)).toBeNull();
+  });
+  it("titles the section with the Bogota weekday, day and short month", () => {
+    expect(bogotaDayLabel(Date.parse("2026-11-28T16:45:00Z"))).toBe("sábado 28 nov");
+    expect(bogotaDayLabel(Date.parse("2026-11-28T04:59:00Z"))).toBe("viernes 27 nov");
+    expect(bogotaDayLabel(Date.parse("2026-12-01T05:00:00Z"))).toBe("martes 1 dic");
   });
 });
